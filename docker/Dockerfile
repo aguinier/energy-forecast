@@ -20,6 +20,7 @@ COPY docker/crontab /etc/cron.d/energy-forecast
 RUN chmod 0644 /etc/cron.d/energy-forecast && crontab /etc/cron.d/energy-forecast
 
 COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Database lives on a mounted volume
 ENV ENERGY_DB_PATH=/data/energy_dashboard.db
