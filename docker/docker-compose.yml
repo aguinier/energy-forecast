@@ -1,0 +1,13 @@
+services:
+  forecast:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: energy-forecast
+    restart: unless-stopped
+    environment:
+      - ENERGY_DB_PATH=/data/energy_dashboard.db
+    volumes:
+      - ${DB_DIR:-../../data_gathering}:/data      # directory containing the DB
+      - ${MODELS_DIR:-../models}:/app/models       # trained models (read/write)
+      - ./logs:/app/logs                           # persistent logs

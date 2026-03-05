@@ -1,0 +1,5 @@
+# Forecast runs -- 30 min after each data update
+0 7 * * * cd /app && /usr/local/bin/python3 scripts/forecast_daily.py >> /app/logs/cron_forecast.log 2>&1
+0 14 * * * cd /app && /usr/local/bin/python3 scripts/forecast_daily.py >> /app/logs/cron_forecast.log 2>&1
+30 15 * * * cd /app && /usr/local/bin/python3 scripts/forecast_daily.py >> /app/logs/cron_forecast.log 2>&1
+0 19 * * * cd /app && /usr/local/bin/python3 scripts/forecast_daily.py >> /app/logs/cron_forecast.log 2>&1

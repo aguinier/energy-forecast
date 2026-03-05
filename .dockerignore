@@ -1,0 +1,38 @@
+# Database files
+*.db
+*.db-wal
+*.db-shm
+
+# Python virtualenv
+env/
+venv/
+.venv/
+
+# Environment secrets
+.env
+
+# Logs (mounted as volume)
+logs/
+
+# Models (mounted as volume)
+models/
+
+# Caches
+__pycache__/
+*.pyc
+*.pyo
+catboost_info/
+
+# Docker directory itself
+docker/
+
+# Windows scripts and docs
+*.bat
+*.md
+
+# Tests
+test_*.py
+
+# Misc
+nul
+.claude/
