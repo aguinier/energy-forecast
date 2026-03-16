@@ -33,3 +33,8 @@ nul
 
 # Claude
 .claude/
+
+# Exploration/scratch files
+_scratch/
+*.csv
+data/
