@@ -14,8 +14,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 
-from model_registry import get_registry, ModelRegistry
-from db import (
+from .model_registry import get_registry, ModelRegistry
+from .db import (
     get_latest_evaluation,
     get_deployed_model,
     save_deployment,

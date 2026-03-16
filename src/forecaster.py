@@ -23,13 +23,13 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 
-from db import (
+from .db import (
     load_training_data,
     get_latest_data_timestamp,
     load_weather_forecast_for_hour,
 )
-from features import create_all_features, get_feature_columns
-from metrics import calculate_all_metrics, format_metrics
+from .features import create_all_features, get_feature_columns
+from .metrics import calculate_all_metrics, format_metrics
 
 
 logger = logging.getLogger("energy_forecast")
@@ -56,6 +56,7 @@ class Forecaster:
         forecast_type: str,
         algorithm: str = "xgboost",
         hyperparams: Optional[Dict[str, Any]] = None,
+        weather_mode: str = "centroid",
     ):
         """
         Initialize forecaster.
@@ -65,16 +66,25 @@ class Forecaster:
             forecast_type: 'load', 'price', or 'renewable'
             algorithm: 'xgboost', 'lightgbm', or 'catboost' (default: 'xgboost')
             hyperparams: Custom hyperparameters to override defaults
+            weather_mode: 'centroid' or 'multipoint' (default: 'centroid')
         """
         self.country_code = country_code
         self.forecast_type = forecast_type
         self.algorithm = algorithm.lower()
+        self.weather_mode = weather_mode.lower()
 
         # Validate algorithm
         if self.algorithm not in config.SUPPORTED_ALGORITHMS:
             raise ValueError(
                 f"Unsupported algorithm: {algorithm}. "
                 f"Supported: {config.SUPPORTED_ALGORITHMS}"
+            )
+
+        # Validate weather mode
+        if self.weather_mode not in ["centroid", "multipoint"]:
+            raise ValueError(
+                f"Unsupported weather_mode: {weather_mode}. "
+                f"Supported: ['centroid', 'multipoint']"
             )
 
         # Merge provided hyperparams with defaults
@@ -147,9 +157,16 @@ class Forecaster:
             logger.info("Grid search enabled")
 
         # Load and prepare data
-        df = load_training_data(
-            self.country_code, self.forecast_type, start_date, end_date
-        )
+        if self.weather_mode == 'multipoint':
+            # Import here to avoid circular imports
+            from .db import load_training_data_multipoint
+            df = load_training_data_multipoint(
+                self.country_code, self.forecast_type, start_date, end_date
+            )
+        else:
+            df = load_training_data(
+                self.country_code, self.forecast_type, start_date, end_date
+            )
 
         if df.empty:
             raise ValueError(
@@ -390,7 +407,14 @@ class Forecaster:
         logger.info(f"Folds: {n_folds}, test size: {test_size_days} days")
 
         # Load and prepare data
-        df = load_training_data(self.country_code, self.forecast_type, start_date, end_date)
+        if self.weather_mode == 'multipoint':
+            # Import here to avoid circular imports
+            from .db import load_training_data_multipoint
+            df = load_training_data_multipoint(
+                self.country_code, self.forecast_type, start_date, end_date
+            )
+        else:
+            df = load_training_data(self.country_code, self.forecast_type, start_date, end_date)
 
         if df.empty:
             raise ValueError(
@@ -706,6 +730,7 @@ class Forecaster:
             "country_code": self.country_code,
             "forecast_type": self.forecast_type,
             "model_version": self.model_version,
+            "weather_mode": self.weather_mode,
             "training_metrics": self.training_metrics,
             "grid_search_results": self.grid_search_results,
             "walk_forward_results": getattr(self, 'walk_forward_results', None),
@@ -741,6 +766,7 @@ class Forecaster:
             "country_code": self.country_code,
             "forecast_type": self.forecast_type,
             "model_version": self.model_version,
+            "weather_mode": self.weather_mode,
             "training_metrics": self.training_metrics,
             "grid_search_results": self.grid_search_results,
             "saved_at": datetime.now().isoformat(),
@@ -779,9 +805,10 @@ class Forecaster:
         # Get algorithm from saved data or default to xgboost for backward compatibility
         algorithm = model_data.get("algorithm", "xgboost")
         hyperparams = model_data.get("hyperparams", None)
+        weather_mode = model_data.get("weather_mode", "centroid")
 
         forecaster = cls(
-            country_code, forecast_type, algorithm=algorithm, hyperparams=hyperparams
+            country_code, forecast_type, algorithm=algorithm, hyperparams=hyperparams, weather_mode=weather_mode
         )
         forecaster.model = model_data["model"]
         forecaster.feature_columns = model_data["feature_columns"]

@@ -41,12 +41,12 @@ from .validation import (
 )
 
 # Evaluation
-from .evaluation import (
-    EvaluationReport,
-    generate_evaluation_report,
-    format_evaluation_report,
-    compare_models,
-)
+# from .evaluation import (
+#     EvaluationReport,
+#     generate_evaluation_report,
+#     format_evaluation_report,
+#     compare_models,
+# )
 
 # Model Registry
 from .model_registry import (

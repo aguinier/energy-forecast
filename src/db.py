@@ -542,6 +542,125 @@ def load_training_data(
     return df
 
 
+def load_training_data_multipoint(
+    country_code: str,
+    forecast_type: str,
+    start_date: str,
+    end_date: str
+) -> pd.DataFrame:
+    """
+    Load merged dataset using multipoint weather data instead of centroid data.
+
+    Args:
+        country_code: ISO 2-letter country code
+        forecast_type: 'load', 'price', or 'renewable'  
+        start_date: Start date (YYYY-MM-DD)
+        end_date: End date (YYYY-MM-DD)
+
+    Returns:
+        Merged DataFrame with target and multipoint weather features (hourly)
+    """
+    # Load energy data using existing function (unchanged)
+    energy_df = load_energy_data(country_code, forecast_type, start_date, end_date)
+    
+    # Load weather data from multipoint table
+    weather_df = load_weather_data_multipoint(country_code, forecast_type, start_date, end_date)
+
+    if energy_df.empty:
+        logger.warning(f"No energy data for {country_code} {forecast_type}")
+        return energy_df
+
+    # Resample energy data to hourly (mean of sub-hourly values)
+    energy_df = energy_df.set_index('timestamp_utc')
+    energy_df = energy_df.resample('h').mean().reset_index()
+    energy_df = energy_df.dropna()
+
+    logger.info(f"Resampled to {len(energy_df)} hourly records")
+
+    # Merge with weather if available
+    if not weather_df.empty:
+        df = pd.merge(
+            energy_df,
+            weather_df,
+            on='timestamp_utc',
+            how='left'
+        )
+    else:
+        df = energy_df
+
+    logger.info(f"Multipoint training data: {len(df)} records for {country_code} {forecast_type}")
+    return df
+
+
+def load_weather_data_multipoint(
+    country_code: str,
+    forecast_type: str,
+    start_date: str,
+    end_date: str
+) -> pd.DataFrame:
+    """
+    Load multipoint weather data for a specific country and forecast type.
+
+    Args:
+        country_code: ISO 2-letter country code
+        forecast_type: Type of forecast ('wind_onshore', 'wind_offshore', 'solar', 'load')
+        start_date: Start date (YYYY-MM-DD)
+        end_date: End date (YYYY-MM-DD)
+
+    Returns:
+        DataFrame with multipoint weather data
+    """
+    query = """
+    SELECT 
+        timestamp_utc,
+        temperature_2m_k,
+        dew_point_2m_k,
+        relative_humidity_2m_frac,
+        pressure_msl_hpa,
+        wind_speed_10m_ms,
+        wind_gusts_10m_ms,
+        wind_direction_10m_deg,
+        wind_speed_100m_ms,
+        wind_direction_100m_deg,
+        wind_speed_80m_ms,
+        wind_speed_120m_ms,
+        precip_mm,
+        rain_mm,
+        snowfall_mm,
+        shortwave_radiation_wm2,
+        direct_radiation_wm2,
+        direct_normal_irradiance_wm2,
+        diffuse_radiation_wm2,
+        n_points
+    FROM weather_data_multipoint 
+    WHERE country_code = ?
+      AND forecast_type = ?
+      AND timestamp_utc >= ?
+      AND timestamp_utc <= ?
+    ORDER BY timestamp_utc
+    """
+
+    try:
+        with get_connection() as conn:
+            df = pd.read_sql_query(
+                query, 
+                conn, 
+                params=[country_code, forecast_type, start_date, end_date]
+            )
+
+        if not df.empty:
+            df['timestamp_utc'] = pd.to_datetime(df['timestamp_utc'])
+            logger.info(f"Loaded {len(df)} multipoint weather records for {country_code}-{forecast_type}")
+        else:
+            logger.warning(f"No multipoint weather data found for {country_code}-{forecast_type} from {start_date} to {end_date}")
+
+        return df
+
+    except Exception as e:
+        logger.error(f"Error loading multipoint weather data: {e}")
+        return pd.DataFrame()
+
+
 # ============================================================================
 # FORECAST STORAGE
 # ============================================================================
