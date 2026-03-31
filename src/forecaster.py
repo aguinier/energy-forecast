@@ -125,6 +125,7 @@ class Forecaster:
         validation_days: int = None,
         grid_search: bool = False,
         grid_params: Optional[Dict[str, List]] = None,
+        exclude_backtest: bool = False,
     ) -> Dict[str, float]:
         """
         Train the model on historical data.
@@ -134,6 +135,7 @@ class Forecaster:
             end_date: Training end date (default: latest available)
             validation_days: Days to hold out for validation
             grid_search: Enable hyperparameter tuning with GridSearchCV
+            exclude_backtest: Exclude backtest weeks from training data
             grid_params: Custom grid search parameter space (default: from config)
 
         Returns:
@@ -172,6 +174,19 @@ class Forecaster:
             raise ValueError(
                 f"No training data available for {self.country_code} {self.forecast_type}"
             )
+
+        # Exclude backtest weeks if requested (for fair cross-model comparison)
+        if exclude_backtest:
+            exclude_dates = config.get_backtest_exclude_dates()
+            original_len = len(df)
+            ts = pd.to_datetime(df['timestamp_utc'])
+            mask = pd.Series(True, index=df.index)
+            for start, end in exclude_dates:
+                mask &= ~((ts >= pd.Timestamp(start)) & (ts <= pd.Timestamp(end) + pd.Timedelta(hours=23)))
+            df = df[mask].reset_index(drop=True)
+            removed = original_len - len(df)
+            if removed > 0:
+                logger.info(f"Excluded {removed} rows from backtest weeks")
 
         # Create features
         df = create_all_features(df, self.forecast_type)

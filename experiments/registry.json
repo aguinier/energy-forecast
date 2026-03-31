@@ -1,0 +1,49 @@
+{
+  "experiments": [
+    {
+      "id": "V001",
+      "name": "XGBoost baseline",
+      "model": "xgboost",
+      "status": "pending",
+      "created_at": "2026-03-31",
+      "parent": null,
+      "description": "Current XGBoost pipeline retrained with backtest exclusion (baseline reference)"
+    },
+    {
+      "id": "V002",
+      "name": "Chronos-2 zero-shot",
+      "model": "chronos-2",
+      "status": "pending",
+      "created_at": "2026-03-31",
+      "parent": null,
+      "description": "Pretrained Chronos-2 without fine-tuning, weather + time covariates"
+    },
+    {
+      "id": "V003",
+      "name": "Chronos-2 fine-tuned",
+      "model": "chronos-2",
+      "status": "pending",
+      "created_at": "2026-03-31",
+      "parent": "V002",
+      "description": "Fine-tuned 5000 steps, cosine LR, all ENTSO-E + weather covariates"
+    },
+    {
+      "id": "V004",
+      "name": "Chronos-2 + geographic neighbors",
+      "model": "chronos-2",
+      "status": "pending",
+      "created_at": "2026-03-31",
+      "parent": "V003",
+      "description": "Fine-tuned Chronos-2 with top-3 geographic neighbor load/price as covariates"
+    },
+    {
+      "id": "V005",
+      "name": "Chronos-2 + extended context",
+      "model": "chronos-2",
+      "status": "pending",
+      "created_at": "2026-03-31",
+      "parent": "V003",
+      "description": "Fine-tuned Chronos-2 with 1008h context window (6 weeks instead of 4)"
+    }
+  ]
+}

@@ -177,6 +177,37 @@ def migrate_forecasts_add_model_name_unique():
         logger.info("Forecasts table migration complete")
 
 
+def create_forecast_quantiles_table():
+    """
+    Create the forecast_quantiles table for probabilistic forecasts.
+    Stores individual quantile predictions from Chronos-2 models.
+    """
+    with get_connection(readonly=False) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS forecast_quantiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                country_code TEXT NOT NULL,
+                forecast_type TEXT NOT NULL,
+                target_timestamp_utc TIMESTAMP NOT NULL,
+                generated_at TIMESTAMP NOT NULL,
+                quantile REAL NOT NULL,
+                forecast_value REAL NOT NULL,
+                model_name TEXT NOT NULL,
+
+                UNIQUE(country_code, forecast_type, target_timestamp_utc, quantile, model_name, generated_at)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_fq_lookup
+            ON forecast_quantiles(country_code, forecast_type, target_timestamp_utc, model_name)
+        """)
+
+        logger.info("Forecast quantiles table created/verified")
+
+
 # ============================================================================
 # DATA LOADING FOR TRAINING
 # ============================================================================
@@ -733,6 +764,63 @@ def save_forecasts(forecasts_df: pd.DataFrame) -> int:
 
     logger.info(f"Saved {records_inserted} forecasts to database")
     return records_inserted
+
+
+def save_quantile_forecasts(
+    country_code: str,
+    forecast_type: str,
+    target_timestamps: list,
+    quantile_values: dict,
+    model_name: str,
+    generated_at: Optional[datetime] = None,
+) -> int:
+    """
+    Save quantile forecast predictions to the database.
+
+    Args:
+        country_code: ISO 2-letter country code
+        forecast_type: Forecast type (load, price, renewable, etc.)
+        target_timestamps: List of target datetime objects (24 hours)
+        quantile_values: Dict of {quantile_level: array_of_values}
+                        e.g., {0.1: [v1, v2, ...], 0.5: [v1, v2, ...]}
+        model_name: Model identifier (e.g., "chronos-2-V003")
+        generated_at: When the forecast was generated (default: now)
+
+    Returns:
+        Number of records saved
+    """
+    if generated_at is None:
+        generated_at = datetime.utcnow()
+
+    # Ensure table exists
+    create_forecast_quantiles_table()
+
+    count = 0
+    with get_connection(readonly=False) as conn:
+        cursor = conn.cursor()
+        for q_level, values in quantile_values.items():
+            for ts, val in zip(target_timestamps, values):
+                try:
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO forecast_quantiles
+                        (country_code, forecast_type, target_timestamp_utc,
+                         generated_at, quantile, forecast_value, model_name)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        country_code,
+                        forecast_type,
+                        str(ts),
+                        str(generated_at),
+                        float(q_level),
+                        float(val),
+                        model_name,
+                    ))
+                    count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to insert quantile forecast: {e}")
+
+    logger.info(f"Saved {count} quantile forecasts for {country_code}/{forecast_type} ({model_name})")
+    return count
 
 
 def get_forecasts(

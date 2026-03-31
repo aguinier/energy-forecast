@@ -1,0 +1,21 @@
+{
+  "id": "V001",
+  "model": {
+    "type": "xgboost",
+    "params": {
+      "n_estimators": 500,
+      "max_depth": 8,
+      "learning_rate": 0.05,
+      "min_child_weight": 3,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8
+    }
+  },
+  "countries": ["all"],
+  "forecast_types": ["load", "price", "renewable", "solar", "wind_onshore", "wind_offshore", "hydro_total", "biomass"],
+  "training_data": {
+    "start": "2023-01-01",
+    "end": "2026-03-01",
+    "backtest_exclusion": true
+  }
+}

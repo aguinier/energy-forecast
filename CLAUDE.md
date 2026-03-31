@@ -35,11 +35,22 @@ energy_forecast/
 │   ├── validation.py       # Walk-forward validation
 │   ├── baselines.py        # Baseline models (persistence, seasonal naive)
 │   ├── model_registry.py   # Model versioning and registry
-│   └── deployment.py       # Model deployment management
+│   ├── deployment.py       # Model deployment management
+│   └── chronos2/           # Chronos-2 foundation model (ported from netpredict2)
+│       ├── engine.py           # Chronos-2 pipeline wrapper (forecast, batch)
+│       ├── input_builder.py    # DB loading + covariate alignment
+│       ├── finetuner.py        # Fine-tuning pipeline (5000 steps, cosine LR)
+│       └── covariate_mapper.py # Country→covariate mapping (ENTSO-E + weather)
 ├── scripts/
 │   ├── train.py              # Training script (enhanced)
+│   ├── train_chronos2.py     # Chronos-2 fine-tuning script
 │   ├── forecast_daily.py     # Daily forecast job
+│   ├── forecast_chronos2.py  # Chronos-2 forecast generation
+│   ├── compare_experiments.py # Cross-experiment backtest comparison
 │   └── scheduler_setup.sh    # Cron setup
+├── experiments/        # Versioned experiment configs (V001-Vnnn)
+│   ├── registry.json       # Master experiment index
+│   └── V00N/config.json    # Per-experiment configuration
 ├── models/             # Saved model artifacts
 └── logs/               # Execution logs
 ```
@@ -154,6 +165,28 @@ python scripts/train.py --countries DE --types load --feature-selection
 
 # Full optimization pipeline
 python scripts/train.py --countries DE --types load --walk-forward --optuna --feature-selection
+
+# Train with backtest week exclusion (for fair Chronos-2 comparison)
+python scripts/train.py --countries all --types all --exclude-backtest
+```
+
+### Chronos-2 (ported from netpredict2)
+
+```bash
+# Zero-shot forecast (no fine-tuning, uses pretrained Chronos-2)
+python scripts/forecast_chronos2.py --experiment V002 --countries DE --types load --target-date 2024-01-15
+
+# Fine-tune Chronos-2 (requires GPU + chronos venv)
+python scripts/train_chronos2.py --experiment V003 --device cuda
+
+# Fine-tune with overrides
+python scripts/train_chronos2.py --experiment V003 --countries DE --types load --steps 100 --device cuda
+
+# Generate fine-tuned forecasts
+python scripts/forecast_chronos2.py --experiment V003 --countries DE,FR --types load,price --save-to-db
+
+# Compare experiments (XGBoost vs Chronos-2 across backtest weeks)
+python scripts/compare_experiments.py --experiments V001,V003 --weeks all --countries DE --types load
 ```
 
 ### Forecasting
@@ -207,6 +240,7 @@ python scripts/forecast_daily.py --countries DE,FR
 | XGBoost | Default. Gradient boosting with regularization |
 | LightGBM | Fast gradient boosting with histogram-based learning |
 | CatBoost | Gradient boosting with built-in categorical handling |
+| Chronos-2 | Foundation model (120M params). Requires GPU + separate venv |
 
 ### XGBoost Configuration
 
@@ -220,6 +254,39 @@ python scripts/forecast_daily.py --countries DE,FR
     'colsample_bytree': 0.8
 }
 ```
+
+### Chronos-2 Configuration (ported from netpredict2)
+
+```python
+{
+    'model': 'amazon/chronos-2',       # 120M param foundation model
+    'context_length': 672,             # 4 weeks of hourly data
+    'prediction_length': 24,           # 1 day ahead
+    'fine_tune_steps': 5000,           # Cosine LR schedule
+    'learning_rate': 1e-5,
+    'quantiles': [0.1, 0.2, ..., 0.9] # 9 quantile levels
+}
+```
+
+**Covariates (suffix convention from netpredict2):**
+- **Suffix-0** (future-known, through D+2): Weather (Open-Meteo), time features, holidays
+- **Suffix-1** (past-only, through D+1): TSO load/generation forecasts, DA prices, neighbor features
+
+**Key dependencies:** `torch>=2.1`, `transformers>=4.40`, `chronos-forecasting>=2.0` (separate venv)
+
+### Experiment System
+
+Experiments are versioned V001-Vnnn with configs in `experiments/`. Both XGBoost and Chronos-2 run in parallel — forecasts stored with distinct `model_name` values in the `forecasts` table.
+
+```bash
+experiments/
+├── registry.json           # Master index of all experiments
+├── V001/config.json        # XGBoost baseline
+├── V002/config.json        # Chronos-2 zero-shot
+└── V003/config.json        # Chronos-2 fine-tuned (5000 steps)
+```
+
+**Backtest evaluation:** 12 held-out weeks (W01-W12) spanning 2024-2026, NaN-masked during training of ALL models. Use `--exclude-backtest` flag for XGBoost, automatic for Chronos-2.
 
 ### Expected Performance
 

@@ -231,6 +231,13 @@ Examples:
         help='Use cascade architecture for price: Stage 1 (load+renewable) → Stage 2 (price)'
     )
 
+    # Backtest exclusion (for fair Chronos-2 comparison)
+    parser.add_argument(
+        '--exclude-backtest',
+        action='store_true',
+        help='Exclude backtest weeks from training data (for fair cross-model comparison)'
+    )
+
     return parser.parse_args()
 
 
@@ -294,6 +301,23 @@ def should_train_renewable_type(country_code: str, renewable_type: str, logger: 
         return False
 
 
+def _exclude_backtest_weeks(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    """Remove backtest week rows from training data for fair cross-model comparison."""
+    exclude_dates = config.get_backtest_exclude_dates()
+    original_len = len(df)
+    ts_col = 'timestamp_utc'
+    if ts_col in df.columns:
+        ts = pd.to_datetime(df[ts_col])
+        mask = pd.Series(True, index=df.index)
+        for start, end in exclude_dates:
+            mask &= ~((ts >= pd.Timestamp(start)) & (ts <= pd.Timestamp(end) + pd.Timedelta(hours=23)))
+        df = df[mask].reset_index(drop=True)
+    removed = original_len - len(df)
+    if removed > 0:
+        logger.info(f"  Excluded {removed} rows ({removed // 24} days) from backtest weeks")
+    return df
+
+
 def train_model(
     country_code: str,
     forecast_type: str,
@@ -313,6 +337,7 @@ def train_model(
     n_trials: int = 50,
     feature_selection: bool = False,
     cascade: bool = False,
+    exclude_backtest: bool = False,
 ) -> dict:
     """
     Train a single model with evaluation and optional auto-promotion.
@@ -334,6 +359,7 @@ def train_model(
         use_optuna: Use Optuna for hyperparameter optimization
         n_trials: Number of Optuna trials
         feature_selection: Enable automated feature selection
+        exclude_backtest: Exclude backtest weeks from training data
 
     Returns:
         Dictionary with training results
@@ -426,6 +452,10 @@ def train_model(
             if df.empty:
                 raise ValueError(f"No training data for {country_code} {forecast_type}")
 
+            # Exclude backtest weeks if requested (for fair cross-model comparison)
+            if exclude_backtest:
+                df = _exclude_backtest_weeks(df, logger)
+
             df = create_all_features(df, forecast_type, country_code=country_code)
             feature_cols = [c for c in get_feature_columns(forecast_type) if c in df.columns]
 
@@ -486,7 +516,8 @@ def train_model(
                 start_date=start_date,
                 end_date=end_date,
                 grid_search=grid_search,
-                grid_params=grid_params
+                grid_params=grid_params,
+                exclude_backtest=exclude_backtest,
             )
 
         # Save as candidate (not directly to production)
@@ -832,6 +863,8 @@ def main():
         logger.info(f"Auto-promotion: ENABLED (min_skill={args.min_skill})")
     if args.skip_evaluation:
         logger.info("Evaluation: DISABLED")
+    if args.exclude_backtest:
+        logger.info(f"Backtest exclusion: ENABLED ({len(config.BACKTEST_WEEKS)} weeks)")
     logger.info("")
 
     # Track results
@@ -872,6 +905,7 @@ def main():
                     n_trials=args.n_trials,
                     feature_selection=args.feature_selection,
                     cascade=args.cascade,
+                    exclude_backtest=args.exclude_backtest,
                 )
                 results.append(result)
 

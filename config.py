@@ -333,7 +333,95 @@ MODEL_RUNNERS = [
         "python_executable": r"C:\Users\guill\miniconda3\python.exe",
         "script": "src/tso_correction_forecaster.py",
     },
+    {
+        "name": "chronos-2",
+        "type": "external",
+        "enabled": False,  # Enable after fine-tuning
+        "production": False,
+        "countries": "all",
+        "forecast_types": "all",
+        "python_executable": None,  # Set to chronos-2 venv path
+        "script": "scripts/forecast_chronos2.py",
+    },
 ]
+
+
+# ============================================================================
+# CHRONOS-2 CONFIGURATION
+# ============================================================================
+CHRONOS2_MODEL_NAME = "amazon/chronos-2"  # 120M param foundation model
+CHRONOS2_CONTEXT_LENGTH = 672  # 4 weeks of hourly data (netpredict2 best)
+CHRONOS2_PREDICTION_LENGTH = 24  # 1 day ahead
+CHRONOS2_QUANTILE_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+# Experiment directory
+EXPERIMENTS_DIR = BASE_DIR / "experiments"
+
+# ============================================================================
+# BACKTEST WEEKS (held out from ALL model training for fair comparison)
+# ============================================================================
+BACKTEST_WEEKS = [
+    ("W01", "2024-01-15", "2024-01-21"),   # Winter Y1
+    ("W02", "2024-03-11", "2024-03-17"),   # Early spring Y1
+    ("W03", "2024-04-22", "2024-04-28"),   # Spring Y1
+    ("W04", "2024-07-15", "2024-07-21"),   # Summer Y1
+    ("W05", "2024-09-09", "2024-09-15"),   # Late summer Y1
+    ("W06", "2024-11-11", "2024-11-17"),   # Autumn Y1
+    ("W07", "2025-01-13", "2025-01-19"),   # Winter Y2
+    ("W08", "2025-04-07", "2025-04-13"),   # Spring Y2
+    ("W09", "2025-06-16", "2025-06-22"),   # Summer Y2
+    ("W10", "2025-10-06", "2025-10-12"),   # Autumn Y2
+    ("W11", "2026-01-12", "2026-01-18"),   # Winter Y3
+    ("W12", "2026-02-16", "2026-02-22"),   # Late winter Y3
+]
+
+def get_backtest_exclude_dates() -> list[tuple[str, str]]:
+    """Return list of (start, end) date pairs for backtest exclusion."""
+    return [(start, end) for _, start, end in BACKTEST_WEEKS]
+
+def get_backtest_weeks(week_ids: list[str] | None = None) -> list[tuple[str, str, str]]:
+    """Get backtest weeks, optionally filtered by week IDs.
+
+    Args:
+        week_ids: List of week IDs to include (e.g., ['W01', 'W03']).
+                  None means all weeks.
+
+    Returns:
+        List of (week_id, start_date, end_date) tuples
+    """
+    if week_ids is None:
+        return BACKTEST_WEEKS
+    return [w for w in BACKTEST_WEEKS if w[0] in week_ids]
+
+# ============================================================================
+# GEOGRAPHIC NEIGHBORS (for cross-country features)
+# ============================================================================
+COUNTRY_NEIGHBORS = {
+    "AT": ["DE", "CZ", "HU", "SI", "CH", "IT"],
+    "BE": ["FR", "NL", "DE"],
+    "BG": ["RO", "GR"],
+    "CH": ["DE", "FR", "AT", "IT"],
+    "CZ": ["DE", "PL", "SK", "AT"],
+    "DE": ["FR", "NL", "PL", "CZ", "AT", "CH"],
+    "EE": ["LT", "LV", "FI"],
+    "ES": ["FR", "PT"],
+    "FI": ["SE", "EE", "NO"],
+    "FR": ["DE", "BE", "ES", "IT", "CH"],
+    "GR": ["BG", "IT"],
+    "HR": ["SI", "HU"],
+    "HU": ["AT", "SK", "RO", "HR", "SI"],
+    "IT": ["FR", "AT", "SI", "GR", "CH"],
+    "LT": ["LV", "PL", "EE"],
+    "LV": ["LT", "EE"],
+    "NL": ["DE", "BE"],
+    "NO": ["SE", "FI"],
+    "PL": ["DE", "CZ", "SK", "LT"],
+    "PT": ["ES"],
+    "RO": ["BG", "HU"],
+    "SE": ["NO", "FI"],
+    "SI": ["AT", "IT", "HR", "HU"],
+    "SK": ["CZ", "PL", "HU", "AT"],
+}
 
 
 if __name__ == "__main__":
