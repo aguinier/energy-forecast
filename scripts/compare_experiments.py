@@ -44,6 +44,22 @@ def load_actuals(
     end_date: str,
 ) -> pd.Series:
     """Load actual values from DB, return hourly series."""
+    # Handle net_position (not in the standard energy data tables)
+    if forecast_type == "net_position":
+        import sqlite3
+        conn = sqlite3.connect(str(config.DATABASE_PATH))
+        try:
+            df = pd.read_sql_query(
+                "SELECT timestamp_utc, net_position_mw as target_value FROM net_position WHERE country_code = ? AND timestamp_utc >= ? AND timestamp_utc < ? ORDER BY timestamp_utc",
+                conn, params=(country_code, start_date, end_date)
+            )
+        finally:
+            conn.close()
+        if df.empty:
+            return pd.Series(dtype=float)
+        df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="mixed", utc=True).dt.tz_localize(None)
+        return df.set_index("timestamp_utc")["target_value"].resample("h").mean()
+
     df = load_energy_data(country_code, forecast_type, start_date, end_date)
     if df.empty:
         return pd.Series(dtype=float)
@@ -94,6 +110,12 @@ def run_backtest_for_experiment(
 
     Returns (actuals, forecasts) arrays, or None if failed.
     """
+    # Handle persistence baseline (no config file needed)
+    if experiment_id == "persistence":
+        return _run_persistence_backtest(
+            country_code, forecast_type, week_start, week_end,
+        )
+
     from src.chronos2.engine import ChronosEngine
     from src.chronos2.input_builder import InputBuilder
 
@@ -233,6 +255,51 @@ def _run_xgboost_backtest(
 
         except Exception as e:
             logger.warning(f"  XGBoost {target_date}: failed - {e}")
+
+        current += timedelta(days=1)
+
+    if not all_actuals:
+        return None
+
+    return np.array(all_actuals), np.array(all_forecasts)
+
+
+def _run_persistence_backtest(
+    country_code: str,
+    forecast_type: str,
+    week_start: str,
+    week_end: str,
+) -> tuple[np.ndarray, np.ndarray] | None:
+    """Run persistence baseline backtest (value at same hour 48h ago)."""
+    all_actuals = []
+    all_forecasts = []
+
+    start_dt = pd.Timestamp(week_start)
+    end_dt = pd.Timestamp(week_end)
+    current = start_dt
+
+    while current <= end_dt:
+        target_date = current.strftime("%Y-%m-%d")
+        next_day = (current + timedelta(days=1)).strftime("%Y-%m-%d")
+
+        actuals_series = load_actuals(country_code, forecast_type, target_date, next_day)
+
+        if not actuals_series.empty:
+            history_start = (current - timedelta(days=3)).strftime("%Y-%m-%d")
+            history_end = target_date
+            history = load_actuals(country_code, forecast_type, history_start, history_end)
+
+            if not history.empty:
+                target_index = pd.date_range(current, periods=24, freq="h")
+                persist_index = target_index - pd.Timedelta(hours=48)
+
+                actuals_aligned = actuals_series.reindex(target_index)
+                persist_values = history.reindex(persist_index)
+
+                valid = ~actuals_aligned.isna() & ~persist_values.isna()
+                if valid.sum() > 0:
+                    all_actuals.extend(actuals_aligned[valid].values)
+                    all_forecasts.extend(persist_values[valid].values)
 
         current += timedelta(days=1)
 
