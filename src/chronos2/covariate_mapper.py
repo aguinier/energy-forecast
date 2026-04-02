@@ -59,6 +59,11 @@ WEATHER_COVARIATES = {
     "biomass": [
         "temperature_2m_k",
     ],
+    "net_position": [
+        "temperature_2m_k",
+        "wind_speed_100m_ms",
+        "shortwave_radiation_wm2",
+    ],
 }
 
 
@@ -75,6 +80,7 @@ TSO_COVARIATES = {
     "wind_offshore": ["tso_wind_forecast"],
     "hydro_total": ["tso_load_forecast"],
     "biomass": ["tso_load_forecast"],
+    "net_position": ["tso_load_forecast"],
 }
 
 
@@ -157,31 +163,45 @@ def build_covariate_map(
             })
 
     # --- Suffix-1: Day-ahead prices ---
-    if forecast_type in ("load", "price", "renewable"):
+    if forecast_type in ("load", "price", "renewable", "net_position"):
         suffix_1.append({
             "source": "energy_price",
             "column": "price_eur_mwh",
             "cov_name": "da__price",
         })
 
+    # --- Suffix-1: Crossborder flows (net_position only) ---
+    if forecast_type == "net_position":
+        suffix_1.append({
+            "source": "crossborder_flows",
+            "column": "flow_mw",
+            "cov_name": "crossborder_flows",
+        })
+
     # --- Suffix-1: Neighbor features ---
     if include_neighbors:
         neighbors = config.COUNTRY_NEIGHBORS.get(country_code, [])[:top_n_neighbors]
         for neighbor in neighbors:
-            # Neighbor load
-            suffix_1.append({
-                "source": "energy_load",
-                "column": "load_mw",
-                "country_override": neighbor,
-                "cov_name": f"neighbor__{neighbor}_load",
-            })
-            # Neighbor price
-            suffix_1.append({
-                "source": "energy_price",
-                "column": "price_eur_mwh",
-                "country_override": neighbor,
-                "cov_name": f"neighbor__{neighbor}_price",
-            })
+            if forecast_type == "net_position":
+                suffix_1.append({
+                    "source": "net_position",
+                    "column": "net_position_mw",
+                    "country_override": neighbor,
+                    "cov_name": f"neighbor_np__{neighbor}",
+                })
+            else:
+                suffix_1.append({
+                    "source": "energy_load",
+                    "column": "load_mw",
+                    "country_override": neighbor,
+                    "cov_name": f"neighbor__{neighbor}_load",
+                })
+                suffix_1.append({
+                    "source": "energy_price",
+                    "column": "price_eur_mwh",
+                    "country_override": neighbor,
+                    "cov_name": f"neighbor__{neighbor}_price",
+                })
 
     return {
         "suffix_0": suffix_0,

@@ -510,6 +510,17 @@ class InputBuilder:
                 series = _load_load_series(cc, context_start_str, past_cutoff_str)
                 past_covariates[cov_name] = _align_to_index(series, past_index) if not series.empty else np.zeros(len(past_index), dtype=np.float32)
 
+            elif source == "crossborder_flows":
+                flow_dict = _load_crossborder_flow_covariates(
+                    country_code, context_start_str, past_cutoff_str
+                )
+                for flow_name, flow_series in flow_dict.items():
+                    past_covariates[flow_name] = _align_to_index(flow_series, past_index) if not flow_series.empty else np.zeros(len(past_index), dtype=np.float32)
+
+            elif source == "net_position":
+                series = _load_neighbor_net_position(cc, context_start_str, past_cutoff_str)
+                past_covariates[cov_name] = _align_to_index(series, past_index) if not series.empty else np.zeros(len(past_index), dtype=np.float32)
+
         input_dict = {"target": target_aligned}
         if past_covariates:
             input_dict["past_covariates"] = past_covariates
@@ -624,6 +635,25 @@ class InputBuilder:
                 series_data = _load_price_series(cc, start_date, end_date)
             elif source == "energy_load":
                 series_data = _load_load_series(cc, start_date, end_date)
+
+            elif source == "crossborder_flows":
+                flow_dict = _load_crossborder_flow_covariates(
+                    country_code, start_date, end_date
+                )
+                for flow_name, flow_series in flow_dict.items():
+                    if not flow_series.empty:
+                        aligned = _align_to_index(flow_series, series_index)
+                        if len(aligned) == len(target):
+                            past_covariates[flow_name] = aligned
+                continue
+
+            elif source == "net_position":
+                series_data = _load_neighbor_net_position(cc, start_date, end_date)
+                if not series_data.empty:
+                    aligned = _align_to_index(series_data, series_index)
+                    if len(aligned) == len(target):
+                        past_covariates[cov_name] = aligned
+                continue
 
             if not series_data.empty:
                 aligned = _align_to_index(series_data, series_index)
