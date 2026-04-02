@@ -25,7 +25,7 @@ LOGS_DIR = BASE_DIR / "logs"
 # ============================================================================
 FORECAST_HOUR = 18  # Run daily at 18:00
 FORECAST_TARGET_DAYS = 2  # D+2 (day after tomorrow) - default for backwards compatibility
-FORECAST_TYPES = ['load', 'price', 'renewable']
+FORECAST_TYPES = ['load', 'price', 'renewable', 'net_position']
 
 # Default horizons by forecast type (backward compatibility - single horizon)
 # D+1 for load/renewable (day-ahead forecasts)
@@ -39,6 +39,7 @@ DEFAULT_HORIZONS = {
     'wind_offshore': 1,
     'hydro_total': 1,
     'biomass': 1,
+    'net_position': 2,    # D+2 - net position forecast
 }
 
 # Multi-horizon configuration: each type generates forecasts for all specified horizons
@@ -52,6 +53,7 @@ FORECAST_HORIZONS = {
     'wind_offshore': [1, 2],  # D+1 and D+2
     'hydro_total': [1, 2],    # D+1 and D+2
     'biomass': [1, 2],        # D+1 and D+2
+    'net_position': [1, 2],   # D+1 and D+2
 }
 
 
@@ -266,7 +268,12 @@ WEATHER_FEATURES = {
     ],
     'biomass': [
         'temperature_2m_k',
-    ]
+    ],
+    'net_position': [
+        'temperature_2m_k',
+        'wind_speed_100m_ms',
+        'shortwave_radiation_wm2',
+    ],
 }
 
 # ============================================================================
