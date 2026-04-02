@@ -43,6 +43,7 @@ TARGET_TABLE_MAP = {
     "wind_offshore": ("energy_renewable", "wind_offshore_mw"),
     "hydro_total": ("energy_renewable", "(hydro_run_mw + hydro_reservoir_mw)"),
     "biomass": ("energy_renewable", "biomass_mw"),
+    "net_position": ("net_position", "net_position_mw"),
 }
 
 
@@ -278,6 +279,72 @@ def _load_load_series(
     df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="mixed", utc=True).dt.tz_localize(None)
     df = df.set_index("timestamp_utc")
     return df["value"].resample("h").mean()
+
+
+def _load_crossborder_flow_covariates(
+    country_code: str,
+    start_date: str,
+    end_date: str,
+) -> dict[str, pd.Series]:
+    """Load per-border flow series as individual covariates.
+
+    For country DE with neighbors FR, NL, PL, CZ, AT, CH, returns:
+        {"flow__FR": pd.Series, "flow__NL": pd.Series, ...}
+
+    Each series is hourly MW indexed by datetime.
+    """
+    query = """
+        SELECT country_to, timestamp_utc, flow_mw
+        FROM crossborder_flows
+        WHERE country_from = ?
+          AND timestamp_utc >= ?
+          AND timestamp_utc < ?
+        ORDER BY country_to, timestamp_utc
+    """
+    conn = _get_connection()
+    try:
+        df = pd.read_sql_query(query, conn, params=(country_code, start_date, end_date))
+    finally:
+        conn.close()
+
+    if df.empty:
+        return {}
+
+    df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="mixed", utc=True).dt.tz_localize(None)
+
+    result = {}
+    for neighbor, group in df.groupby("country_to"):
+        series = group.set_index("timestamp_utc")["flow_mw"].resample("h").mean()
+        result[f"flow__{neighbor}"] = series
+
+    return result
+
+
+def _load_neighbor_net_position(
+    country_code: str,
+    start_date: str,
+    end_date: str,
+) -> pd.Series:
+    """Load a country's net position as a covariate (for neighbor features)."""
+    query = """
+        SELECT timestamp_utc, net_position_mw as value
+        FROM net_position
+        WHERE country_code = ?
+          AND timestamp_utc >= ?
+          AND timestamp_utc < ?
+        ORDER BY timestamp_utc
+    """
+    conn = _get_connection()
+    try:
+        df = pd.read_sql_query(query, conn, params=(country_code, start_date, end_date))
+    finally:
+        conn.close()
+
+    if df.empty:
+        return pd.Series(dtype=float)
+
+    df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="mixed", utc=True).dt.tz_localize(None)
+    return df.set_index("timestamp_utc")["value"].resample("h").mean()
 
 
 def _build_calendar_series(index: pd.DatetimeIndex, country_code: str) -> dict[str, np.ndarray]:
