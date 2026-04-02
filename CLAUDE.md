@@ -16,6 +16,7 @@ D+2 energy forecasting module for European electricity markets. Generates 24-hou
   - Wind Offshore - Offshore wind generation (MW)
   - Hydro Total - Combined run-of-river and reservoir hydro (MW)
   - Biomass - Biomass generation (MW)
+- **Net Position** - Cross-border import/export balance (MW) [Chronos-2 only]
 
 **Coverage:** 24 European countries with complete data
 
@@ -187,6 +188,10 @@ python scripts/forecast_chronos2.py --experiment V003 --countries DE,FR --types 
 
 # Compare experiments (XGBoost vs Chronos-2 across backtest weeks)
 python scripts/compare_experiments.py --experiments V001,V003 --weeks all --countries DE --types load
+
+# Net position forecasting (V010+)
+python scripts/forecast_chronos2.py --experiment V010 --countries DE --types net_position --target-date 2024-01-15
+python scripts/compare_experiments.py --experiments persistence,V010 --weeks W01 --countries DE --types net_position
 ```
 
 ### Forecasting

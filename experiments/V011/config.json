@@ -1,0 +1,31 @@
+{
+  "id": "V011",
+  "model": {
+    "type": "chronos-2",
+    "base": "amazon/chronos-2",
+    "context_length": 672,
+    "prediction_length": 24,
+    "quantiles": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  },
+  "training": {
+    "fine_tune": true,
+    "fine_tune_steps": 5000,
+    "learning_rate": 1e-5,
+    "batch_size": 32,
+    "lr_scheduler": "cosine",
+    "warmup_ratio": 0.1,
+    "gradient_accumulation_steps": 4,
+    "val_fraction": 0.1
+  },
+  "covariates": {
+    "suffix_0": ["weather_temperature", "weather_wind_100m", "weather_radiation", "hour", "dayofweek", "month", "is_holiday"],
+    "suffix_1": ["crossborder_flows", "tso_load_forecast", "da_prices"]
+  },
+  "countries": ["all"],
+  "forecast_types": ["net_position"],
+  "training_data": {
+    "start": "2023-01-01",
+    "end": "2026-03-01",
+    "backtest_exclusion": true
+  }
+}
