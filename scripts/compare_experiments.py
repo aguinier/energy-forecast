@@ -137,8 +137,11 @@ def run_backtest_for_experiment(
         )
 
     # Chronos-2 experiment
+    # Chronos2Pipeline.fit() saves to {output_dir}/finetuned-ckpt/ internally
     if training_config.get("fine_tune", False):
-        model_path = str(config.MODELS_DIR / "chronos2" / experiment_id / "finetuned-ckpt")
+        base_path = config.MODELS_DIR / "chronos2" / experiment_id / "finetuned-ckpt"
+        ckpt_path = base_path / "finetuned-ckpt"
+        model_path = str(ckpt_path) if ckpt_path.exists() else str(base_path)
     else:
         model_path = None
 
