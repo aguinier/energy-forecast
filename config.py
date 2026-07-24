@@ -17,6 +17,10 @@ BASE_DIR = Path(__file__).parent
 # Database path: use ENERGY_DB_PATH env var (set by Docker), or fallback to /data/
 DATABASE_PATH = Path(os.getenv('ENERGY_DB_PATH', '/data/energy_dashboard.db'))
 
+# Sidecar DB for locally-generated forecasts (workstation replica-purity):
+# when set, ALL write connections go here instead of DATABASE_PATH.
+FORECAST_OUTPUT_DB = os.getenv('FORECAST_OUTPUT_DB')
+
 MODELS_DIR = BASE_DIR / "models"
 LOGS_DIR = BASE_DIR / "logs"
 

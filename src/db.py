@@ -36,8 +36,13 @@ def get_connection(readonly: bool = True):
     """
     conn = None
     try:
-        # Always use standard connection (SQLite URI mode can be unreliable)
-        conn = sqlite3.connect(str(config.DATABASE_PATH), timeout=30.0)
+        # Always use standard connection (SQLite URI mode can be unreliable).
+        # Replica-purity: when FORECAST_OUTPUT_DB is set (workstation), all
+        # write connections target the sidecar DB instead of the replica.
+        target = config.DATABASE_PATH
+        if not readonly and getattr(config, 'FORECAST_OUTPUT_DB', None):
+            target = config.FORECAST_OUTPUT_DB
+        conn = sqlite3.connect(str(target), timeout=30.0)
         conn.row_factory = sqlite3.Row
         yield conn
 
