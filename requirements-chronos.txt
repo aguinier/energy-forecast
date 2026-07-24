@@ -1,0 +1,9 @@
+# Chronos-2 extras for the workstation GPU venv (NOT installed in the prod
+# CPU container image - keep out of requirements.txt).
+# torch is installed separately with the CUDA index. Use cu126 — it is the
+# index that ships torch 2.13.0 + cp314 (Python 3.14) Windows CUDA wheels for
+# this workstation (cu121/cu128 do NOT have a matching wheel):
+#   pip install "torch==2.13.0" --index-url https://download.pytorch.org/whl/cu126 --force-reinstall --no-deps
+# (run AFTER the base+chronos install, which otherwise pulls the +cpu build).
+chronos-forecasting>=1.4.0
+pytest>=8.0.0
