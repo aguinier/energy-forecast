@@ -13,7 +13,7 @@
       "id": "V002",
       "name": "Chronos-2 zero-shot",
       "model": "chronos-2",
-      "status": "pending",
+      "status": "ready",
       "created_at": "2026-03-31",
       "parent": null,
       "description": "Pretrained Chronos-2 without fine-tuning, weather + time covariates"
@@ -22,7 +22,7 @@
       "id": "V003",
       "name": "Chronos-2 fine-tuned",
       "model": "chronos-2",
-      "status": "pending",
+      "status": "completed",
       "created_at": "2026-03-31",
       "parent": "V002",
       "description": "Fine-tuned 5000 steps, cosine LR, all ENTSO-E + weather covariates"
