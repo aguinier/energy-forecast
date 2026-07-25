@@ -281,15 +281,21 @@ def _load_load_series(
     return df["value"].resample("h").mean()
 
 
-# Cross-border flows are published with a real delay, so a D+2 forecast cannot see
-# recent flows. Derivation: the scheduled run happens at 08:00 for target date T
-# (origin T-2d 08:00) and ENTSO-E flow publication lags ~26h (measured on prod;
-# ~30h allowing for the partially-populated final hour). The newest genuinely
-# available flow is therefore ~T-70h for target hour T 00:00 and ~T-93h for T 23:00.
-# We apply ONE uniform lag >= that worst case, identically in training and
-# inference, so train-lag == eval-lag == serve-lag and no target hour can ever see
+# A D+2 forecast cannot see recent cross-border flows. Derivation (re-derived
+# 2026-07-25 from MEASURED data, after fixing the broken ingest that made the lag
+# look like 26h -- it is actually ~1h):
+#   - ENTSO-E publishes physical flows at ~H+1 (measured: max timestamp 14:00 at
+#     14:58 UTC across BE/FR/DE).
+#   - The binding constraint is INGEST CADENCE, not publication: prod cron runs
+#     00:30/06:30/13:30/18:30 UTC, and the workstation replica syncs 05:00 UTC.
+#   - Forecast runs 06:00 UTC (08:00 Brussels) for target date T, so origin =
+#     T-42h, and the freshest flow in the replica then came from the 00:30 run
+#     => flows only to ~T-48h.
+#   - Required lag is 48h for target hour T 00:00, rising to 71h for T 23:00.
+# One uniform lag >= the 71h worst case, applied identically in training and
+# inference, so train-lag == eval-lag == serve-lag and no target hour can see
 # unpublished data. See docs/superpowers/specs/2026-07-25-crossborder-lag-parity-design.md
-CROSSBORDER_SERVE_LAG_HOURS = 96  # 4 days; >= 93h worst case
+CROSSBORDER_SERVE_LAG_HOURS = 72  # 3 days; >= 71h worst case
 
 
 def _load_crossborder_flow_covariates(
