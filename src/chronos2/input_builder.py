@@ -281,6 +281,17 @@ def _load_load_series(
     return df["value"].resample("h").mean()
 
 
+# Cross-border flows are published with a real delay, so a D+2 forecast cannot see
+# recent flows. Derivation: the scheduled run happens at 08:00 for target date T
+# (origin T-2d 08:00) and ENTSO-E flow publication lags ~26h (measured on prod;
+# ~30h allowing for the partially-populated final hour). The newest genuinely
+# available flow is therefore ~T-70h for target hour T 00:00 and ~T-93h for T 23:00.
+# We apply ONE uniform lag >= that worst case, identically in training and
+# inference, so train-lag == eval-lag == serve-lag and no target hour can ever see
+# unpublished data. See docs/superpowers/specs/2026-07-25-crossborder-lag-parity-design.md
+CROSSBORDER_SERVE_LAG_HOURS = 96  # 4 days; >= 93h worst case
+
+
 def _load_crossborder_flow_covariates(
     country_code: str,
     start_date: str,
@@ -309,9 +320,16 @@ def _load_crossborder_flow_covariates(
           AND timestamp_utc < ?
         ORDER BY country_to, timestamp_utc
     """
+    # Shift the QUERY window back by the serve lag so that, after lagging the series
+    # forward below, the caller's [start_date, end_date] window is fully covered with
+    # real (lagged) data instead of losing its first LAG hours to an empty gap.
+    lag = pd.Timedelta(hours=CROSSBORDER_SERVE_LAG_HOURS)
+    query_start = str(pd.Timestamp(start_date) - lag)
+    query_end = str(pd.Timestamp(end_date) - lag)
+
     conn = _get_connection()
     try:
-        df = pd.read_sql_query(query, conn, params=(country_code, start_date, end_date))
+        df = pd.read_sql_query(query, conn, params=(country_code, query_start, query_end))
     finally:
         conn.close()
 
@@ -332,10 +350,14 @@ def _load_crossborder_flow_covariates(
         net=("flow_mw", "sum"),
     )
 
+    # Lag every flow series by the serve lag: the value observed at t-LAG is what
+    # the model is allowed to see at t. Applied here (the single choke point for
+    # both the training and inference paths) so train/eval/serve stay identical.
+    lag = pd.Timedelta(hours=CROSSBORDER_SERVE_LAG_HOURS)
     return {
-        "flow__total_export_mw": agg["total_export"].resample("h").mean(),
-        "flow__total_import_mw": agg["total_import"].resample("h").mean(),
-        "flow__net_mw": agg["net"].resample("h").mean(),
+        "flow__total_export_mw": agg["total_export"].resample("h").mean().shift(freq=lag),
+        "flow__total_import_mw": agg["total_import"].resample("h").mean().shift(freq=lag),
+        "flow__net_mw": agg["net"].resample("h").mean().shift(freq=lag),
     }
 
 

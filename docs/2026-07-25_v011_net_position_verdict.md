@@ -51,6 +51,34 @@ Not investigated further (out of scope).
    models on the same (new) aggregate cross-border covariates. Labelled canonical. ✓
 6. **Claim:** V011 is **not better**. No promotion. ✓
 
+## UPDATE 2026-07-25 (later): lag fixed, V010 re-measured serve-faithfully
+
+The look-ahead in finding (2) has been **fixed** — cross-border flows are now lagged a
+uniform 96 h in both training and inference
+(`CROSSBORDER_SERVE_LAG_HOURS`, see `2026-07-25-crossborder-lag-parity-design.md`).
+V010 re-measured on the same weeks/countries/metric:
+
+| Country | canonical (leaky) | **serve-faithful** | Δ |
+|---|---|---|---|
+| BE | 875.0 | 888.6 | +1.5% |
+| FR | 1578.2 | 1573.2 | −0.3% |
+| NL | 1589.9 | 1560.0 | −1.9% |
+| AT | 877.1 | 880.5 | +0.4% |
+| **Pooled** | **1230.0** | **1225.6** | **−0.4%** |
+
+**The look-ahead was real but was not being exploited.** Removing 4 days of flow
+recency changes pooled MAE by −0.4% (mixed signs across countries — noise). Two
+consequences: (a) V010's accuracy is now **validated serve-faithfully at ~1226 MW
+pooled MAE**, and (b) the cross-border flow covariates contribute little to V010's
+skill as currently used.
+
+Verified the lag really is applied in the eval path (not a silent no-op):
+`compare_experiments.py` → `InputBuilder.build_for_country` → the patched loader, and
+value provenance spot-checked — the value presented at `t` equals the raw summed flow
+at exactly `t − 96h` for every sampled hour.
+
+The V010-vs-V011 comparison above is unaffected (both used identical covariates).
+
 ## Follow-up (not done here)
 
 - **Lag-realistic re-run** to establish serve-faithful skill for V010: delay
