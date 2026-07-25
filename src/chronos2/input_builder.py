@@ -286,12 +286,20 @@ def _load_crossborder_flow_covariates(
     start_date: str,
     end_date: str,
 ) -> dict[str, pd.Series]:
-    """Load per-border flow series as individual covariates.
+    """Load cross-border flows as 3 homogeneous aggregate covariates.
 
-    For country DE with neighbors FR, NL, PL, CZ, AT, CH, returns:
-        {"flow__FR": pd.Series, "flow__NL": pd.Series, ...}
+    Regardless of which neighbours a country has, ALWAYS returns the same 3
+    keys, so Chronos-2 global fine-tuning receives identical covariate keys for
+    every series (per-neighbour keys were heterogeneous and broke fine-tuning):
 
-    Each series is hourly MW indexed by datetime.
+        flow__total_export_mw = sum over borders of max(flow_mw, 0)
+        flow__total_import_mw = sum over borders of max(-flow_mw, 0)
+        flow__net_mw          = sum over borders of flow_mw
+
+    Sign convention: flow_mw > 0 means physical flow FROM country_code TO the
+    neighbour (export). Each series is hourly MW indexed by datetime. A country
+    with no cross-border data returns the 3 keys as empty series (never {}), so
+    homogeneity holds even for countries without flow data.
     """
     query = """
         SELECT country_to, timestamp_utc, flow_mw
@@ -308,16 +316,27 @@ def _load_crossborder_flow_covariates(
         conn.close()
 
     if df.empty:
-        return {}
+        return {
+            "flow__total_export_mw": pd.Series(dtype="float64"),
+            "flow__total_import_mw": pd.Series(dtype="float64"),
+            "flow__net_mw": pd.Series(dtype="float64"),
+        }
 
     df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="mixed", utc=True).dt.tz_localize(None)
+    df["_export"] = df["flow_mw"].clip(lower=0)     # max(flow, 0)
+    df["_import"] = (-df["flow_mw"]).clip(lower=0)  # max(-flow, 0)
 
-    result = {}
-    for neighbor, group in df.groupby("country_to"):
-        series = group.set_index("timestamp_utc")["flow_mw"].resample("h").mean()
-        result[f"flow__{neighbor}"] = series
+    agg = df.groupby("timestamp_utc").agg(
+        total_export=("_export", "sum"),
+        total_import=("_import", "sum"),
+        net=("flow_mw", "sum"),
+    )
 
-    return result
+    return {
+        "flow__total_export_mw": agg["total_export"].resample("h").mean(),
+        "flow__total_import_mw": agg["total_import"].resample("h").mean(),
+        "flow__net_mw": agg["net"].resample("h").mean(),
+    }
 
 
 def _load_neighbor_net_position(

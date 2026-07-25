@@ -78,6 +78,15 @@ magnitude, plain sum) → 3 hourly series → aligned to the past index by the e
   country returning `{}` (as today) would reintroduce the exact heterogeneity we are
   removing, so homogeneity must hold even for countries with no flow data.
 - NaNs from resampling gaps → filled with 0 (no flow observed).
+- **Known limitation (deferred, YAGNI):** the loader always returns 3 keys, and
+  the inference path (`build_for_country`) zero-fills empty series. The training
+  path (`build_training_input`) currently *skips* empty series, so a trained
+  country with **zero** cross-border rows over the whole window would reintroduce
+  heterogeneity. Every country currently in the net_position training set has
+  flow data (validated by the all-countries smoke), so this does not occur today;
+  if it ever does, the fine-tune fails **loudly** with the same homogeneity error,
+  and the fix is a 2-line zero-fill in `build_training_input` mirroring
+  `build_for_country`.
 
 ## Testing
 
