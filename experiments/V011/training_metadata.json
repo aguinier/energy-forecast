@@ -1,0 +1,30 @@
+{
+  "experiment_id": "V011",
+  "trained_at": "2026-07-25T10:52:54.835010",
+  "num_series": 18,
+  "num_val_series": 1,
+  "series_labels": [
+    "AT/net_position",
+    "BE/net_position",
+    "BG/net_position",
+    "CZ/net_position",
+    "EE/net_position",
+    "ES/net_position",
+    "FI/net_position",
+    "FR/net_position",
+    "GR/net_position",
+    "HR/net_position",
+    "HU/net_position",
+    "LT/net_position",
+    "LV/net_position",
+    "NL/net_position",
+    "PL/net_position",
+    "PT/net_position",
+    "RO/net_position",
+    "SI/net_position",
+    "SK/net_position"
+  ],
+  "num_steps": 5000,
+  "learning_rate": 1e-05,
+  "model_path": "C:\\Code\\able\\energy-forecast\\models\\chronos2\\V011\\finetuned-ckpt"
+}
