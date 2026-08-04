@@ -161,18 +161,33 @@ def run_forecast(
                     include_neighbors=include_neighbors,
                 )
 
-                # Run forecast
+                # Run forecast. The horizon spans the gap between the last
+                # observation and the target day, so it is usually longer than
+                # 24h — the builder measures it.
+                horizon = inp["prediction_length"]
                 result = engine.forecast(
                     target=inp["target"],
                     past_covariates=inp.get("past_covariates"),
                     future_covariates=inp.get("future_covariates"),
+                    prediction_length=horizon,
                 )
 
-                point_forecast = result["median"]
-                quantiles = result["quantiles"]  # (n_quantiles, 24)
+                # Keep only the target day. The leading points cross the gap and
+                # are not what this run is asked to publish.
+                point_forecast = result["median"][-24:]
+                quantiles = result["quantiles"][:, -24:]  # (n_quantiles, 24)
+
+                # Guard the slice: publishing a shifted window would be silent.
+                day_index = inp["future_index"][-24:]
+                if not day_index.equals(target_timestamps):
+                    raise ValueError(
+                        f"{cc}/{ft}: horizon tail {day_index[0]}..{day_index[-1]} "
+                        f"does not cover target day {target_timestamps[0]}..{target_timestamps[-1]}"
+                    )
 
                 logger.info(
-                    f"{cc}/{ft}: range [{point_forecast.min():.1f}, {point_forecast.max():.1f}]"
+                    f"{cc}/{ft}: horizon {horizon}h, target-day range "
+                    f"[{point_forecast.min():.1f}, {point_forecast.max():.1f}]"
                 )
 
                 # Collect results

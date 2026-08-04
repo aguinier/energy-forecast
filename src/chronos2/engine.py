@@ -110,18 +110,20 @@ class ChronosEngine:
         return cleaned
 
     def _clean_future_covariates(
-        self, future_covariates: dict[str, np.ndarray]
+        self, future_covariates: dict[str, np.ndarray],
+        prediction_length: int | None = None,
     ) -> dict[str, np.ndarray]:
-        """Clean and align future covariates to prediction_length."""
+        """Clean and align future covariates to the horizon."""
+        horizon = prediction_length or self.prediction_length
         cleaned = {}
         for name, arr in future_covariates.items():
             arr_clean = np.nan_to_num(arr, nan=0.0).astype(np.float32)
-            if len(arr_clean) > self.prediction_length:
-                arr_clean = arr_clean[-self.prediction_length:]
-            elif len(arr_clean) < self.prediction_length:
+            if len(arr_clean) > horizon:
+                arr_clean = arr_clean[-horizon:]
+            elif len(arr_clean) < horizon:
                 pad_val = arr_clean[-1] if len(arr_clean) > 0 else 0.0
                 pad = np.full(
-                    self.prediction_length - len(arr_clean), pad_val, dtype=np.float32
+                    horizon - len(arr_clean), pad_val, dtype=np.float32
                 )
                 arr_clean = np.concatenate([arr_clean, pad])
             cleaned[name] = arr_clean
@@ -145,6 +147,7 @@ class ChronosEngine:
         target: np.ndarray,
         past_covariates: dict[str, np.ndarray] | None = None,
         future_covariates: dict[str, np.ndarray] | None = None,
+        prediction_length: int | None = None,
     ) -> dict[str, np.ndarray]:
         """Forecast a single target series.
 
@@ -153,6 +156,9 @@ class ChronosEngine:
             past_covariates: dict of {name: array(history_length)}
             future_covariates: dict of {name: array(prediction_length)}
                 Keys must be subset of past_covariates keys.
+            prediction_length: Horizon for this call, overriding the instance
+                default. The D+2 path varies it per run, because the context
+                ends wherever the observations actually stop.
 
         Returns:
             dict with:
@@ -160,6 +166,7 @@ class ChronosEngine:
                 "mean": shape (prediction_length,) — raw mean
                 "quantiles": shape (n_quantiles, prediction_length)
         """
+        horizon = prediction_length or self.prediction_length
         target_clean = self._clean_target(target)
         input_dict = {"target": target_clean}
 
@@ -170,12 +177,12 @@ class ChronosEngine:
 
         if future_covariates:
             input_dict["future_covariates"] = self._clean_future_covariates(
-                future_covariates
+                future_covariates, horizon
             )
 
         quantiles_list, mean_list = self.pipeline.predict_quantiles(
             [input_dict],
-            prediction_length=self.prediction_length,
+            prediction_length=horizon,
             quantile_levels=self.quantile_levels,
         )
 

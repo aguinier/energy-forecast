@@ -36,6 +36,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger("energy_forecast.compare")
 
+# Hour of day (UTC) the daily D+2 job fires. Backtests pin their `as_of` to it
+# so offline scores reflect the data a real run would have had.
+RUN_HOUR = 6
+
 
 def load_actuals(
     country_code: str,
@@ -166,15 +170,25 @@ def run_backtest_for_experiment(
         target_date = current.strftime("%Y-%m-%d")
 
         try:
-            # Build input and forecast
+            # Evaluate what a real run would have seen. Without as_of this
+            # harness reads the database as it stands today, so the context
+            # runs right up to D+1 23:00 — data no live D+2 run has ever had.
+            # That gap is why the zero-fill regression scored clean here while
+            # production was forecasting near zero.
+            as_of = current - timedelta(days=2) + timedelta(hours=RUN_HOUR)
+
             inp = input_builder.build_for_country(
                 country_code, forecast_type, target_date,
+                as_of=as_of.strftime("%Y-%m-%d %H:%M:%S"),
             )
             result = engine.forecast(
                 target=inp["target"],
                 past_covariates=inp.get("past_covariates"),
                 future_covariates=inp.get("future_covariates"),
+                prediction_length=inp["prediction_length"],
             )
+            # The horizon crosses the gap before reaching the target day.
+            median = result["median"][-24:]
 
             # Load actuals for this day
             next_day = (current + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -190,7 +204,7 @@ def run_backtest_for_experiment(
                 valid = ~actuals_aligned.isna()
                 if valid.sum() > 0:
                     all_actuals.extend(actuals_aligned[valid].values)
-                    all_forecasts.extend(result["median"][valid.values])
+                    all_forecasts.extend(median[valid.values])
 
         except Exception as e:
             logger.warning(f"  {target_date}: failed - {e}")

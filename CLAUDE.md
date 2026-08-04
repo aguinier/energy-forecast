@@ -4,7 +4,14 @@ This file provides guidance to Claude Code when working with the energy forecast
 
 ## Module Overview
 
-D+2 energy forecasting module for European electricity markets. Generates 24-hour forecasts for the day after tomorrow, running daily at 18:00.
+D+2 energy forecasting module for European electricity markets. Generates 24-hour forecasts for the day after tomorrow.
+
+`scripts/scheduler_setup.sh` installs `forecast_daily.py` at 18:00, but that is
+not the only job: every Chronos-2 net-position run in the database was generated
+at **~06:00 UTC** (8 runs at 06:00, 1 at 07:00 as of 2026-08-04), scheduled
+elsewhere. `RUN_HOUR` in `compare_experiments.py` tracks that measured time,
+since backtest `as_of` bounds depend on it — check it against real `generated_at`
+values before trusting a backtest, rather than against this file.
 
 **Forecast Types:**
 - **Load** - Electricity demand (MW)
@@ -273,9 +280,47 @@ python scripts/forecast_daily.py --countries DE,FR
 }
 ```
 
+`prediction_length: 24` is the *published* horizon, not the horizon the model
+is asked for. See below.
+
 **Covariates (suffix convention from netpredict2):**
 - **Suffix-0** (future-known, through D+2): Weather (Open-Meteo), time features, holidays
 - **Suffix-1** (past-only, through D+1): TSO load/generation forecasts, DA prices, neighbor features
+
+### The context ends where the data ends, not where the schedule says
+
+A D+2 run fires around 06:00 UTC on day D for the whole of day D+2. The
+schedule's nominal context cutoff is D+1 23:00 — roughly **42 hours after the
+run actually happens**. No observation exists for that span.
+
+`build_for_country` therefore measures the last real observation
+(`_last_available_timestamp`) and ends the context there, then forecasts across
+the gap *and* the target day: `prediction_length` comes back as ~66, and the
+caller publishes the **last 24** points. `future_index` names their timestamps;
+`forecast_chronos2.py` asserts that tail is exactly the target day rather than
+trusting the arithmetic. When observations do reach the nominal cutoff there is
+no gap and the horizon collapses to a plain 24.
+
+Before this, the context was built out to the nominal cutoff regardless, where
+`_align_to_index` forward-filled 6h and wrote **0.0** into the remaining ~36.
+The model's most recent context was a block of zeros. Net position is signed and
+centred near zero, so nothing downstream looked wrong — but measured forecasts
+came out at 6% of actual for FR and sign-flipped for DE, and the dashboard
+showed an 8 GW discontinuity at each day boundary where one run's recovered tail
+met the next run's near-zero start.
+
+**This is why offline experiment scores did not catch it.** `compare_experiments.py`
+read the database as it stands *today*, so its context ran right up to D+1 23:00
+with real data — the harness was scoring a model that never existed in
+production. Both it and any new backtest must pass `as_of` (the moment the run
+would have fired: D+2 minus two days at `RUN_HOUR`), which bounds every query
+including the weather-forecast run time. Without it, offline numbers are
+measuring leaked information.
+
+Interior gaps shorter than the ffill limit are still filled, and anything longer
+still becomes `0.0` via `_align_to_index`. That is a separate, much smaller
+issue — coverage is near-complete in practice — but it is the same failure mode,
+so prefer leaving a genuine hole NaN over inventing a zero.
 
 **Key dependencies:** `torch>=2.1`, `transformers>=4.40`, `chronos-forecasting>=2.0` (separate venv)
 
