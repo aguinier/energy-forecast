@@ -100,6 +100,45 @@ def _load_target_series(
     return series
 
 
+def _last_available_timestamp(
+    country_code: str,
+    forecast_type: str,
+    before: str,
+) -> Optional[pd.Timestamp]:
+    """Last hour with an actual observation for this target, strictly before `before`.
+
+    The D+2 schedule asks for context up to D+1 23:00, but a run firing at 06:00
+    on day D cannot have observations for D+1 — that is still ~42h away. This
+    measures where the data really stops so the caller can end the context there
+    instead of padding the hole with zeros (see build_for_country).
+    """
+    if forecast_type not in TARGET_TABLE_MAP:
+        raise ValueError(f"Unknown forecast type: {forecast_type}")
+
+    table, value_col = TARGET_TABLE_MAP[forecast_type]
+    quality_filter = ""
+    if table in ("energy_load", "energy_price"):
+        quality_filter = "AND data_quality = 'actual'"
+
+    query = f"""
+        SELECT MAX(timestamp_utc)
+        FROM {table}
+        WHERE country_code = ?
+          AND timestamp_utc < ?
+          AND {value_col} IS NOT NULL
+          {quality_filter}
+    """
+    conn = _get_connection()
+    try:
+        row = conn.execute(query, (country_code, before)).fetchone()
+    finally:
+        conn.close()
+
+    if not row or row[0] is None:
+        return None
+    return pd.Timestamp(row[0]).floor("h")
+
+
 def _load_weather_series(
     country_code: str,
     columns: list[str],
@@ -155,6 +194,55 @@ def _load_weather_forecast_series(
     conn = _get_connection()
     try:
         df = pd.read_sql_query(query, conn, params=(country_code, target_date, country_code, target_date))
+    finally:
+        conn.close()
+
+    if df.empty:
+        return pd.DataFrame()
+
+    df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="mixed", utc=True).dt.tz_localize(None)
+    df = df.set_index("timestamp_utc").resample("h").mean()
+    return df
+
+
+def _load_weather_forecast_range(
+    country_code: str,
+    columns: list[str],
+    start: str,
+    end: str,
+    as_of: Optional[str] = None,
+) -> pd.DataFrame:
+    """Weather forecast over an arbitrary [start, end) window, freshest run per hour.
+
+    The single-day variant above cannot serve the extended horizon: once the
+    context ends at the last real observation, the forecast window spans the
+    remaining gap plus the whole target day, which straddles calendar days.
+
+    `as_of` bounds `forecast_run_time` so a backtest sees only the weather runs
+    that existed when the forecast would have fired. Live callers leave it None,
+    where the freshest run is by definition already in the past.
+    """
+    cols_sql = ", ".join(columns)
+    as_of_filter = "AND forecast_run_time <= ?" if as_of else ""
+    query = f"""
+        SELECT timestamp_utc, {cols_sql} FROM (
+            SELECT timestamp_utc, {cols_sql},
+                   ROW_NUMBER() OVER (
+                       PARTITION BY timestamp_utc ORDER BY forecast_run_time DESC
+                   ) AS rn
+            FROM weather_data
+            WHERE country_code = ?
+              AND timestamp_utc >= ?
+              AND timestamp_utc < ?
+              AND data_quality = 'forecast'
+              {as_of_filter}
+        ) WHERE rn = 1
+        ORDER BY timestamp_utc
+    """
+    params = [country_code, start, end] + ([as_of] if as_of else [])
+    conn = _get_connection()
+    try:
+        df = pd.read_sql_query(query, conn, params=tuple(params))
     finally:
         conn.close()
 
@@ -317,6 +405,17 @@ def _load_crossborder_flow_covariates(
     neighbour (export). Each series is hourly MW indexed by datetime. A country
     with no cross-border data returns the 3 keys as empty series (never {}), so
     homogeneity holds even for countries without flow data.
+
+    KNOWN DEFECT (measured 2026-08-06, ABL-28) — on this database `flow_mw` is
+    never negative: 0 negative rows out of 3,543,250, range 0.0..6,500.87. The
+    import leg is stored as separate rows keyed `country_to = X`, which this
+    query does not read. So in practice `flow__total_import_mw` is a CONSTANT
+    ZERO for every country and hour, `flow__net_mw` is a duplicate of
+    `flow__total_export_mw`, and a net-position model receives gross export
+    where this docstring promises net flow (FR 2026-08-01: +12,022 MW here vs
+    a true net position of +8,191). Fixing it means reading the `country_to`
+    leg too. Left as-is deliberately for now: A/B'd over 14 vintages it is
+    worth 0.8% of MAE, so it is filed rather than changed in flight.
     """
     query = """
         SELECT country_to, timestamp_utc, flow_mw
@@ -445,33 +544,66 @@ class InputBuilder:
         forecast_type: str,
         target_date: str,
         include_neighbors: bool = False,
+        as_of: Optional[str] = None,
     ) -> dict:
         """Build inference input for a specific country/type/date.
+
+        The context ends at the last hour that actually has an observation, not
+        at the nominal D+1 23:00. A D+2 run fires at ~06:00 on day D, so the
+        nominal cutoff sits ~42h in the future and no data exists for it. The
+        previous version still built the context out to that cutoff, where
+        `_align_to_index` forward-filled 6h and wrote 0.0 into the remaining ~36 —
+        handing the model a block of zeros as the most recent thing it had seen.
+        Net position is signed and centred near zero, so those zeros read as
+        plausible values and dragged every forecast toward zero (measured: FR at
+        6% of actual, DE sign-flipped).
+
+        The forecast window therefore spans the gap plus the target day, and
+        `prediction_length` in the returned dict says how long it is. Callers
+        take the last 24 points — `future_index` names their timestamps.
 
         Args:
             country_code: ISO 2-letter country code
             forecast_type: load, price, renewable, solar, etc.
             target_date: D+2 target date (YYYY-MM-DD) -- the day to forecast
             include_neighbors: Whether to include neighbor country features
+            as_of: Pretend it is this instant — bounds every query so a backtest
+                sees only what a run at that moment could have seen. None (live)
+                means no bound: the data simply stops where it stops.
 
         Returns:
-            Input dict with target, past_covariates, future_covariates
-            suitable for ChronosEngine.forecast()
+            Input dict with target, past_covariates, future_covariates,
+            plus prediction_length and future_index describing the horizon.
         """
         target_dt = pd.Timestamp(target_date)
 
-        # Time boundaries (same as netpredict2)
-        # Past cutoff: D+1 23:00 (one day before target, end of day)
-        past_cutoff = target_dt - pd.Timedelta(hours=1)  # target_date 00:00 - 1h = D+1 23:00
+        # Nominal cutoff the schedule implies: D+1 23:00.
+        nominal_cutoff = target_dt - pd.Timedelta(hours=1)
+        # ...and the upper bound on anything a run at `as_of` could observe.
+        query_end = nominal_cutoff + pd.Timedelta(hours=1)
+        if as_of is not None:
+            query_end = min(query_end, pd.Timestamp(as_of).floor("h"))
+
+        # Where the data really stops. Clamped to the nominal cutoff so a
+        # backfilled database cannot pull the context past the schedule.
+        last_seen = _last_available_timestamp(
+            country_code, forecast_type, query_end.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        if last_seen is None:
+            raise ValueError(f"No target data for {country_code}/{forecast_type} "
+                             f"before {query_end}")
+        past_cutoff = min(nominal_cutoff, last_seen)
         context_start = past_cutoff - pd.Timedelta(hours=self.context_length - 1)
 
-        # Future window: target_date 00:00 to 23:00
-        future_start = target_dt
+        # Future window: from the first unobserved hour through the target day.
+        # Equals the target day exactly when the data reaches the nominal cutoff.
+        future_start = past_cutoff + pd.Timedelta(hours=1)
         future_end = target_dt + pd.Timedelta(hours=23)
 
         # Date strings for queries
         context_start_str = context_start.strftime("%Y-%m-%d")
         past_cutoff_str = (past_cutoff + pd.Timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")
+        future_start_str = future_start.strftime("%Y-%m-%d %H:%M:%S")
         future_end_str = (future_end + pd.Timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")
 
         # --- Load target history ---
@@ -488,6 +620,7 @@ class InputBuilder:
 
         # Create hourly index for future
         future_index = pd.date_range(future_start, future_end, freq="h")
+        prediction_length = len(future_index)
 
         # --- Build covariates ---
         cov_map = build_covariate_map(country_code, forecast_type, include_neighbors)
@@ -520,9 +653,11 @@ class InputBuilder:
                 else:
                     past_covariates[cov_name] = np.zeros(len(past_index), dtype=np.float32)
 
-                # Future: weather forecast
-                weather_future = _load_weather_forecast_series(
-                    country_code, [column], target_date
+                # Future: weather forecast. Range-based, because the horizon now
+                # starts at the last observed hour and straddles calendar days.
+                weather_future = _load_weather_forecast_range(
+                    country_code, [column], future_start_str, future_end_str,
+                    as_of=as_of,
                 )
                 if not weather_future.empty and column in weather_future.columns:
                     future_covariates[cov_name] = _align_to_index(weather_future[column], future_index)
@@ -568,15 +703,26 @@ class InputBuilder:
                 series = _load_neighbor_net_position(cc, context_start_str, past_cutoff_str)
                 past_covariates[cov_name] = _align_to_index(series, past_index) if not series.empty else np.zeros(len(past_index), dtype=np.float32)
 
-        input_dict = {"target": target_aligned}
+        input_dict = {
+            "target": target_aligned,
+            # The horizon is data-dependent: the caller cannot assume 24.
+            "prediction_length": prediction_length,
+            "future_index": future_index,
+        }
         if past_covariates:
             input_dict["past_covariates"] = past_covariates
         if future_covariates:
             input_dict["future_covariates"] = future_covariates
 
+        gap = prediction_length - 24
         logger.info(f"Built inference input for {country_code}/{forecast_type} "
-                    f"target={target_date}: {len(target_aligned)} context, "
+                    f"target={target_date}: {len(target_aligned)} context ending "
+                    f"{past_cutoff}, horizon {prediction_length}h ({gap}h gap + 24h day), "
                     f"{len(past_covariates)} past covs, {len(future_covariates)} future covs")
+        if gap > 0:
+            logger.info(f"  data stops {gap}h short of the nominal cutoff "
+                        f"{nominal_cutoff} — forecasting across the gap rather "
+                        f"than zero-filling it")
 
         return input_dict
 
