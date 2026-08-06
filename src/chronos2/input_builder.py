@@ -405,6 +405,17 @@ def _load_crossborder_flow_covariates(
     neighbour (export). Each series is hourly MW indexed by datetime. A country
     with no cross-border data returns the 3 keys as empty series (never {}), so
     homogeneity holds even for countries without flow data.
+
+    KNOWN DEFECT (measured 2026-08-06, ABL-28) — on this database `flow_mw` is
+    never negative: 0 negative rows out of 3,543,250, range 0.0..6,500.87. The
+    import leg is stored as separate rows keyed `country_to = X`, which this
+    query does not read. So in practice `flow__total_import_mw` is a CONSTANT
+    ZERO for every country and hour, `flow__net_mw` is a duplicate of
+    `flow__total_export_mw`, and a net-position model receives gross export
+    where this docstring promises net flow (FR 2026-08-01: +12,022 MW here vs
+    a true net position of +8,191). Fixing it means reading the `country_to`
+    leg too. Left as-is deliberately for now: A/B'd over 14 vintages it is
+    worth 0.8% of MAE, so it is filed rather than changed in flight.
     """
     query = """
         SELECT country_to, timestamp_utc, flow_mw

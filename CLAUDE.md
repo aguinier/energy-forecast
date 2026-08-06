@@ -295,11 +295,29 @@ run actually happens**. No observation exists for that span.
 
 `build_for_country` therefore measures the last real observation
 (`_last_available_timestamp`) and ends the context there, then forecasts across
-the gap *and* the target day: `prediction_length` comes back as ~66, and the
-caller publishes the **last 24** points. `future_index` names their timestamps;
-`forecast_chronos2.py` asserts that tail is exactly the target day rather than
-trusting the arithmetic. When observations do reach the nominal cutoff there is
-no gap and the horizon collapses to a plain 24.
+the gap *and* the target day, and the caller publishes the **last 24** points.
+`future_index` names their timestamps; `forecast_chronos2.py` asserts that tail
+is exactly the target day rather than trusting the arithmetic. When observations
+do reach the nominal cutoff there is no gap and the horizon collapses to a
+plain 24.
+
+**How long the horizon actually comes back depends on how the target is
+published, and `net_position` is the exception.** Where actuals stop near real
+time (`load`, `price`), a 06:00Z run is ~42h short of the nominal cutoff and
+`prediction_length` is ~66. But `net_position` is **day-ahead** published —
+day D's values appear around 12:45 CET on D−1 — so a 06:00Z run on D
+legitimately holds actuals through **D 21:00**, the gap is 26h, and
+`prediction_length` comes back as **50**. Measured 2026-08-06 across all 16
+stored vintages: 26h staleness and a 50h horizon for all 19 live countries,
+without exception (ABL-28).
+
+This is also a trap for `as_of`. `as_of` bounds on *target* timestamp, not on
+ingest time, so setting it to the run instant (`RUN_HOUR` on D) cuts a
+day-ahead target's context 15h shorter than the live run really had, and
+understates the pipeline. For `net_position` the serve-faithful bound is
+**D 22:00**, not D 06:00 — verified by reproducing the live 2026-08-06 vintage
+**bit-exactly** (max |diff| 0.0 MW over 480 points; `predict_quantiles` is
+deterministic, so an exact match really does mean an identical input).
 
 Before this, the context was built out to the nominal cutoff regardless, where
 `_align_to_index` forward-filled 6h and wrote **0.0** into the remaining ~36.
@@ -318,9 +336,25 @@ including the weather-forecast run time. Without it, offline numbers are
 measuring leaked information.
 
 Interior gaps shorter than the ffill limit are still filled, and anything longer
-still becomes `0.0` via `_align_to_index`. That is a separate, much smaller
-issue — coverage is near-complete in practice — but it is the same failure mode,
-so prefer leaving a genuine hole NaN over inventing a zero.
+still becomes `0.0` via `_align_to_index`. It is the same failure mode, so
+prefer leaving a genuine hole NaN over inventing a zero. Two things this still
+bites, both measured 2026-08-06 (ABL-28):
+
+- **The target, for a country that has stopped publishing.** For the 19 live
+  net-position countries the 672h context is 672/672 real observations with
+  zero fill, so "coverage is near-complete in practice" holds — but GR is
+  **24 real hours and 648 zero-filled**, and its 24 real hours are themselves
+  exactly `0.0` upstream. A constant-zero context yields a constant-zero
+  forecast (1e-10..4.6e-7 MW), which the pipeline still publishes and pushes;
+  the dashboard withholds it at render time (ABL-25). GR's horizon reaches
+  **362h**. Filed as its own issue: refuse rather than forecast when the
+  context is degenerate or stale.
+- **Covariates, which the context-cutoff fix does not cover.** Each is aligned
+  to the *target's* index, so a covariate whose source stops earlier is ffilled
+  6h and then zeroed. `weather_data` `data_quality='actual'` is retained on a
+  rolling 672h window, so on a current vintage `weather__temperature_2m_k`
+  reads **297 K for 656 hours and then 0 K for the last 16**. Measured cost:
+  under 1% of MAE, so it is filed rather than fixed in flight.
 
 **Key dependencies:** `torch>=2.1`, `transformers>=4.40`, `chronos-forecasting>=2.0` (separate venv)
 
