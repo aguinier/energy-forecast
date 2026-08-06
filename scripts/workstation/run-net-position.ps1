@@ -26,6 +26,15 @@ try {
     } else {
         Write-Host "DASHBOARD_WRITE_TOKEN not set - forecast stays in the sidecar only."
     }
+
+    # Score every stored vintage against the actuals that have arrived since
+    # (ABL-30 B4). Runs daily but writes ISO-week-keyed reports, so the weekly
+    # artifact is always fresh; reports/net_position_eval/latest.md is the one
+    # to read. Eval failure is reported but does not fail the forecast run.
+    & "$Repo\.venv\Scripts\python.exe" "$Repo\scripts\evaluate_net_position.py"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "evaluate_net_position.py exited $LASTEXITCODE - vintages are unscored this run."
+    }
 }
 finally {
     Stop-Transcript | Out-Null
