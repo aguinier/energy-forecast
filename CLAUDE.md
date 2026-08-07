@@ -358,6 +358,55 @@ bites, both measured 2026-08-06 (ABL-28):
 
 **Key dependencies:** `torch>=2.1`, `transformers>=4.40`, `chronos-forecasting>=2.0` (separate venv)
 
+### Net-position evaluation and the promotion gate
+
+`src/evaluation/net_position.py` (ABL-30) scores the as-served vintages against
+`net_position` actuals; `scripts/evaluate_net_position.py` is the entry point and
+writes `reports/net_position_eval/`. Both databases are opened **readonly**.
+
+```bash
+# single model (default: chronos-2-V010)
+python scripts/evaluate_net_position.py --replica-db ...\energy_dashboard.db \
+    --sidecar-db ...\forecasts_local.db --stdout
+# several models over one identical vintage window — the C2c deliverable
+python scripts/evaluate_net_position.py --model chronos-2-V010 chronos-2-V012 ...
+```
+
+Four things about the gate are load-bearing (ABL-72):
+
+- **The gate scores a vintage window; the report does not.** The tables cover
+  every stored vintage, but `promotion_gate` reads `results["gate_scope"]`,
+  which defaults to vintages at or after `cohort_split` (`FIX_DEPLOYED_UTC`).
+  Without that restriction the champion is measured on the zero-padded-context
+  era: measured on the replica 2026-08-07, all 18 vintages give MAE 1,439 MW /
+  slope 0.26 against the serving model's 553 MW / 0.90, so a challenger faced a
+  bar **2.60x easier** than the real one. The difference is not cosmetic —
+  `slope_in_range_per_country` reads 0/19 contaminated and **11/19** windowed.
+  Override with `--gate-vintage-start` / `--gate-vintage-end`; the window and its
+  vintage count are printed in the report header.
+- **All eight pre-registered criteria are emitted, and PASS requires all eight.**
+  `PRE_REGISTERED_CHECKS` is the list; the gate checks itself against it and the
+  report iterates it, so an absent criterion prints as `NOT IMPLEMENTED` instead
+  of being silently skipped. The verdict is `PASS` / `FAIL` / `INCOMPLETE` — a
+  criterion that cannot be evaluated (no `--candidate-backtest`, no
+  `--serve-faithful-verified` attestation) yields `INCOMPLETE`, never `PASS`.
+  Two of the eight had never been implemented, and because the old verdict
+  spanned "only evaluable checks", their absence could not fail.
+- **LU and GR are excluded by name**, not by symptom — `GATE_EXCLUDED_COUNTRIES`
+  carries a reason for each (LU duplicates DE in A25; GR's actuals are
+  fabricated zeros, ABL-35/ABL-67). GR was previously excluded only as a
+  side-effect of having no paired actuals, so a partial upstream resume would
+  have silently re-entered it and failed the gate on thin data.
+- **A comparison shares one window across every column.** It is the intersection
+  of the models' stored vintage spans, floored at `cohort_split`, and
+  `compare_models` raises if the columns end up scored over different windows.
+  Per-model vintage counts are printed rather than smoothed, and a model with no
+  stored vintages reads as "Not scored", never as an empty column.
+
+**The script does not discover model versions.** It scores exactly the
+`--model` names given. Anything claiming it picks up new versions automatically
+is wrong — that was ABL-68 scope item 1 and plan Rev 3:29.
+
 ### Experiment System
 
 Experiments are versioned V001-Vnnn with configs in `experiments/`. Both XGBoost and Chronos-2 run in parallel — forecasts stored with distinct `model_name` values in the `forecasts` table.
