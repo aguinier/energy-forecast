@@ -545,6 +545,7 @@ class InputBuilder:
         target_date: str,
         include_neighbors: bool = False,
         as_of: Optional[str] = None,
+        publication_as_of: Optional[str] = None,
     ) -> dict:
         """Build inference input for a specific country/type/date.
 
@@ -567,15 +568,38 @@ class InputBuilder:
             forecast_type: load, price, renewable, solar, etc.
             target_date: D+2 target date (YYYY-MM-DD) -- the day to forecast
             include_neighbors: Whether to include neighbor country features
-            as_of: Pretend it is this instant — bounds every query so a backtest
-                sees only what a run at that moment could have seen. None (live)
-                means no bound: the data simply stops where it stops.
+            as_of: How far the *observations* reach — bounds the target series
+                and anything else read by timestamp. None (live) means no bound:
+                the data simply stops where it stops.
+            publication_as_of: When the run *fires* — bounds a covariate by the
+                time its own run was issued, not by the timestamp it describes.
+                Defaults to `as_of`, which is right whenever the two coincide.
+
+        Two bounds, because for a day-ahead-published target they are not the
+        same instant and one value cannot express both. `net_position` for day X
+        appears ~12:45 CET on X-1, so a 06:00Z run on D observes actuals through
+        D 21:00 — `as_of = D 22:00`. But that run could not see a *weather* run
+        issued at 12:00Z on D, so its publication bound is D 06:00. Passing
+        D 22:00 for both leaks 16h of fresher weather forecasts into a backtest;
+        passing D 06:00 for both truncates the context 16h short, which is what
+        `compare_experiments.py` does and why its net_position numbers understate
+        the pipeline. Leaking is the more dangerous direction: it is how offline
+        scores come to measure information production never had (ABL-28).
+
+        Not every covariate can be bounded this way. Suffix-1 sources (TSO load
+        forecast, DA prices, cross-border flows) are bounded by timestamp only,
+        because `publication_timestamp_utc` records when we fetched rather than
+        when the value was published and is NULL on these rows. A reconstruction
+        can therefore still see a late-revised suffix-1 value; that residual leak
+        is documented rather than papered over.
 
         Returns:
             Input dict with target, past_covariates, future_covariates,
             plus prediction_length and future_index describing the horizon.
         """
         target_dt = pd.Timestamp(target_date)
+        if publication_as_of is None:
+            publication_as_of = as_of
 
         # Nominal cutoff the schedule implies: D+1 23:00.
         nominal_cutoff = target_dt - pd.Timedelta(hours=1)
@@ -657,7 +681,7 @@ class InputBuilder:
                 # starts at the last observed hour and straddles calendar days.
                 weather_future = _load_weather_forecast_range(
                     country_code, [column], future_start_str, future_end_str,
-                    as_of=as_of,
+                    as_of=publication_as_of,
                 )
                 if not weather_future.empty and column in weather_future.columns:
                     future_covariates[cov_name] = _align_to_index(weather_future[column], future_index)

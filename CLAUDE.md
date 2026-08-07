@@ -313,11 +313,38 @@ without exception (ABL-28).
 
 This is also a trap for `as_of`. `as_of` bounds on *target* timestamp, not on
 ingest time, so setting it to the run instant (`RUN_HOUR` on D) cuts a
-day-ahead target's context 15h shorter than the live run really had, and
-understates the pipeline. For `net_position` the serve-faithful bound is
-**D 22:00**, not D 06:00 — verified by reproducing the live 2026-08-06 vintage
-**bit-exactly** (max |diff| 0.0 MW over 480 points; `predict_quantiles` is
-deterministic, so an exact match really does mean an identical input).
+day-ahead target's context 16h shorter than the live run really had, and
+understates the pipeline. For `net_position` the serve-faithful **observation**
+bound is **D 22:00**, not D 06:00 — verified by reproducing the live 2026-08-06
+vintage **bit-exactly** (max |diff| 0.0 MW over 480 points; `predict_quantiles`
+is deterministic, so an exact match really does mean an identical input).
+
+**A serve-faithful reconstruction needs two bounds, not one** (ABL-68). One
+`as_of` was doing double duty: it bounds where observations stop *and*, via
+`_load_weather_forecast_range`, which weather runs had been issued
+(`forecast_run_time <= ?`). Those are the same instant only when the target is
+published in real time. For `net_position` they are 16h apart, so neither value
+is right on its own:
+
+- `D 22:00` is the correct observation bound, but it also admits a weather run
+  issued at 12:00Z on D — information the 06:00Z run never had. Measured against
+  the as-served 2026-08-06 vintage, this put the worst country **1,881 MW** away
+  from what production served.
+- `D 06:00` is the correct publication bound, but it truncates the context 16h.
+  This is what `scripts/compare_experiments.py:178` still does for *every*
+  forecast type, so its net_position weeks understate the pipeline.
+
+`build_for_country` therefore takes `publication_as_of` alongside `as_of`
+(`src/chronos2/input_builder.py:541`), defaulting to `as_of` so live and
+existing callers are unchanged. With the bounds split, 16 of 19 countries
+reproduce the as-served vintage to under 0.3% of mean |forecast|; LT (38.8%),
+RO (5.9%) and BG (1.4%) do not, because **suffix-1 covariates cannot be bounded
+at all**. TSO load forecasts, DA prices and cross-border flows are bounded by
+timestamp only — `publication_timestamp_utc` records when we fetched, not when
+the value was published, and is NULL on these rows — so a vintage reconstructed
+days later legitimately sees revisions the live run did not. Any model fitted on
+a reconstruction should treat those three countries as unverified rather than
+assume the fit transfers.
 
 Before this, the context was built out to the nominal cutoff regardless, where
 `_align_to_index` forward-filled 6h and wrote **0.0** into the remaining ~36.
