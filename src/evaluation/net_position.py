@@ -192,9 +192,15 @@ def baseline_predictions(actuals: pd.Series, as_of: pd.Timestamp,
                          ) -> pd.DataFrame:
     """Persistence (same hour, last available day) and hour-of-day climatology,
     using only actuals strictly before `as_of`. Index = targets."""
-    hist = actuals[actuals.index < as_of].dropna()
     out = pd.DataFrame(index=targets, columns=["persistence", "climatology"],
                        dtype=float)
+    # An empty series carries a RangeIndex, so the comparison below would raise
+    # rather than return "no baseline". The eval only ever passes a typed empty
+    # index, but the daily shadow rail (ABL-68) calls this per country, and a
+    # country with no history yet must yield NaN rather than take the job down.
+    if actuals.empty:
+        return out
+    hist = actuals[actuals.index < as_of].dropna()
     if hist.empty:
         return out
     clim_hist = hist[hist.index >= as_of - pd.Timedelta(days=climatology_days)]

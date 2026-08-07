@@ -1,0 +1,24 @@
+{
+  "id": "V012",
+  "model": {
+    "type": "baseline-ensemble",
+    "model_name": "baseline-V012",
+    "components": ["persistence_same_hour_last_available_day", "hour_of_day_climatology_28d"],
+    "combination": "arithmetic_mean",
+    "quantiles": []
+  },
+  "training": {
+    "fine_tune": false,
+    "fitted_parameters": 0,
+    "note": "Nothing is fitted. Both components are read off serve-faithful actuals at run time, which is why this cannot overfit and makes an honest floor."
+  },
+  "serving": {
+    "as_of_rule": "src/evaluation/net_position.py::as_of_for_vintage (day-ahead: D 22:00)",
+    "implementation": "src/challengers/baseline.py",
+    "shares_definition_with": "src/evaluation/net_position.py::baseline_predictions"
+  },
+  "countries": ["all_except_LU_GR"],
+  "forecast_types": ["net_position"],
+  "promotion_candidate": false,
+  "purpose": "The floor every challenger must beat (ABL-24 gate: beat V012 on MAE in >= 80% of countries). Registered and served so the gate compares against a stored series rather than a number recomputed at reporting time."
+}
