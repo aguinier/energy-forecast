@@ -360,6 +360,24 @@ def test_gate_fails_closed_below_min_live_vintages(tmp_path):
     assert res["gate"]["verdict"] == "FAIL"
 
 
+def test_same_day_reruns_count_as_vintages_but_run_days_are_reported(tmp_path):
+    """A same-day re-run makes two vintages out of one day of evidence — live on
+    the replica 2026-08-07, where 4 post-fix vintages come from 3 run-days
+    (08-06 has both a 06:00 and a 10:52 run). The criterion is pre-registered in
+    vintages and is still scored in vintages; the run-day count is surfaced
+    beside it so '14 vintages' cannot quietly mean five days of re-runs."""
+    days = list(GATE_VINTAGE_DAYS)
+    cfg = _passing_gate_cfg(tmp_path, vintage_days=tuple(days))
+    _add_model_rows(cfg, cfg.model_name, (days[-1],), lambda a: a,
+                    _noisy_actual_fn(), gen_hour=10)   # a second run, same day
+    scope = evaluate(cfg)["gate_scope"]
+    assert scope["vintages"] == len(days) + 1
+    assert scope["vintage_days"] == len(days)
+    check = evaluate(cfg)["gate"]["checks"]["min_live_shadow_vintages"]
+    assert check["pass"] is True                       # scored in vintages, as written
+    assert f"from {len(days)} distinct run-days" in check["detail"]
+
+
 def test_gate_emits_exactly_the_eight_pre_registered_criteria(tmp_path):
     res = evaluate(_passing_gate_cfg(tmp_path))
     assert len(PRE_REGISTERED_CHECKS) == 8
@@ -419,10 +437,10 @@ def test_excluded_zone_is_excluded_by_name_even_when_it_has_data(tmp_path):
 
 
 def _add_model_rows(cfg, model_name, vintage_days, forecast_fn, actual_fn,
-                    countries=(COUNTRY,)):
+                    countries=(COUNTRY,), gen_hour=6):
     con = sqlite3.connect(cfg.sidecar_db)
     for day in vintage_days:
-        gen = pd.Timestamp(f"{day} 06:00:00")
+        gen = pd.Timestamp(f"{day} {gen_hour:02d}:00:00")
         for ts in pd.date_range(pd.Timestamp(day) + pd.Timedelta(days=2),
                                 periods=24, freq="h"):
             for cc in countries:

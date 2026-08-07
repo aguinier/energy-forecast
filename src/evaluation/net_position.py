@@ -425,6 +425,12 @@ def build_gate_scope(scored: pd.DataFrame, paired: pd.DataFrame,
         "vintage_start": str(start),
         "vintage_end": str(end) if end is not None else None,
         "vintages": int(len(vintages)),
+        # Distinct UTC run-days behind those vintages. The criterion is written
+        # in vintages and is scored in vintages, but a same-day re-run makes two
+        # vintages out of one day of evidence — measured 2026-08-07, 4 vintages
+        # come from 3 days (08-06 has both a 06:00 and a 10:52 run). Reported so
+        # "14 vintages" cannot quietly mean five days of re-runs.
+        "vintage_days": int(len({pd.Timestamp(v).normalize() for v in vintages})),
         "vintage_list": [str(v) for v in vintages],
         "pairs_scored": int(len(gate_scored)),
         "countries_measured": int(gate_scored["country_code"].nunique()),
@@ -575,13 +581,16 @@ def promotion_gate(results: dict, cfg: EvalConfig) -> dict:
     # vintages, is a FAIL, not an un-evaluable check. `meta.vintages` was
     # reported and never gated on, which is how a 6-vintage read could have
     # produced a PASS.
-    n_vint = scope.get("vintages")
+    n_vint, n_days = scope.get("vintages"), scope.get("vintage_days")
     checks["min_live_shadow_vintages"] = {
         "pass": n_vint is not None and n_vint >= GATE_MIN_LIVE_VINTAGES,
         "detail": (f"{n_vint} live shadow vintages in the gate window "
                    f"(need >= {GATE_MIN_LIVE_VINTAGES})"
+                   + (f", from {n_days} distinct run-days" if n_days is not None
+                      and n_days != n_vint else "")
                    if n_vint is not None else
-                   "no gate scope computed — cannot count vintages")}
+                   "no gate scope computed — cannot count vintages"),
+        "vintages": n_vint, "vintage_days": n_days}
 
     # G3 (plan Rev 3:55). Exclude by name and say so. A zone that is excluded
     # only because it happens to have no paired actuals silently re-enters the
