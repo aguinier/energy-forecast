@@ -65,7 +65,49 @@ energy_forecast/
 
 ## Database
 
-Uses the shared database at `../data_gathering/energy_dashboard.db`.
+Two files, and pointing at the wrong one is the trap this section exists to
+prevent (ABL-73). Neither path is hardcoded — both come from the environment:
+
+| role | path | env var |
+|---|---|---|
+| **replica** (read) | `C:\Code\able\data\energy_dashboard.db` | `ENERGY_DB_PATH` |
+| **sidecar** (write) | `C:\Code\able\data\forecasts_local.db` | `FORECAST_OUTPUT_DB` |
+
+`scripts/workstation/run-net-position.ps1:10-11` is what sets them for the
+scheduled job, and `reports/net_position_eval/latest.json` → `meta.replica_db` /
+`meta.sidecar_db` records which pair a stored evaluation actually ran against.
+The replica is refreshed at 07:00 by the `able-db-sync` job; the forecast runs
+at 08:00 behind it. **All writes go to the sidecar** — the replica is a
+read-only mirror of prod and nothing here may write to it.
+
+Local runs read `.env` (via `python-dotenv`, `config.py:11`). It is gitignored
+and must stay untracked — it carries a machine-specific absolute path.
+
+> **There is a decoy.** `../energy-data-gathering/energy_dashboard.db` (3.0 GB)
+> is a **stale partial snapshot**, not the replica, and it is the nearest real
+> file to every wrong path this module has been pointed at. Measured 2026-08-07:
+> its `net_position` holds 10,968 rows ending **2024-01-15** (the replica has
+> 645,618, current to the hour); **AT and DE have zero rows**, BE/NL/FR stop in
+> 2023-24; `energy_generation` does not exist as a table; and every `fetched_at`
+> falls in one 52-minute import session on 2026-04-01. A per-country training or
+> backtest run against it yields a 19-country program with the priority majors
+> (BE, NL, AT, FR — the net-position program plan's §7.2, recorded on ABL-73)
+> silently missing and numbers that look fine.
+> Do not delete it — `energy-data-gathering` may own it.
+
+`validate_config()` (`config.py`) now catches exactly that: it checks the
+database is not merely *present* but *current*, requiring `net_position` rows
+within `DB_STALE_AFTER_HOURS` (48) for `DB_CURRENCY_PROBE_COUNTRIES`
+(BE, NL, AT, FR, DE) and failing with a per-country reason otherwise. A stale
+timestamp is disqualifying; a *future* one is not — `net_position` is day-ahead,
+so a healthy replica reaches the end of tomorrow's market day. `ALLOW_STALE_DB=1`
+downgrades the failure to a warning for a deliberate run against a partial
+database; do not bake it into a script. `python config.py` prints the verdict.
+
+Note this runs in `validate_config()`, which is called by `scripts/train.py`,
+`train_all.py`, `train_baselines.py` and `forecast_daily.py` — **not** by
+`scripts/forecast_chronos2.py`, so the scheduled 08:00 net-position job is
+unaffected by it.
 
 **New Table:** `forecasts`
 ```sql
