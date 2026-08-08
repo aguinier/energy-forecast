@@ -1,0 +1,26 @@
+{
+  "id": "V016",
+  "parent": "V010",
+  "model": {
+    "type": "chronos-2-corrected",
+    "model_name": "chronos-2-V016",
+    "layers": ["affine_recalibration_per_country", "ar1_error_correction"],
+    "quantiles": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  },
+  "training": {
+    "fine_tune": false,
+    "fitted_parameters_per_country": 3,
+    "fit_source": "serve-faithful reconstruction of V010 (scripts/reconstruct_v010_vintages.py)",
+    "fit_artifact": "experiments/V016/correction.json",
+    "excluded_from_fit": ["W01-W12 backtest target days", "countries failing serve-parity", "LU", "GR"]
+  },
+  "serving": {
+    "implementation": "src/challengers/correction.py",
+    "applies_to": "the champion vintage for the same target day, in the same daily job",
+    "ar1_serve_lead_hours": [27, 51],
+    "note": "Residual lag-1 autocorrelation is 0.85-0.96, but the nearest hour this corrects is 27h after the last observable residual, so the AR term carries phi^27..phi^51. Small by construction, not by defect."
+  },
+  "countries": ["all_except_LU_GR"],
+  "forecast_types": ["net_position"],
+  "promotion_candidate": true
+}

@@ -9,8 +9,16 @@ The endpoint is idempotent per (country, forecast_type, model, generated_at),
 so re-running this after a failure replaces the vintage rather than duplicating
 it. Only the newest generated_at is sent; older vintages stay in the sidecar.
 
+**Only the champion is ever pushed.** Since ABL-68 the sidecar also holds
+challenger vintages, which run in shadow and must never reach production. Every
+query here is filtered on `model_name = CHAMPION_MODEL_NAME`; without that
+filter "the newest generated_at" is whichever model wrote last — the challengers
+run after the champion in the same job, so they would win — and a vintage's row
+set would mix models under one label.
+
 Environment:
     FORECAST_OUTPUT_DB      sidecar written by forecast_chronos2.py
+    CHAMPION_MODEL_NAME     model allowed into prod (default chronos-2-V010)
     DASHBOARD_API_URL       e.g. http://192.168.86.36:3001
     DASHBOARD_WRITE_TOKEN   matches HELIO_WRITE_TOKEN on the server
 
@@ -24,14 +32,21 @@ import urllib.error
 import urllib.request
 
 FORECAST_TYPE = "net_position"
+DEFAULT_CHAMPION_MODEL = "chronos-2-V010"
 TIMEOUT_S = 60
 
 
-def latest_vintage(conn):
+def champion_model_name() -> str:
+    """The one model this script is allowed to ship. Never inferred from data."""
+    return os.getenv("CHAMPION_MODEL_NAME") or DEFAULT_CHAMPION_MODEL
+
+
+def latest_vintage(conn, model_name):
     row = conn.execute(
         "SELECT generated_at, model_name, model_version FROM forecasts "
-        "WHERE forecast_type = ? ORDER BY generated_at DESC LIMIT 1",
-        (FORECAST_TYPE,),
+        "WHERE forecast_type = ? AND model_name = ? "
+        "ORDER BY generated_at DESC LIMIT 1",
+        (FORECAST_TYPE, model_name),
     ).fetchone()
     return row
 
@@ -39,17 +54,18 @@ def latest_vintage(conn):
 def build_payload(conn, generated_at, model_name, model_version):
     points = conn.execute(
         "SELECT country_code, target_timestamp_utc, horizon_hours, forecast_value "
-        "FROM forecasts WHERE forecast_type = ? AND generated_at = ? "
+        "FROM forecasts WHERE forecast_type = ? AND generated_at = ? AND model_name = ? "
         "ORDER BY country_code, target_timestamp_utc",
-        (FORECAST_TYPE, generated_at),
+        (FORECAST_TYPE, generated_at, model_name),
     ).fetchall()
 
     bands = {}
     try:
         for cc, ts, q, val in conn.execute(
             "SELECT country_code, target_timestamp_utc, quantile, forecast_value "
-            "FROM forecast_quantiles WHERE forecast_type = ? AND generated_at = ?",
-            (FORECAST_TYPE, generated_at),
+            "FROM forecast_quantiles "
+            "WHERE forecast_type = ? AND generated_at = ? AND model_name = ?",
+            (FORECAST_TYPE, generated_at, model_name),
         ):
             bands.setdefault((cc, ts), {})[str(q)] = val
     except sqlite3.OperationalError:
@@ -94,11 +110,12 @@ def main():
         print(f"ERROR: missing environment: {', '.join(missing)}", file=sys.stderr)
         return 1
 
+    champion = champion_model_name()
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
-        vintage = latest_vintage(conn)
+        vintage = latest_vintage(conn, champion)
         if vintage is None:
-            print("Nothing to push: no net_position forecasts in the sidecar.")
+            print(f"Nothing to push: no {champion} net_position forecasts in the sidecar.")
             return 2
         generated_at, model_name, model_version = vintage
         payload = build_payload(conn, generated_at, model_name, model_version)
