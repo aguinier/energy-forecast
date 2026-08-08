@@ -1,0 +1,54 @@
+{
+  "id": "V014",
+  "model": {
+    "type": "xgboost",
+    "model_name": "xgboost-V014",
+    "granularity": "one model per country",
+    "objective": "reg:squarederror",
+    "quantiles": [],
+    "note": "Per-country rather than pooled: net position is a balance, DE swings +/-20 GW against EE's +/-1 GW over different borders, and a pooled model would spend its capacity on the country dummy."
+  },
+  "features": {
+    "implementation": "src/challengers/v014_features.py",
+    "groups": [
+      "calendar (hour/dow/month/doy, cyclical, public holidays)",
+      "own net position: same-hour lags 72/96/120/168h, run-anchored trailing 1/3/7/28d aggregates, 28d hour-of-day climatology",
+      "day-ahead price: lags 72/168h + trailing aggregates",
+      "TSO day-ahead load forecast: lags 72/168h + trailing aggregates",
+      "TSO day-ahead solar and onshore-wind generation forecast: lags 72/168h",
+      "cross-border physical flows: net lag 72h and 96h, plus xb_missing indicator (ABL-74)",
+      "neighbour net position (lags 72/168h) and neighbour price (lag 72h), plus own-minus-neighbour price spread",
+      "issued weather forecast at the target hour (temperature, wind 10m/100m, shortwave radiation), plus weather_available regime flag"
+    ],
+    "serve_time_rule": "A run fires 06:00Z on D for all of D+2. Day-ahead-published sources are bounded at D 21:00 (measured, ABL-28); cross-border flows at target-72h (ABL-74); weather admitted only as data_quality='forecast' with forecast_run_time <= run instant. Same-hour lags start at 72h because the binding target hour D+2 23:00 is exactly 50h past the cutoff, so the tempting 48h lag reaches two hours that do not exist at run time.",
+    "enforced_by": "src/challengers/v014_features.py::assert_lag_is_serve_safe, on every lag on every build"
+  },
+  "training": {
+    "script": "scripts/train_v014.py",
+    "algorithm": "xgboost (CPU, hist)",
+    "run_day_span": "2023-02-01 .. D-3",
+    "backtest_weeks_excluded": true,
+    "exclusion_rule": "by target day, matching scripts/train.py --exclude-backtest",
+    "validation": "chronological, last 12% of run days, split on run day never on row; early stopping on validation RMSE",
+    "missing_values": "left NaN and consumed natively by XGBoost. Nothing is imputed: a mean would turn 'we do not know this border's flow' into 'the flow was average'."
+  },
+  "serving": {
+    "implementation": "src/challengers/v014.py",
+    "runner": "scripts/forecast_challengers.py --experiments V014",
+    "artifacts": "models/net_position/V014/{CC}.joblib",
+    "refusals": [
+      "no model file for a country -> raise, never substitute another country's model",
+      "fewer than 2 of 3 anchor features present -> NaN for that target hour, dropped rather than stored (GR's condition)",
+      "a refused hour is never written as 0.0: a 0 MW net position is a real balanced-border reading"
+    ]
+  },
+  "evaluation": {
+    "backtest": "scripts/backtest_v014.py -> experiments/V014/backtest_W01_W12.json (gate criterion no_regression_W01_W12)",
+    "shadow": "scored daily by scripts/evaluate_net_position.py --model xgboost-V014",
+    "head_to_head": "scripts/compare_challenger.py, which inner-joins on (country, target hour, vintage). Never compare two per-model eval reports to each other."
+  },
+  "countries": ["all_except_LU_GR"],
+  "forecast_types": ["net_position"],
+  "promotion_candidate": true,
+  "purpose": "The trained challenger of ABL-24 plan Rev 3 (C2b). V010 is close to affinely optimal per country, so the gate's slope in [0.8, 1.2] is unreachable by any correction layer on it (ABL-68 measured rho 0.41-0.88, needs >= 0.894) - it needs a better model, which is this. Promotion is decided only by the pre-registered gate read in C2c."
+}

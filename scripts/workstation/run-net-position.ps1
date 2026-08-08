@@ -19,7 +19,7 @@ try {
     # the champion and filters on it. A challenger failure must not cost us the
     # champion's run or its push, so this is reported and continues.
     & "$Repo\.venv\Scripts\python.exe" "$Repo\scripts\forecast_challengers.py" `
-        --experiments V012,V016 --countries all --save-to-db
+        --experiments V012,V014,V016 --countries all --save-to-db
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "forecast_challengers.py exited $LASTEXITCODE - one or more challengers produced nothing this run."
     }
@@ -56,6 +56,7 @@ try {
     $models = @(
         @{ Name = "chronos-2-V010"; OutDir = $evalRoot },
         @{ Name = "baseline-V012";  OutDir = "$evalRoot\V012" },
+        @{ Name = "xgboost-V014";   OutDir = "$evalRoot\V014" },
         @{ Name = "chronos-2-V016"; OutDir = "$evalRoot\V016" }
     )
     foreach ($m in $models) {

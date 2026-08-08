@@ -35,6 +35,16 @@ CHALLENGERS: dict[str, ChallengerSpec] = {
                     "floor every challenger must beat; not a promotion candidate.",
         promotion_candidate=False,
     ),
+    "V014": ChallengerSpec(
+        experiment_id="V014",
+        model_name="xgboost-V014",
+        kind="trained_tabular",
+        description="Per-country XGBoost on serve-faithful engineered features "
+                    "(lagged net position, DA price, TSO load/generation "
+                    "forecasts, cross-border flows with a missingness "
+                    "indicator, issued weather, calendar). ABL-69.",
+        promotion_candidate=True,
+    ),
     "V016": ChallengerSpec(
         experiment_id="V016",
         model_name="chronos-2-V016",
