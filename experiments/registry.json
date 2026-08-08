@@ -80,6 +80,15 @@
             "created_at": "2026-08-07",
             "parent": "V010",
             "description": "Per-country affine recalibration of V010 plus AR(1) error correction at the true 27-51h serve lead (ABL-68). Fitted on a serve-faithful reconstruction; countries below the fitting floor pass through uncorrected."
+        },
+        {
+            "id": "V014",
+            "name": "Per-country XGBoost on serve-faithful engineered features",
+            "model": "xgboost-V014",
+            "status": "shadow",
+            "created_at": "2026-08-08",
+            "parent": null,
+            "description": "The trained challenger of ABL-24 plan Rev 3 (C2b/ABL-69). One model per country over 19 countries, 89 features: lagged net position, day-ahead price, TSO load and generation forecasts, cross-border flows with an explicit missingness indicator (ABL-74), issued weather, calendar. Every feature is bounded by what a 06:00Z run held; same-hour lags start at 72h because the D+2 23:00 target is 50h past the D 21:00 cutoff. Promotion decided only by the C2c gate read."
         }
     ]
 }

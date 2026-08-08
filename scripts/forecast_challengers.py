@@ -33,6 +33,8 @@ from src.challengers.baseline import forecast_baseline_ensemble
 from src.challengers.correction import (CountryCorrection, apply_correction,
                                         latest_residual)
 from src.challengers.registry import CHAMPION_MODEL_NAME, spec_for
+from src.challengers.v014 import load_model as load_v014_model
+from src.challengers.v014_features import ServeWindow, build_cache, build_features
 from src.db import get_connection
 from src.evaluation.net_position import _parse_ts, _ro_connect, as_of_for_vintage
 
@@ -244,17 +246,75 @@ def run_v016(spec, countries, target_date, generated_at, actuals,
     return rows, qrows
 
 
-RUNNERS = {"V012": run_v012, "V016": run_v016}
+def run_v014(spec, countries, target_date, generated_at, actuals,
+             replica_db=None, models_dir=None, **_):
+    """Per-country XGBoost on serve-faithful features read from the replica.
+
+    Unlike V012 and V016 this one does not consume `actuals` or the champion's
+    vintage — it reads its own features straight from the replica, bounded by
+    the serve window for this target day. That window is derived from the
+    *target date*, not from `generated_at`, so a run that fires late still gets
+    the cutoffs the schedule promises rather than the extra hours the clock
+    happened to hand it. A late run must not be a better-informed run: the
+    backtest and the training frame both assume the 06:00Z cutoffs, and a
+    vintage built on more than that would be scored as if it had been built on
+    the same information as the rest.
+    """
+    window = ServeWindow.for_target_day(target_date)
+    if window.run_ts > pd.Timestamp(generated_at):
+        logger.error("V014: target %s implies a run at %s, which is after this "
+                     "run (%s). Refusing - the features would reach past what "
+                     "exists.", target_date, window.run_ts, generated_at)
+        return [], []
+
+    version = pd.Timestamp(generated_at).strftime("%Y%m%d_%H%M%S")
+    models_dir = Path(models_dir or config.MODELS_DIR)
+    conn = _ro_connect(replica_db)
+    rows, no_model, refused = [], [], []
+    try:
+        for cc in countries:
+            try:
+                model = load_v014_model(models_dir, cc)
+            except FileNotFoundError:
+                no_model.append(cc)
+                continue
+            cache = build_cache(conn, cc,
+                                window.day_ahead_cutoff - pd.Timedelta(days=35),
+                                window.target_index.max())
+            preds = model.predict_frame(
+                build_features(cache, window, neighbours=model.neighbours))
+            usable = preds.dropna()
+            if usable.empty:
+                refused.append(cc)
+                continue
+            # A refused hour is dropped, never written as 0.0 — the same rule
+            # V012 follows, for the same reason: 0 MW is a real balanced-border
+            # reading, not a stand-in for "unknown".
+            rows += [_row(cc, ts, float(v), generated_at, spec.model_name, version)
+                     for ts, v in usable.items()]
+    finally:
+        conn.close()
+    if no_model:
+        logger.warning("V014: no trained model for %s - run scripts/train_v014.py",
+                       ",".join(no_model))
+    if refused:
+        logger.warning("V014: refused %s - no anchor observation at the serve "
+                       "cutoff", ",".join(refused))
+    return rows, []
+
+
+RUNNERS = {"V012": run_v012, "V014": run_v014, "V016": run_v016}
 
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--experiments", default="V012,V016")
+    p.add_argument("--experiments", default="V012,V014,V016")
     p.add_argument("--countries", default="all")
     p.add_argument("--target-date", default=None, help="default: D+2 from today")
     p.add_argument("--replica-db", default=str(config.DATABASE_PATH))
     p.add_argument("--sidecar-db", default=config.FORECAST_OUTPUT_DB)
+    p.add_argument("--models-dir", default=str(config.MODELS_DIR))
     p.add_argument("--save-to-db", action="store_true")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
@@ -291,7 +351,8 @@ def main() -> int:
             continue
         rows, qrows = RUNNERS[exp](
             spec, countries, target_date, pd.Timestamp(generated_at), actuals,
-            sidecar_db=args.sidecar_db)
+            sidecar_db=args.sidecar_db, replica_db=args.replica_db,
+            models_dir=args.models_dir)
         if not rows:
             logger.error("%s (%s): produced nothing", exp, spec.model_name)
             exit_code = 1

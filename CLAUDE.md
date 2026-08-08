@@ -125,6 +125,50 @@ CREATE TABLE forecasts (
 );
 ```
 
+## The interpreter is part of the configuration (ABL-69)
+
+**This box has two Pythons, and a model artifact is only valid under the one
+that wrote it.** The bare `python` on `PATH` is *not* the one the pipeline uses.
+
+| role | interpreter | Python | xgboost |
+|---|---|---|---|
+| **the rail** — trains, serves, evaluates | `C:\Code\able\energy-forecast\.venv\Scripts\python.exe` | 3.14.3 | **3.3.0** |
+| whatever `python` resolves to | `C:\Users\guill\miniconda3\python.exe` | 3.11.4 | 2.1.4 |
+
+`scripts/workstation/run-net-position.ps1` invokes `$Repo\.venv\Scripts\python.exe`
+explicitly for every step, so the scheduled job is consistent. **An interactive
+run is not**, and that is where this bites.
+
+An xgboost-3.3.0 pickle loaded under 2.1.4 does not fail. It keeps its trees and
+**silently resets the fitted intercept to the 0.5 default** — FR's is 6,585.93 MW
+— then predicts a near-zero-mean series. Measured on FR W12, 2026-08-08:
+
+| interpreter | FR W12 MAE | SMAPE |
+|---|---:|---:|
+| `.venv` (3.3.0) | **1,688 MW** | 28% |
+| conda (2.1.4) | 5,824 MW | 189% |
+
+Predictions came back at mean −6 MW / std 575 against actuals at mean 5,818,
+while correlation held at 0.615 — a model with shape and no level, which reads
+as a bad model rather than a bad load. The only signal is a `UserWarning` about
+serialized models. Nothing crashes and no test fails; the backtest simply reports
+that the challenger lost.
+
+`src/challengers/v014.py` now refuses this rather than trusting it.
+`save_model` writes the xgboost version and the fitted intercept into the
+artifact; `load_model` reads the intercept back out of the booster's own config
+and raises `ModelArtifactError` when it has moved, naming the interpreter to use.
+It checks the **symptom**, not version equality — so it stays silent across
+upgrades that are actually fine, and fires whenever predictions would be wrong.
+An artifact written before the guard carries no witness and still loads: absent
+evidence is "cannot check", not "corrupt".
+
+Run anything that loads a model — `train_v014.py`, `backtest_v014.py`,
+`forecast_challengers.py`, `evaluate_net_position.py` — under `.venv`, and note
+that `.env` is gitignored, so a **git worktree has no `.env`** and
+`config.DATABASE_PATH` degrades to a bare `\data\energy_dashboard.db`. Pass
+`ENERGY_DB_PATH` explicitly from a worktree.
+
 ## Model Storage
 
 Models are stored in a filesystem-based structure with embedded metadata:
@@ -577,6 +621,81 @@ Note the pooled-vs-per-country trap here: the plan's 0.894 correlation is
 pooled, which mixes country means and is inflated by between-country variance
 (the eval's own docstring says so). Per-country `rho` is much lower, and the
 per-country numbers are what a per-country correction can use.
+
+### V014 — the trained per-country XGBoost challenger (ABL-69)
+
+The challenger the Board asked for, and the answer to the paragraph above: V010
+is close to affinely optimal per country, so no correction layer on it can reach
+the gate's `slope ∈ [0.8, 1.2]`. That needs a different model.
+
+- `src/challengers/v014_features.py` — the feature builder (89 features)
+- `src/challengers/v014.py` — model, refusals, artifact integrity
+- `scripts/train_v014.py`, `scripts/backtest_v014.py`
+- `experiments/V014/config.json`, `training_report.json`, `backtest_W01_W12.json`
+- Artifacts: `models/net_position/V014/{CC}.joblib`, 19 countries (all supported
+  net-position countries except LU, which duplicates DE in the A25 document, and
+  GR, whose actuals are fabricated zeros — ABL-35/ABL-67)
+
+**`models/` is gitignored, so merging the branch does not ship the model.**
+The scheduled job runs from `C:\Code\able\energy-forecast` (`$Repo` in
+`run-net-position.ps1`), and `config.MODELS_DIR` resolves against *that*
+checkout — not the worktree the training ran in. Artifacts have to be copied
+across by hand, and if they are not, the rail logs "no trained model for
+AT,BE,…" and writes nothing for V014 while every other model succeeds and the
+job still exits 0. Retraining in a worktree therefore has two steps:
+
+```bash
+python scripts/train_v014.py --countries all          # under .venv
+cp -r models/net_position/V014 C:/Code/able/energy-forecast/models/net_position/
+```
+
+**Serve-faithfulness holds by construction, and it has to.** A tabular model
+evaluates every feature *at the target timestamp*, so unlike Chronos-2 — whose
+context simply ends where the data ends — each column must justify its own
+availability. It cannot be verified after the fact from ingest metadata:
+`fetched_at` and `publication_timestamp_utc` are last-write over a rolling
+re-fetch window, so every FR `net_position` row for targets 2026-08-01..07
+carries the identical `fetched_at`. An as-of query over them passes anything you
+hand it. The construction is one documented per-source cutoff derived from the
+run instant, applied identically in training, backtest and serving:
+
+| source | cutoff at a 06:00Z run on D |
+|---|---|
+| `net_position`, `energy_price`, `energy_load_forecast`, `energy_generation_forecast` | D 21:00 (day-ahead publication) |
+| `crossborder_flows` | target − 72h (ABL-74), with an `xb_missing` indicator |
+| `weather_data` | at the target hour, `data_quality='forecast'` and `forecast_run_time <= run_ts` |
+
+**Same-hour lags start at 72h, not 48h.** The binding target hour is D+2 23:00,
+exactly 50h past the D 21:00 cutoff, so a 48h lag reaches D 22:00 and D 23:00 —
+two hours that do not exist at run time. `assert_lag_is_serve_safe` checks every
+lag on every build; the tautological check (filter to `<= cutoff`, then assert
+the max is `<= cutoff`) cannot fail and was deliberately not written.
+
+**W01-W10 are weather-blind for every model.** The issued-forecast archive
+begins 2026-01-11 (FR's earliest `forecast_run_time`), so those ten weeks carry
+NaN weather. The builder does **not** fall back to the `data_quality='actual'`
+reanalysis, which is a nowcast (lead 0.0h) and would be observed weather handed
+to the model as a forecast. `weather_available` records the regime per row.
+The champion's loader filters the same way, so the comparison is fair — but
+neither model is in its serving configuration there.
+
+**Three refusals**, all because a tree returns a number for any row you give it:
+no model file for a country raises rather than substituting another country's
+model; fewer than 2 of 3 anchor features (`np_at_cutoff`, `np_lag72h`,
+`np_last7d_mean`) yields NaN for that hour; and a refused hour is **dropped, never
+written as 0.0** — a 0 MW net position is a real balanced-border reading. Nothing
+is imputed: a mean would turn "we do not know this border's flow" into "the flow
+was average".
+
+**A late run is not a better-informed run.** `run_v014` derives its serve window
+from the *target date*, never from `generated_at`, so a job that fires late gets
+the cutoffs the schedule promises rather than the extra hours the clock handed
+it. Otherwise a delayed vintage would be scored against models built on less.
+
+Promotion is not decided here — only by the pre-registered gate read in C2c
+(ABL-72). V014 supplies two of its eight criteria: G5 wants
+`experiments/V014/backtest_W01_W12.json` via `--candidate-backtest`, and G6 wants
+a bit-reproduced live vintage via `--serve-faithful-verified`.
 
 **Backtest evaluation:** 12 held-out weeks (W01-W12) spanning 2024-2026, NaN-masked during training of ALL models. Use `--exclude-backtest` flag for XGBoost, automatic for Chronos-2.
 

@@ -1,0 +1,607 @@
+{
+  "experiment": "V014",
+  "trained_at": "2026-08-08T11:32:34",
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "run_day_span": [
+    "2023-02-01",
+    "2026-08-05"
+  ],
+  "backtest_weeks_excluded": true,
+  "countries": [
+    {
+      "country": "AT",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 92,
+      "neighbours": [
+        "DE",
+        "CZ",
+        "HU",
+        "SI",
+        "CH",
+        "IT"
+      ],
+      "best_iteration": 57,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 779.519192755468,
+        "rmse": 977.2689437574908,
+        "slope": 1.2236103278549266,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 1000.2273318124676,
+        "rmse": 1256.1432646879714,
+        "slope": 1.067978914261543,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\AT.joblib",
+      "fit_seconds": 39.6
+    },
+    {
+      "country": "BE",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 83,
+      "neighbours": [
+        "FR",
+        "NL",
+        "DE"
+      ],
+      "best_iteration": 44,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 804.4019903229809,
+        "rmse": 1009.6988752528125,
+        "slope": 1.5090673264446839,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 1658.9178840072068,
+        "rmse": 1978.5060513105284,
+        "slope": 1.0474463644205416,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\BE.joblib",
+      "fit_seconds": 32.0
+    },
+    {
+      "country": "BG",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 77,
+      "neighbours": [
+        "RO"
+      ],
+      "best_iteration": 173,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 216.6431054358932,
+        "rmse": 278.3667384756168,
+        "slope": 1.1540257781827175,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 547.2885408253271,
+        "rmse": 757.0346861142474,
+        "slope": 1.5411281991507255,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\BG.joblib",
+      "fit_seconds": 26.6
+    },
+    {
+      "country": "CZ",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 86,
+      "neighbours": [
+        "DE",
+        "PL",
+        "SK",
+        "AT"
+      ],
+      "best_iteration": 59,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 476.3419755697533,
+        "rmse": 595.4733501726362,
+        "slope": 1.3588391918640543,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 648.3108166609926,
+        "rmse": 785.7123546971892,
+        "slope": 1.202575892935525,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\CZ.joblib",
+      "fit_seconds": 33.3
+    },
+    {
+      "country": "DE",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 92,
+      "neighbours": [
+        "FR",
+        "NL",
+        "PL",
+        "CZ",
+        "AT",
+        "CH"
+      ],
+      "best_iteration": 326,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 1607.1060903379164,
+        "rmse": 2048.6058592411237,
+        "slope": 1.140846936251675,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 4152.47482220385,
+        "rmse": 5254.934863354925,
+        "slope": 1.2767238847890323,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\DE.joblib",
+      "fit_seconds": 40.6
+    },
+    {
+      "country": "EE",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 83,
+      "neighbours": [
+        "LT",
+        "LV",
+        "FI"
+      ],
+      "best_iteration": 126,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 63.427650459816206,
+        "rmse": 80.90556453438268,
+        "slope": 1.144614838203417,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 124.71931853357498,
+        "rmse": 160.55259590113687,
+        "slope": 0.9184724621917335,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\EE.joblib",
+      "fit_seconds": 31.1
+    },
+    {
+      "country": "ES",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 80,
+      "neighbours": [
+        "FR",
+        "PT"
+      ],
+      "best_iteration": 128,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 924.3866165094398,
+        "rmse": 1161.6548874480463,
+        "slope": 1.1769518407409032,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 1518.0228717280552,
+        "rmse": 1852.4680374715747,
+        "slope": 1.2826485963121181,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\ES.joblib",
+      "fit_seconds": 30.3
+    },
+    {
+      "country": "FI",
+      "rows_total": 28728,
+      "rows_train": 25272,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 83,
+      "neighbours": [
+        "SE",
+        "EE",
+        "NO"
+      ],
+      "best_iteration": 51,
+      "weather_available_frac": 0.1620718462823726,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 578.2622610403837,
+        "rmse": 711.1364600580898,
+        "slope": 1.4577309675417043,
+        "n": 25272
+      },
+      "validation": {
+        "mae": 943.8949651999391,
+        "rmse": 1156.1338510967764,
+        "slope": 0.9557755328383993,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\FI.joblib",
+      "fit_seconds": 31.9
+    },
+    {
+      "country": "FR",
+      "rows_total": 28008,
+      "rows_train": 24648,
+      "rows_validation": 3360,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 89,
+      "neighbours": [
+        "DE",
+        "BE",
+        "ES",
+        "IT",
+        "CH"
+      ],
+      "best_iteration": 86,
+      "weather_available_frac": 0.13967437874892888,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 1460.4554685917972,
+        "rmse": 1869.041074219941,
+        "slope": 1.1670816139972424,
+        "n": 24648
+      },
+      "validation": {
+        "mae": 2119.7753468452443,
+        "rmse": 2642.1270814957506,
+        "slope": 0.9933347041056404,
+        "n": 3312
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\FR.joblib",
+      "fit_seconds": 36.4
+    },
+    {
+      "country": "HR",
+      "rows_total": 28008,
+      "rows_train": 24648,
+      "rows_validation": 3360,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 80,
+      "neighbours": [
+        "SI",
+        "HU"
+      ],
+      "best_iteration": 160,
+      "weather_available_frac": 0.13967437874892888,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 208.97668795822378,
+        "rmse": 263.40013017806314,
+        "slope": 1.1120623221878563,
+        "n": 24648
+      },
+      "validation": {
+        "mae": 382.1434406490767,
+        "rmse": 471.0255449921686,
+        "slope": 0.9749421283298128,
+        "n": 3312
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\HR.joblib",
+      "fit_seconds": 29.8
+    },
+    {
+      "country": "HU",
+      "rows_total": 27432,
+      "rows_train": 24144,
+      "rows_validation": 3288,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 89,
+      "neighbours": [
+        "AT",
+        "SK",
+        "RO",
+        "HR",
+        "SI"
+      ],
+      "best_iteration": 313,
+      "weather_available_frac": 0.13123359580052493,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 223.00295173700005,
+        "rmse": 287.33365261293585,
+        "slope": 1.0495596602068007,
+        "n": 24144
+      },
+      "validation": {
+        "mae": 577.9780266478988,
+        "rmse": 773.5642719398817,
+        "slope": 1.1045512765139989,
+        "n": 3240
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\HU.joblib",
+      "fit_seconds": 37.2
+    },
+    {
+      "country": "LT",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 83,
+      "neighbours": [
+        "LV",
+        "PL",
+        "EE"
+      ],
+      "best_iteration": 278,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 121.42641012821993,
+        "rmse": 153.59386638858913,
+        "slope": 1.146172657870326,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 304.38186018525244,
+        "rmse": 378.3933753214528,
+        "slope": 1.4150220332730459,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\LT.joblib",
+      "fit_seconds": 31.7
+    },
+    {
+      "country": "LV",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 80,
+      "neighbours": [
+        "LT",
+        "EE"
+      ],
+      "best_iteration": 215,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.05091819699499165,
+      "train": {
+        "mae": 73.82200672696393,
+        "rmse": 95.8654405481189,
+        "slope": 1.0497708549353642,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 177.89584870471933,
+        "rmse": 234.57926747997405,
+        "slope": 0.9889158513692655,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\LV.joblib",
+      "fit_seconds": 29.3
+    },
+    {
+      "country": "NL",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 80,
+      "neighbours": [
+        "DE",
+        "BE"
+      ],
+      "best_iteration": 70,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 1196.550230794293,
+        "rmse": 1485.635034081036,
+        "slope": 1.3895836986317038,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 1826.4261042805458,
+        "rmse": 2251.245241681018,
+        "slope": 0.9961967926638405,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\NL.joblib",
+      "fit_seconds": 29.8
+    },
+    {
+      "country": "PL",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 86,
+      "neighbours": [
+        "DE",
+        "CZ",
+        "SK",
+        "LT"
+      ],
+      "best_iteration": 204,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 478.72295781966164,
+        "rmse": 622.81277262913,
+        "slope": 1.1966859521199829,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 1017.6690414730666,
+        "rmse": 1232.9622496819388,
+        "slope": 0.8542199301857012,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\PL.joblib",
+      "fit_seconds": 35.2
+    },
+    {
+      "country": "PT",
+      "rows_total": 28728,
+      "rows_train": 25272,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 77,
+      "neighbours": [
+        "ES"
+      ],
+      "best_iteration": 183,
+      "weather_available_frac": 0.1620718462823726,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 492.9744370677464,
+        "rmse": 629.3934808203514,
+        "slope": 1.0914759154939115,
+        "n": 25272
+      },
+      "validation": {
+        "mae": 724.6373770935669,
+        "rmse": 910.7967600895242,
+        "slope": 1.109776485907605,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\PT.joblib",
+      "fit_seconds": 27.7
+    },
+    {
+      "country": "RO",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 80,
+      "neighbours": [
+        "BG",
+        "HU"
+      ],
+      "best_iteration": 98,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 364.1761908044355,
+        "rmse": 453.4294311104501,
+        "slope": 1.189642917705036,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 524.7865194709799,
+        "rmse": 646.8948254891282,
+        "slope": 1.0936759435464571,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\RO.joblib",
+      "fit_seconds": 28.9
+    },
+    {
+      "country": "SI",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 86,
+      "neighbours": [
+        "AT",
+        "IT",
+        "HR",
+        "HU"
+      ],
+      "best_iteration": 86,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 121.03420527865802,
+        "rmse": 153.13284910343626,
+        "slope": 1.1422812865696232,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 150.98141687909072,
+        "rmse": 192.38627803031196,
+        "slope": 1.0033615904278232,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\SI.joblib",
+      "fit_seconds": 32.9
+    },
+    {
+      "country": "SK",
+      "rows_total": 28752,
+      "rows_train": 25296,
+      "rows_validation": 3456,
+      "run_day_first": "2023-02-01",
+      "run_day_last": "2026-08-05",
+      "n_features": 86,
+      "neighbours": [
+        "CZ",
+        "PL",
+        "HU",
+        "AT"
+      ],
+      "best_iteration": 152,
+      "weather_available_frac": 0.16193656093489148,
+      "xb_missing_frac": 0.0,
+      "train": {
+        "mae": 129.9226714823924,
+        "rmse": 164.65186082004885,
+        "slope": 1.0697855642043366,
+        "n": 25296
+      },
+      "validation": {
+        "mae": 217.5487128419629,
+        "rmse": 276.858616754547,
+        "slope": 1.1841393439330354,
+        "n": 3456
+      },
+      "artifact": "C:\\Code\\able\\energy-forecast-abl69\\models\\net_position\\V014\\SK.joblib",
+      "fit_seconds": 33.7
+    }
+  ],
+  "failures": []
+}
