@@ -697,6 +697,29 @@ Promotion is not decided here — only by the pre-registered gate read in C2c
 `experiments/V014/backtest_W01_W12.json` via `--candidate-backtest`, and G6 wants
 a bit-reproduced live vintage via `--serve-faithful-verified`.
 
+**Tuning to MAE moves BE out of the gate's slope band, so nothing was adopted.**
+`scripts/tune_v014.py` runs a small readable grid per country, selecting on
+validation MAE over the same chronological split the fit uses — never on the
+backtest weeks, which would make the backtest a training set. Measured
+2026-08-08 on the four countries where V014 trails V010, only **BE** cleared the
+2% bar, and it did so by breaking the criterion the model exists to satisfy:
+
+| country | default MAE / slope | best candidate | its MAE / slope |
+|---|---|---|---|
+| BE | 1,658.9 / 1.047 | `shallow_slow` **−10.2%** | 1,489.0 / **1.395** |
+| NL | 1,826.4 / 0.996 | `deeper_slow` +0.9% | 1,810.1 / 0.976 |
+| AT | 1,000.2 / 1.068 | `shallow_slow` +1.6% | 983.9 / 0.980 |
+| FR | 2,120.0 / 0.993 | `shallow_slow` +1.8% | 2,081.6 / 1.132 |
+
+The gate wants `slope ∈ [0.8, 1.2]`; BE's MAE-optimal fit sits at 1.395. So the
+one adoption the search offers trades the criterion V014 was built for against
+the one it is currently losing. The script therefore **writes no model without
+`--adopt`**, and `--adopt` was not used. Deciding the tuning objective against
+the gate rather than against MAE is a program-level call (ABL-24), not a
+parameter choice. Note `shallow_slow` is the best candidate in three of four
+countries and stays inside the band in NL/AT/FR — it is BE specifically where
+MAE and slope pull apart.
+
 **Backtest evaluation:** 12 held-out weeks (W01-W12) spanning 2024-2026, NaN-masked during training of ALL models. Use `--exclude-backtest` flag for XGBoost, automatic for Chronos-2.
 
 ### Expected Performance
