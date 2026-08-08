@@ -65,7 +65,49 @@ energy_forecast/
 
 ## Database
 
-Uses the shared database at `../data_gathering/energy_dashboard.db`.
+Two files, and pointing at the wrong one is the trap this section exists to
+prevent (ABL-73). Neither path is hardcoded — both come from the environment:
+
+| role | path | env var |
+|---|---|---|
+| **replica** (read) | `C:\Code\able\data\energy_dashboard.db` | `ENERGY_DB_PATH` |
+| **sidecar** (write) | `C:\Code\able\data\forecasts_local.db` | `FORECAST_OUTPUT_DB` |
+
+`scripts/workstation/run-net-position.ps1:10-11` is what sets them for the
+scheduled job, and `reports/net_position_eval/latest.json` → `meta.replica_db` /
+`meta.sidecar_db` records which pair a stored evaluation actually ran against.
+The replica is refreshed at 07:00 by the `able-db-sync` job; the forecast runs
+at 08:00 behind it. **All writes go to the sidecar** — the replica is a
+read-only mirror of prod and nothing here may write to it.
+
+Local runs read `.env` (via `python-dotenv`, `config.py:11`). It is gitignored
+and must stay untracked — it carries a machine-specific absolute path.
+
+> **There is a decoy.** `../energy-data-gathering/energy_dashboard.db` (3.0 GB)
+> is a **stale partial snapshot**, not the replica, and it is the nearest real
+> file to every wrong path this module has been pointed at. Measured 2026-08-07:
+> its `net_position` holds 10,968 rows ending **2024-01-15** (the replica has
+> 645,618, current to the hour); **AT and DE have zero rows**, BE/NL/FR stop in
+> 2023-24; `energy_generation` does not exist as a table; and every `fetched_at`
+> falls in one 52-minute import session on 2026-04-01. A per-country training or
+> backtest run against it yields a 19-country program with the priority majors
+> (BE, NL, AT, FR — the net-position program plan's §7.2, recorded on ABL-73)
+> silently missing and numbers that look fine.
+> Do not delete it — `energy-data-gathering` may own it.
+
+`validate_config()` (`config.py`) now catches exactly that: it checks the
+database is not merely *present* but *current*, requiring `net_position` rows
+within `DB_STALE_AFTER_HOURS` (48) for `DB_CURRENCY_PROBE_COUNTRIES`
+(BE, NL, AT, FR, DE) and failing with a per-country reason otherwise. A stale
+timestamp is disqualifying; a *future* one is not — `net_position` is day-ahead,
+so a healthy replica reaches the end of tomorrow's market day. `ALLOW_STALE_DB=1`
+downgrades the failure to a warning for a deliberate run against a partial
+database; do not bake it into a script. `python config.py` prints the verdict.
+
+Note this runs in `validate_config()`, which is called by `scripts/train.py`,
+`train_all.py`, `train_baselines.py` and `forecast_daily.py` — **not** by
+`scripts/forecast_chronos2.py`, so the scheduled 08:00 net-position job is
+unaffected by it.
 
 **New Table:** `forecasts`
 ```sql
@@ -384,6 +426,55 @@ bites, both measured 2026-08-06 (ABL-28):
   under 1% of MAE, so it is filed rather than fixed in flight.
 
 **Key dependencies:** `torch>=2.1`, `transformers>=4.40`, `chronos-forecasting>=2.0` (separate venv)
+
+### Net-position evaluation and the promotion gate
+
+`src/evaluation/net_position.py` (ABL-30) scores the as-served vintages against
+`net_position` actuals; `scripts/evaluate_net_position.py` is the entry point and
+writes `reports/net_position_eval/`. Both databases are opened **readonly**.
+
+```bash
+# single model (default: chronos-2-V010)
+python scripts/evaluate_net_position.py --replica-db ...\energy_dashboard.db \
+    --sidecar-db ...\forecasts_local.db --stdout
+# several models over one identical vintage window — the C2c deliverable
+python scripts/evaluate_net_position.py --model chronos-2-V010 chronos-2-V012 ...
+```
+
+Four things about the gate are load-bearing (ABL-72):
+
+- **The gate scores a vintage window; the report does not.** The tables cover
+  every stored vintage, but `promotion_gate` reads `results["gate_scope"]`,
+  which defaults to vintages at or after `cohort_split` (`FIX_DEPLOYED_UTC`).
+  Without that restriction the champion is measured on the zero-padded-context
+  era: measured on the replica 2026-08-07, all 18 vintages give MAE 1,439 MW /
+  slope 0.26 against the serving model's 553 MW / 0.90, so a challenger faced a
+  bar **2.60x easier** than the real one. The difference is not cosmetic —
+  `slope_in_range_per_country` reads 0/19 contaminated and **11/19** windowed.
+  Override with `--gate-vintage-start` / `--gate-vintage-end`; the window and its
+  vintage count are printed in the report header.
+- **All eight pre-registered criteria are emitted, and PASS requires all eight.**
+  `PRE_REGISTERED_CHECKS` is the list; the gate checks itself against it and the
+  report iterates it, so an absent criterion prints as `NOT IMPLEMENTED` instead
+  of being silently skipped. The verdict is `PASS` / `FAIL` / `INCOMPLETE` — a
+  criterion that cannot be evaluated (no `--candidate-backtest`, no
+  `--serve-faithful-verified` attestation) yields `INCOMPLETE`, never `PASS`.
+  Two of the eight had never been implemented, and because the old verdict
+  spanned "only evaluable checks", their absence could not fail.
+- **LU and GR are excluded by name**, not by symptom — `GATE_EXCLUDED_COUNTRIES`
+  carries a reason for each (LU duplicates DE in A25; GR's actuals are
+  fabricated zeros, ABL-35/ABL-67). GR was previously excluded only as a
+  side-effect of having no paired actuals, so a partial upstream resume would
+  have silently re-entered it and failed the gate on thin data.
+- **A comparison shares one window across every column.** It is the intersection
+  of the models' stored vintage spans, floored at `cohort_split`, and
+  `compare_models` raises if the columns end up scored over different windows.
+  Per-model vintage counts are printed rather than smoothed, and a model with no
+  stored vintages reads as "Not scored", never as an empty column.
+
+**The script does not discover model versions.** It scores exactly the
+`--model` names given. Anything claiming it picks up new versions automatically
+is wrong — that was ABL-68 scope item 1 and plan Rev 3:29.
 
 ### Experiment System
 

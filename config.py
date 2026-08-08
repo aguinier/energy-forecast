@@ -3,6 +3,7 @@ Configuration for Energy Forecasting Module
 """
 
 import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -290,6 +291,135 @@ LOG_LEVEL = 'INFO'
 # ============================================================================
 # VALIDATION
 # ============================================================================
+# A *stale but present* database is the failure that actually happens here, and
+# `DATABASE_PATH.exists()` cannot see it (ABL-73). There is a 3.0 GB partial
+# snapshot at ../energy-data-gathering/energy_dashboard.db that is the nearest
+# file to every wrong path this module has been pointed at. Measured 2026-08-07:
+# its net_position holds 10,968 rows ending 2024-01-15, AT and DE have *zero*
+# rows, and BE/NL/FR stop in 2023. A per-country training run against it yields
+# a 19-country program with the priority majors silently absent and a backtest
+# whose numbers look fine. The live replica is C:\Code\able\data\energy_dashboard.db
+# (645,618 net_position rows, current to the hour).
+#
+# net_position is the probe because it is the sharpest discriminator between the
+# two: the decoy fails it on both coverage and recency at once.
+DB_CURRENCY_PROBE_COUNTRIES = ['BE', 'NL', 'AT', 'FR', 'DE']
+
+# 48h tolerates a missed daily replica sync without admitting the decoy, which
+# misses by two and a half years. Not a tuned edge: any bound from ~2 days to
+# ~1 year separates the same two databases.
+DB_STALE_AFTER_HOURS = 48
+
+# Escape hatch for deliberately running against a partial database (a fixture, a
+# single-country experiment). It warns loudly rather than passing silently — do
+# not bake it into a script.
+ALLOW_STALE_DB_ENV = 'ALLOW_STALE_DB'
+
+
+def _parse_db_timestamp(value):
+    """Tolerant parse of a stored timestamp. Returns an aware UTC datetime, or
+    None if it is absent or unparseable.
+
+    The column can hold both `2026-07-20T00:00:00` and `2026-07-20 00:00:00`,
+    and a minority of rows elsewhere in this database carry a trailing offset.
+    A parse failure must never crash startup validation.
+    """
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).strip().replace('T', ' '))
+    except (ValueError, TypeError):
+        return None
+    # A bare instant is stored as UTC; an offset-carrying row is converted.
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def classify_db_currency(latest_by_country, now, max_age_hours=DB_STALE_AFTER_HOURS):
+    """Pure. Decide whether a database looks like the live replica.
+
+    `latest_by_country` maps a country code to the newest net_position
+    timestamp held for it (a string), or None when it holds no rows at all.
+    Returns a list of human-readable problems; empty means it looks current.
+
+    A timestamp *ahead* of `now` is not a problem: net_position is a day-ahead
+    stream, so a healthy replica routinely reaches the end of tomorrow's market
+    day. Only staleness is disqualifying.
+    """
+    problems = []
+    cutoff = now - timedelta(hours=max_age_hours)
+
+    for country in sorted(latest_by_country):
+        raw = latest_by_country[country]
+        if raw is None:
+            problems.append(f"{country}: no net_position rows at all")
+            continue
+        latest = _parse_db_timestamp(raw)
+        if latest is None:
+            problems.append(f"{country}: unparseable newest net_position timestamp {raw!r}")
+            continue
+        if latest < cutoff:
+            age_hours = (now - latest).total_seconds() / 3600
+            problems.append(
+                f"{country}: newest net_position row is {raw} "
+                f"({age_hours:,.0f}h old, limit {max_age_hours}h)"
+            )
+
+    return problems
+
+
+def probe_net_position_latest(db_path, countries=None):
+    """Read the newest net_position timestamp per probe country.
+
+    Returns {country_code: timestamp_str_or_None}. Raises RuntimeError with a
+    readable message — never a bare sqlite3 error — when the database cannot be
+    probed at all, which is itself evidence it is not the replica.
+    """
+    import sqlite3
+
+    countries = list(countries if countries is not None else DB_CURRENCY_PROBE_COUNTRIES)
+    latest = {c: None for c in countries}
+    placeholders = ','.join('?' * len(countries))
+
+    try:
+        conn = sqlite3.connect(f'file:{Path(db_path).as_posix()}?mode=ro', uri=True)
+    except sqlite3.Error as exc:
+        raise RuntimeError(f"cannot open {db_path} read-only: {exc}") from exc
+
+    try:
+        # REPLACE() normalises the two stored separators; 'T' sorts above ' ',
+        # so a raw MAX() can pick the wrong row in a mixed column. The
+        # country_code filter rides idx_np_lookup, so this stays a seek
+        # (measured 0.034s over the 5.8 GB replica).
+        rows = conn.execute(
+            f"SELECT country_code, MAX(REPLACE(timestamp_utc, 'T', ' ')) "
+            f"FROM net_position WHERE country_code IN ({placeholders}) "
+            f"GROUP BY country_code",
+            countries,
+        ).fetchall()
+    except sqlite3.Error as exc:
+        # A missing net_position table lands here, and it means the same thing
+        # as an empty one: this is not the replica.
+        raise RuntimeError(f"cannot read net_position from {db_path}: {exc}") from exc
+    finally:
+        conn.close()
+
+    for country_code, newest in rows:
+        latest[country_code] = newest
+    return latest
+
+
+def check_database_currency(db_path=None, now=None):
+    """Probe DATABASE_PATH and return the list of currency problems (empty if
+    it looks like the live replica). Never raises."""
+    db_path = DATABASE_PATH if db_path is None else db_path
+    now = datetime.now(timezone.utc) if now is None else now
+    try:
+        return classify_db_currency(probe_net_position_latest(db_path), now)
+    except RuntimeError as exc:
+        return [str(exc)]
+
 
 def validate_config():
     """Validate configuration on startup"""
@@ -298,6 +428,22 @@ def validate_config():
     # Check database exists
     if not DATABASE_PATH.exists():
         errors.append(f"Database not found at {DATABASE_PATH}")
+    else:
+        # ...and that it is the *live* replica, not a stale copy. See ABL-73.
+        problems = check_database_currency()
+        if problems:
+            detail = "\n".join(f"      {p}" for p in problems)
+            message = (
+                f"Database at {DATABASE_PATH} is present but does not look like the "
+                f"live replica:\n{detail}\n"
+                f"      Expected the workstation replica (set by "
+                f"scripts/workstation/run-net-position.ps1). Set {ALLOW_STALE_DB_ENV}=1 "
+                f"to run against it anyway."
+            )
+            if os.getenv(ALLOW_STALE_DB_ENV) == '1':
+                print(f"WARNING: {message}")
+            else:
+                errors.append(message)
 
     # Ensure directories exist
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -439,6 +585,15 @@ if __name__ == "__main__":
     print("Energy Forecast Configuration")
     print(f"Database: {DATABASE_PATH}")
     print(f"Database exists: {DATABASE_PATH.exists()}")
+    if DATABASE_PATH.exists():
+        _problems = check_database_currency()
+        if _problems:
+            print("Database currency: STALE / INCOMPLETE - not the live replica")
+            for _p in _problems:
+                print(f"  - {_p}")
+        else:
+            print(f"Database currency: current (net_position within "
+                  f"{DB_STALE_AFTER_HOURS}h for {', '.join(DB_CURRENCY_PROBE_COUNTRIES)})")
     print(f"Supported countries: {len(SUPPORTED_COUNTRIES)}")
     print(f"Forecast types: {FORECAST_TYPES}")
     print(f"D+{FORECAST_TARGET_DAYS} daily at {FORECAST_HOUR}:00")
