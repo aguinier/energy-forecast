@@ -394,8 +394,98 @@ experiments/
 ├── registry.json           # Master index of all experiments
 ├── V001/config.json        # XGBoost baseline
 ├── V002/config.json        # Chronos-2 zero-shot
-└── V003/config.json        # Chronos-2 fine-tuned (5000 steps)
+├── V003/config.json        # Chronos-2 fine-tuned (5000 steps)
+├── V012/config.json        # Baseline ensemble (shadow challenger)
+└── V016/config.json        # V010 + affine + AR(1) (shadow challenger)
 ```
+
+### Champion / challenger shadow serving (ABL-68)
+
+The daily 08:00 net-position job runs the champion, then
+`scripts/forecast_challengers.py` runs every registered challenger on the same
+serve-time inputs. Challengers write their own `model_name` rows to the sidecar
+and **are never pushed to production**.
+
+`model_name` is the identity that matters. `model_version` is the vintage
+timestamp, not a model identity — two models sharing a `generated_at` are told
+apart by `model_name` alone. Challengers are listed in
+`src/challengers/registry.py`, not discovered, so what runs tomorrow is a
+reviewable list.
+
+**Two things enforce the "never pushed" invariant, and both are load-bearing.**
+`push_net_position_forecast.py` names the champion (`CHAMPION_MODEL_NAME`,
+default `chronos-2-V010`) and filters every query on it. Before ABL-68 it took
+the newest `generated_at` for `forecast_type='net_position'` with no model
+filter — correct only while the sidecar held one model. Challengers run *after*
+the champion in the same job, so the newest vintage in the sidecar is now a
+challenger's: verified 2026-08-07, the newest row was `chronos-2-V016` and the
+unfixed script would have shipped it to the dashboard as the production
+forecast.
+
+**The eval scores every stored vintage, but one `model_name` per invocation.**
+`evaluate_net_position.py --model` defaults to the champion, so a challenger is
+scored only if the runner names it. `run-net-position.ps1` calls it once per
+model, each with its own `--out-dir`, because the script always writes
+`latest.md` beside the week-tagged report and a shared directory would leave
+`latest.md` holding whichever model ran last — which ABL-30 and ABL-34 both read
+expecting the champion.
+
+**V012 does not reimplement its own baseline.** It calls
+`src/evaluation/net_position.py::baseline_predictions`, the same function the
+gate scores against. Two implementations of one baseline is the shape of the
+renewable-share defect.
+
+**Never compare two per-model eval reports to each other.** Each report is
+scored on whatever rows its own model covers, and the champion's set also picks
+up prod-pushed vintages that live in the replica and were never in the
+reconstruction a challenger is rebuilt from. On V016's held-out window the
+champion's report covered 57 vintages to the challenger's 49. Read report against
+report, V016 looked *better* almost everywhere (FR 2,464 → 1,916 MW, DE 3,344 →
+3,014 MW); scored on the rows both models actually cover, it is **worse**. Use
+`scripts/compare_challenger.py`, which inner-joins on
+`(country, target hour, vintage)` and reports the one-sided remainders
+(`src/evaluation/head_to_head.py`).
+
+**V016 refuses more than it corrects, and does not beat the champion.** Measured
+on a held-out window (fit 2026-01-19..06-15, tested 06-17..08-04, 22,344
+exactly-paired rows over 49 vintages): V010 **775.2 MW** MAE, V016 **786.1 MW** —
+1.4% worse. It is materially better (≥0.5%) in **1 of 19 countries** (FR, −2.1%),
+identical in 3 (BG/LT/RO pass through uncorrected), and within noise or worse in
+the remaining 15. Forcing unit slope instead (`--method variance`) costs 11.4%:
+863.8 MW, better in 0 of 19. Archived in `reports/head_to_head/V016/`
+(deliberately *not* under `reports/net_position_eval/`, which is gitignored
+because the scheduled eval rewrites it every run), reproduced 2026-08-08 with
+`experiments/V016/correction_holdout.json`. AR(1)-only and a rolling 60-day
+refit were also tried and also lost, so drift is not the explanation.
+
+Two reasons, both worth knowing before proposing another correction layer:
+
+- **Affine recalibration cannot fix the residual shrinkage.** For any affine
+  map, `slope(corrected on actual) = b * slope(f on a)`, which under OLS is
+  exactly `rho**2`. It *lowers* the slope in 15 of 16 countries (FR 0.480 →
+  0.398, BE 0.298 → 0.201). And `b < 1` for 15 of 16, so the error-minimising
+  move is to shrink the champion *further*: V010 is already close to affinely
+  optimal per country. Unit slope requires inflating variance, measured at an
+  11% MAE cost. **The gate's `slope ∈ [0.8, 1.2]` is therefore unreachable by
+  any affine layer on V010** — it needs `rho ≥ 0.894`, and measured per-country
+  `rho` is 0.41-0.88. That is a better-model problem (V014/V015).
+- **AR(1) is bounded by the horizon, not the coefficient.** Residual lag-1
+  autocorrelation is genuinely 0.85-0.96, but a 06:00Z run observes actuals only
+  to D 21:00 while correcting D+2 00:00-23:00. The carry is `phi**27..phi**51` —
+  0.04 to 0.32 at the nearest corrected hour. Small by construction.
+
+**Two fit files, and they are not interchangeable.**
+`experiments/V016/correction.json` is fitted on everything (`train_end: null`)
+and is what the daily shadow run serves — correct for serving forward, and
+*in-sample* for any window before the fit date. `correction_holdout.json` is
+fitted to 2026-06-15 only and is the one every quoted V016 number above comes
+from. Evaluating V016 with the full-sample fit would score it on data it was
+fitted on and flatter it. Both drop the W11/W12 backtest target days.
+
+Note the pooled-vs-per-country trap here: the plan's 0.894 correlation is
+pooled, which mixes country means and is inflated by between-country variance
+(the eval's own docstring says so). Per-country `rho` is much lower, and the
+per-country numbers are what a per-country correction can use.
 
 **Backtest evaluation:** 12 held-out weeks (W01-W12) spanning 2024-2026, NaN-masked during training of ALL models. Use `--exclude-backtest` flag for XGBoost, automatic for Chronos-2.
 

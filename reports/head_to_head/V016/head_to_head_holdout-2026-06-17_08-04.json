@@ -1,0 +1,188 @@
+{
+ "model_a": "chronos-2-V010",
+ "model_b": "chronos-2-V016",
+ "n_paired": 22344,
+ "n_only_a": 0,
+ "n_only_b": 0,
+ "n_vintages": 49,
+ "pooled_mae_a_mw": 775.1718335670529,
+ "pooled_mae_b_mw": 786.1374447303116,
+ "pooled_delta_mw": 10.9656111632587,
+ "pooled_delta_pct": 1.4146039224360138,
+ "countries": [
+  {
+   "country": "AT",
+   "n": 1176,
+   "mae_a_mw": 801.4567866785997,
+   "mae_b_mw": 800.5931848806928,
+   "delta_mw": -0.8636017979068811,
+   "delta_pct": -0.10775400648684043,
+   "verdict": "tie"
+  },
+  {
+   "country": "BE",
+   "n": 1176,
+   "mae_a_mw": 933.835163266967,
+   "mae_b_mw": 954.4911264957777,
+   "delta_mw": 20.65596322881072,
+   "delta_pct": 2.211949607524636,
+   "verdict": "worse"
+  },
+  {
+   "country": "BG",
+   "n": 1176,
+   "mae_a_mw": 367.30549185486876,
+   "mae_b_mw": 367.30549185486876,
+   "delta_mw": 0.0,
+   "delta_pct": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "country": "CZ",
+   "n": 1176,
+   "mae_a_mw": 649.9100988504838,
+   "mae_b_mw": 661.5419761805908,
+   "delta_mw": 11.631877330107045,
+   "delta_pct": 1.78976713097407,
+   "verdict": "worse"
+  },
+  {
+   "country": "DE",
+   "n": 1176,
+   "mae_a_mw": 2996.019465644992,
+   "mae_b_mw": 3014.12543692149,
+   "delta_mw": 18.105971276497712,
+   "delta_pct": 0.6043342336095204,
+   "verdict": "worse"
+  },
+  {
+   "country": "EE",
+   "n": 1176,
+   "mae_a_mw": 85.24004384514426,
+   "mae_b_mw": 87.96467488676483,
+   "delta_mw": 2.724631041620569,
+   "delta_pct": 3.196421445500909,
+   "verdict": "worse"
+  },
+  {
+   "country": "ES",
+   "n": 1176,
+   "mae_a_mw": 1129.8162471226283,
+   "mae_b_mw": 1240.2963035921748,
+   "delta_mw": 110.48005646954653,
+   "delta_pct": 9.778586274618798,
+   "verdict": "worse"
+  },
+  {
+   "country": "FI",
+   "n": 1176,
+   "mae_a_mw": 742.3028556116584,
+   "mae_b_mw": 780.0694081643796,
+   "delta_mw": 37.76655255272124,
+   "delta_pct": 5.087755256121379,
+   "verdict": "worse"
+  },
+  {
+   "country": "FR",
+   "n": 1176,
+   "mae_a_mw": 1955.6959394182477,
+   "mae_b_mw": 1915.551544371931,
+   "delta_mw": -40.14439504631673,
+   "delta_pct": -2.0526910261038998,
+   "verdict": "better"
+  },
+  {
+   "country": "HR",
+   "n": 1176,
+   "mae_a_mw": 301.1206800344039,
+   "mae_b_mw": 310.4709410290748,
+   "delta_mw": 9.350260994670919,
+   "delta_pct": 3.1051540510610645,
+   "verdict": "worse"
+  },
+  {
+   "country": "HU",
+   "n": 1176,
+   "mae_a_mw": 441.85215428670244,
+   "mae_b_mw": 453.95839028545254,
+   "delta_mw": 12.106235998750094,
+   "delta_pct": 2.7398838913196246,
+   "verdict": "worse"
+  },
+  {
+   "country": "LT",
+   "n": 1176,
+   "mae_a_mw": 252.71105845250239,
+   "mae_b_mw": 252.71105845250239,
+   "delta_mw": 0.0,
+   "delta_pct": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "country": "LV",
+   "n": 1176,
+   "mae_a_mw": 132.14910276114534,
+   "mae_b_mw": 131.90624736062293,
+   "delta_mw": -0.24285540052241572,
+   "delta_pct": -0.18377377935086547,
+   "verdict": "tie"
+  },
+  {
+   "country": "NL",
+   "n": 1176,
+   "mae_a_mw": 1730.7248001410037,
+   "mae_b_mw": 1742.1908500829602,
+   "delta_mw": 11.466049941956499,
+   "delta_pct": 0.662499892589645,
+   "verdict": "worse"
+  },
+  {
+   "country": "PL",
+   "n": 1176,
+   "mae_a_mw": 882.0053915867188,
+   "mae_b_mw": 878.3428665964848,
+   "delta_mw": -3.662524990234033,
+   "delta_pct": -0.4152497280821818,
+   "verdict": "tie"
+  },
+  {
+   "country": "PT",
+   "n": 1176,
+   "mae_a_mw": 591.7643073153333,
+   "mae_b_mw": 607.9108526095098,
+   "delta_mw": 16.146545294176462,
+   "delta_pct": 2.728543289038292,
+   "verdict": "worse"
+  },
+  {
+   "country": "RO",
+   "n": 1176,
+   "mae_a_mw": 444.48489999576486,
+   "mae_b_mw": 444.48489999576486,
+   "delta_mw": 0.0,
+   "delta_pct": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "country": "SI",
+   "n": 1176,
+   "mae_a_mw": 107.08552811291753,
+   "mae_b_mw": 107.35783961833518,
+   "delta_mw": 0.2723115054176475,
+   "delta_pct": 0.2542934701041074,
+   "verdict": "tie"
+  },
+  {
+   "country": "SK",
+   "n": 1176,
+   "mae_a_mw": 182.78482279392327,
+   "mae_b_mw": 185.33835649654105,
+   "delta_mw": 2.5535337026177842,
+   "delta_pct": 1.3970162640345198,
+   "verdict": "worse"
+  }
+ ],
+ "n_better": 1,
+ "n_materially_better": 1,
+ "n_identical": 3
+}
