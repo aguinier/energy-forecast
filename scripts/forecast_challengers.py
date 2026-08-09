@@ -330,8 +330,14 @@ def main() -> int:
     else:
         countries = [c for c in args.countries.split(",") if c not in EXCLUDED_COUNTRIES]
 
-    # Naive UTC, matching what forecast_chronos2.py stores for the champion —
-    # the two vintages are compared on this column.
+    # Naive UTC, matching the shape forecast_chronos2.py stores for the
+    # champion. It is emphatically *not* the same instant: this is a separate
+    # process and stamps its own clock, measured 3.8-12.3 s after the
+    # champion's and truncated to the second where the champion carries
+    # microseconds. Nothing may compare the two vintages by equality on this
+    # column — the head-to-head pairs on the actuals cutoff a vintage could see
+    # instead (`src/evaluation/head_to_head.py`, ABL-82). Stamped once here, so
+    # every experiment in one invocation shares a vintage.
     generated_at = datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0)
     actuals = load_actuals(args.replica_db)
     logger.info("shadow run: target %s, %d countries, generated_at %s",
