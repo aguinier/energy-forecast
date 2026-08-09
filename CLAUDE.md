@@ -578,8 +578,59 @@ champion's report covered 57 vintages to the challenger's 49. Read report agains
 report, V016 looked *better* almost everywhere (FR 2,464 → 1,916 MW, DE 3,344 →
 3,014 MW); scored on the rows both models actually cover, it is **worse**. Use
 `scripts/compare_challenger.py`, which inner-joins on
-`(country, target hour, vintage)` and reports the one-sided remainders
+`(country, target hour, run)` and reports the one-sided remainders
 (`src/evaluation/head_to_head.py`).
+
+**A run is not a `generated_at`, and on the live rail the two never match**
+(ABL-82). The head-to-head's first cut joined on exact `generated_at` equality.
+That is right for a reconstruction — one process replays every vintage and
+stamps them all — and wrong for the daily shadow rail, where
+`forecast_chronos2.py` and `forecast_challengers.py` are separate processes in
+`run-net-position.ps1` and each calls its own `datetime.now()`. Measured on the
+live sidecar 2026-08-09: champion `2026-08-09 06:00:55.715745`, all three
+challengers `2026-08-09 06:01:08` — 12.3 s apart, and only the champion carries
+microseconds. The exact join paired **0** rows for V012, V014 *and* V016 while
+912 co-run pairs sat there, and it did so **while printing a full report**:
+`0.0 MW` MAE for both models and "challenger is 0.0% worse". An empty
+head-to-head that renders as a tie is this repo's usual defect in a new place.
+
+Two vintages are now the same run when they agree on the **actuals they could
+see** (`net_position.as_of_for_vintage`, the same serve-faithful cutoff the
+eval's baselines use) *and* their `generated_at` are within `MAX_RUN_SKEW` (4 h)
+of each other. The cutoff carries the meaning; the skew bound is a guard, since
+one cutoff bucket is 24 h wide. `--max-run-skew-hours` tunes the bound only —
+**it cannot pair two vintages that saw different actuals, at any value**, and
+that is deliberate: an information mismatch is not a tolerance problem.
+
+Three properties are load-bearing:
+
+- **Backfills are refused, not paired.** The 2026-08-07 V012/V016 backfill ran
+  15 h 25 m after that day's champion and V014's first vintage 5 h 36 m after
+  (2026-08-08 11:36). Both saw a further day of actuals, so scoring them
+  against a 06:00 champion would credit a challenger for information the
+  champion never had. They land in `n_only_a`/`n_only_b`, where a reader sees
+  them.
+- **A champion re-run duplicates nothing.** 2026-08-06 holds two champion
+  vintages (06:00:44 and 10:52:22) under one cutoff. The pair closest in time
+  wins and the other falls to `n_only_a`; a naive day-level join would have
+  matched both to the single challenger vintage and counted the challenger's
+  hours twice.
+- **Nothing paired reports no number.** `pooled_mae_*` is `None`, the report
+  renders a "Not measured" block instead of a table, and
+  `compare_challenger.py` **exits 1**. A promotion gate must not be able to
+  read an empty comparison as "no difference".
+
+The reconstruction path is unchanged: re-run 2026-08-09 with the new rule, the
+V016 held-out comparison still returns exactly **22,344 paired rows over 49
+runs**, V010 **775.2 MW** vs V016 **786.1 MW**, 1/19 materially better, 3
+identical — the numbers below, to the decimal.
+
+One timing consequence worth knowing before reading a fresh shadow report: the
+rail forecasts **D+2**, so a co-run pair is not scoreable until its target day
+lands. On 2026-08-09 the live head-to-head correctly reports *not measured* for
+all three challengers — the 912 pairs it now forms target 2026-08-10 and 08-11.
+The first live-rail pairs score on 2026-08-10, and by the C2c gate read
+(~2026-08-26) roughly 17 daily runs are available.
 
 **V016 refuses more than it corrects, and does not beat the champion.** Measured
 on a held-out window (fit 2026-01-19..06-15, tested 06-17..08-04, 22,344
