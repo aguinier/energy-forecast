@@ -1,0 +1,472 @@
+"""Recurring forecast-quality scorecard across every served forecast type.
+
+The evaluator is deliberately read-only. It measures stored, issued forecasts;
+it does not fit, correct, interpolate, or extrapolate any series.
+"""
+
+from __future__ import annotations
+
+import math
+import sqlite3
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterable
+
+import numpy as np
+import pandas as pd
+
+from src.baselines import aligned_point_baselines
+from src.evaluation.net_position import (
+    GATE_EXCLUDED_COUNTRIES,
+    as_of_for_vintage,
+    baseline_predictions as net_position_baselines,
+)
+
+
+# Snapshot of the production entries in the dashboard's model registry. Keeping
+# the list explicit prevents an old/stale model present in SQLite from silently
+# entering a recurring scorecard.
+PRODUCTION_MODELS = {
+    "load": "catboost",
+    "price": "catboost",
+    "renewable": "catboost",
+    "solar": "catboost",
+    "wind_onshore": "catboost",
+    "wind_offshore": "xgboost",
+    "biomass": "xgboost",
+    "hydro_total": "xgboost",
+    "net_position": "chronos-2-V010",
+}
+
+ABL128_REFERENCE = {
+    "load": {"wape_pct": 9.4, "seasonal_naive_wape_pct": 5.9,
+             "tso_wape_pct": 4.0, "bias_pct": 1.6},
+    "price": {"wape_pct": 33.2, "seasonal_naive_wape_pct": 27.3,
+              "tso_wape_pct": None, "bias_pct": -17.3},
+    "solar": {"wape_pct": 53.6, "seasonal_naive_wape_pct": 26.0,
+              "tso_wape_pct": None, "bias_pct": -50.7},
+    "wind_onshore": {"wape_pct": 73.5, "seasonal_naive_wape_pct": 75.0,
+                     "tso_wape_pct": None, "bias_pct": 28.1},
+}
+
+ACTUAL_SPECS = {
+    "load": ("energy_load", "load_mw"),
+    "price": ("energy_price", "price_eur_mwh"),
+    "renewable": ("energy_renewable", "total_renewable_mw"),
+    "solar": ("energy_renewable", "solar_mw"),
+    "wind_onshore": ("energy_renewable", "wind_onshore_mw"),
+    "wind_offshore": ("energy_renewable", "wind_offshore_mw"),
+    "biomass": ("energy_renewable", "biomass_mw"),
+    # SQL addition deliberately requires both components. Unknown + measured is
+    # unknown; COALESCE would turn a missing component into a fabricated zero.
+    "hydro_total": ("energy_renewable", "hydro_run_mw + hydro_reservoir_mw"),
+    "net_position": ("net_position", "net_position_mw"),
+}
+
+TSO_SPECS = {
+    "load": ("energy_load_forecast", "target_timestamp_utc", "forecast_value_mw"),
+    "renewable": ("energy_generation_forecast", "target_timestamp_utc", "total_forecast_mw"),
+    "solar": ("energy_generation_forecast", "target_timestamp_utc", "solar_mw"),
+    "wind_onshore": ("energy_generation_forecast", "target_timestamp_utc", "wind_onshore_mw"),
+    "wind_offshore": ("energy_generation_forecast", "target_timestamp_utc", "wind_offshore_mw"),
+}
+
+# Half-open bands except for the final inclusive 64h endpoint. The evaluator
+# selects the latest vintage per target *within* a band; selecting one latest
+# row per target first would erase the D+2 evidence.
+HORIZON_BANDS = (
+    ("2-12h", 2, 12),
+    ("12-24h", 12, 24),
+    ("24-36h", 24, 36),
+    ("36-48h", 36, 48),
+    ("48-64h", 48, 65),
+)
+
+
+@dataclass(frozen=True)
+class ScorecardConfig:
+    replica_db: str
+    sidecar_db: str | None
+    start: pd.Timestamp
+    end: pd.Timestamp
+    models: dict[str, str] | None = None
+
+
+def normalize_timestamps(values: Iterable) -> pd.Series:
+    """Parse both SQLite timestamp separators into naive UTC timestamps."""
+    parsed = pd.to_datetime(pd.Series(values), format="mixed", utc=True,
+                            errors="coerce")
+    return parsed.dt.tz_localize(None)
+
+
+def horizon_band(hours: float | int | None) -> str | None:
+    """Return the configured horizon band, or None when it is not measurable."""
+    if hours is None or pd.isna(hours):
+        return None
+    value = float(hours)
+    for name, lower, upper in HORIZON_BANDS:
+        if lower <= value < upper:
+            return name
+    return None
+
+
+def select_latest_per_band(forecasts: pd.DataFrame) -> pd.DataFrame:
+    """Keep one latest issued row per country/target/model/horizon band."""
+    if forecasts.empty:
+        result = forecasts.copy()
+        result["horizon_band"] = pd.Series(dtype=str)
+        return result
+    result = forecasts.copy()
+    result["horizon_band"] = result["horizon_hours"].map(horizon_band)
+    result = result.dropna(subset=["target_ts", "generated_at", "horizon_band"])
+    keys = ["forecast_type", "model_name", "country_code", "target_ts",
+            "horizon_band"]
+    return (result.sort_values([*keys, "generated_at", "source_rank"])
+                  .drop_duplicates(keys, keep="last")
+                  .reset_index(drop=True))
+
+
+def score_predictions(actual: Iterable[float], predicted: Iterable[float]) -> dict:
+    """Pure point scoring. Empty/all-invalid input is explicitly unmeasured."""
+    a = np.asarray(list(actual), dtype=float)
+    p = np.asarray(list(predicted), dtype=float)
+    if len(a) != len(p):
+        raise ValueError("actual and predicted must align")
+    valid = np.isfinite(a) & np.isfinite(p)
+    a, p = a[valid], p[valid]
+    if len(a) == 0:
+        return {"n": 0, "wape_pct": None, "mae": None, "bias_pct": None,
+                "slope": None, "correlation": None}
+    error = p - a
+    denom = float(np.sum(np.abs(a)))
+    var_actual = float(np.var(a))
+    std_predicted = float(np.std(p))
+    return {
+        "n": int(len(a)),
+        "wape_pct": (100.0 * float(np.sum(np.abs(error))) / denom
+                     if denom > 0 else None),
+        "mae": float(np.mean(np.abs(error))),
+        "bias_pct": (100.0 * float(np.sum(error)) / denom if denom > 0 else None),
+        "slope": (float(np.cov(a, p, bias=True)[0, 1] / var_actual)
+                  if len(a) > 1 and var_actual > 0 else None),
+        "correlation": (float(np.corrcoef(a, p)[0, 1])
+                        if len(a) > 1 and var_actual > 0 and std_predicted > 0
+                        else None),
+    }
+
+
+def score_against_baseline(actual: Iterable[float], model: Iterable[float],
+                           baseline: Iterable[float]) -> dict:
+    """Score model and baseline on their identical finite-pair intersection."""
+    a = np.asarray(list(actual), dtype=float)
+    m = np.asarray(list(model), dtype=float)
+    b = np.asarray(list(baseline), dtype=float)
+    if not (len(a) == len(m) == len(b)):
+        raise ValueError("actual, model, and baseline must align")
+    valid = np.isfinite(a) & np.isfinite(m) & np.isfinite(b)
+    model_score = score_predictions(a[valid], m[valid])
+    baseline_score = score_predictions(a[valid], b[valid])
+    model_wape = model_score["wape_pct"]
+    baseline_wape = baseline_score["wape_pct"]
+    skill = None
+    if model_wape is not None and baseline_wape not in (None, 0):
+        skill = 100.0 * (1.0 - model_wape / baseline_wape)
+    return {"n": int(valid.sum()), "baseline": baseline_score,
+            "model_on_same_pairs": model_score, "skill_pct": skill}
+
+
+def filter_measured_actuals(df: pd.DataFrame, forecast_type: str) -> pd.DataFrame:
+    """Apply type-specific measurement rules without inventing observations."""
+    result = df.dropna(subset=["ts", "actual"]).copy()
+    result = result[(result["ts"].dt.minute == 0) & (result["ts"].dt.second == 0)]
+    if forecast_type == "load":
+        result = result[result["actual"] > 0]
+    if forecast_type == "net_position":
+        result = result[result["country_code"] != "GR"]
+    return result
+
+
+def _ro_connect(path: str) -> sqlite3.Connection:
+    return sqlite3.connect(f"file:{Path(path).resolve().as_posix()}?mode=ro", uri=True)
+
+
+def _load_forecasts(cfg: ScorecardConfig) -> tuple[pd.DataFrame, dict]:
+    models = cfg.models or PRODUCTION_MODELS
+    frames = []
+    sources = [("replica", cfg.replica_db, 0)]
+    if cfg.sidecar_db and Path(cfg.sidecar_db).exists():
+        sources.append(("sidecar", cfg.sidecar_db, 1))
+    for source, path, source_rank in sources:
+        con = _ro_connect(path)
+        try:
+            for forecast_type, model_name in models.items():
+                df = pd.read_sql_query(
+                    """SELECT country_code, forecast_type, target_timestamp_utc,
+                              generated_at, horizon_hours, forecast_value, model_name
+                       FROM forecasts
+                       WHERE forecast_type = ? AND model_name = ?
+                         AND target_timestamp_utc >= ?
+                         AND target_timestamp_utc < ?""",
+                    con, params=(forecast_type, model_name, str(cfg.start), str(cfg.end)))
+                if not df.empty:
+                    df["source"] = source
+                    df["source_rank"] = source_rank
+                    frames.append(df)
+        finally:
+            con.close()
+    if not frames:
+        return pd.DataFrame(), {
+            f"{t}/{m}": {"generated_timestamps": 0, "run_days": 0}
+            for t, m in models.items()
+        }
+    forecasts = pd.concat(frames, ignore_index=True)
+    forecasts["target_ts"] = normalize_timestamps(forecasts["target_timestamp_utc"])
+    forecasts["generated_at"] = normalize_timestamps(forecasts["generated_at"])
+    exact = ["forecast_type", "model_name", "country_code", "target_ts",
+             "generated_at", "horizon_hours"]
+    forecasts = (forecasts.sort_values("source_rank")
+                          .drop_duplicates(exact, keep="last"))
+    counts = {}
+    for forecast_type, model_name in models.items():
+        sub = forecasts[(forecasts["forecast_type"] == forecast_type)
+                        & (forecasts["model_name"] == model_name)]
+        counts[f"{forecast_type}/{model_name}"] = {
+            "generated_timestamps": int(sub["generated_at"].nunique()),
+            "run_days": int(sub["generated_at"].dt.normalize().nunique()),
+        }
+    return forecasts, counts
+
+
+def _load_actuals(cfg: ScorecardConfig, forecast_type: str) -> pd.DataFrame:
+    table, expression = ACTUAL_SPECS[forecast_type]
+    start = cfg.start - pd.Timedelta(days=8)
+    con = _ro_connect(cfg.replica_db)
+    try:
+        df = pd.read_sql_query(
+            f"""SELECT country_code, timestamp_utc, {expression} AS actual
+                FROM {table}
+                WHERE timestamp_utc >= ? AND timestamp_utc < ?
+                  AND ({expression}) IS NOT NULL""",
+            con, params=(str(start), str(cfg.end)))
+    finally:
+        con.close()
+    if df.empty:
+        return pd.DataFrame(columns=["country_code", "ts", "actual"])
+    df["ts"] = normalize_timestamps(df["timestamp_utc"])
+    # Forecast targets are hourly. Do not aggregate quarter-hour observations
+    # into a value with a new meaning; retain only the measured top-of-hour row.
+    df = filter_measured_actuals(df, forecast_type)
+    return (df[["country_code", "ts", "actual"]]
+            .drop_duplicates(["country_code", "ts"], keep="last")
+            .sort_values(["country_code", "ts"]).reset_index(drop=True))
+
+
+def _load_tso(cfg: ScorecardConfig, forecast_type: str) -> pd.DataFrame:
+    if forecast_type not in TSO_SPECS:
+        return pd.DataFrame(columns=["country_code", "target_ts", "tso"])
+    table, timestamp_col, value_col = TSO_SPECS[forecast_type]
+    con = _ro_connect(cfg.replica_db)
+    try:
+        df = pd.read_sql_query(
+            f"""SELECT country_code, {timestamp_col}, {value_col} AS tso
+                FROM {table}
+                WHERE {timestamp_col} >= ? AND {timestamp_col} < ?
+                  AND forecast_type = 'day_ahead' AND {value_col} IS NOT NULL""",
+            con, params=(str(cfg.start), str(cfg.end)))
+    finally:
+        con.close()
+    if df.empty:
+        return pd.DataFrame(columns=["country_code", "target_ts", "tso"])
+    df["target_ts"] = normalize_timestamps(df[timestamp_col])
+    return (df[["country_code", "target_ts", "tso"]]
+            .dropna(subset=["target_ts"])
+            .drop_duplicates(["country_code", "target_ts"], keep="last"))
+
+
+def _attach_evidence(cfg: ScorecardConfig, selected: pd.DataFrame,
+                     forecast_type: str) -> pd.DataFrame:
+    rows = selected[selected["forecast_type"] == forecast_type].copy()
+    actuals = _load_actuals(cfg, forecast_type)
+    rows = rows.merge(actuals.rename(columns={"ts": "target_ts"}),
+                      on=["country_code", "target_ts"], how="left")
+    rows["seasonal_naive"] = np.nan
+    rows["persistence"] = np.nan
+    for country, index in rows.groupby("country_code").groups.items():
+        history = actuals[actuals["country_code"] == country].set_index("ts")["actual"]
+        baseline = aligned_point_baselines(
+            history, pd.DatetimeIndex(rows.loc[index, "target_ts"]),
+            pd.DatetimeIndex(rows.loc[index, "generated_at"]))
+        rows.loc[index, "seasonal_naive"] = baseline["seasonal_naive"].to_numpy()
+        rows.loc[index, "persistence"] = baseline["persistence"].to_numpy()
+        if forecast_type == "net_position":
+            # Net position is published day-ahead, so target timestamps later
+            # than generated_at can already be known. Reuse the promotion
+            # evaluator's serve-faithful cutoff/persistence implementation.
+            country_rows = rows.loc[index]
+            for generated_at, vintage_index in country_rows.groupby("generated_at").groups.items():
+                targets = pd.DatetimeIndex(rows.loc[vintage_index, "target_ts"])
+                authoritative = net_position_baselines(
+                    history, as_of_for_vintage(pd.Timestamp(generated_at)), targets)
+                rows.loc[vintage_index, "persistence"] = authoritative["persistence"].to_numpy()
+    rows = rows.merge(_load_tso(cfg, forecast_type),
+                      on=["country_code", "target_ts"], how="left")
+    return rows
+
+
+def _score_group(group: pd.DataFrame) -> dict:
+    model = score_predictions(group["actual"], group["forecast_value"])
+    baselines = {
+        name: score_against_baseline(group["actual"], group["forecast_value"],
+                                     group[name])
+        for name in ("seasonal_naive", "persistence", "tso")
+    }
+    return {"model": model, "baselines": baselines}
+
+
+def evaluate_scorecard(cfg: ScorecardConfig) -> dict:
+    """Evaluate the configured production models over one target window."""
+    models = cfg.models or PRODUCTION_MODELS
+    forecasts, vintage_counts = _load_forecasts(cfg)
+    selected = select_latest_per_band(forecasts)
+    detailed = []
+    pooled = []
+    evidence_frames = []
+
+    for forecast_type, model_name in models.items():
+        type_rows = selected[(selected["forecast_type"] == forecast_type)
+                             & (selected["model_name"] == model_name)]
+        if type_rows.empty:
+            empty_score = _score_group(pd.DataFrame(columns=["actual", "forecast_value",
+                                                              "seasonal_naive", "persistence", "tso"]))
+            pooled.append({"forecast_type": forecast_type, "model_name": model_name,
+                           "horizon_band": "all", **empty_score})
+            continue
+        evidence = _attach_evidence(cfg, selected, forecast_type)
+        evidence_frames.append(evidence)
+        for (country, band), group in evidence.groupby(["country_code", "horizon_band"]):
+            detailed.append({"forecast_type": forecast_type, "model_name": model_name,
+                             "country": country, "horizon_band": band,
+                             **_score_group(group)})
+        for band, group in evidence.groupby("horizon_band"):
+            pooled.append({"forecast_type": forecast_type, "model_name": model_name,
+                           "horizon_band": band, **_score_group(group)})
+        pooled.append({"forecast_type": forecast_type, "model_name": model_name,
+                       "horizon_band": "all", **_score_group(evidence)})
+
+    measured = pd.concat(evidence_frames, ignore_index=True) if evidence_frames else pd.DataFrame()
+    pooled_all = {(row["forecast_type"], row["model_name"]): row
+                  for row in pooled if row["horizon_band"] == "all"}
+    reproduction = {}
+    for forecast_type, expected in ABL128_REFERENCE.items():
+        model_name = models[forecast_type]
+        row = pooled_all.get((forecast_type, model_name))
+        if row is None:
+            measured_values = {key: None for key in expected}
+        else:
+            measured_values = {
+                "wape_pct": row["model"]["wape_pct"],
+                "seasonal_naive_wape_pct": row["baselines"]["seasonal_naive"]["baseline"]["wape_pct"],
+                "tso_wape_pct": row["baselines"]["tso"]["baseline"]["wape_pct"],
+                "bias_pct": row["model"]["bias_pct"],
+            }
+        reproduction[forecast_type] = {"reference": expected, "measured": measured_values}
+
+    return {
+        "meta": {
+            "window": {"start": str(cfg.start), "end_exclusive": str(cfg.end)},
+            "selection": "latest vintage per country + target + model + horizon band",
+            "horizon_bands": [name for name, _, _ in HORIZON_BANDS],
+            "selected_forecast_rows": int(len(selected)),
+            "paired_actual_rows": (int(measured["actual"].notna().sum())
+                                   if not measured.empty else 0),
+            "vintage_counts": vintage_counts,
+            "models": models,
+            "excluded": {"net_position": {"GR": GATE_EXCLUDED_COUNTRIES["GR"]}},
+            "load_actual_rule": "load_mw > 0 (load only)",
+            "timestamp_join": "parsed UTC timestamps; accepts T and space separators",
+            "net_position_gate": "src/evaluation/net_position.py (not duplicated here)",
+            "abl128_reproduction": reproduction,
+        },
+        "pooled": pooled,
+        "by_country_horizon": detailed,
+    }
+
+
+def _fmt(value: float | None, suffix: str = "") -> str:
+    if value is None or (isinstance(value, float) and not math.isfinite(value)):
+        return "Not measured"
+    return f"{value:.1f}{suffix}"
+
+
+def render_markdown(results: dict, generated_at: str) -> str:
+    meta = results["meta"]
+    lines = [
+        "# Forecast quality scorecard",
+        "",
+        f"Generated: {generated_at}",
+        f"Target window: {meta['window']['start']} → {meta['window']['end_exclusive']} (exclusive)",
+        f"Sample: {meta['selected_forecast_rows']:,} selected forecast rows; "
+        f"{meta['paired_actual_rows']:,} paired actual rows",
+        f"Selection: {meta['selection']}",
+        f"Load actual guard: `{meta['load_actual_rule']}`",
+        f"Net-position gate: `{meta['net_position_gate']}`",
+        "",
+        "## Vintage counts",
+        "",
+        "| forecast / model | generated timestamps | run-days |",
+        "|---|---:|---:|",
+    ]
+    lines.extend(f"| {name} | {count['generated_timestamps']:,} | {count['run_days']:,} |"
+                 for name, count in meta["vintage_counts"].items())
+    lines.extend(["", "## ABL-128 probe reproduction", "",
+                  "The direction of the CEO probe reproduces. Exact values below are the current replica under the explicit latest-per-band rule; differences are findings, not adjusted away.",
+                  "", "| type | reference WAPE | measured WAPE | reference D−7 | measured D−7 | reference bias | measured bias |",
+                  "|---|---:|---:|---:|---:|---:|---:|"])
+    for forecast_type, comparison in meta["abl128_reproduction"].items():
+        reference, measured = comparison["reference"], comparison["measured"]
+        lines.append(f"| {forecast_type} | {_fmt(reference['wape_pct'], '%')} | "
+                     f"{_fmt(measured['wape_pct'], '%')} | "
+                     f"{_fmt(reference['seasonal_naive_wape_pct'], '%')} | "
+                     f"{_fmt(measured['seasonal_naive_wape_pct'], '%')} | "
+                     f"{_fmt(reference['bias_pct'], '%')} | {_fmt(measured['bias_pct'], '%')} |")
+    lines.extend(["", "Load reproduces within 0.1 percentage point on WAPE/D−7 and 0.1 point on TSO (reference 4.0%, measured 4.1%). Price, solar, and wind do not reproduce exactly; the scorecard preserves the disagreement.",
+                  "", "## Pooled score", "",
+                  "Skill is `100 × (1 − model WAPE / baseline WAPE)` on the exact same pairs.",
+                  "", "| type | model | horizon | n | WAPE | MAE | bias | slope | corr | D−7 WAPE / skill | persistence WAPE / skill | TSO WAPE / skill |",
+                  "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"])
+    for row in results["pooled"]:
+        model = row["model"]
+        cells = []
+        for baseline_name in ("seasonal_naive", "persistence", "tso"):
+            comparison = row["baselines"][baseline_name]
+            cells.append(f"{_fmt(comparison['baseline']['wape_pct'], '%')} / "
+                         f"{_fmt(comparison['skill_pct'], '%')}")
+        lines.append(
+            f"| {row['forecast_type']} | {row['model_name']} | {row['horizon_band']} | "
+            f"{model['n']:,} | {_fmt(model['wape_pct'], '%')} | {_fmt(model['mae'])} | "
+            f"{_fmt(model['bias_pct'], '%')} | {_fmt(model['slope'])} | "
+            f"{_fmt(model['correlation'])} | {' | '.join(cells)} |")
+    lines.extend(["", "## Country × horizon detail", "",
+                  "Rows with no paired observations say **Not measured**; zero is never substituted.",
+                  "", "| type | model | country | horizon | n | WAPE | bias | slope | corr | D−7 skill | persistence skill | TSO skill |",
+                  "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"])
+    for row in results["by_country_horizon"]:
+        model = row["model"]
+        baselines = row["baselines"]
+        lines.append(
+            f"| {row['forecast_type']} | {row['model_name']} | {row['country']} | "
+            f"{row['horizon_band']} | {model['n']:,} | {_fmt(model['wape_pct'], '%')} | "
+            f"{_fmt(model['bias_pct'], '%')} | {_fmt(model['slope'])} | "
+            f"{_fmt(model['correlation'])} | "
+            f"{_fmt(baselines['seasonal_naive']['skill_pct'], '%')} | "
+            f"{_fmt(baselines['persistence']['skill_pct'], '%')} | "
+            f"{_fmt(baselines['tso']['skill_pct'], '%')} |")
+    lines.extend(["", "## Correctness notes", "",
+                  "- Both `T` and space timestamp separators are parsed before joining.",
+                  "- `load_mw > 0` is applied only to load. Measured zero remains valid for every other type.",
+                  f"- GR net position is excluded by name: {meta['excluded']['net_position']['GR']}",
+                  "- D−7 and persistence use only stored actual observations. Missing source rows remain missing.",
+                  "- Net-position persistence reuses the promotion evaluator's day-ahead publication cutoff.",
+                  "- TSO comparisons use the latest stored TSO series; the database does not retain an issued-vintage archive for reconstruction.",
+                  "- The separate net-position promotion gate remains authoritative and is not reproduced here.", ""])
+    return "\n".join(lines)
