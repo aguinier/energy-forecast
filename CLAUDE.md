@@ -520,6 +520,35 @@ Four things about the gate are load-bearing (ABL-72):
 `--model` names given. Anything claiming it picks up new versions automatically
 is wrong — that was ABL-68 scope item 1 and plan Rev 3:29.
 
+### All-type forecast scorecard (ABL-129)
+
+`scripts/evaluate_scorecard.py` is the recurring answer to "is the served
+forecast better than a free baseline?" It scores the production registry
+snapshot for all nine served types over one target window and writes a dated
+Markdown/JSON pair plus `latest.*` under `reports/forecast_scorecard/`
+(`scripts/evaluate_scorecard.py:17`, `scripts/evaluate_scorecard.py:58`). It
+opens the replica and optional sidecar read-only; its only writes are reports.
+
+The selection rule is **latest vintage per country + target + model + horizon
+band**, not one latest row per target. The latter erases the stored 24-64h
+evidence because the newest daily run is always the shortest lead. Timestamps
+are parsed before the join so both the ML `T` separator and Chronos space
+separator pair (`src/evaluation/scorecard.py:95`). The ABL-35 `load_mw > 0`
+guard applies to load only; measured zero is retained for solar, wind, price,
+and every other type. GR net position is excluded by name using the reason from
+`GATE_EXCLUDED_COUNTRIES`, not by detecting zero-shaped data
+(`src/evaluation/scorecard.py:178`).
+
+D-7 and persistence predictions go through `src/baselines.py`, via the pure
+issued-row adapter at `src/baselines.py:297`. Persistence derives its lookback
+from target minus `generated_at` and rounds the lead **up**: stored
+`horizon_hours` floors partial hours, so using it directly can select an actual
+from after generation. Net position instead reuses its evaluator's day-ahead
+publication cutoff and persistence implementation. Missing actual/baseline pairs remain unmeasured, and
+skill is computed only on the exact intersection available to both model and
+baseline. This scorecard references the separate net-position promotion gate;
+it does not copy or weaken it (`src/evaluation/scorecard.py:326`).
+
 ### Experiment System
 
 Experiments are versioned V001-Vnnn with configs in `experiments/`. Both XGBoost and Chronos-2 run in parallel — forecasts stored with distinct `model_name` values in the `forecasts` table.

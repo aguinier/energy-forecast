@@ -294,6 +294,49 @@ class TSOBaseline:
         return df[column] if not df.empty else pd.Series(dtype=float)
 
 
+def aligned_point_baselines(
+    historical_data: pd.Series,
+    target_timestamps: pd.DatetimeIndex,
+    generated_timestamps: pd.DatetimeIndex,
+) -> pd.DataFrame:
+    """Align D-7 and persistence predictions to issued forecast rows.
+
+    This is the scorecard-facing adapter around the baseline classes above.
+    Seasonal naive is always the same target hour seven days earlier. The
+    persistence source is the last whole hour at or before forecast generation;
+    deriving its lookback from the two timestamps avoids trusting the stored
+    integer ``horizon_hours``, which floors partial hours and can otherwise read
+    an actual published after the forecast was made.
+
+    Missing source observations remain NaN. A missing baseline is not a zero.
+    """
+    if len(target_timestamps) != len(generated_timestamps):
+        raise ValueError("target_timestamps and generated_timestamps must align")
+
+    targets = pd.DatetimeIndex(target_timestamps)
+    generated = pd.DatetimeIndex(generated_timestamps)
+    out = pd.DataFrame(index=targets, columns=["seasonal_naive", "persistence"],
+                       dtype=float)
+    if len(targets) == 0:
+        return out
+
+    # The class's target API subtracts (seasonality - horizon). A zero horizon
+    # is therefore the literal D-7 baseline required by the scorecard.
+    seasonal = SeasonalNaiveBaseline(seasonality_hours=168, horizon_hours=0)
+    out["seasonal_naive"] = seasonal.predict_for_target(historical_data, targets)
+
+    lead_hours = np.ceil((targets - generated).total_seconds() / 3600.0).astype(int)
+    persistence = np.full(len(targets), np.nan, dtype=float)
+    for lead in np.unique(lead_hours):
+        mask = lead_hours == lead
+        if lead < 0:
+            continue
+        baseline = PersistenceBaseline(horizon_hours=int(lead))
+        persistence[mask] = baseline.predict_for_target(historical_data, targets[mask])
+    out["persistence"] = persistence
+    return out
+
+
 def compute_baseline_metrics(
     y_true: np.ndarray,
     y_pred: np.ndarray,
