@@ -35,6 +35,8 @@ energy_forecast/
 ├── requirements.txt    # Python dependencies
 ├── src/
 │   ├── db.py               # Database operations
+│   ├── data_quality.py     # Training-data invariants (ABL-188: rejects
+│   │                       # suspect constant-value runs from energy_renewable)
 │   ├── features.py         # Feature engineering (incl. holiday features)
 │   ├── metrics.py          # Evaluation metrics
 │   ├── forecaster.py       # Forecaster class (XGBoost/LightGBM/CatBoost)
@@ -108,6 +110,26 @@ Note this runs in `validate_config()`, which is called by `scripts/train.py`,
 `train_all.py`, `train_baselines.py` and `forecast_daily.py` — **not** by
 `scripts/forecast_chronos2.py`, so the scheduled 08:00 net-position job is
 unaffected by it.
+
+**`energy_renewable` can silently zero-fill a missing production type**
+(ABL-188). Its per-column mapper (`energy-data-gathering/src/entsoe_client.py`
+`_map_renewable_columns`, `:1607-1655`) initialises every renewable column to
+0.0 before checking the source frame, unlike `energy_generation`'s
+NaN-preserving twin mapper — so a type ENTSO-E didn't return for a window
+(confirmed for DE solar, 2025-09-08 22:00–2025-11-14 15:45 UTC, 6,408
+quarter-hours, `data_quality='actual'`) reads as a measured zero with no
+signal anything is wrong. `energy_generation`'s same-fetch value for the
+identical rows is the tell: real, non-null, non-zero (see
+`reports/abl_188_solar_zero_adjudication.md`). `energy_renewable` is frozen
+and redundant with `energy_generation` — retiring or re-deriving it is its
+own cross-module migration requiring separate CEO/board approval, not a fix
+available to this issue — so `src/data_quality.py`'s `exclude_suspect_constant_runs`
+guards the training-data boundary instead: any individual-renewable-type
+target loaded via `load_renewable_type_data` (`db.py:280`) that holds a
+bit-identical value for 24+ hours is nulled before it can enter training,
+with a `logger.warning` naming the exact excluded window. No stored row is
+fixed by this — that needs a supplemental ENTSO-E re-fetch for the affected
+window, proposed but not executed in the ABL-188 report.
 
 **New Table:** `forecasts`
 ```sql

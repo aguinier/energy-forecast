@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
+from .data_quality import exclude_suspect_constant_runs
 
 
 logger = logging.getLogger('energy_forecast')
@@ -333,6 +334,23 @@ def load_renewable_type_data(
     df['timestamp_utc'] = pd.to_datetime(
         df['timestamp_utc'], format='mixed', utc=True
     ).dt.tz_localize(None)
+
+    # ABL-188: energy_renewable's mapper zero-fills a production type that's
+    # absent from a given ENTSO-E response instead of leaving it NULL (see
+    # src/data_quality.py docstring) -- reject long bit-identical runs (0.0
+    # included) as unadjudicated-missing rather than training through them
+    # as a measured value.
+    before_n = df['target_value'].notna().sum()
+    df = exclude_suspect_constant_runs(
+        df, value_col='target_value', timestamp_col='timestamp_utc',
+        context=f"{country_code}/{renewable_type}",
+    )
+    excluded_n = before_n - df['target_value'].notna().sum()
+    if excluded_n:
+        logger.warning(
+            f"Excluded {excluded_n} suspect-constant {renewable_type} rows "
+            f"for {country_code} (see warnings above for exact runs)"
+        )
 
     logger.info(f"Loaded {len(df)} {renewable_type} records for {country_code}")
     return df
