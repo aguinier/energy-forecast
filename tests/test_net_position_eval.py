@@ -340,6 +340,33 @@ def test_gate_flags_backtest_regression(tmp_path):
     assert row["live_over_backtest"] == pytest.approx(row["live_mae_mw"] / 500.0)
 
 
+def test_gate_reports_limited_backtest_country_coverage(tmp_path):
+    cfg = _passing_gate_cfg(tmp_path)
+    check = evaluate(cfg)["gate"]["checks"]["no_regression_W01_W12"]
+    assert check["pass"] is True
+    assert check["countries_compared"] == [COUNTRY]
+    assert check["coverage_complete"] is False
+    assert check["coverage"].endswith("/19 gated countries")
+    assert "does not establish no-regression" in check["detail"]
+
+
+def test_gate_fails_when_candidate_omits_a_reference_backtest_country(tmp_path):
+    cfg = _passing_gate_cfg(tmp_path)
+    ref = {"V010": {
+        COUNTRY: {"net_position": {"W01": {"mae": 500.0}}},
+        "FR": {"net_position": {"W01": {"mae": 900.0}}},
+    }}
+    cand = {"V012": {
+        COUNTRY: {"net_position": {"W01": {"mae": 400.0}}},
+    }}
+    (tmp_path / "ref.json").write_text(json.dumps(ref))
+    (tmp_path / "cand.json").write_text(json.dumps(cand))
+    check = evaluate(cfg)["gate"]["checks"]["no_regression_W01_W12"]
+    assert check["pass"] is False
+    assert check["countries_missing_from_candidate"] == ["FR"]
+    assert "missing candidate backtest" in check["detail"]
+
+
 # ---------------------------------------------------------------------------
 # ABL-72 — the gate must score the right data, and all eight criteria
 # ---------------------------------------------------------------------------

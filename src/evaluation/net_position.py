@@ -70,6 +70,15 @@ GATE_EXCLUDED_COUNTRIES = {
           "1,142 MW across its borders); row deletion pending on ABL-67",
 }
 
+# The independent live net-position zones the pre-registered gate covers.
+# This is deliberately explicit: config.SUPPORTED_COUNTRIES is a dashboard-wide
+# list and includes zones with no live net-position rail, so deriving this set
+# from it would overstate the denominator.
+GATE_COUNTRIES = (
+    "AT", "BE", "BG", "CZ", "DE", "EE", "ES", "FI", "FR", "HR",
+    "HU", "LT", "LV", "NL", "PL", "PT", "RO", "SI", "SK",
+)
+
 # The eight criteria pre-registered in the ABL-24 plan Rev 3 §4. The gate emits
 # exactly these names and checks itself against this tuple, so a criterion
 # cannot go missing the way `min_live_shadow_vintages` and `excluded_zones_LU_GR`
@@ -734,10 +743,41 @@ def _backtest_regression_check(cfg: EvalConfig) -> dict:
         return {"pass": False, "detail": f"backtest JSON unreadable: {e}"}
     if not ref:
         return {"pass": None, "detail": "no reference backtest to compare against"}
-    worse = {c: (cand[c], ref[c]) for c in ref if c in cand and cand[c] > ref[c] * 1.0}
-    return {"pass": not worse,
-            "detail": ("no country regresses vs reference W01-W12 MAE" if not worse
-                       else f"regressions: {', '.join(f'{c} {v[1]:.0f}->{v[0]:.0f}' for c, v in sorted(worse.items()))}")}
+    reference_countries = sorted(ref)
+    candidate_countries = sorted(cand)
+    compared = sorted(set(ref) & set(cand))
+    missing = sorted(set(ref) - set(cand))
+    worse = {c: (cand[c], ref[c]) for c in compared
+             if cand[c] > ref[c] * 1.0}
+
+    # The historical V010 artefact covers four countries, while the live gate
+    # covers 19.  That is useful as a credibility check, but it must never read
+    # like evidence for the other 15.  Conversely, a candidate missing one of
+    # the reference countries is missing required evidence, not a free pass.
+    gate_country_count = len(GATE_COUNTRIES)
+    coverage = f"{len(compared)}/{gate_country_count} gated countries"
+    scope_note = (f"limited-scope W01-W12 check ({coverage}; compared "
+                  f"{','.join(compared)}); this does not establish no-regression "
+                  f"for the remaining {gate_country_count - len(compared)} countries")
+    if missing:
+        verdict = False
+        detail = (f"missing candidate backtest for reference countries: "
+                  f"{', '.join(missing)}; {scope_note}")
+    elif worse:
+        verdict = False
+        detail = (f"regressions: "
+                  f"{', '.join(f'{c} {v[1]:.0f}->{v[0]:.0f}' for c, v in sorted(worse.items()))}; "
+                  f"{scope_note}")
+    else:
+        verdict = True
+        detail = f"no regression on the common reference coverage; {scope_note}"
+    return {"pass": verdict, "detail": detail,
+            "reference_countries": reference_countries,
+            "candidate_countries": candidate_countries,
+            "countries_compared": compared,
+            "countries_missing_from_candidate": missing,
+            "coverage": coverage,
+            "coverage_complete": len(compared) == gate_country_count}
 
 
 def _backtest_mae(path: str) -> dict:
