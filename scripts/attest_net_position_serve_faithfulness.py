@@ -10,6 +10,7 @@ opened read-only; the only write is ``--out``.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sqlite3
 import sys
@@ -40,6 +41,14 @@ DEFAULT_OUT = (Path(__file__).parent.parent / "experiments" /
 
 def ro_connect(path: str) -> sqlite3.Connection:
     return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def stored_vintage(sidecar_db: str, model_name: str,
@@ -104,7 +113,13 @@ def input_spec(model_name: str, models_dir: str) -> dict:
         "publication_bound": "issued inputs have publication/run time <= generated_at_utc",
     }
     if model_name == "chronos-2-V010":
+        hf_ref = (Path.home() / ".cache" / "huggingface" / "hub" /
+                  "models--amazon--chronos-2" / "refs" / "main")
         return {**common, "runner": "scripts/forecast_chronos2.py (V010)",
+                "experiment_config_sha256": sha256(config.EXPERIMENTS_DIR / "V010" / "config.json"),
+                "chronos_model_id": "amazon/chronos-2",
+                "chronos_model_revision": (hf_ref.read_text().strip()
+                                            if hf_ref.exists() else "not recorded"),
                 "target": "net_position.net_position_mw, 672 hourly observations",
                 "past_covariates": [
                     "weather__temperature_2m_k", "weather__wind_speed_100m_ms",
@@ -119,11 +134,18 @@ def input_spec(model_name: str, models_dir: str) -> dict:
                 "prediction": "50 hours (26-hour gap plus target day's final 24 hours)"}
     if model_name == "baseline-V012":
         return {**common, "runner": "scripts/forecast_challengers.py::run_v012",
+                "experiment_config_sha256": sha256(config.EXPERIMENTS_DIR / "V012" / "config.json"),
                 "inputs": ["net_position.net_position_mw"],
                 "prediction": "mean of D-7 persistence and 28-day same-hour climatology"}
     if model_name == "xgboost-V014":
         feature_columns = load_v014_model(models_dir, "BE").feature_columns
+        artifact_dir = Path(models_dir) / "net_position" / "V014"
+        artifact_hashes = {path.stem: sha256(path)
+                           for path in sorted(artifact_dir.glob("*.joblib"))
+                           if path.stem not in EXCLUDED_COUNTRIES}
         return {**common, "runner": "scripts/forecast_challengers.py::run_v014",
+                "experiment_config_sha256": sha256(config.EXPERIMENTS_DIR / "V014" / "config.json"),
+                "country_model_artifact_sha256": artifact_hashes,
                 "source_cutoffs": {
                     "net_position, energy_price, energy_load_forecast, energy_generation_forecast":
                         "target run day D 21:00 UTC",
@@ -133,6 +155,8 @@ def input_spec(model_name: str, models_dir: str) -> dict:
                 "feature_columns_BE": feature_columns,
                 "note": "neighbour-prefixed columns vary by country; every artifact supplies its own feature_columns"}
     return {**common, "runner": "scripts/forecast_challengers.py::run_v016",
+            "experiment_config_sha256": sha256(config.EXPERIMENTS_DIR / "V016" / "config.json"),
+            "correction_sha256": sha256(config.EXPERIMENTS_DIR / "V016" / "correction.json"),
             "inputs": ["stored co-run chronos-2-V010 median and quantiles",
                        "experiments/V016/correction.json",
                        "latest observable net_position residual strictly before the publication cutoff"],
