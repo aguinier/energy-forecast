@@ -371,6 +371,11 @@ class RenewableFeatureBuilder:
         self._span_end = pd.Timestamp(span_end)
         self._actuals = _load_actuals_series(country_code, forecast_type, self._span_start, self._span_end)
         self._weather = _load_weather_archive(country_code, self._span_start, self._span_end + pd.Timedelta(days=3))
+        self._weather_by_target = {
+            pd.Timestamp(ts): group.reset_index(drop=True)
+            for ts, group in self._weather.groupby("timestamp_utc", sort=False)
+        }
+        self._rolling_cache: Dict[pd.Timestamp, Dict[str, FeatureValue]] = {}
 
     def row(
         self,
@@ -384,8 +389,14 @@ class RenewableFeatureBuilder:
         out: Dict[str, FeatureValue] = {}
         out.update(_calendar_features(req.target_timestamp_utc))
         out.update(_point_lags(self._actuals, req))
-        out.update(_rolling_features(self._actuals, req))
-        out.update(_weather_features(self._weather, req))
+        anchor = req.observation_as_of.floor("h")
+        if anchor not in self._rolling_cache:
+            self._rolling_cache[anchor] = _rolling_features(self._actuals, req)
+        out.update(self._rolling_cache[anchor])
+        target_weather = self._weather_by_target.get(
+            req.target_timestamp_utc.floor("h"), self._weather.iloc[0:0]
+        )
+        out.update(_weather_features(target_weather, req))
         return out
 
 

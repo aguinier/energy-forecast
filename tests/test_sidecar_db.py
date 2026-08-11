@@ -5,6 +5,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
@@ -51,6 +53,16 @@ def test_read_connection_targets_replica_even_with_sidecar(monkeypatch, tmp_path
     with db.get_connection(readonly=True) as conn:
         names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert "marker" in names
+
+
+def test_read_connection_is_enforced_read_only_by_sqlite(monkeypatch, tmp_path):
+    rep = sqlite3.connect(tmp_path / "replica.db")
+    rep.execute("CREATE TABLE marker (x INTEGER)")
+    rep.commit(); rep.close()
+    db = _fresh_db_module(monkeypatch, tmp_path, sidecar=True)
+    with db.get_connection(readonly=True) as conn:
+        with pytest.raises(sqlite3.OperationalError, match="readonly"):
+            conn.execute("INSERT INTO marker VALUES (1)")
 
 
 def test_write_connection_targets_main_db_when_unset(monkeypatch, tmp_path):
