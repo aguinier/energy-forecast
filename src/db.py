@@ -37,13 +37,16 @@ def get_connection(readonly: bool = True):
     """
     conn = None
     try:
-        # Always use standard connection (SQLite URI mode can be unreliable).
-        # Replica-purity: when FORECAST_OUTPUT_DB is set (workstation), all
-        # write connections target the sidecar DB instead of the replica.
-        target = config.DATABASE_PATH
-        if not readonly and getattr(config, 'FORECAST_OUTPUT_DB', None):
-            target = config.FORECAST_OUTPUT_DB
-        conn = sqlite3.connect(str(target), timeout=30.0)
+        # Replica reads are enforced by SQLite itself.  A Python-level promise
+        # not to execute DML is not enough for the read-only replica boundary.
+        if readonly:
+            target = Path(config.DATABASE_PATH).resolve().as_posix()
+            conn = sqlite3.connect(f"file:{target}?mode=ro", uri=True, timeout=30.0)
+        else:
+            # Replica-purity: when FORECAST_OUTPUT_DB is set (workstation), all
+            # write connections target the sidecar DB instead of the replica.
+            target = getattr(config, 'FORECAST_OUTPUT_DB', None) or config.DATABASE_PATH
+            conn = sqlite3.connect(str(target), timeout=30.0)
         conn.row_factory = sqlite3.Row
         yield conn
 
