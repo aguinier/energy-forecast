@@ -1,0 +1,22 @@
+{
+  "issue": "ABL-187",
+  "forecast_type": "price",
+  "model_name": "catboost",
+  "fit_window": {
+    "start": "2026-02-03",
+    "end_exclusive": "2026-07-11"
+  },
+  "holdout_window": {
+    "start": "2026-07-11",
+    "end_exclusive": "2026-08-10"
+  },
+  "selection": "latest vintage per country + target + model + horizon band",
+  "variants": {
+    "bias_only": "actual = forecast + mean_training_residual",
+    "affine": "OLS actual = slope * forecast + intercept"
+  },
+  "baseline": "seasonal_naive_D7",
+  "fit_objective": "least_squares",
+  "evaluation_metric": "WAPE",
+  "split_policy": "fixed before reading holdout results; disjoint target timestamps"
+}
