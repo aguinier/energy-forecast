@@ -1,0 +1,807 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-08-11T12:08:39.300872+00:00",
+  "claim": "offline serve-time input reproduction against stored live median forecasts",
+  "not_claimed": "sidecar versus prod-pushed output-row equality",
+  "tolerance_mw": 0.0,
+  "databases": {
+    "replica": {
+      "path": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "bytes": 5905461248,
+      "net_position_rows": 647538,
+      "net_position_min_utc": "2023-01-01 00:00:00",
+      "net_position_max_utc": "2026-08-11 21:00:00",
+      "access": "read-only URI"
+    },
+    "sidecar": {
+      "path": "C:\\Code\\able\\data\\forecasts_local.db",
+      "bytes": 36843520,
+      "access": "read-only URI for attestation"
+    }
+  },
+  "contamination": {
+    "ABL-67": "touches scope: GR fabricated zero actuals; GR excluded by the pre-registered gate",
+    "ABL-71": "touches provenance risk: ingest fixes are undeployed; replica currency was recorded, but row correctness is not thereby certified",
+    "ABL-111_ABL-109": "do not touch these net-position inputs: actual-load rows are not consumed"
+  },
+  "models": {
+    "chronos-2-V010": {
+      "verified": true,
+      "stored_rows": 456,
+      "offline_rows": 456,
+      "rows_compared": 456,
+      "max_abs_delta_mw": 0.0,
+      "per_country": {
+        "AT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BG": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "CZ": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "DE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "EE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "ES": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HU": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LV": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "NL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "RO": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SK": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        }
+      },
+      "model_name": "chronos-2-V010",
+      "experiment": "V010",
+      "baseline": "stored as-served live sidecar vintage",
+      "vintage": {
+        "generated_at_utc": "2026-08-11 06:00:46.025210",
+        "target_start_utc": "2026-08-13 00:00:00",
+        "target_end_utc": "2026-08-13 23:00:00",
+        "publication_cutoff_exclusive_utc": "2026-08-11 22:00:00"
+      },
+      "input_spec": {
+        "observation_bound": "net_position target_timestamp_utc < publication_cutoff_exclusive_utc",
+        "publication_bound": "issued inputs have publication/run time <= generated_at_utc",
+        "runner": "scripts/forecast_chronos2.py (V010)",
+        "experiment_config_sha256": "573d013bda94ed75f01cd81837439619c998e43c67d94c583902be10f7ec3ea3",
+        "chronos_model_id": "amazon/chronos-2",
+        "chronos_model_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+        "target": "net_position.net_position_mw, 672 hourly observations",
+        "past_covariates": [
+          "weather__temperature_2m_k",
+          "weather__wind_speed_100m_ms",
+          "weather__shortwave_radiation_wm2",
+          "cal__hour",
+          "cal__dayofweek",
+          "cal__month",
+          "cal__is_holiday",
+          "tso__load_forecast",
+          "da__price",
+          "flow__total_export_mw",
+          "flow__total_import_mw",
+          "flow__net_mw"
+        ],
+        "future_covariates": [
+          "weather__temperature_2m_k",
+          "weather__wind_speed_100m_ms",
+          "weather__shortwave_radiation_wm2",
+          "cal__hour",
+          "cal__dayofweek",
+          "cal__month",
+          "cal__is_holiday"
+        ],
+        "prediction": "50 hours (26-hour gap plus target day's final 24 hours)"
+      }
+    },
+    "baseline-V012": {
+      "verified": true,
+      "stored_rows": 456,
+      "offline_rows": 456,
+      "rows_compared": 456,
+      "max_abs_delta_mw": 0.0,
+      "per_country": {
+        "AT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BG": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "CZ": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "DE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "EE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "ES": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HU": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LV": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "NL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "RO": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SK": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        }
+      },
+      "model_name": "baseline-V012",
+      "experiment": "V012",
+      "baseline": "stored as-served live sidecar vintage",
+      "vintage": {
+        "generated_at_utc": "2026-08-11 06:00:55",
+        "target_start_utc": "2026-08-13 00:00:00",
+        "target_end_utc": "2026-08-13 23:00:00",
+        "publication_cutoff_exclusive_utc": "2026-08-11 22:00:00"
+      },
+      "input_spec": {
+        "observation_bound": "net_position target_timestamp_utc < publication_cutoff_exclusive_utc",
+        "publication_bound": "issued inputs have publication/run time <= generated_at_utc",
+        "runner": "scripts/forecast_challengers.py::run_v012",
+        "experiment_config_sha256": "eaade4fb4e3d4fbe319fc9cb5f8521863155c68a75ae421ab4388f267f5fe3d8",
+        "inputs": [
+          "net_position.net_position_mw"
+        ],
+        "prediction": "mean of D-7 persistence and 28-day same-hour climatology"
+      }
+    },
+    "xgboost-V014": {
+      "verified": true,
+      "stored_rows": 456,
+      "offline_rows": 456,
+      "rows_compared": 456,
+      "max_abs_delta_mw": 0.0,
+      "per_country": {
+        "AT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BG": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "CZ": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "DE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "EE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "ES": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HU": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LV": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "NL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "RO": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SK": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        }
+      },
+      "model_name": "xgboost-V014",
+      "experiment": "V014",
+      "baseline": "stored as-served live sidecar vintage",
+      "vintage": {
+        "generated_at_utc": "2026-08-11 06:00:55",
+        "target_start_utc": "2026-08-13 00:00:00",
+        "target_end_utc": "2026-08-13 23:00:00",
+        "publication_cutoff_exclusive_utc": "2026-08-11 22:00:00"
+      },
+      "input_spec": {
+        "observation_bound": "net_position target_timestamp_utc < publication_cutoff_exclusive_utc",
+        "publication_bound": "issued inputs have publication/run time <= generated_at_utc",
+        "runner": "scripts/forecast_challengers.py::run_v014",
+        "experiment_config_sha256": "147c88e9316be1a5b21abc75ae9b26e501b8b1fb2b5cca22d16caea376c04d30",
+        "country_model_artifact_sha256": {
+          "AT": "b7f07f9c50e91b3edcbf9ba3dd7993de25fafb1918bc5b86460e08fa2c211d5d",
+          "BE": "6a1096dcb57fbe3e2fff27460b38b6e70ccae77051517db291ac683c2134bc05",
+          "BG": "e15236e97ab5145c8c5dabf2d41290cd0a928894cdc51c07e57e7b7077dda04f",
+          "CZ": "a1ba22c099e537306aaefe72eb06cb46dc64b4044d4495357f1bc74a802b0dbe",
+          "DE": "f56f26d93f6d57ca7fdba7a7865a4a3fe5ff7230b40afc0274b6490ad661950d",
+          "EE": "579f029f506d72adf131b6fbd55c2c2dcf15e0adcefc2dcb35af93c458060a56",
+          "ES": "6387fc65c56c23891a2e689f05d6ca7ee8fa79f8c298ae4d30463afe8ae2da92",
+          "FI": "be8f73b6f7e2a41d15345a84afaa44ee473070d0c923a676abff10b2341bff82",
+          "FR": "14497c670ade0f36bc7f83952914653367ed5d0f01695f0e78f36c2443d2ca92",
+          "HR": "42c31a2bc504190cd3950c0dbc19cf4fe58b80b5aa7ce9a54214953155d21f2f",
+          "HU": "b8f58340c3f9ac569661f1a62f7c94f67c8bbf3a1698de7fba317bfbddd5b256",
+          "LT": "5ebf3f8b4c68aa92fdfd5ecadf41a14baa7ab4fbf994dfbf268b12cfcd141d31",
+          "LV": "782bf755ae215db66eb707d35547beb28f27b329b0e6924bb036919c04100ac9",
+          "NL": "171c7af376989f1a2179bce96f5d9a123f106e9bd731853b4c9e3ceee5a48b97",
+          "PL": "e89fec10cd7abceb05f10e0ae7dfc488963cb1da1edb070ed015f350be0bde6f",
+          "PT": "eae4a5470fd26a25f2e63de73996806570fbec40cfb4ad558b97663536ae8b5a",
+          "RO": "f010b86c43c6a44b2d84e8a1ddc79b704bf5b0c9d9e6893a35535a0e602897b3",
+          "SI": "fd39aee44101b5d3a033164d296dbee1ac63bc4415cf43c1ea031448defc5715",
+          "SK": "9c10e7e93a05c1852cee54271ea7feed2215be2eb4b6b1e7cfef406a7ac9b679"
+        },
+        "source_cutoffs": {
+          "net_position, energy_price, energy_load_forecast, energy_generation_forecast": "target run day D 21:00 UTC",
+          "crossborder_flows": "target_timestamp_utc - 72 hours",
+          "weather_data": "target hour; data_quality=forecast and forecast_run_time <= generated_at_utc"
+        },
+        "feature_columns_BE": [
+          "hour",
+          "day_of_week",
+          "month",
+          "day_of_year",
+          "is_weekend",
+          "hour_sin",
+          "hour_cos",
+          "doy_sin",
+          "doy_cos",
+          "is_holiday",
+          "np_lag72h",
+          "np_lag96h",
+          "np_lag120h",
+          "np_lag168h",
+          "np_last1d_mean",
+          "np_last3d_mean",
+          "np_last3d_std",
+          "np_last3d_min",
+          "np_last3d_max",
+          "np_last7d_mean",
+          "np_last7d_std",
+          "np_last7d_min",
+          "np_last7d_max",
+          "np_last28d_mean",
+          "np_last28d_std",
+          "np_last28d_min",
+          "np_last28d_max",
+          "np_at_cutoff",
+          "np_hod_clim28d",
+          "price_lag72h",
+          "price_lag168h",
+          "price_last1d_mean",
+          "price_last3d_mean",
+          "price_last3d_std",
+          "price_last3d_min",
+          "price_last3d_max",
+          "price_last7d_mean",
+          "price_last7d_std",
+          "price_last7d_min",
+          "price_last7d_max",
+          "price_last28d_mean",
+          "price_last28d_std",
+          "price_last28d_min",
+          "price_last28d_max",
+          "price_at_cutoff",
+          "loadfc_lag72h",
+          "loadfc_lag168h",
+          "loadfc_last1d_mean",
+          "loadfc_last3d_mean",
+          "loadfc_last3d_std",
+          "loadfc_last3d_min",
+          "loadfc_last3d_max",
+          "loadfc_last7d_mean",
+          "loadfc_last7d_std",
+          "loadfc_last7d_min",
+          "loadfc_last7d_max",
+          "loadfc_last28d_mean",
+          "loadfc_last28d_std",
+          "loadfc_last28d_min",
+          "loadfc_last28d_max",
+          "loadfc_at_cutoff",
+          "gensolar_lag72h",
+          "gensolar_lag168h",
+          "genwind_lag72h",
+          "genwind_lag168h",
+          "xb_net_lag72h",
+          "xb_net_lag96h",
+          "xb_missing",
+          "nbFR_np_lag72h",
+          "nbFR_np_lag168h",
+          "nbFR_price_lag72h",
+          "nbNL_np_lag72h",
+          "nbNL_np_lag168h",
+          "nbNL_price_lag72h",
+          "nbDE_np_lag72h",
+          "nbDE_np_lag168h",
+          "nbDE_price_lag72h",
+          "wx_temperature_2m_k",
+          "wx_wind_speed_10m_ms",
+          "wx_wind_speed_100m_ms",
+          "wx_shortwave_radiation_wm2",
+          "weather_available",
+          "price_spread_nb_lag72h"
+        ],
+        "note": "neighbour-prefixed columns vary by country; every artifact supplies its own feature_columns"
+      }
+    },
+    "chronos-2-V016": {
+      "verified": true,
+      "stored_rows": 456,
+      "offline_rows": 456,
+      "rows_compared": 456,
+      "max_abs_delta_mw": 0.0,
+      "per_country": {
+        "AT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BG": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "CZ": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "DE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "EE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "ES": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HU": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LV": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "NL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "RO": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SK": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        }
+      },
+      "model_name": "chronos-2-V016",
+      "experiment": "V016",
+      "baseline": "stored as-served live sidecar vintage",
+      "vintage": {
+        "generated_at_utc": "2026-08-11 06:00:55",
+        "target_start_utc": "2026-08-13 00:00:00",
+        "target_end_utc": "2026-08-13 23:00:00",
+        "publication_cutoff_exclusive_utc": "2026-08-11 22:00:00"
+      },
+      "input_spec": {
+        "observation_bound": "net_position target_timestamp_utc < publication_cutoff_exclusive_utc",
+        "publication_bound": "issued inputs have publication/run time <= generated_at_utc",
+        "runner": "scripts/forecast_challengers.py::run_v016",
+        "experiment_config_sha256": "2c423596d266bd63db3bf9ac9e2d1f2c80c8d91de17c31d8ce613e6e32c421c0",
+        "correction_sha256": "903a4ece57ad4bb6680b1c2f55f4006d875937227bd08e31b72b0c35337ac12d",
+        "inputs": [
+          "stored co-run chronos-2-V010 median and quantiles",
+          "experiments/V016/correction.json",
+          "latest observable net_position residual strictly before the publication cutoff"
+        ],
+        "prediction": "per-country affine map plus horizon-decayed AR(1); identity where fit refuses"
+      }
+    }
+  }
+}

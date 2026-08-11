@@ -52,6 +52,10 @@ GATE_COVERAGE_RANGE = (75.0, 85.0)  # % of actuals inside the 10-90 band
 GATE_BIAS_FRAC = 0.05               # |bias| < 5% of mean |net position|
 GATE_BASELINE_COUNTRY_FRAC = 0.80   # beat ensemble MAE in >= 80% of countries
 GATE_MIN_LIVE_VINTAGES = 14         # plan Rev 3:54 — live shadow vintages in the window
+DEFAULT_SERVE_ATTESTATION = (
+    Path(__file__).parents[2] / "experiments" /
+    "net_position_serve_faithful_attestations.json"
+)
 
 # Zones the gate is pre-registered to exclude (plan Rev 3:55), each with its
 # reason. Excluding by *name* rather than by symptom is the whole point: GR is
@@ -65,6 +69,15 @@ GATE_EXCLUDED_COUNTRIES = {
           "published row since 2025-10-01 is 0.0 while GR moved a median "
           "1,142 MW across its borders); row deletion pending on ABL-67",
 }
+
+# The independent live net-position zones the pre-registered gate covers.
+# This is deliberately explicit: config.SUPPORTED_COUNTRIES is a dashboard-wide
+# list and includes zones with no live net-position rail, so deriving this set
+# from it would overstate the denominator.
+GATE_COUNTRIES = (
+    "AT", "BE", "BG", "CZ", "DE", "EE", "ES", "FI", "FR", "HR",
+    "HU", "LT", "LV", "NL", "PL", "PT", "RO", "SI", "SK",
+)
 
 # The eight criteria pre-registered in the ABL-24 plan Rev 3 §4. The gate emits
 # exactly these names and checks itself against this tuple, so a criterion
@@ -94,7 +107,10 @@ class EvalConfig:
     top_misses: int = 10
     candidate_backtest: str | None = None   # candidate's W01-W12 JSON
     reference_backtest: str | None = None   # reference W01-W12 JSON (V010 serve-faithful)
-    serve_faithful_verified: bool = False   # manual attestation, never inferred
+    # Legacy explicit override, retained for old callers/tests. Scheduled reports
+    # read the durable, model-keyed attestation below instead.
+    serve_faithful_verified: bool = False
+    serve_faithful_attestation: str | None = str(DEFAULT_SERVE_ATTESTATION)
     quantiles: tuple = field(default=QUANTILE_LEVELS)
     # Vintage window the *gate* scores over (generated_at, UTC). `None` start
     # means `cohort_split`, which is the honest default: scoring the champion
@@ -111,6 +127,39 @@ def resolve_gate_vintage_window(cfg: EvalConfig) -> tuple[pd.Timestamp, pd.Times
     start = cfg.gate_vintage_start
     return (cfg.cohort_split if start is None else pd.Timestamp(start),
             None if cfg.gate_vintage_end is None else pd.Timestamp(cfg.gate_vintage_end))
+
+
+def _serve_faithful_check(cfg: EvalConfig) -> dict:
+    """Read a durable bit-reproduction verdict for exactly this model.
+
+    Sidecar/prod row equality is intentionally irrelevant here: this artifact
+    records an offline rerun bounded by the vintage's publication cutoff.
+    """
+    if cfg.serve_faithful_verified:
+        return {"pass": True, "detail": "attested via legacy explicit override"}
+    path = Path(cfg.serve_faithful_attestation) if cfg.serve_faithful_attestation else None
+    if path is None or not path.exists():
+        return {"pass": False, "detail": "no durable serve-faithful attestation artifact"}
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        att = doc["models"][cfg.model_name]
+        if att.get("model_name") != cfg.model_name:
+            raise ValueError("model_name does not match artifact key")
+        verified = bool(att["verified"])
+        vintage = att["vintage"]["generated_at_utc"]
+        cutoff = att["vintage"]["publication_cutoff_exclusive_utc"]
+        worst = float(att["max_abs_delta_mw"])
+        compared = int(att["rows_compared"])
+        countries = len(att["per_country"])
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        return {"pass": False, "detail": f"invalid serve-faithful attestation: {exc}"}
+    verdict = "PASS" if verified else "FAIL"
+    return {
+        "pass": verified,
+        "detail": (f"{verdict}: offline reproduction of vintage {vintage} using inputs "
+                   f"available before {cutoff}; max |delta| {worst:.6g} MW over "
+                   f"{compared} rows / {countries} countries ({path.as_posix()})"),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -652,11 +701,7 @@ def promotion_gate(results: dict, cfg: EvalConfig) -> dict:
 
     checks["no_regression_W01_W12"] = _backtest_regression_check(cfg)
 
-    checks["serve_faithful_inputs_verified"] = {
-        "pass": bool(cfg.serve_faithful_verified),
-        "detail": "attested via --serve-faithful-verified" if cfg.serve_faithful_verified
-                  else "not attested — requires a manual serve-parity check "
-                       "(bit-reproduce a live vintage, as ABL-28 did)"}
+    checks["serve_faithful_inputs_verified"] = _serve_faithful_check(cfg)
 
     # The verdict must not be able to say PASS while a pre-registered criterion
     # is absent or un-evaluable. It used to span "only evaluable checks", so the
@@ -698,10 +743,41 @@ def _backtest_regression_check(cfg: EvalConfig) -> dict:
         return {"pass": False, "detail": f"backtest JSON unreadable: {e}"}
     if not ref:
         return {"pass": None, "detail": "no reference backtest to compare against"}
-    worse = {c: (cand[c], ref[c]) for c in ref if c in cand and cand[c] > ref[c] * 1.0}
-    return {"pass": not worse,
-            "detail": ("no country regresses vs reference W01-W12 MAE" if not worse
-                       else f"regressions: {', '.join(f'{c} {v[1]:.0f}->{v[0]:.0f}' for c, v in sorted(worse.items()))}")}
+    reference_countries = sorted(ref)
+    candidate_countries = sorted(cand)
+    compared = sorted(set(ref) & set(cand))
+    missing = sorted(set(ref) - set(cand))
+    worse = {c: (cand[c], ref[c]) for c in compared
+             if cand[c] > ref[c] * 1.0}
+
+    # The historical V010 artefact covers four countries, while the live gate
+    # covers 19.  That is useful as a credibility check, but it must never read
+    # like evidence for the other 15.  Conversely, a candidate missing one of
+    # the reference countries is missing required evidence, not a free pass.
+    gate_country_count = len(GATE_COUNTRIES)
+    coverage = f"{len(compared)}/{gate_country_count} gated countries"
+    scope_note = (f"limited-scope W01-W12 check ({coverage}; compared "
+                  f"{','.join(compared)}); this does not establish no-regression "
+                  f"for the remaining {gate_country_count - len(compared)} countries")
+    if missing:
+        verdict = False
+        detail = (f"missing candidate backtest for reference countries: "
+                  f"{', '.join(missing)}; {scope_note}")
+    elif worse:
+        verdict = False
+        detail = (f"regressions: "
+                  f"{', '.join(f'{c} {v[1]:.0f}->{v[0]:.0f}' for c, v in sorted(worse.items()))}; "
+                  f"{scope_note}")
+    else:
+        verdict = True
+        detail = f"no regression on the common reference coverage; {scope_note}"
+    return {"pass": verdict, "detail": detail,
+            "reference_countries": reference_countries,
+            "candidate_countries": candidate_countries,
+            "countries_compared": compared,
+            "countries_missing_from_candidate": missing,
+            "coverage": coverage,
+            "coverage_complete": len(compared) == gate_country_count}
 
 
 def _backtest_mae(path: str) -> dict:

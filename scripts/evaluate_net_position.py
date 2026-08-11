@@ -70,8 +70,12 @@ def main() -> int:
     p.add_argument("--reference-backtest", default=str(DEFAULT_REFERENCE_BACKTEST),
                    help="reference W01-W12 JSON (default: V010 serve-faithful)")
     p.add_argument("--serve-faithful-verified", action="store_true",
-                   help="attest that serve-parity was manually verified for this "
-                        "candidate (gate item; never inferred)")
+                   help="legacy explicit override; scheduled runs read the durable "
+                        "model-keyed attestation artifact instead")
+    p.add_argument("--serve-faithful-attestation",
+                   default=str(Path(__file__).parent.parent / "experiments" /
+                               "net_position_serve_faithful_attestations.json"),
+                   help="durable model-keyed live-vintage reproduction artifact")
     p.add_argument("--stdout", action="store_true", help="print markdown instead of writing files")
     args = p.parse_args()
 
@@ -90,6 +94,7 @@ def main() -> int:
         candidate_backtest=args.candidate_backtest,
         reference_backtest=args.reference_backtest,
         serve_faithful_verified=args.serve_faithful_verified,
+        serve_faithful_attestation=args.serve_faithful_attestation,
         gate_vintage_start=(pd.Timestamp(args.gate_vintage_start)
                             if args.gate_vintage_start else None),
         gate_vintage_end=(pd.Timestamp(args.gate_vintage_end)

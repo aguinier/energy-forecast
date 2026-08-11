@@ -114,7 +114,7 @@ def _make_dbs(tmp_path, forecast_fn, quantile_fn=None, actual_fn=None,
     scon.commit(); scon.close()
     rcon.commit(); rcon.close()
     return EvalConfig(replica_db=str(replica), sidecar_db=str(sidecar),
-                      model_name=model_name)
+                      model_name=model_name, serve_faithful_attestation=None)
 
 
 # ---------------------------------------------------------------------------
@@ -290,6 +290,38 @@ def test_gate_fails_shrinkage_and_unattested_serve_parity(tmp_path):
     assert checks["no_regression_W01_W12"]["pass"] is None
 
 
+def test_gate_reads_model_keyed_serve_attestation(tmp_path):
+    cfg = _gate_fixture(tmp_path, forecast_fn=lambda a: a,
+                        quantile_fn=_calibrated_quantile_fn)
+    artifact = tmp_path / "attestation.json"
+    artifact.write_text(json.dumps({"models": {cfg.model_name: {
+        "model_name": cfg.model_name,
+        "verified": True,
+        "vintage": {
+            "generated_at_utc": "2026-08-11 06:00:55",
+            "publication_cutoff_exclusive_utc": "2026-08-11 22:00:00",
+        },
+        "max_abs_delta_mw": 0.0,
+        "rows_compared": 24,
+        "per_country": {COUNTRY: {"max_abs_delta_mw": 0.0}},
+    }}}), encoding="utf-8")
+    cfg.serve_faithful_attestation = str(artifact)
+    check = evaluate(cfg)["gate"]["checks"]["serve_faithful_inputs_verified"]
+    assert check["pass"] is True
+    assert "max |delta| 0 MW over 24 rows / 1 countries" in check["detail"]
+
+
+def test_gate_rejects_attestation_for_another_model(tmp_path):
+    cfg = _gate_fixture(tmp_path, forecast_fn=lambda a: a,
+                        quantile_fn=_calibrated_quantile_fn)
+    artifact = tmp_path / "attestation.json"
+    artifact.write_text(json.dumps({"models": {"other": {}}}), encoding="utf-8")
+    cfg.serve_faithful_attestation = str(artifact)
+    check = evaluate(cfg)["gate"]["checks"]["serve_faithful_inputs_verified"]
+    assert check["pass"] is False
+    assert "invalid serve-faithful attestation" in check["detail"]
+
+
 def test_gate_flags_backtest_regression(tmp_path):
     cfg = _gate_fixture(tmp_path, forecast_fn=lambda a: a,
                         quantile_fn=lambda f, q, ts: f + (q - 0.5) * 2000)
@@ -306,6 +338,33 @@ def test_gate_flags_backtest_regression(tmp_path):
     row = next(r for r in res["backtest_vs_live"] if r["country"] == COUNTRY)
     assert row["backtest_mae_mw"] == pytest.approx(500.0)
     assert row["live_over_backtest"] == pytest.approx(row["live_mae_mw"] / 500.0)
+
+
+def test_gate_reports_limited_backtest_country_coverage(tmp_path):
+    cfg = _passing_gate_cfg(tmp_path)
+    check = evaluate(cfg)["gate"]["checks"]["no_regression_W01_W12"]
+    assert check["pass"] is True
+    assert check["countries_compared"] == [COUNTRY]
+    assert check["coverage_complete"] is False
+    assert check["coverage"].endswith("/19 gated countries")
+    assert "does not establish no-regression" in check["detail"]
+
+
+def test_gate_fails_when_candidate_omits_a_reference_backtest_country(tmp_path):
+    cfg = _passing_gate_cfg(tmp_path)
+    ref = {"V010": {
+        COUNTRY: {"net_position": {"W01": {"mae": 500.0}}},
+        "FR": {"net_position": {"W01": {"mae": 900.0}}},
+    }}
+    cand = {"V012": {
+        COUNTRY: {"net_position": {"W01": {"mae": 400.0}}},
+    }}
+    (tmp_path / "ref.json").write_text(json.dumps(ref))
+    (tmp_path / "cand.json").write_text(json.dumps(cand))
+    check = evaluate(cfg)["gate"]["checks"]["no_regression_W01_W12"]
+    assert check["pass"] is False
+    assert check["countries_missing_from_candidate"] == ["FR"]
+    assert "missing candidate backtest" in check["detail"]
 
 
 # ---------------------------------------------------------------------------

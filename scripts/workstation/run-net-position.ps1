@@ -61,14 +61,14 @@ try {
     # existing directory untouched.
     $evalRoot = "$Repo\reports\net_position_eval"
     $models = @(
-        @{ Name = "chronos-2-V010"; OutDir = $evalRoot },
-        @{ Name = "baseline-V012";  OutDir = "$evalRoot\V012" },
-        @{ Name = "xgboost-V014";   OutDir = "$evalRoot\V014" },
-        @{ Name = "chronos-2-V016"; OutDir = "$evalRoot\V016" }
+        @{ Name = "chronos-2-V010"; OutDir = $evalRoot;        Backtest = "$Repo\comparison_net_position_servefaithful.json" },
+        @{ Name = "baseline-V012";  OutDir = "$evalRoot\V012"; Backtest = "$Repo\experiments\V012\backtest_W01_W12.json" },
+        @{ Name = "xgboost-V014";   OutDir = "$evalRoot\V014"; Backtest = "$Repo\experiments\V014\backtest_W01_W12.json" },
+        @{ Name = "chronos-2-V016"; OutDir = "$evalRoot\V016"; Backtest = "$Repo\experiments\V016\backtest_W01_W12.json" }
     )
     foreach ($m in $models) {
         & "$Repo\.venv\Scripts\python.exe" "$Repo\scripts\evaluate_net_position.py" `
-            --model $m.Name --out-dir $m.OutDir
+            --model $m.Name --out-dir $m.OutDir --candidate-backtest $m.Backtest
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "evaluate_net_position.py --model $($m.Name) exited $LASTEXITCODE - its vintages are unscored this run."
         }
