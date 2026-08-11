@@ -1,6 +1,7 @@
 """ABL-183: `Forecaster.predict_d2` wired to the shared wind feature builder,
-and the xgboost intercept witness extended to the legacy `Forecaster.save`/
-`load` artifacts (ABL-69's guard, applied to a second caller).
+extended to solar by ABL-191, and the xgboost intercept witness extended to
+the legacy `Forecaster.save`/`load` artifacts (ABL-69's guard, applied to a
+second caller).
 
 The predict_d2 tests check the *feature vector actually handed to the
 model*, not just that a forecast DataFrame comes back — the proxy-row bug
@@ -38,6 +39,18 @@ FEATURE_COLUMNS = [
     "wind_speed_100m_ms", "wind_speed_10m_ms", "temperature_c",
 ]
 
+SOLAR_FEATURE_COLUMNS = [
+    "hour", "day_of_week", "month", "is_weekend", "hour_sin", "hour_cos",
+    "day_sin", "day_cos", "month_sin", "month_cos",
+    "target_value_lag_1d", "target_value_lag_7d", "target_value_lag_14d",
+    "target_value_roll_24h_mean", "target_value_roll_24h_std",
+    "target_value_roll_24h_min", "target_value_roll_24h_max",
+    "target_value_roll_168h_mean", "target_value_roll_168h_std",
+    "target_value_roll_168h_min", "target_value_roll_168h_max",
+    "shortwave_radiation_wm2", "direct_radiation_wm2", "diffuse_radiation_wm2",
+    "temperature_c",
+]
+
 
 def _epoch_hours(ts: pd.Timestamp) -> float:
     return (ts - pd.Timestamp("2000-01-01")).total_seconds() / 3600.0
@@ -53,20 +66,28 @@ def replica(tmp_path, monkeypatch):
     con.executescript(
         """
         CREATE TABLE energy_renewable (country_code TEXT, timestamp_utc TIMESTAMP,
-            wind_offshore_mw REAL, wind_onshore_mw REAL);
+            wind_offshore_mw REAL, wind_onshore_mw REAL, solar_mw REAL);
         CREATE TABLE weather_data (country_code TEXT, timestamp_utc TIMESTAMP,
             forecast_run_time TIMESTAMP, data_quality TEXT,
-            temperature_2m_k REAL, wind_speed_10m_ms REAL, wind_speed_100m_ms REAL);
+            temperature_2m_k REAL, wind_speed_10m_ms REAL, wind_speed_100m_ms REAL,
+            shortwave_radiation_wm2 REAL, direct_radiation_wm2 REAL, diffuse_radiation_wm2 REAL);
         """
     )
     for ts in pd.date_range(OBS - pd.Timedelta(days=40), OBS, freq="h"):
         value = _epoch_hours(ts)
-        con.execute("INSERT INTO energy_renewable VALUES (?, ?, ?, ?)", (COUNTRY, str(ts), value, value))
+        con.execute(
+            "INSERT INTO energy_renewable VALUES (?, ?, ?, ?, ?)",
+            (COUNTRY, str(ts), value, value, value),
+        )
     run = OBS - pd.Timedelta(hours=6)
     for ts in pd.date_range(OBS - pd.Timedelta(days=1), OBS + pd.Timedelta(days=3), freq="h"):
         con.execute(
-            "INSERT INTO weather_data VALUES (?, ?, ?, 'forecast', ?, ?, ?)",
-            (COUNTRY, str(ts), str(run), 280.0 + ts.hour, 5.0 + ts.hour * 0.1, 8.0 + ts.hour * 0.1),
+            "INSERT INTO weather_data VALUES (?, ?, ?, 'forecast', ?, ?, ?, ?, ?, ?)",
+            (
+                COUNTRY, str(ts), str(run),
+                280.0 + ts.hour, 5.0 + ts.hour * 0.1, 8.0 + ts.hour * 0.1,
+                100.0 + ts.hour * 2.0, 50.0 + ts.hour, 20.0 + ts.hour * 0.5,
+            ),
         )
     con.commit()
     con.close()
@@ -144,6 +165,35 @@ def test_predict_d2_wind_d1_and_d2_share_one_rolling_anchor(replica):
 
 def test_predict_d2_wind_onshore_is_also_wired(replica):
     forecaster = _forecaster("wind_onshore")
+    df = forecaster.predict_d2(reference_date=OBS.date(), horizon_days=1, hours=[0],
+                               observation_as_of=OBS, weather_publication_as_of=OBS)
+    assert len(df) == 1
+    assert not df["forecast_value"].isna().any()
+
+
+def test_predict_d2_solar_feeds_the_model_the_builders_own_vector(replica):
+    """ABL-191: solar goes through the same serve-faithful entrypoint as
+    wind, with no solar-specific branch in Forecaster — this exercises the
+    real `predict_d2` call, not just the builder directly."""
+    forecaster = _forecaster("solar")
+    forecaster.feature_columns = list(SOLAR_FEATURE_COLUMNS)
+    forecaster.predict_d2(
+        reference_date=OBS.date(), horizon_days=1, hours=[5],
+        observation_as_of=OBS, weather_publication_as_of=OBS,
+    )
+    [captured] = forecaster.model.calls
+    assert list(captured.columns) == SOLAR_FEATURE_COLUMNS
+
+    target = pd.Timestamp("2026-08-12 05:00:00")
+    builder = RenewableFeatureBuilder(COUNTRY, "solar", OBS - pd.Timedelta(days=45), OBS + pd.Timedelta(days=3))
+    expected = to_vector(builder.row(target, OBS, OBS), SOLAR_FEATURE_COLUMNS)
+    for col in SOLAR_FEATURE_COLUMNS:
+        assert captured.iloc[0][col] == pytest.approx(expected[col]), col
+
+
+def test_predict_d2_solar_is_also_wired(replica):
+    forecaster = _forecaster("solar")
+    forecaster.feature_columns = list(SOLAR_FEATURE_COLUMNS)
     df = forecaster.predict_d2(reference_date=OBS.date(), horizon_days=1, hours=[0],
                                observation_as_of=OBS, weather_publication_as_of=OBS)
     assert len(df) == 1
