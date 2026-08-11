@@ -1,0 +1,779 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-08-11T12:02:06.338203+00:00",
+  "claim": "offline serve-time input reproduction against stored live median forecasts",
+  "not_claimed": "sidecar versus prod-pushed output-row equality",
+  "tolerance_mw": 0.0,
+  "databases": {
+    "replica": {
+      "path": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "bytes": 5905461248,
+      "net_position_rows": 647538,
+      "net_position_min_utc": "2023-01-01 00:00:00",
+      "net_position_max_utc": "2026-08-11 21:00:00",
+      "access": "read-only URI"
+    },
+    "sidecar": {
+      "path": "C:\\Code\\able\\data\\forecasts_local.db",
+      "bytes": 36843520,
+      "access": "read-only URI for attestation"
+    }
+  },
+  "contamination": {
+    "ABL-67": "touches scope: GR fabricated zero actuals; GR excluded by the pre-registered gate",
+    "ABL-71": "touches provenance risk: ingest fixes are undeployed; replica currency was recorded, but row correctness is not thereby certified",
+    "ABL-111_ABL-109": "do not touch these net-position inputs: actual-load rows are not consumed"
+  },
+  "models": {
+    "chronos-2-V010": {
+      "verified": true,
+      "stored_rows": 456,
+      "offline_rows": 456,
+      "rows_compared": 456,
+      "max_abs_delta_mw": 0.0,
+      "per_country": {
+        "AT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BG": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "CZ": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "DE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "EE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "ES": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HU": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LV": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "NL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "RO": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SK": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        }
+      },
+      "model_name": "chronos-2-V010",
+      "experiment": "V010",
+      "baseline": "stored as-served live sidecar vintage",
+      "vintage": {
+        "generated_at_utc": "2026-08-11 06:00:46.025210",
+        "target_start_utc": "2026-08-13 00:00:00",
+        "target_end_utc": "2026-08-13 23:00:00",
+        "publication_cutoff_exclusive_utc": "2026-08-11 22:00:00"
+      },
+      "input_spec": {
+        "observation_bound": "net_position target_timestamp_utc < publication_cutoff_exclusive_utc",
+        "publication_bound": "issued inputs have publication/run time <= generated_at_utc",
+        "runner": "scripts/forecast_chronos2.py (V010)",
+        "target": "net_position.net_position_mw, 672 hourly observations",
+        "past_covariates": [
+          "weather__temperature_2m_k",
+          "weather__wind_speed_100m_ms",
+          "weather__shortwave_radiation_wm2",
+          "cal__hour",
+          "cal__dayofweek",
+          "cal__month",
+          "cal__is_holiday",
+          "tso__load_forecast",
+          "da__price",
+          "flow__total_export_mw",
+          "flow__total_import_mw",
+          "flow__net_mw"
+        ],
+        "future_covariates": [
+          "weather__temperature_2m_k",
+          "weather__wind_speed_100m_ms",
+          "weather__shortwave_radiation_wm2",
+          "cal__hour",
+          "cal__dayofweek",
+          "cal__month",
+          "cal__is_holiday"
+        ],
+        "prediction": "50 hours (26-hour gap plus target day's final 24 hours)"
+      }
+    },
+    "baseline-V012": {
+      "verified": true,
+      "stored_rows": 456,
+      "offline_rows": 456,
+      "rows_compared": 456,
+      "max_abs_delta_mw": 0.0,
+      "per_country": {
+        "AT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BG": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "CZ": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "DE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "EE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "ES": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HU": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LV": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "NL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "RO": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SK": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        }
+      },
+      "model_name": "baseline-V012",
+      "experiment": "V012",
+      "baseline": "stored as-served live sidecar vintage",
+      "vintage": {
+        "generated_at_utc": "2026-08-11 06:00:55",
+        "target_start_utc": "2026-08-13 00:00:00",
+        "target_end_utc": "2026-08-13 23:00:00",
+        "publication_cutoff_exclusive_utc": "2026-08-11 22:00:00"
+      },
+      "input_spec": {
+        "observation_bound": "net_position target_timestamp_utc < publication_cutoff_exclusive_utc",
+        "publication_bound": "issued inputs have publication/run time <= generated_at_utc",
+        "runner": "scripts/forecast_challengers.py::run_v012",
+        "inputs": [
+          "net_position.net_position_mw"
+        ],
+        "prediction": "mean of D-7 persistence and 28-day same-hour climatology"
+      }
+    },
+    "xgboost-V014": {
+      "verified": true,
+      "stored_rows": 456,
+      "offline_rows": 456,
+      "rows_compared": 456,
+      "max_abs_delta_mw": 0.0,
+      "per_country": {
+        "AT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BG": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "CZ": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "DE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "EE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "ES": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HU": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LV": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "NL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "RO": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SK": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        }
+      },
+      "model_name": "xgboost-V014",
+      "experiment": "V014",
+      "baseline": "stored as-served live sidecar vintage",
+      "vintage": {
+        "generated_at_utc": "2026-08-11 06:00:55",
+        "target_start_utc": "2026-08-13 00:00:00",
+        "target_end_utc": "2026-08-13 23:00:00",
+        "publication_cutoff_exclusive_utc": "2026-08-11 22:00:00"
+      },
+      "input_spec": {
+        "observation_bound": "net_position target_timestamp_utc < publication_cutoff_exclusive_utc",
+        "publication_bound": "issued inputs have publication/run time <= generated_at_utc",
+        "runner": "scripts/forecast_challengers.py::run_v014",
+        "source_cutoffs": {
+          "net_position, energy_price, energy_load_forecast, energy_generation_forecast": "target run day D 21:00 UTC",
+          "crossborder_flows": "target_timestamp_utc - 72 hours",
+          "weather_data": "target hour; data_quality=forecast and forecast_run_time <= generated_at_utc"
+        },
+        "feature_columns_BE": [
+          "hour",
+          "day_of_week",
+          "month",
+          "day_of_year",
+          "is_weekend",
+          "hour_sin",
+          "hour_cos",
+          "doy_sin",
+          "doy_cos",
+          "is_holiday",
+          "np_lag72h",
+          "np_lag96h",
+          "np_lag120h",
+          "np_lag168h",
+          "np_last1d_mean",
+          "np_last3d_mean",
+          "np_last3d_std",
+          "np_last3d_min",
+          "np_last3d_max",
+          "np_last7d_mean",
+          "np_last7d_std",
+          "np_last7d_min",
+          "np_last7d_max",
+          "np_last28d_mean",
+          "np_last28d_std",
+          "np_last28d_min",
+          "np_last28d_max",
+          "np_at_cutoff",
+          "np_hod_clim28d",
+          "price_lag72h",
+          "price_lag168h",
+          "price_last1d_mean",
+          "price_last3d_mean",
+          "price_last3d_std",
+          "price_last3d_min",
+          "price_last3d_max",
+          "price_last7d_mean",
+          "price_last7d_std",
+          "price_last7d_min",
+          "price_last7d_max",
+          "price_last28d_mean",
+          "price_last28d_std",
+          "price_last28d_min",
+          "price_last28d_max",
+          "price_at_cutoff",
+          "loadfc_lag72h",
+          "loadfc_lag168h",
+          "loadfc_last1d_mean",
+          "loadfc_last3d_mean",
+          "loadfc_last3d_std",
+          "loadfc_last3d_min",
+          "loadfc_last3d_max",
+          "loadfc_last7d_mean",
+          "loadfc_last7d_std",
+          "loadfc_last7d_min",
+          "loadfc_last7d_max",
+          "loadfc_last28d_mean",
+          "loadfc_last28d_std",
+          "loadfc_last28d_min",
+          "loadfc_last28d_max",
+          "loadfc_at_cutoff",
+          "gensolar_lag72h",
+          "gensolar_lag168h",
+          "genwind_lag72h",
+          "genwind_lag168h",
+          "xb_net_lag72h",
+          "xb_net_lag96h",
+          "xb_missing",
+          "nbFR_np_lag72h",
+          "nbFR_np_lag168h",
+          "nbFR_price_lag72h",
+          "nbNL_np_lag72h",
+          "nbNL_np_lag168h",
+          "nbNL_price_lag72h",
+          "nbDE_np_lag72h",
+          "nbDE_np_lag168h",
+          "nbDE_price_lag72h",
+          "wx_temperature_2m_k",
+          "wx_wind_speed_10m_ms",
+          "wx_wind_speed_100m_ms",
+          "wx_shortwave_radiation_wm2",
+          "weather_available",
+          "price_spread_nb_lag72h"
+        ],
+        "note": "neighbour-prefixed columns vary by country; every artifact supplies its own feature_columns"
+      }
+    },
+    "chronos-2-V016": {
+      "verified": true,
+      "stored_rows": 456,
+      "offline_rows": 456,
+      "rows_compared": 456,
+      "max_abs_delta_mw": 0.0,
+      "per_country": {
+        "AT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "BG": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "CZ": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "DE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "EE": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "ES": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "FR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HR": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "HU": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "LV": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "NL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PL": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "PT": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "RO": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SI": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        },
+        "SK": {
+          "stored_rows": 24,
+          "offline_rows": 24,
+          "rows_compared": 24,
+          "max_abs_delta_mw": 0.0,
+          "verified": true
+        }
+      },
+      "model_name": "chronos-2-V016",
+      "experiment": "V016",
+      "baseline": "stored as-served live sidecar vintage",
+      "vintage": {
+        "generated_at_utc": "2026-08-11 06:00:55",
+        "target_start_utc": "2026-08-13 00:00:00",
+        "target_end_utc": "2026-08-13 23:00:00",
+        "publication_cutoff_exclusive_utc": "2026-08-11 22:00:00"
+      },
+      "input_spec": {
+        "observation_bound": "net_position target_timestamp_utc < publication_cutoff_exclusive_utc",
+        "publication_bound": "issued inputs have publication/run time <= generated_at_utc",
+        "runner": "scripts/forecast_challengers.py::run_v016",
+        "inputs": [
+          "stored co-run chronos-2-V010 median and quantiles",
+          "experiments/V016/correction.json",
+          "latest observable net_position residual strictly before the publication cutoff"
+        ],
+        "prediction": "per-country affine map plus horizon-decayed AR(1); identity where fit refuses"
+      }
+    }
+  }
+}
