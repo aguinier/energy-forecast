@@ -2,7 +2,7 @@
 
 **Disposition: COMPLETE — evidence files only; nothing posted or deployed.**
 
-Generated: 2026-08-11 20:20 UTC.
+Generated: 2026-08-11 20:11:59 UTC.
 Target window: 2026-07-11 00:00 UTC through 2026-08-10 00:00 UTC exclusive (30 days; 720 hourly targets per served country).
 Protocol: one serve-faithful D+2 prediction per country-hour, reconstructed at the pre-registered D-2 19:00 UTC run instant (horizons 29–52 hours). This is out-of-sample by target timestamp: the artifacts were fitted only through 2026-07-11 00:00 UTC exclusive.
 Replica: `C:\Code\able\data\energy_dashboard.db` (5,958,455,296 bytes), opened with SQLite `mode=ro`, `uri=True`.
@@ -11,8 +11,8 @@ Replica: `C:\Code\able\data\energy_dashboard.db` (5,958,455,296 bytes), opened w
 
 | forecast type | served countries | rows | model_name | model_version | payload SHA-256 |
 |---|---|---:|---|---|---|
-| wind_offshore | BE, FR | 1,440 | `xgboost-retrain-v1` | `abl195-df71d0314426` | `48d43c7b4460f070a5260c0c64777ebf250b0d75474b15001772bdf280f1da10` |
-| wind_onshore | BE, DE, FR | 2,160 | `catboost-retrain-v1` | `abl195-c84911cc953d` | `352b032cdaf014099de6c80a257a7b270865b1fb3350cf1b0ed9ec11f05086b5` |
+| wind_offshore | BE, FR | 1,440 | `xgboost-retrain-v1` | `abl195-df71d0314426` | `70ba902a5af495cd3e8b14134ec29cd73ce2c1a7c63bd295807c41247b672cb7` |
+| wind_onshore | BE, DE, FR | 2,160 | `catboost-retrain-v1` | `abl195-c84911cc953d` | `7f5bacab54be02390d125592f3da1a1c7d0e510d371d418ae046cece4353217d` |
 
 Payloads:
 

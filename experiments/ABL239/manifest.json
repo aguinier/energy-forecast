@@ -1,6 +1,6 @@
 {
   "issue": "ABL-239",
-  "generated_at": "2026-08-11T20:20:00Z",
+  "generated_at": "2026-08-11T20:11:59.242752Z",
   "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
   "replica_bytes": 5958455296,
   "protocol": "one serve-faithful D-2 19:00 UTC vintage per target hour",
@@ -12,7 +12,7 @@
     {
       "forecast_type": "wind_offshore",
       "output_path": "C:\\Code\\able\\energy-forecast\\experiments\\ABL239\\wind_offshore_backfill.json",
-      "payload_sha256": "48d43c7b4460f070a5260c0c64777ebf250b0d75474b15001772bdf280f1da10",
+      "payload_sha256": "70ba902a5af495cd3e8b14134ec29cd73ce2c1a7c63bd295807c41247b672cb7",
       "model_name": "xgboost-retrain-v1",
       "model_version": "abl195-df71d0314426",
       "countries": [
@@ -45,7 +45,7 @@
     {
       "forecast_type": "wind_onshore",
       "output_path": "C:\\Code\\able\\energy-forecast\\experiments\\ABL239\\wind_onshore_backfill.json",
-      "payload_sha256": "352b032cdaf014099de6c80a257a7b270865b1fb3350cf1b0ed9ec11f05086b5",
+      "payload_sha256": "7f5bacab54be02390d125592f3da1a1c7d0e510d371d418ae046cece4353217d",
       "model_name": "catboost-retrain-v1",
       "model_version": "abl195-c84911cc953d",
       "countries": [
