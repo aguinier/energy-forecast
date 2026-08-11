@@ -30,6 +30,12 @@ from .db import (
 )
 from .features import create_all_features, get_feature_columns
 from .metrics import calculate_all_metrics, format_metrics
+from .wind_features import (
+    RenewableFeatureBuilder,
+    SUPPORTED_FORECAST_TYPES as SERVE_FAITHFUL_FORECAST_TYPES,
+    to_vector,
+)
+from . import xgboost_artifact_guard
 
 
 logger = logging.getLogger("energy_forecast")
@@ -563,6 +569,8 @@ class Forecaster:
         reference_date: Optional[date] = None,
         hours: List[int] = None,
         horizon_days: Optional[int] = None,
+        observation_as_of: Optional[datetime] = None,
+        weather_publication_as_of: Optional[datetime] = None,
     ) -> pd.DataFrame:
         """
         Generate forecast for a specific horizon (24 hourly values).
@@ -571,6 +579,15 @@ class Forecaster:
             reference_date: Date of forecast generation (default: today)
             hours: Hours to forecast (default: 0-23)
             horizon_days: Days ahead to forecast (default: config default for type)
+            observation_as_of: The generation instant features may see actuals
+                up to (default: now). Actuals after this are never used —
+                exposed as a parameter so tests can pin a golden vector to a
+                fixed instant instead of the wall clock.
+            weather_publication_as_of: Newest weather forecast run instant
+                admitted (default: observation_as_of). Only consulted for
+                `self.forecast_type in SERVE_FAITHFUL_FORECAST_TYPES` (wind);
+                other types still resolve weather via
+                `load_weather_forecast_for_hour`, unchanged by ABL-183.
 
         Returns:
             DataFrame with forecast columns:
@@ -599,6 +616,19 @@ class Forecaster:
 
         logger.info(f"Generating D+{horizon_days} forecast for {target_date}")
 
+        observation_as_of = pd.Timestamp(observation_as_of) if observation_as_of is not None else pd.Timestamp(datetime.now())
+        weather_publication_as_of = (
+            pd.Timestamp(weather_publication_as_of) if weather_publication_as_of is not None else observation_as_of
+        )
+
+        if self.forecast_type in SERVE_FAITHFUL_FORECAST_TYPES:
+            # ABL-183: proxy-row inference (below) cannot serve these types
+            # faithfully — see `wind_features.py` module docstring for why.
+            forecasts = self._predict_d2_serve_faithful(
+                target_date, hours, observation_as_of, weather_publication_as_of
+            )
+            return pd.DataFrame(forecasts)
+
         # Load recent historical data for features
         lookback_days = max(config.LAG_DAYS) + 7  # Extra buffer
         start_date = (reference_date - timedelta(days=lookback_days)).strftime(
@@ -618,15 +648,15 @@ class Forecaster:
 
         # Generate predictions for each target hour
         forecasts = []
-        generated_at = datetime.now()
+        generated_at = observation_as_of.to_pydatetime()
 
         for hour in hours:
             target_ts = datetime(
                 target_date.year, target_date.month, target_date.day, hour
             )
 
-            # Calculate horizon (hours from now to target)
-            hours_until = (target_ts - datetime.now()).total_seconds() / 3600
+            # Calculate horizon (hours from generation instant to target)
+            hours_until = (pd.Timestamp(target_ts) - observation_as_of).total_seconds() / 3600
             horizon_hours = int(max(1, hours_until))
 
             # Get features for this hour
@@ -713,6 +743,51 @@ class Forecaster:
 
         return pd.DataFrame(forecasts)
 
+    def _predict_d2_serve_faithful(
+        self,
+        target_date: date,
+        hours: List[int],
+        observation_as_of: pd.Timestamp,
+        weather_publication_as_of: pd.Timestamp,
+    ) -> List[Dict[str, Any]]:
+        """Wind-type prediction via the shared train/serve feature builder
+        (ABL-183, `wind_features.py`). One `RenewableFeatureBuilder` per call
+        loads actuals/weather once for the whole target day; `.row()` per
+        target hour returns each feature with the provenance
+        (`source_timestamp`, `published_at`, `degraded`) a golden test checks,
+        which `to_vector` strips before the model sees it.
+        """
+        generated_at = observation_as_of.to_pydatetime()
+        target_hours = [
+            pd.Timestamp(datetime(target_date.year, target_date.month, target_date.day, hour))
+            for hour in hours
+        ]
+        lookback_days = max(config.LAG_DAYS) + 7
+        span_start = min(min(target_hours), observation_as_of) - pd.Timedelta(days=lookback_days)
+        span_end = max(max(target_hours), observation_as_of)
+        builder = RenewableFeatureBuilder(self.country_code, self.forecast_type, span_start, span_end)
+
+        forecasts = []
+        for target_ts in target_hours:
+            horizon_hours = int(max(1, (target_ts - observation_as_of).total_seconds() / 3600))
+            row = builder.row(target_ts, observation_as_of, weather_publication_as_of)
+            vector = to_vector(row, self.feature_columns)
+            features_df = pd.DataFrame([vector], columns=self.feature_columns)
+            prediction = self.model.predict(features_df)[0]
+            forecasts.append(
+                {
+                    "country_code": self.country_code,
+                    "forecast_type": self.forecast_type,
+                    "target_timestamp_utc": target_ts.to_pydatetime(),
+                    "generated_at": generated_at,
+                    "horizon_hours": horizon_hours,
+                    "forecast_value": float(prediction),
+                    "model_name": self.algorithm,
+                    "model_version": self.model_version,
+                }
+            )
+        return forecasts
+
     def get_feature_importance(self) -> pd.DataFrame:
         """
         Get feature importance from trained model.
@@ -787,6 +862,15 @@ class Forecaster:
             "saved_at": datetime.now().isoformat(),
         }
 
+        if self.algorithm == "xgboost":
+            # ABL-183: the intercept witness, extended from V014's shadow-rail
+            # guard (ABL-69) to these legacy artifacts. See
+            # `xgboost_artifact_guard.py` for what this catches.
+            import xgboost
+
+            model_data["xgboost_version"] = xgboost.__version__
+            model_data["base_score"] = xgboost_artifact_guard.base_score(self.model)
+
         joblib.dump(model_data, path)
         logger.info(f"Model saved to {path}")
 
@@ -821,6 +905,19 @@ class Forecaster:
         algorithm = model_data.get("algorithm", "xgboost")
         hyperparams = model_data.get("hyperparams", None)
         weather_mode = model_data.get("weather_mode", "centroid")
+
+        if algorithm == "xgboost":
+            # ABL-183: refuse a model whose intercept did not survive
+            # deserialisation. A no-op for artifacts saved before this guard
+            # existed (stored base_score is None) — see
+            # `xgboost_artifact_guard.assert_survived_load`.
+            xgboost_artifact_guard.assert_survived_load(
+                path,
+                model_data.get("base_score"),
+                model_data.get("xgboost_version"),
+                model_data["model"],
+                artifact_label=f"{country_code}/{forecast_type}",
+            )
 
         forecaster = cls(
             country_code, forecast_type, algorithm=algorithm, hyperparams=hyperparams, weather_mode=weather_mode
