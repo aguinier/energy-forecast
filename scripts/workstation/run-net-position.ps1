@@ -15,24 +15,31 @@ try {
 
     # Challengers, in shadow, on the same serve-time inputs (ABL-68). They read
     # the champion vintage written above and store their own model_name rows in
-    # the sidecar. They are never pushed: push_net_position_forecast.py names
-    # the champion and filters on it. A challenger failure must not cost us the
-    # champion's run or its push, so this is reported and continues.
+    # the sidecar. A challenger failure must not cost us the champion's run or
+    # its push, so this is reported and continues.
     & "$Repo\.venv\Scripts\python.exe" "$Repo\scripts\forecast_challengers.py" `
         --experiments V012,V014,V016 --countries all --save-to-db
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "forecast_challengers.py exited $LASTEXITCODE - one or more challengers produced nothing this run."
     }
 
-    # Ship the run to the dashboard so it is visible outside this box. The
-    # forecast itself is the job's real output, so a push failure is reported
-    # but does not fail the run - the next run re-pushes, and the endpoint
-    # replaces rather than duplicates a vintage.
+    # Ship the run to the dashboard so it is visible outside this box, and so
+    # the ABL-70 promotion gate accrues a scored vintage for each challenger,
+    # not only the champion (ABL-175). push_net_position_forecast.py pushes
+    # chronos-2-V010, baseline-V012, xgboost-V014 and chronos-2-V016
+    # independently, each under its own name; one model having nothing to push
+    # (exit 2) or failing to push (exit 1) does not stop the others - the
+    # script always attempts every registered model and reports per-model
+    # status. The forecast itself is the job's real output, so a push problem
+    # is reported but does not fail the run - the next run re-pushes, and the
+    # endpoint replaces rather than duplicates a vintage.
     if ($env:DASHBOARD_WRITE_TOKEN) {
         if (-not $env:DASHBOARD_API_URL) { $env:DASHBOARD_API_URL = "http://192.168.86.36:3001" }
         & "$Repo\.venv\Scripts\python.exe" "$Repo\scripts\push_net_position_forecast.py"
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Forecast saved locally but push to $($env:DASHBOARD_API_URL) failed (exit $LASTEXITCODE)."
+        if ($LASTEXITCODE -eq 1) {
+            Write-Warning "Forecast saved locally but at least one model failed to push to $($env:DASHBOARD_API_URL) (exit 1) - see the per-model summary above."
+        } elseif ($LASTEXITCODE -eq 2) {
+            Write-Warning "Forecast saved locally; at least one model had nothing new to push to $($env:DASHBOARD_API_URL) (exit 2) - see the per-model summary above."
         }
     } else {
         Write-Host "DASHBOARD_WRITE_TOKEN not set - forecast stays in the sidecar only."
