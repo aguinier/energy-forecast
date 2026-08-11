@@ -422,8 +422,44 @@ def _cut_metrics(df: pd.DataFrame, keys: list[str]) -> list[dict]:
     return rows
 
 
+def classify_unpaired(targets: pd.Series,
+                      actuals_max_ts: pd.Timestamp | None) -> dict:
+    """Why rows did not pair: not published yet, or no actual for that zone.
+
+    `Pairs: 0` reads identically whether the join is broken and whether the
+    vintages simply target days nobody has published yet, and the report used
+    to assert the second reading for every unpaired row ("no actual yet")
+    without checking it. That cost a day of investigation on ABL-95, where
+    xgboost-V014 joined the shadow rail late and its only two vintages targeted
+    2026-08-10 and 2026-08-11 against actuals through 2026-08-09 21:00 — 912
+    rows, 0 pairs, and nothing at all wrong.
+
+    The discriminator is the frontier of the whole actuals table, never the
+    zone's own newest row: a zone that stopped publishing has a stale frontier
+    of its own, and judging it against that would call GR "awaiting
+    publication" forever.
+    """
+    n = int(len(targets))
+    if not n:
+        return {"rows": 0, "target_window": None, "after_actuals": 0,
+                "at_or_before_actuals": 0, "verdict": None}
+    if actuals_max_ts is None:      # no actuals held at all — frontier unknown
+        after = 0
+    else:
+        after = int((targets > actuals_max_ts).sum())
+    return {
+        "rows": n,
+        "target_window": [str(targets.min()), str(targets.max())],
+        "after_actuals": after,
+        "at_or_before_actuals": n - after,
+        "verdict": ("awaiting_publication" if after == n else
+                    "no_zone_actuals" if after == 0 else "mixed"),
+    }
+
+
 def per_country_metrics(scored: pd.DataFrame, paired: pd.DataFrame,
-                        cfg: EvalConfig) -> dict:
+                        cfg: EvalConfig,
+                        actuals_max_ts: pd.Timestamp | None = None) -> dict:
     """Per-country point metrics, quantiles, baseline skill, decomposition, AR.
 
     Called twice: once over every scored pair (the report) and once over the
@@ -445,15 +481,23 @@ def per_country_metrics(scored: pd.DataFrame, paired: pd.DataFrame,
         m["decomposition"] = decompose_error(a, f, g["hour"].to_numpy())
         m["residual_autocorr"] = residual_autocorr(g)
         out[country] = m
-    # Countries with vintages but zero paired actuals (GR-shaped).
+    # Countries with vintages but zero paired actuals — the GR shape (a zone
+    # that stopped publishing) and the ABL-95 shape (targets nobody has
+    # published yet) are the same cell until the unpaired rows are classified.
     for country in sorted(set(paired["country_code"]) - set(scored["country_code"])):
-        n = int((paired["country_code"] == country).sum())
-        out[country] = {"n": 0, "rows_unpaired": n, "coverage": "no_paired_actuals"}
+        sub = paired[paired["country_code"] == country]
+        diag = classify_unpaired(sub["target_ts"], actuals_max_ts)
+        out[country] = {
+            "n": 0, "rows_unpaired": int(len(sub)), "unpaired": diag,
+            "coverage": ("awaiting_publication"
+                         if diag["verdict"] == "awaiting_publication"
+                         else "no_paired_actuals")}
     return out
 
 
 def build_gate_scope(scored: pd.DataFrame, paired: pd.DataFrame,
-                     cfg: EvalConfig) -> dict:
+                     cfg: EvalConfig,
+                     actuals_max_ts: pd.Timestamp | None = None) -> dict:
     """The restricted view the promotion gate scores (ABL-72 G1).
 
     `evaluate` scores every stored vintage, which is right for the report and
@@ -489,7 +533,8 @@ def build_gate_scope(scored: pd.DataFrame, paired: pd.DataFrame,
         "vintage_list": [str(v) for v in vintages],
         "pairs_scored": int(len(gate_scored)),
         "countries_measured": int(gate_scored["country_code"].nunique()),
-        "per_country": per_country_metrics(gate_scored, gate_paired, cfg),
+        "per_country": per_country_metrics(gate_scored, gate_paired, cfg,
+                                           actuals_max_ts),
         "excluded_countries": dict(GATE_EXCLUDED_COUNTRIES),
     }
 
@@ -520,6 +565,7 @@ def evaluate(cfg: EvalConfig) -> dict:
         paired[k] = pd.concat(chunks).sort_index()
     paired["baseline_ensemble"] = paired[["persistence", "climatology"]].mean(axis=1)
 
+    actuals_max_ts = actuals["ts"].max() if len(actuals) else None
     scored = paired.dropna(subset=["actual"]).copy()
     scored["hour"] = scored["target_ts"].dt.hour
     scored["weekday"] = scored["target_ts"].dt.dayofweek
@@ -538,6 +584,8 @@ def evaluate(cfg: EvalConfig) -> dict:
             "vintage_span": [str(forecasts["generated_at"].min()), str(forecasts["generated_at"].max())],
             "pairs_scored": int(len(scored)),
             "rows_unpaired": int(len(paired) - len(scored)),
+            "unpaired": classify_unpaired(
+                paired.loc[paired["actual"].isna(), "target_ts"], actuals_max_ts),
             "cohort_split_utc": str(cfg.cohort_split),
             "source_counts": forecasts.attrs.get("source_counts"),
             "sidecar_vs_pushed_max_abs_diff_mw": forecasts.attrs.get("overlap_max_abs_diff_mw"),
@@ -547,7 +595,8 @@ def evaluate(cfg: EvalConfig) -> dict:
         "cuts": {}, "case_studies": [], "gate_scope": {}, "gate": {},
     }
 
-    results["per_country"] = per_country_metrics(scored, paired, cfg)
+    results["per_country"] = per_country_metrics(scored, paired, cfg,
+                                                 actuals_max_ts)
 
     results["pooled"] = point_metrics(scored["actual"].to_numpy(),
                                       scored["forecast_value"].to_numpy())
@@ -585,7 +634,8 @@ def evaluate(cfg: EvalConfig) -> dict:
         for r in worst.itertuples()]
 
     results["backtest_vs_live"] = _backtest_vs_live(results, scored, cfg)
-    results["gate_scope"] = build_gate_scope(scored, paired, cfg)
+    results["gate_scope"] = build_gate_scope(scored, paired, cfg,
+                                             actuals_max_ts)
     results["gate"] = promotion_gate(results, cfg)
     return results
 
