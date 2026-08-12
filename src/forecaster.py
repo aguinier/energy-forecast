@@ -448,7 +448,7 @@ class Forecaster:
         Returns:
             Dictionary with aggregated validation metrics
         """
-        from validation import WalkForwardValidator
+        from .validation import WalkForwardValidator
 
         if end_date is None:
             # Same as `train` (ABL-331 follow-up): the window closes on the
