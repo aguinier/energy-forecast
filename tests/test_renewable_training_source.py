@@ -102,8 +102,22 @@ def test_an_unreported_stream_yields_an_empty_frame_not_a_zero_series(replica):
     """Acceptance criterion 3. This is the property the whole issue turns on."""
     frame = db.load_renewable_type_data(COUNTRY, "wind_offshore", START, END)
     assert frame.empty, (
-        "a country/stream the TSO does not report must reach the trainer as an "
-        f"empty frame; got {len(frame)} rows"
+        "NOT REPORTED IS NOT ZERO. A country/stream the TSO does not report must "
+        f"reach the trainer as an empty frame; got {len(frame)} rows.\n"
+        "\n"
+        "If you are reading this because you changed the loader: the rows you are "
+        "about to train on are almost certainly fabricated. `energy_renewable`'s "
+        "columns are REAL DEFAULT 0 and its mapper initialises each to 0.0 before "
+        "checking whether ENTSO-E returned the production type (ABL-188), so the 15 "
+        "countries with no offshore fleet read as 100.0% exactly 0.0 -- a complete, "
+        "non-null, perfectly valid series for a fleet that does not exist. Nothing "
+        "downstream can tell that apart from a measurement: no NaN, no gap, no "
+        "warning, and a model fitted on it scores beautifully against the same "
+        "zeros. ABL-321 exists because we were one issue away from training 15 such "
+        "models and reporting them as working.\n"
+        "\n"
+        "A NULL run and an absent row both mean 'not reported', and neither is a "
+        "zero. Make the loader drop them; do not make this test tolerate them."
     )
 
 
