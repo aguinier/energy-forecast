@@ -27,6 +27,8 @@ from .db import (
     load_training_data,
     get_latest_data_timestamp,
     load_weather_forecast_for_hour,
+    LEGACY_RENEWABLE_TRAINING_SOURCE,
+    RENEWABLE_TYPE_SOURCE_TABLE,
 )
 from .features import create_all_features, get_feature_columns
 from .metrics import calculate_all_metrics, format_metrics
@@ -54,6 +56,8 @@ class Forecaster:
         model: Trained model instance
         feature_columns: List of feature column names
         model_version: Version string for tracking
+        training_source: For an individual renewable type, the table its target
+            series is read from — at training *and* at serving. See ABL-331.
     """
 
     def __init__(
@@ -63,6 +67,7 @@ class Forecaster:
         algorithm: str = "xgboost",
         hyperparams: Optional[Dict[str, Any]] = None,
         weather_mode: str = "centroid",
+        training_source: Optional[str] = None,
     ):
         """
         Initialize forecaster.
@@ -73,11 +78,18 @@ class Forecaster:
             algorithm: 'xgboost', 'lightgbm', or 'catboost' (default: 'xgboost')
             hyperparams: Custom hyperparameters to override defaults
             weather_mode: 'centroid' or 'multipoint' (default: 'centroid')
+            training_source: ABL-331 — for an individual renewable type, which
+                table (`energy_generation` / `energy_renewable`) the target
+                series is read from. `None` means "whatever `db`'s default is",
+                which is what `save` then records. Only ever consulted for
+                `config.RENEWABLE_TYPES`; the aggregate types have one table
+                each and ignore it.
         """
         self.country_code = country_code
         self.forecast_type = forecast_type
         self.algorithm = algorithm.lower()
         self.weather_mode = weather_mode.lower()
+        self.training_source = training_source
 
         # Validate algorithm
         if self.algorithm not in config.SUPPORTED_ALGORITHMS:
@@ -102,6 +114,22 @@ class Forecaster:
         self.model_version: str = ""
         self.training_metrics: Dict[str, float] = {}
         self.grid_search_results: Optional[Dict] = None
+
+    def _resolved_training_source(self) -> Optional[str]:
+        """The source table this artifact's target series actually came from.
+
+        ABL-331: this is what `save` records, and it must be the value the
+        loaders were handed rather than an intention — an artifact that claims
+        `energy_generation` while its lags were fitted on `energy_renewable`
+        would be served skewed features for the rest of its life, which is the
+        state the ABL-321 verdict rejected. `None` for the aggregate types
+        (`load`, `price`, `renewable`, `net_position`): they read one fixed
+        table each, so recording a renewable source table for them would be a
+        true-looking, meaningless field.
+        """
+        if self.forecast_type not in config.RENEWABLE_TYPES:
+            return None
+        return self.training_source or RENEWABLE_TYPE_SOURCE_TABLE
 
     def _create_model(self, params: Optional[Dict] = None) -> Any:
         """
@@ -169,11 +197,13 @@ class Forecaster:
             # Import here to avoid circular imports
             from .db import load_training_data_multipoint
             df = load_training_data_multipoint(
-                self.country_code, self.forecast_type, start_date, end_date
+                self.country_code, self.forecast_type, start_date, end_date,
+                source=self.training_source,
             )
         else:
             df = load_training_data(
-                self.country_code, self.forecast_type, start_date, end_date
+                self.country_code, self.forecast_type, start_date, end_date,
+                source=self.training_source,
             )
 
         if df.empty:
@@ -432,10 +462,14 @@ class Forecaster:
             # Import here to avoid circular imports
             from .db import load_training_data_multipoint
             df = load_training_data_multipoint(
-                self.country_code, self.forecast_type, start_date, end_date
+                self.country_code, self.forecast_type, start_date, end_date,
+                source=self.training_source,
             )
         else:
-            df = load_training_data(self.country_code, self.forecast_type, start_date, end_date)
+            df = load_training_data(
+                self.country_code, self.forecast_type, start_date, end_date,
+                source=self.training_source,
+            )
 
         if df.empty:
             raise ValueError(
@@ -637,8 +671,13 @@ class Forecaster:
         )
         end_date = (reference_date + timedelta(days=1)).strftime("%Y-%m-%d")
 
+        # ABL-331: `hydro_total` and `biomass` reach inference through this
+        # proxy-row path rather than the serve-faithful builder, and it reads
+        # the same table. Serve it from the artifact's own source too, or a
+        # per-artifact property would only be half true.
         df = load_training_data(
-            self.country_code, self.forecast_type, start_date, end_date
+            self.country_code, self.forecast_type, start_date, end_date,
+            source=self.training_source,
         )
 
         if df.empty:
@@ -768,7 +807,10 @@ class Forecaster:
         lookback_days = max(config.LAG_DAYS) + 7
         span_start = min(min(target_hours), observation_as_of) - pd.Timedelta(days=lookback_days)
         span_end = max(max(target_hours), observation_as_of)
-        builder = RenewableFeatureBuilder(self.country_code, self.forecast_type, span_start, span_end)
+        builder = RenewableFeatureBuilder(
+            self.country_code, self.forecast_type, span_start, span_end,
+            actuals_source=self.training_source,
+        )
 
         forecasts = []
         for target_ts in target_hours:
@@ -827,6 +869,7 @@ class Forecaster:
             "training_metrics": self.training_metrics,
             "grid_search_results": self.grid_search_results,
             "walk_forward_results": getattr(self, 'walk_forward_results', None),
+            "training_source": self._resolved_training_source(),
             "saved_at": datetime.now().isoformat(),
         }
 
@@ -862,6 +905,7 @@ class Forecaster:
             "weather_mode": self.weather_mode,
             "training_metrics": self.training_metrics,
             "grid_search_results": self.grid_search_results,
+            "training_source": self._resolved_training_source(),
             "saved_at": datetime.now().isoformat(),
         }
 
@@ -922,8 +966,19 @@ class Forecaster:
                 artifact_label=f"{country_code}/{forecast_type}",
             )
 
+        # ABL-331: the source is a property of the artifact, not of the process
+        # loading it. An artifact saved before this key existed was trained on
+        # `energy_renewable` — default to that so every artifact on disk today
+        # serves bit-identically, and keep it a literal so a later flip of the
+        # training default cannot retroactively move it (see
+        # `db.LEGACY_RENEWABLE_TRAINING_SOURCE`).
+        training_source = model_data.get("training_source")
+        if training_source is None and forecast_type in config.RENEWABLE_TYPES:
+            training_source = LEGACY_RENEWABLE_TRAINING_SOURCE
+
         forecaster = cls(
-            country_code, forecast_type, algorithm=algorithm, hyperparams=hyperparams, weather_mode=weather_mode
+            country_code, forecast_type, algorithm=algorithm, hyperparams=hyperparams,
+            weather_mode=weather_mode, training_source=training_source,
         )
         forecaster.model = model_data["model"]
         forecaster.feature_columns = model_data["feature_columns"]

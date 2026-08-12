@@ -225,7 +225,8 @@ def load_energy_data(
     country_code: str,
     forecast_type: str,
     start_date: str,
-    end_date: str
+    end_date: str,
+    source: str = None,
 ) -> pd.DataFrame:
     """
     Load energy data (load, price, or renewable) for training.
@@ -235,13 +236,18 @@ def load_energy_data(
         forecast_type: 'load', 'price', 'renewable', or individual renewable types
         start_date: Start date (YYYY-MM-DD)
         end_date: End date (YYYY-MM-DD)
+        source: individual-renewable source table (ABL-331). Ignored for the
+            aggregate types, which have exactly one table each. `None` takes
+            `RENEWABLE_TYPE_SOURCE_TABLE`.
 
     Returns:
         DataFrame with timestamp_utc and target value columns
     """
     # Check if this is an individual renewable type
     if forecast_type in config.RENEWABLE_TYPES:
-        return load_renewable_type_data(country_code, forecast_type, start_date, end_date)
+        return load_renewable_type_data(
+            country_code, forecast_type, start_date, end_date, source=source
+        )
 
     table_map = {
         'load': ('energy_load', 'load_mw'),
@@ -341,13 +347,28 @@ def load_energy_data(
 #: window is short only because arm A's history is. But a story is not a result.
 #: See `reports/abl_321_findings.md` §6 for the full verdict and the caveats.
 #:
-#: **Flipping this constant is the whole switch.** Everything else on the
-#: ABL-321 branch -- the `source=` parameter, the NULL-drop, the NULL-aware
-#: `hydro_total` sum, the duplicate-instant collapse, the tests, the harness --
-#: lands independently and is a strict improvement to both sources. Do not flip
-#: it without a CEO decision that reads the §6 verdict first.
+#: **ABL-331 narrowed what this constant does.** It was the whole switch --
+#: read at training time *and*, through `RenewableFeatureBuilder`, at inference
+#: time, for all 49 country/stream pairs at once. It is now only the **default
+#: for a training run that does not name a source**. Which table an artifact is
+#: *served* from is a property of that artifact (`training_source` in its
+#: `model_data`), not of this constant -- see `Forecaster.load`. So flipping it
+#: no longer moves a single live forecast; it changes what the next training run
+#: reads. The §6 verdict still stands on the underlying question and a global
+#: flip still wants a CEO decision, but it is no longer the lever that would
+#: have created train/serve skew.
 #: ---------------------------------------------------------------------------
 RENEWABLE_TYPE_SOURCE_TABLE = 'energy_renewable'
+
+#: The source every artifact saved **before** ABL-331 was trained from. This is
+#: a fact about those artifacts on disk, not a policy knob, so it is
+#: deliberately a literal rather than an alias of `RENEWABLE_TYPE_SOURCE_TABLE`:
+#: if the training default is ever flipped, a legacy artifact carrying no
+#: `training_source` key must still be served the table it was fitted on. Making
+#: it an alias would reintroduce exactly the unmeasured train/serve skew the CEO
+#: rejected on ABL-321 ("trained on `energy_renewable`, served features from
+#: `energy_generation` -- nobody measured that").
+LEGACY_RENEWABLE_TRAINING_SOURCE = 'energy_renewable'
 
 _RENEWABLE_TYPE_SOURCES = ('energy_generation', 'energy_renewable')
 
@@ -705,7 +726,8 @@ def load_training_data(
     country_code: str,
     forecast_type: str,
     start_date: str,
-    end_date: str
+    end_date: str,
+    source: str = None,
 ) -> pd.DataFrame:
     """
     Load merged dataset with energy target and weather features.
@@ -717,12 +739,16 @@ def load_training_data(
         forecast_type: 'load', 'price', or 'renewable'
         start_date: Start date (YYYY-MM-DD)
         end_date: End date (YYYY-MM-DD)
+        source: individual-renewable source table (ABL-331); see
+            `load_energy_data`.
 
     Returns:
         Merged DataFrame with target and weather features (hourly)
     """
     # Load energy data
-    energy_df = load_energy_data(country_code, forecast_type, start_date, end_date)
+    energy_df = load_energy_data(
+        country_code, forecast_type, start_date, end_date, source=source
+    )
 
     # Load weather data
     weather_df = load_weather_data(country_code, start_date, end_date)
@@ -757,22 +783,27 @@ def load_training_data_multipoint(
     country_code: str,
     forecast_type: str,
     start_date: str,
-    end_date: str
+    end_date: str,
+    source: str = None,
 ) -> pd.DataFrame:
     """
     Load merged dataset using multipoint weather data instead of centroid data.
 
     Args:
         country_code: ISO 2-letter country code
-        forecast_type: 'load', 'price', or 'renewable'  
+        forecast_type: 'load', 'price', or 'renewable'
         start_date: Start date (YYYY-MM-DD)
         end_date: End date (YYYY-MM-DD)
+        source: individual-renewable source table (ABL-331); see
+            `load_energy_data`.
 
     Returns:
         Merged DataFrame with target and multipoint weather features (hourly)
     """
     # Load energy data using existing function (unchanged)
-    energy_df = load_energy_data(country_code, forecast_type, start_date, end_date)
+    energy_df = load_energy_data(
+        country_code, forecast_type, start_date, end_date, source=source
+    )
     
     # Load weather data from multipoint table
     weather_df = load_weather_data_multipoint(country_code, forecast_type, start_date, end_date)
