@@ -440,3 +440,40 @@ write; recorded here so it is not rediscovered mid-tranche.
 - Blockers verified live, not read off the card: **ABL-332** PR #16 `OPEN`,
   `MERGEABLE`, awaiting the Board click; **ABL-345** `in_progress` with the
   Founding Engineer. No gate read and no training was run this heartbeat.
+
+## 9. Update 2026-08-12 21:10 UTC — ABL-332 landed; the bar restated under the hourly mean
+
+PR #16 merged at 21:08:53 UTC (`48e1fde`), during this heartbeat. ABL-332 is
+`done`. **ABL-345 is now the only remaining blocker on this issue.**
+
+ABL-332 makes the hourly **mean** the one resolution that leaves the renewable
+read (`src/db.py`, `aggregate_renewable_to_hourly`; `src/wind_features.py`).
+Serving previously took `series.loc[ts.floor("h")]` — the `:00` instant — on a
+quarter-hourly country. §2 registered this pilot's bar under that instant
+convention. The actual series the gate scores against has therefore changed, so
+the bar must be restated.
+
+**Restated now, before any DE/NL challenger exists.** No model has been trained
+for either pair (`forecasts` still holds 0 rows for both, §1), so this cannot be
+shopped against a result. Both conventions were already measured in §8.2 from
+the same probe run:
+
+| pair | §2 as registered (`:00` instant) | **restated (hourly mean, ABL-332)** | shift |
+|---|---:|---:|---:|
+| DE `wind_offshore` | 88.82% | **88.86%** | +0.04pp |
+| NL `wind_offshore` | 81.78% | **81.79%** | +0.01pp |
+
+Source `energy_generation`, gate window 2026-07-11 → 2026-08-10, n=720 scored in
+every cell, seasonal-naive D-7, WAPE. Contamination touching this window:
+none on `energy_generation` (0 zero-filled rows, 0 duplicate instants, §8.1).
+
+**§3.2's claim holds quantitatively: the aggregation convention cannot move this
+bar.** 0.04pp and 0.01pp against challenger margins ABL-195 measured at 26-30pp
+relative. The registered gate — metric, windows, bands, minimum n (684/684/456)
+and the "all 6 cells" bar — is unchanged; n is measured on the hourly frame
+under both conventions, so the minimum-n thresholds are unaffected.
+
+The counterfactual `energy_renewable` bar under the landed convention is DE
+88.86% (+0.00pp) and NL 80.81% (−0.98pp) — §8.2. So ABL-332 landing does not
+alter §8.3: ABL-345 still blocks, on compliance, and the amendment in §8.4
+stands. Nothing else in §1 changes.
