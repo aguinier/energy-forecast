@@ -131,19 +131,53 @@ universally true, which matters to the 37 pairs behind this pilot.
   cost. I am not asserting the pilot should proceed — that is a sequencing call —
   only that the blocking rationale should be made on this evidence.
 
-## 5. A harness correction this issue owns
+## 5. The harness corrections this issue owns
 
-`scripts/evaluate_wind_retrain.py:64` hardcodes `FROM energy_renewable` in
-`_constant_runs`, the ABL-188 contamination screen. For a pair trained from
-`energy_generation` that screens a table the model never saw — it would report a
-clean window while the actual training source went unscreened. This is in my own
-gate harness, not the Founding Engineer's code, and it is independent of both
-blockers. It must take the pair's training source before ABL-322 is read.
-`PAIRS` in the same file also needs DE and NL under `wind_offshore`.
+Four sites in `scripts/evaluate_wind_retrain.py` stand between this
+pre-registration and a runnable pilot. Enumerated against `25f94c8`; the first
+was missed by the original revision of this section and is the most
+consequential of the four.
 
-Not changed in this commit: the harness is shared with the reproducible ABL-195
-and ABL-253 gate reads, so it is edited when ABL-322 trains, in the same diff
-that runs it.
+| # | site | defect | owner |
+|---|---|---|---|
+| 1 | `:178` | `RenewableFeatureBuilder(...)` is constructed **without `actuals_source`** | ABL-322 |
+| 2 | `:64` | `_constant_runs` hardcodes `FROM energy_renewable` | ABL-322 |
+| 3 | `:34-36` | `PAIRS` is `wind_offshore: (BE, FR)` — no DE, no NL | ABL-322 |
+| 4 | `:188` | bare `joblib.dump` of 7 keys, not `Forecaster.save` | **ABL-342** |
+
+**1 — the training source never reaches the builder.** `actuals_source` is an
+optional kwarg (`src/wind_features.py:__init__`) and `None` takes `db.py`'s
+default, `RENEWABLE_TYPE_SOURCE_TABLE = 'energy_renewable'`. The string
+`actuals_source` does not occur anywhere in the harness. §1 of this document
+pre-registers the training source as `energy_generation`; the harness as written
+would fit both pairs on `energy_renewable` instead — the table holding NL
+offshore's 447 provably zero-filled rows and 668 duplicate instants, which is
+the precise outcome the ABL-321 dependency was written to prevent. It fails
+silently: the run completes, the gate reads, and only the artifact's resolved
+source records which table was used.
+
+**2 — the contamination screen reads the wrong table.** For a pair trained from
+`energy_generation` the ABL-188 screen inspects a table the model never saw, so
+it would report a clean window while the actual training source went unscreened.
+
+**3 — neither pilot pair is in scope.** `PAIRS` also trains three `wind_onshore`
+pairs that ABL-322 explicitly excludes.
+
+**4 is not mine.** The CEO's ABL-342 (2026-08-12) scopes "route **both** gate
+harnesses' artifact writes through `Forecaster.save`", which includes this file.
+Both ABL-342's description and the CEO's ABL-322 comment record this site as
+"already corrected on `ABL-322-preregistration` (`25f94c8`)". **That is not
+so** — `25f94c8` added `scripts/abl322_artifact_shape_probe.py`, which
+*demonstrates* the skew and does not repair it. The bare `joblib.dump` is intact
+on this branch. Verified live on the rail (Python 3.14.3, xgboost 3.3.0): the
+harness shape loads clean and resolves to `energy_renewable`, `Forecaster.save`
+to `energy_generation`.
+
+**Sequencing.** 1–3 are independent of both blockers but touch the same file as
+4, so they are made in the diff that runs the pilot, rebased onto a tree
+containing ABL-342 — not before it, to avoid contending with the Founding
+Engineer for the file. The harness is additionally shared with the reproducible
+ABL-195 and ABL-253 gate reads, so those must still reproduce after the edit.
 
 ## 6. Limits
 
