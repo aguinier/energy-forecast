@@ -58,15 +58,17 @@ def _epoch_hours(ts: pd.Timestamp) -> float:
 
 @pytest.fixture
 def replica(tmp_path, monkeypatch):
-    """Deliberately has no `energy_generation`/legacy training table — if
-    predict_d2 ever fell back to the old proxy-row path for a wind type, it
-    would raise on a missing table instead of silently passing."""
+    """Deliberately has no `energy_renewable`/legacy training table — if
+    predict_d2 ever fell back to the old proxy-row path for a wind type, or to
+    the pre-ABL-321 source table, it would raise on a missing table instead of
+    silently passing."""
     path = tmp_path / "replica.db"
     con = sqlite3.connect(path)
     con.executescript(
         """
-        CREATE TABLE energy_renewable (country_code TEXT, timestamp_utc TIMESTAMP,
-            wind_offshore_mw REAL, wind_onshore_mw REAL, solar_mw REAL);
+        CREATE TABLE energy_generation (country_code TEXT, timestamp_utc TIMESTAMP,
+            wind_offshore_mw REAL, wind_onshore_mw REAL, solar_mw REAL,
+            data_quality TEXT DEFAULT 'actual');
         CREATE TABLE weather_data (country_code TEXT, timestamp_utc TIMESTAMP,
             forecast_run_time TIMESTAMP, data_quality TEXT,
             temperature_2m_k REAL, wind_speed_10m_ms REAL, wind_speed_100m_ms REAL,
@@ -76,7 +78,7 @@ def replica(tmp_path, monkeypatch):
     for ts in pd.date_range(OBS - pd.Timedelta(days=40), OBS, freq="h"):
         value = _epoch_hours(ts)
         con.execute(
-            "INSERT INTO energy_renewable VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO energy_generation VALUES (?, ?, ?, ?, ?, 'actual')",
             (COUNTRY, str(ts), value, value, value),
         )
     run = OBS - pd.Timedelta(hours=6)

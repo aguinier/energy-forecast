@@ -281,11 +281,72 @@ def load_energy_data(
     return df
 
 
+#: ABL-321: the table individual-renewable-type targets train from.
+#:
+#: `energy_renewable` was the original source and is kept selectable so a
+#: before/after comparison stays runnable (`scripts/evaluate_renewable_source_switch.py`),
+#: but it carries three defects `energy_generation` does not, measured across
+#: the 49 trainable country/stream pairs in the ABL-318 audit:
+#:
+#:   1. Its columns are `REAL DEFAULT 0` and its per-column mapper initialises
+#:      each to 0.0 before checking whether ENTSO-E returned the production type
+#:      (ABL-188), so it cannot encode "not reported". The 15 countries whose
+#:      `wind_offshore_mw` is NULL in every `energy_generation` row read as
+#:      100.0% exactly 0.0 here -- a complete, non-null, all-zero series for a
+#:      country with no offshore fleet, and no signal anything is wrong.
+#:   2. 6,711 rows across 35 of 72 pairs are exactly 0.0 while
+#:      `energy_generation` has materially non-zero generation at the identical
+#:      timestamp. `exclude_suspect_constant_runs` catches only the runs that
+#:      last 24+ hours; LV solar has 374 such rows and zero qualifying runs.
+#:   3. Its UNIQUE index is on `(country_code, timestamp_utc)` as a *string*, so
+#:      one instant is storable under several spellings: 78,510 duplicate-instant
+#:      rows across all 24 countries, 5,425 of them carrying disagreeing values.
+#:      `energy_generation` has zero duplicates.
+#:
+#: `energy_generation` also carries far more history (median 2,049 d of usable
+#: history per pair against 277 d; 49/49 pairs reach 365 d against 10/49).
+#:
+#: The one thing it does *not* dominate on is coverage during a single FR
+#: outage: over the 2025-10-01 -> 2026-08-11 overlap era `energy_generation`
+#: covers 24,694 hours `energy_renewable` does not, and `energy_renewable`
+#: covers 586 hours `energy_generation` does not -- 518 of which are FR,
+#: 2026-06-30 23:45 -> 2026-07-22 14:15 (ABL-318 §3, an open and unfiled-until-then
+#: ingest gap). Countries are not backfilled from the other table here: mixing
+#: two sources inside one series would put a zero-fillable segment inside an
+#: otherwise NULL-honest one with nothing recording which rows came from where.
+RENEWABLE_TYPE_SOURCE_TABLE = 'energy_generation'
+
+_RENEWABLE_TYPE_SOURCES = ('energy_generation', 'energy_renewable')
+
+#: `hydro_total` is a sum of two reported components and needs NULL-aware
+#: addition rather than SQL's NULL-propagating `+`. Measured on the replica
+#: 2026-08-12: for 9 of the 24 supported countries exactly one component is
+#: 100% NULL in `energy_generation` -- BE/EE/FI/LT/LV/NL/SI report run-of-river
+#: and never reservoir, GR/SE report reservoir and never run-of-river. A plain
+#: `hydro_run_mw + hydro_reservoir_mw` yields NULL for every row of all nine and
+#: erases them. Summing the reported components and returning NULL only when
+#: *both* are absent keeps the "not reported at all -> empty frame" property
+#: without inventing a zero for a component the TSO does report.
+_HYDRO_TOTAL_EXPR = (
+    'CASE WHEN hydro_run_mw IS NULL AND hydro_reservoir_mw IS NULL THEN NULL '
+    'ELSE COALESCE(hydro_run_mw, 0) + COALESCE(hydro_reservoir_mw, 0) END'
+)
+
+RENEWABLE_TYPE_COLUMNS = {
+    'solar': 'solar_mw',
+    'wind_onshore': 'wind_onshore_mw',
+    'wind_offshore': 'wind_offshore_mw',
+    'hydro_total': _HYDRO_TOTAL_EXPR,
+    'biomass': 'biomass_mw',
+}
+
+
 def load_renewable_type_data(
     country_code: str,
     renewable_type: str,
     start_date: str,
-    end_date: str
+    end_date: str,
+    source: str = None,
 ) -> pd.DataFrame:
     """
     Load specific renewable type data as training target
@@ -295,30 +356,41 @@ def load_renewable_type_data(
         renewable_type: 'solar', 'wind_onshore', 'wind_offshore', 'hydro_total', 'biomass'
         start_date: Start date YYYY-MM-DD
         end_date: End date YYYY-MM-DD
+        source: source table, defaults to `RENEWABLE_TYPE_SOURCE_TABLE`. Pass
+            'energy_renewable' only to reproduce the pre-ABL-321 behaviour.
 
     Returns:
-        DataFrame with timestamp_utc and target_value columns
+        DataFrame with timestamp_utc and target_value columns. A country/stream
+        the TSO does not report yields an **empty** frame, not a zero series:
+        rows whose target column is NULL are dropped rather than read as a
+        measured zero.
     """
-    # Map renewable type to database columns
-    column_map = {
-        'solar': 'solar_mw',
-        'wind_onshore': 'wind_onshore_mw',
-        'wind_offshore': 'wind_offshore_mw',
-        'hydro_total': '(hydro_run_mw + hydro_reservoir_mw)',
-        'biomass': 'biomass_mw'
-    }
+    source = source or RENEWABLE_TYPE_SOURCE_TABLE
+    if source not in _RENEWABLE_TYPE_SOURCES:
+        raise ValueError(
+            f"Unknown renewable source table: {source!r}; "
+            f"expected one of {_RENEWABLE_TYPE_SOURCES}"
+        )
+
+    column_map = RENEWABLE_TYPE_COLUMNS
 
     if renewable_type not in column_map:
         raise ValueError(f"Unknown renewable type: {renewable_type}")
 
     target_col = column_map[renewable_type]
 
+    # NULL is the honest "TSO does not report this" encoding and the whole
+    # reason for preferring `energy_generation` -- drop those rows here so a
+    # not-reported stream reaches the caller as an empty frame rather than as
+    # a feature-complete series of zeros.
     query = f"""
         SELECT timestamp_utc, {target_col} as target_value
-        FROM energy_renewable
+        FROM {source}
         WHERE country_code = ?
           AND timestamp_utc >= ?
           AND timestamp_utc < ?
+          AND data_quality = 'actual'
+          AND ({target_col}) IS NOT NULL
         ORDER BY timestamp_utc
     """
 
@@ -330,7 +402,11 @@ def load_renewable_type_data(
         )
 
     if df.empty:
-        logger.warning(f"No {renewable_type} data for {country_code}")
+        logger.warning(
+            f"No {renewable_type} data for {country_code} in {source} "
+            f"({start_date} -> {end_date}); the TSO reports no such stream, "
+            f"or the window is empty"
+        )
         return df
 
     # Parse timestamps handling mixed formats (some may have TZ offsets)
@@ -338,11 +414,16 @@ def load_renewable_type_data(
         df['timestamp_utc'], format='mixed', utc=True
     ).dt.tz_localize(None)
 
-    # ABL-188: energy_renewable's mapper zero-fills a production type that's
+    # ABL-188: `energy_renewable`'s mapper zero-fills a production type that's
     # absent from a given ENTSO-E response instead of leaving it NULL (see
     # src/data_quality.py docstring) -- reject long bit-identical runs (0.0
     # included) as unadjudicated-missing rather than training through them
     # as a measured value.
+    #
+    # ABL-321 kept this on the boundary for both sources. It is cheap, it is
+    # the right guard if the source is ever switched back, and a bit-identical
+    # 24-hour run is not a thing a real weather-driven series does regardless
+    # of which table it was read from.
     before_n = df['target_value'].notna().sum()
     df = exclude_suspect_constant_runs(
         df, value_col='target_value', timestamp_col='timestamp_utc',
@@ -355,7 +436,9 @@ def load_renewable_type_data(
             f"for {country_code} (see warnings above for exact runs)"
         )
 
-    logger.info(f"Loaded {len(df)} {renewable_type} records for {country_code}")
+    logger.info(
+        f"Loaded {len(df)} {renewable_type} records for {country_code} from {source}"
+    )
     return df
 
 
@@ -907,9 +990,10 @@ def get_latest_data_timestamp(country_code: str, data_type: str) -> Optional[dat
     Returns:
         Most recent timestamp or None
     """
-    # Map renewable types to energy_renewable table
+    # ABL-321: individual renewable types report the freshness of the table
+    # they are actually trained from, not of `energy_renewable` regardless.
     if data_type in config.RENEWABLE_TYPES:
-        table = 'energy_renewable'
+        table = RENEWABLE_TYPE_SOURCE_TABLE
     else:
         table_map = {
             'load': 'energy_load',

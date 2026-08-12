@@ -223,9 +223,16 @@ def _calendar_features(target_ts: pd.Timestamp) -> Dict[str, FeatureValue]:
 # ---------------------------------------------------------------------------
 
 
-def _load_actuals_series(country_code: str, forecast_type: str, start: pd.Timestamp, end: pd.Timestamp) -> pd.Series:
+def _load_actuals_series(
+    country_code: str,
+    forecast_type: str,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    source: Optional[str] = None,
+) -> pd.Series:
     df = load_renewable_type_data(
-        country_code, forecast_type, start.strftime("%Y-%m-%d"), (end + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+        country_code, forecast_type, start.strftime("%Y-%m-%d"),
+        (end + pd.Timedelta(days=1)).strftime("%Y-%m-%d"), source=source,
     )
     if df.empty:
         return pd.Series(dtype=float, index=pd.DatetimeIndex([]))
@@ -395,7 +402,10 @@ class RenewableFeatureBuilder:
     many run days.
     """
 
-    def __init__(self, country_code: str, forecast_type: str, span_start, span_end):
+    def __init__(
+        self, country_code: str, forecast_type: str, span_start, span_end,
+        actuals_source: Optional[str] = None,
+    ):
         if forecast_type not in SUPPORTED_FORECAST_TYPES:
             raise ValueError(
                 f"RenewableFeatureBuilder does not support forecast_type={forecast_type!r}; "
@@ -403,9 +413,16 @@ class RenewableFeatureBuilder:
             )
         self.country_code = country_code
         self.forecast_type = forecast_type
+        # ABL-321: which table the target series (and therefore every lag and
+        # rolling feature derived from it) is read from. None takes db.py's
+        # default; the A/B harness passes both values explicitly.
+        self.actuals_source = actuals_source
         self._span_start = pd.Timestamp(span_start)
         self._span_end = pd.Timestamp(span_end)
-        self._actuals = _load_actuals_series(country_code, forecast_type, self._span_start, self._span_end)
+        self._actuals = _load_actuals_series(
+            country_code, forecast_type, self._span_start, self._span_end,
+            source=actuals_source,
+        )
         self._weather = _load_weather_archive(country_code, self._span_start, self._span_end + pd.Timedelta(days=3))
         self._weather_by_target = {
             pd.Timestamp(ts): group.reset_index(drop=True)
