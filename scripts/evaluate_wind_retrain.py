@@ -33,14 +33,31 @@ from src.evaluation.wind_retrain import (
 from src.wind_features import RenewableFeatureBuilder
 
 
-PAIRS = {
-    # ABL-322 adds DE and NL, which close the offshore programme (BE/DE/FR/NL
-    # per the ABL-318 verdict table).  Note this widens the *default* scope:
-    # an unflagged run now fits four offshore countries, not ABL-195's BE/FR,
-    # and does so on the default source.  Pass --countries to pin a run to one
-    # pre-registered scope -- the pilot uses `--countries DE,NL`.
-    "wind_offshore": {"algorithm": "xgboost", "countries": ("BE", "DE", "FR", "NL")},
-    "wind_onshore": {"algorithm": "catboost", "countries": ("BE", "DE", "FR")},
+ALGORITHMS = {"wind_offshore": "xgboost", "wind_onshore": "catboost"}
+
+# A scope is a *pre-registration*, not a filter.  The first cut of ABL-322 added
+# a `--countries` filter over one shared PAIRS, which is wrong in both
+# directions: it left the cell bar at a hardcoded 15 while the filter changed
+# how many cells a run produces, and it selected countries without selecting
+# streams, so `--countries DE,NL` also refitted the serving DE wind_onshore pair
+# and mixed it into the offshore gate.
+#
+# Each scope therefore names its pairs outright, and the registered cell count is
+# derived from *that table* -- fixed in the file before the run -- rather than
+# from whatever the run turns out to score.  This keeps the property the
+# hardcoded 15 existed to protect: a pair that silently yields no gate rows still
+# falls short of its scope's count and reads FAIL, instead of quietly leaving the
+# denominator.  Adding a scope is a pre-registration and belongs in review.
+SCOPES = {
+    # ABL-195 as registered: offshore BE/FR, onshore BE/DE/FR.  5 pairs x 3
+    # primary bands = 15 cells.  Unchanged, and the default, so an unflagged run
+    # still reproduces ABL-195 exactly.
+    "abl195": (("wind_offshore", "BE"), ("wind_offshore", "FR"),
+               ("wind_onshore", "BE"), ("wind_onshore", "DE"), ("wind_onshore", "FR")),
+    # ABL-322 offshore pilot: DE and NL wind_offshore only, fitted on
+    # `energy_generation`.  2 pairs x 3 bands = 6 cells.  No onshore pair -- no
+    # currently-serving model is refitted by this scope.
+    "abl322-pilot": (("wind_offshore", "DE"), ("wind_offshore", "NL")),
 }
 COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw"}
 
@@ -95,7 +112,7 @@ def render_markdown(result: dict) -> str:
     meta = result["meta"]
     cells = result["gate_cells"]
     lines = [
-        "# ABL-195 — Serve-faithful wind retrain gate",
+        f"# Serve-faithful wind retrain gate — registered scope `{meta['scope']}`",
         "",
         f"**Disposition: {result['verdict']}**",
         "",
@@ -107,7 +124,9 @@ def render_markdown(result: dict) -> str:
         "",
         "## Gate read",
         "",
-        f"Strict full PASS requires challenger WAPE < D-7 in all 15 country × primary D+2-band cells and ≥95% of intended pairs. Result: **{sum(c['gate']['pass'] for c in cells)}/15 cells pass**.",
+        f"Registered scope `{meta['scope']}`: {', '.join(f'{c} {t}' for t, c in meta['registered_pairs'])}.",
+        f"Target series, features, baselines and contamination screen: `{meta['training_source']}`.",
+        f"Strict full PASS requires challenger WAPE < D-7 in all {meta['registered_cells']} country × primary D+2-band cells and ≥95% of intended pairs. Result: **{sum(c['gate']['pass'] for c in cells)}/{meta['registered_cells']} cells pass**.",
         "Protocol count check (before fitting): the exact eight registered run instants produce 210/570/720/720/510 selected rows by band, not the registered 240/600/720/720/480. The primary 24–36h and 36–48h counts reproduce; 48–64h has 510 rows and is still judged against the frozen registered minimum of 456.",
         "",
         "| type | country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | incumbent WAPE | MAE | bias | slope | corr | gate |",
@@ -175,17 +194,16 @@ def main() -> int:
     parser.add_argument("--report-out", default="reports/abl_195_wind_retrain.md")
     # ABL-322: the pilot gates DE/NL wind_offshore off `energy_generation`.
     # Both stay opt-in so an unflagged run reproduces ABL-195 exactly.
-    parser.add_argument("--countries", default=None,
-                        help="Comma-separated country filter applied to every pair "
-                             "(default: the pairs' own country lists)")
+    parser.add_argument("--scope", default="abl195", choices=sorted(SCOPES),
+                        help="Pre-registered pair set to fit and gate; the registered "
+                             "cell count follows from it (default: abl195)")
     parser.add_argument("--renewable-source", default=None,
                         choices=list(db._RENEWABLE_TYPE_SOURCES),
                         help="Source table for the fitted series, its features and the "
                              f"contamination audit (default: {db.RENEWABLE_TYPE_SOURCE_TABLE})")
     args = parser.parse_args()
-    country_filter = None
-    if args.countries:
-        country_filter = {c.strip().upper() for c in args.countries.split(",") if c.strip()}
+    registered_pairs = SCOPES[args.scope]
+    registered_cells = len(registered_pairs) * len(PRIMARY_BANDS)
     fit_start, gate_start, gate_end = map(pd.Timestamp, (args.fit_start, args.gate_start, args.gate_end))
     if not fit_start < gate_start < gate_end:
         parser.error("require fit-start < gate-start < gate-end")
@@ -198,55 +216,54 @@ def main() -> int:
     incumbent_raw, vintage_counts = _load_forecasts(cfg)
     incumbent = select_latest_per_band(incumbent_raw)
     artifact_dir = Path(args.artifact_dir)
-    training, scored_frames = [], []
-    for forecast_type, spec in PAIRS.items():
-        tso = _load_tso(cfg, forecast_type)
-        countries = spec["countries"]
-        if country_filter is not None:
-            countries = tuple(c for c in countries if c in country_filter)
-        for country in countries:
-            # ABL-342 records provenance from the builder, not a source string,
-            # so passing the source here is what makes the artifact truthful.
-            builder = RenewableFeatureBuilder(country, forecast_type,
-                                               fit_start - pd.Timedelta(days=14), gate_end,
-                                               actuals_source=args.renewable_source)
-            fit_raw = build_vintage_frame(builder, fit_start, gate_start)
-            fit, audit = finite_training_rows(fit_raw)
-            model, params = _model(spec["algorithm"])
-            model.fit(fit[list(FEATURE_COLUMNS)], fit["actual"])
+    training, scored_frames, tso_by_type = [], [], {}
+    for forecast_type, country in registered_pairs:
+        if forecast_type not in tso_by_type:
+            tso_by_type[forecast_type] = _load_tso(cfg, forecast_type)
+        tso = tso_by_type[forecast_type]
+        algorithm = ALGORITHMS[forecast_type]
+        # ABL-342 records provenance from the builder, not a source string,
+        # so passing the source here is what makes the artifact truthful.
+        builder = RenewableFeatureBuilder(country, forecast_type,
+                                           fit_start - pd.Timedelta(days=14), gate_end,
+                                           actuals_source=args.renewable_source)
+        fit_raw = build_vintage_frame(builder, fit_start, gate_start)
+        fit, audit = finite_training_rows(fit_raw)
+        model, params = _model(algorithm)
+        model.fit(fit[list(FEATURE_COLUMNS)], fit["actual"])
 
-            # ABL-342: through `Forecaster.save`, so the artifact carries the
-            # table it was fitted on and the ABL-183 intercept witness by
-            # construction.
-            path = save_gate_artifact(
-                artifact_dir / country / forecast_type / "model.joblib",
-                model=model, builder=builder, algorithm=spec["algorithm"],
-                params=params, feature_columns=FEATURE_COLUMNS,
-                fit_window=(fit_start, gate_start),
-            )
+        # ABL-342: through `Forecaster.save`, so the artifact carries the
+        # table it was fitted on and the ABL-183 intercept witness by
+        # construction.
+        path = save_gate_artifact(
+            artifact_dir / country / forecast_type / "model.joblib",
+            model=model, builder=builder, algorithm=algorithm,
+            params=params, feature_columns=FEATURE_COLUMNS,
+            fit_window=(fit_start, gate_start),
+        )
 
-            gate_raw = build_vintage_frame(builder, gate_start, gate_end)
-            gate_finite, gate_audit = finite_training_rows(gate_raw)
-            gate_finite["challenger"] = model.predict(gate_finite[list(FEATURE_COLUMNS)])
-            selected = select_latest_challenger_per_band(gate_finite)
-            selected = attach_baselines(selected, builder._actuals)
-            inc = incumbent[(incumbent["forecast_type"] == forecast_type) &
-                            (incumbent["country_code"] == country)][
-                                ["target_ts", "horizon_band", "forecast_value"]].rename(
-                                    columns={"forecast_value": "incumbent"})
-            selected = selected.merge(inc, on=["target_ts", "horizon_band"], how="left")
-            selected = selected.merge(tso[tso["country_code"] == country][["target_ts", "tso"]],
-                                      on="target_ts", how="left")
-            selected["country"] = country
-            selected["forecast_type"] = forecast_type
-            scored_frames.append(selected)
-            training.append({"forecast_type": forecast_type, "country": country,
-                             "algorithm": spec["algorithm"], "params": params,
-                             "audit": audit, "gate_build_audit": gate_audit,
-                             "constant_runs": _constant_runs(str(replica), country, forecast_type,
-                                                               fit_start - pd.Timedelta(days=14), gate_end,
-                                                               source=args.renewable_source),
-                             "artifact_path": str(path.resolve()), "artifact_sha256": _sha256(path)})
+        gate_raw = build_vintage_frame(builder, gate_start, gate_end)
+        gate_finite, gate_audit = finite_training_rows(gate_raw)
+        gate_finite["challenger"] = model.predict(gate_finite[list(FEATURE_COLUMNS)])
+        selected = select_latest_challenger_per_band(gate_finite)
+        selected = attach_baselines(selected, builder._actuals)
+        inc = incumbent[(incumbent["forecast_type"] == forecast_type) &
+                        (incumbent["country_code"] == country)][
+                            ["target_ts", "horizon_band", "forecast_value"]].rename(
+                                columns={"forecast_value": "incumbent"})
+        selected = selected.merge(inc, on=["target_ts", "horizon_band"], how="left")
+        selected = selected.merge(tso[tso["country_code"] == country][["target_ts", "tso"]],
+                                  on="target_ts", how="left")
+        selected["country"] = country
+        selected["forecast_type"] = forecast_type
+        scored_frames.append(selected)
+        training.append({"forecast_type": forecast_type, "country": country,
+                         "algorithm": algorithm, "params": params,
+                         "audit": audit, "gate_build_audit": gate_audit,
+                         "constant_runs": _constant_runs(str(replica), country, forecast_type,
+                                                           fit_start - pd.Timedelta(days=14), gate_end,
+                                                           source=args.renewable_source),
+                         "artifact_path": str(path.resolve()), "artifact_sha256": _sha256(path)})
 
     all_scored = pd.concat(scored_frames, ignore_index=True)
     gate_cells, country_d2 = [], []
@@ -268,7 +285,7 @@ def main() -> int:
 
     passed = sum(row["gate"]["pass"] for row in gate_cells)
     contaminated = any(row["constant_runs"] for row in training)
-    performance_pass = len(gate_cells) == 15 and passed == 15
+    performance_pass = len(gate_cells) == registered_cells and passed == registered_cells
     if performance_pass and contaminated:
         verdict = "PERFORMANCE PASS — HOLD FOR CONTAMINATION ADJUDICATION"
         recommendation = (
@@ -285,13 +302,16 @@ def main() -> int:
     else:
         verdict = "FAIL"
         recommendation = (
-            f"Do not promote these artifacts: only {passed}/15 primary cells clear the registered bar. Treat the losing "
+            f"Do not promote these artifacts: only {passed}/{registered_cells} primary cells clear the registered bar. Treat the losing "
             "country/bands as a model-quality finding and move next to stronger wind features/model selection on a fresh pre-registered split."
         )
     result = {"meta": {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
                        "replica_db": str(replica), "replica_bytes": replica.stat().st_size,
                        "fit_window": {"start": str(fit_start), "end_exclusive": str(gate_start)},
                        "gate_window": {"start": str(gate_start), "end_exclusive": str(gate_end)},
+                       "scope": args.scope, "registered_pairs": list(registered_pairs),
+                       "registered_cells": registered_cells,
+                       "training_source": args.renewable_source or db.RENEWABLE_TYPE_SOURCE_TABLE,
                        "registered_intended_n": INTENDED_N, "schedule_implied_n": SCHEDULE_N,
                        "vintage_counts": vintage_counts,
                        "selection": "latest vintage per country + target + model + horizon band"},
@@ -303,7 +323,7 @@ def main() -> int:
     report_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
     report_path.write_text(render_markdown(result), encoding="utf-8")
-    print(f"{verdict}: {passed}/15 cells passed; wrote {report_path} and {json_path}")
+    print(f"{verdict}: {passed}/{registered_cells} cells passed; wrote {report_path} and {json_path}")
     return 0
 
 
