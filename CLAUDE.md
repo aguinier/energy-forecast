@@ -273,10 +273,44 @@ that is what made the guard a no-op for exactly the artifacts a gate produces.
 only the aggregate `load`/`renewable`/`price` types, which carry no source by
 the rule above, and is read back by `CascadeForecaster.load_model`.
 
-Note that both harnesses still build their features with no `actuals_source`,
-so today they fit on `energy_renewable`; ABL-342 made the provenance faithful,
-it did not give them a source argument. The ABL-316 pairs that need
-`energy_generation` want one added.
+ABL-342 made that provenance faithful but gave neither harness a way to read
+anything else. The **solar** harness now has one (ABL-345):
+`scripts/evaluate_solar_retrain.py --renewable-source energy_generation`. It
+resolves the source once (`evaluate_solar_retrain.py:208`) and hands the same
+string to both read sites — the `RenewableFeatureBuilder`, which supplies the
+fitted series, every lag and rolling feature, the D-7/persistence baselines and
+the gate actuals; and `_constant_runs`, whose result drives `verdict`, so
+screening the wrong table moves the disposition and not just the prose. The
+resolved table is recorded in `meta.training_source` and printed in the report:
+two gate reads are not comparable unless both name the table they read.
+
+The **wind** harness (`scripts/evaluate_wind_retrain.py`) still has no source
+argument **on `main`** and therefore still fits on `energy_renewable`. The
+equivalent change exists on the unmerged `ABL-322-pilot` branch (`8662989`),
+which also widens `PAIRS["wind_offshore"]` to BE/DE/FR/NL — a pilot scoping
+decision, which is why ABL-345 left that file alone rather than conflict with it.
+If that branch is dropped or rebased, the wind harness has no source argument at
+all; do not assume `main` carries it.
+
+Neither harness takes a **country** argument, and neither should get one as a
+flag alone: `COUNTRIES`/`PAIRS` are the registered scope and `performance_pass`
+is `len(gate_cells) == 9` (solar) / `== 15` (wind) against it, so a run scoped to
+a subset reports `n/9` and FAILs on the count no matter how it scored. Extending
+either to a new country is a new pre-registration, not a filter.
+
+Why the source matters for the 37 unmodelled solar / wind_onshore pairs, measured
+on the replica 2026-08-12: **33 of the 37 have under 365 days in
+`energy_renewable`** (median 276 d), while **37 of 37 have over a year in
+`energy_generation`** (median 2,049 d). Only BG and CH reach 2021 in both. A
+harness pinned to `energy_renewable` gates those pairs on a model that has never
+seen a full seasonal cycle.
+
+One wrinkle both harnesses share: `--replica-db` governs only the incumbent, TSO
+and contamination reads. The builder goes through `db.get_connection()` and so
+opens **`config.DATABASE_PATH`** (`ENERGY_DB_PATH`) — point them at different
+files and one run reads two databases. Pass `ENERGY_DB_PATH` explicitly; without
+it the builder raises `sqlite3.OperationalError: unable to open database file`
+before any fit, whatever `--replica-db` says.
 
 The **training window** obeys the same rule. Both `train` entry points close an
 open-ended window (`end_date is None`) with `db.get_latest_data_timestamp`, which

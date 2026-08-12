@@ -16,6 +16,7 @@ from catboost import CatBoostRegressor
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
+from src import db
 from src.data_quality import find_suspect_constant_runs
 from src.evaluation.gate_artifacts import save_gate_artifact
 from src.evaluation.scorecard import (
@@ -43,11 +44,31 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _constant_runs(replica: str, country: str, start, end) -> list[dict]:
+def _constant_runs(replica: str, country: str, start, end, source: str) -> list[dict]:
+    """Screen the fitted series for ABL-188 zero-fill runs.
+
+    ABL-345: `source` is the table the model was fitted on, not a constant. This
+    read used to be hardcoded to `energy_renewable` while the builder's source
+    became a per-run argument — a contamination audit of a series the model
+    never saw. It reports the wrong way in both directions: an
+    `energy_generation` fit inherits `energy_renewable`'s zero-fill runs (which
+    are the reason to leave that table), and a genuine constant run in the
+    fitted series goes unreported. `verdict` is derived from this list, so a
+    mismatched screen moves the harness's disposition, not just its prose.
+    """
+    if source not in db._RENEWABLE_TYPE_SOURCES:
+        raise ValueError(
+            f"unknown renewable source table: {source!r}; "
+            f"expected one of {db._RENEWABLE_TYPE_SOURCES}"
+        )
+    # Both tables name this column identically; `RENEWABLE_TYPE_COLUMNS` is the
+    # one place that knows, and `load_renewable_type_data` already reads either
+    # table through it.
+    column = db.RENEWABLE_TYPE_COLUMNS["solar"]
     con = _ro_connect(replica)
     try:
         frame = pd.read_sql_query(
-            "SELECT timestamp_utc, solar_mw AS value FROM energy_renewable "
+            f"SELECT timestamp_utc, {column} AS value FROM {source} "
             "WHERE country_code=? AND timestamp_utc>=? AND timestamp_utc<? "
             "ORDER BY timestamp_utc",
             con, params=(country, str(start), str(end)),
@@ -79,6 +100,11 @@ def render_markdown(result: dict) -> str:
         f"Out-of-sample gate targets: {meta['gate_window']['start']} → {meta['gate_window']['end_exclusive']} (exclusive).",
         "Baseline: literal seasonal-naive D-7. TSO is revision-contaminated context only and is not a gate criterion.",
         f"Replica: `{meta['replica_db']}` ({meta['replica_bytes']:,} bytes), opened with SQLite `mode=ro`, `uri=True`.",
+        # ABL-345: the two tables disagree — 9 months against 5.6 years of
+        # history, and `energy_renewable` zero-fills what `energy_generation`
+        # leaves NULL. Two runs of this report are not comparable unless both
+        # say which table they read, so it is stated, never defaulted silently.
+        f"Target series, features, baselines and contamination screen: `{meta['training_source']}`.",
         "", "## Gate read", "",
         f"Strict full PASS requires challenger WAPE < D-7 in all 9 served-country × primary D+2-band cells and ≥95% of intended pairs. Result: **{passed}/9 cells pass**.",
         "The exact eight registered run instants imply 210/570/720/720/510 selected rows by band. As in ABL-195, the frozen registered minimum for 48–64h remains 456 (95% of 480), while the schedule offers 510 rows.",
@@ -123,12 +149,19 @@ def render_markdown(result: dict) -> str:
             f"{audit['degraded_lag_1d_rows']:,} | `{row['artifact_sha256']}` |"
         )
     lines.extend(["", "## Data quality and limits", ""])
+    source = meta["training_source"]
     contaminated = [row for row in result["training"] if row["constant_runs"]]
     if contaminated:
         for row in contaminated:
-            lines.append(f"- ABL-188 screening found suspect solar runs for {row['country']}: `{row['constant_runs']}`. The builder nulls these before fit; see the training audit and recommendation.")
+            lines.append(f"- ABL-188 screening found suspect solar runs for {row['country']} in `{source}`: `{row['constant_runs']}`. The builder nulls these before fit; see the training audit and recommendation.")
     else:
-        lines.append("- ABL-188 constant-run screening found no ≥24-hour bit-identical solar run in the registered fit/scoring interval plus 14-day feature lookback (2025-12-31 → 2026-08-10 UTC). The known DE zero-fill run (2025-09-08 22:00 → 2025-11-14 15:45 UTC; 6,408 quarter-hours) is outside this fit/lookback window. The builder still routes solar through `exclude_suspect_constant_runs`; the invariant was verified on the actual window, not assumed from ABL-191.")
+        lines.append(f"- ABL-188 constant-run screening found no ≥24-hour bit-identical solar run in `{source}` over the registered fit/scoring interval plus 14-day feature lookback (2025-12-31 → 2026-08-10 UTC). The builder still routes solar through `exclude_suspect_constant_runs`; the invariant was verified on the actual window, not assumed from ABL-191.")
+    # ABL-345: both notes below are findings about `energy_renewable` specifically
+    # — the zero-fill run is ABL-188's `energy_renewable` mapper defect, and the
+    # New Year's read was on that table. Printing them under an
+    # `energy_generation` run would report a table this run never opened.
+    if source == "energy_renewable" and not contaminated:
+        lines.append("- The known DE zero-fill run (2025-09-08 22:00 → 2025-11-14 15:45 UTC; 6,408 quarter-hours) is outside this fit/lookback window.")
         lines.append("- The audit initially appeared to flag FR zero from 2025-12-31 17:00 to 2026-01-02 07:15 UTC, but the replica has no intervening New Year's Day rows and `energy_generation` independently agrees on zero for the available nighttime observations. `find_suspect_constant_runs` was incorrectly joining equal values across missing-time gaps despite its contiguous-run contract. The invariant now splits on cadence gaps; the original continuous DE defect remains covered by regression tests.")
     lines.extend([
         "- ABL-67 is net-position-only; ABL-109/111 are load-only. ABL-71's known wrong-write modes are load and net position, not solar; this is a provenance caveat, not proof that solar ingest is pristine.",
@@ -151,6 +184,15 @@ def main() -> int:
     parser.add_argument("--artifact-dir", default="experiments/ABL253/artifacts")
     parser.add_argument("--json-out", default="experiments/ABL253/results.json")
     parser.add_argument("--report-out", default="reports/abl_253_solar_retrain.md")
+    # ABL-345: the 19 unmodelled solar pairs have ~9 months in `energy_renewable`
+    # against ~5.6 years in `energy_generation`, so this harness cannot gate them
+    # on one hardcoded table. Opt-in, so an unflagged run reproduces ABL-253.
+    parser.add_argument("--renewable-source", default=None,
+                        choices=list(db._RENEWABLE_TYPE_SOURCES),
+                        help="Source table for the fitted series, its lag and rolling "
+                             "features, the D-7/persistence baselines, the gate actuals "
+                             "and the contamination screen (default: "
+                             f"{db.RENEWABLE_TYPE_SOURCE_TABLE})")
     args = parser.parse_args()
     fit_start, gate_start, gate_end = map(pd.Timestamp, (args.fit_start, args.gate_start, args.gate_end))
     if not fit_start < gate_start < gate_end:
@@ -158,6 +200,12 @@ def main() -> int:
     replica = Path(args.replica_db).resolve()
     if not replica.exists():
         parser.error(f"replica not found: {replica}")
+    # Resolved once, here, and handed to every read site and to the record. The
+    # builder would resolve a `None` identically (`Forecaster._resolved_training_source`,
+    # `forecaster.py:132`), but then the run's source would be a default applied
+    # in three places rather than one recorded fact — and the report could not
+    # name the table it read.
+    source = args.renewable_source or db.RENEWABLE_TYPE_SOURCE_TABLE
 
     cfg = ScorecardConfig(str(replica), args.sidecar_db, gate_start, gate_end,
                           models={"solar": "catboost"})
@@ -167,7 +215,11 @@ def main() -> int:
     artifact_dir = Path(args.artifact_dir)
     training, scored_frames = [], []
     for country in COUNTRIES:
-        builder = RenewableFeatureBuilder(country, "solar", fit_start - pd.Timedelta(days=14), gate_end)
+        # ABL-342 records provenance from the builder rather than from a source
+        # string, so passing the source here is also what makes the artifact's
+        # `training_source` truthful.
+        builder = RenewableFeatureBuilder(country, "solar", fit_start - pd.Timedelta(days=14),
+                                          gate_end, actuals_source=source)
         fit_raw = build_vintage_frame(builder, fit_start, gate_start, FEATURE_COLUMNS)
         fit, audit = finite_training_rows(fit_raw, FEATURE_COLUMNS)
         model, params = _model()
@@ -196,7 +248,8 @@ def main() -> int:
         training.append({"country": country, "algorithm": ALGORITHM, "params": params,
                          "audit": audit, "gate_build_audit": gate_audit,
                          "constant_runs": _constant_runs(str(replica), country,
-                                                          fit_start - pd.Timedelta(days=14), gate_end),
+                                                          fit_start - pd.Timedelta(days=14), gate_end,
+                                                          source),
                          "artifact_path": str(path.resolve()), "artifact_sha256": _sha256(path)})
 
     all_scored = pd.concat(scored_frames, ignore_index=True)
@@ -229,6 +282,7 @@ def main() -> int:
 
     result = {"meta": {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
                        "replica_db": str(replica), "replica_bytes": replica.stat().st_size,
+                       "training_source": source,
                        "fit_window": {"start": str(fit_start), "end_exclusive": str(gate_start)},
                        "gate_window": {"start": str(gate_start), "end_exclusive": str(gate_end)},
                        "registered_intended_n": INTENDED_N, "schedule_implied_n": SCHEDULE_N,
