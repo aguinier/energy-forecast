@@ -223,6 +223,19 @@ If you hand `src/wind_features.py` a sub-hourly series it now raises
 `SubHourlyResolutionError` (`src/wind_features.py:142`) rather than
 subsampling. Do not "fix" that by flooring the index — aggregate it.
 
+The frame a model is **fitted** on did not change when ABL-332 landed —
+`load_training_data`'s `resample('h').mean()` simply became a no-op — but
+**`scripts/train.py`'s availability screen did** (`scripts/train.py:354`). It
+reads the same loader and thresholds on `(target_value > 0).sum() / len(df)`
+without resampling, and an hourly mean is non-zero whenever any sub-sample in
+the hour is, so that fraction only rises. Measured over the screen's own
+30-day window on 2026-08-12, all supported pairs, both source tables: 53 pairs
+move the percentage without changing verdict and **one changes verdict —
+IT/wind_offshore, 0.4865 → 0.5764 across the 0.50 threshold**, so it is now
+eligible to train where it was previously skipped. Expect it to appear the
+next time a training sweep runs; it is not a new data problem, it is the
+screen finally measuring the hourly frame the model is fitted on.
+
 **Which table an individual renewable type is read from is a property of the
 model artifact, not a global** (ABL-331). `model_data["training_source"]` is
 written by `Forecaster.save`/`_get_model_data` and read back by

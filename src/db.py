@@ -425,8 +425,22 @@ def aggregate_renewable_to_hourly(
 
     Aggregating here -- at the single read both paths go through -- is what
     makes them the same number. `load_training_data`'s own `resample('h').mean()`
-    becomes a no-op on this output, so the training path is unchanged; the
-    serving path converges onto it.
+    becomes a no-op on this output, so the frame a model is **fitted** on is
+    byte-unchanged; the serving path converges onto it.
+
+    One training-path consumer does move, and it is not the fitted frame:
+    `scripts/train.py`'s availability screen reads this same loader and
+    thresholds on `(target_value > 0).sum() / len(df)` without resampling
+    first. An hourly mean is > 0 whenever *any* sub-sample in the hour is, so
+    that fraction can only rise. Measured on the replica 2026-08-12 over the
+    screen's own 30-day window, all supported pairs, both source tables: 53
+    pairs move their percentage without changing verdict, and exactly one
+    changes verdict -- IT/wind_offshore, 0.4865 -> 0.5764 across the 0.50
+    threshold, so it becomes eligible to train where it was skipped. That is a
+    correction, not a regression: the screen now measures the same hourly frame
+    the model is actually fitted on, instead of a quarter-hourly one nothing
+    downstream ever sees. It takes effect only on the next training run for
+    that pair; merging ABL-332 retrains nothing.
 
     The rule is the hourly mean of whatever sub-samples the hour actually has,
     which is exactly what `resample('h').mean()` has always done for training.

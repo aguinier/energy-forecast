@@ -299,3 +299,43 @@ def test_training_and_serving_agree_on_every_hour(replica):
         check_names=False,
         obj="training frame vs serving frame",
     )
+
+
+def test_aggregation_raises_the_non_zero_fraction_the_train_screen_thresholds_on():
+    """The one training-path consumer ABL-332 does move, pinned deliberately.
+
+    `scripts/train.py:354` decides whether a pair is worth training at all from
+    `(target_value > 0).sum() / len(df)` against a 0.30/0.50 threshold, and it
+    reads `load_renewable_type_data` *without* resampling. An hourly mean is
+    non-zero whenever any sub-sample in the hour is, so aggregation can only
+    raise that fraction -- never lower it.
+
+    This is not a defect to be fixed by reverting the aggregation: the screen
+    now measures the same hourly frame the model is fitted on. It is pinned
+    because it flips a real verdict (IT/wind_offshore, 0.4865 -> 0.5764 on the
+    2026-08-12 replica) and the next reader should find that intended, not
+    discover it in a training sweep.
+    """
+    # One non-zero quarter per hour: the classic low-capacity offshore shape.
+    stamps = pd.date_range("2026-01-01", periods=4 * 24, freq="15min")
+    df = pd.DataFrame({
+        "timestamp_utc": stamps,
+        "target_value": [7.0 if ts.minute == 30 else 0.0 for ts in stamps],
+    })
+
+    before = (df["target_value"] > 0).sum() / len(df)
+    hourly = db.aggregate_renewable_to_hourly(df)
+    after = (hourly["target_value"] > 0).sum() / len(hourly)
+
+    assert before == pytest.approx(0.25)
+    assert after == pytest.approx(1.0)
+    assert after > before, "aggregation must never lower the screen's fraction"
+
+    # And the direction holds for an all-zero hour: a measured zero stays zero,
+    # so the screen is not simply inflated everywhere.
+    zeros = pd.DataFrame({
+        "timestamp_utc": stamps,
+        "target_value": [0.0] * len(stamps),
+    })
+    zero_hourly = db.aggregate_renewable_to_hourly(zeros)
+    assert (zero_hourly["target_value"] > 0).sum() == 0
