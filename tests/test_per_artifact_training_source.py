@@ -31,6 +31,7 @@ checked shapes would pass no matter which table won.
 import importlib
 import sqlite3
 import sys
+import types
 from pathlib import Path
 
 import joblib
@@ -419,3 +420,135 @@ def test_training_reads_the_source_the_artifact_will_claim(replica, monkeypatch)
         forecaster.train(start_date="2026-01-01", end_date="2026-02-01")
 
     assert seen["source"] == "energy_generation"
+
+
+# ---------------------------------------------------------------------------
+# ABL-331 follow-up — the training *window* closes on the artifact's table too.
+#
+# `save`, `load` and the feature builder are threaded above, but both `train`
+# entry points resolve an open-ended window (`end_date is None`) by asking
+# `get_latest_data_timestamp` how fresh the data is, and that read the global
+# constant regardless of the table the run was about to train on. A run naming
+# `energy_generation` therefore closed its window on `energy_renewable`'s last
+# instant: silently truncated where that table lags, and left to `datetime.now()`
+# where the pair has no rows in it at all — the normal case for the 39 unmodelled
+# pairs ABL-316 exists to cover. Same species as the bug above, on a path nobody
+# had looked at: a source-blind global read.
+# ---------------------------------------------------------------------------
+
+#: A last instant present in one table and absent from the other, so a resolved
+#: window end names the table it was read from.
+FRESHER = OBS + pd.Timedelta(hours=12)
+
+
+def _extend(path: Path, table: str) -> None:
+    """Give one table a later last instant than the other."""
+    con = sqlite3.connect(path)
+    value = _epoch_hours(FRESHER)
+    con.execute(
+        f"INSERT INTO {table} VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'actual')",
+        (COUNTRY, str(FRESHER), value, value, value, value, value, value),
+    )
+    con.commit()
+    con.close()
+
+
+def test_the_freshness_probe_reads_the_source_it_is_given(replica):
+    _extend(replica, "energy_generation")
+    assert db.get_latest_data_timestamp(
+        COUNTRY, "wind_onshore", source="energy_generation"
+    ) == FRESHER
+    assert db.get_latest_data_timestamp(
+        COUNTRY, "wind_onshore", source="energy_renewable"
+    ) == OBS
+
+
+def test_the_freshness_probe_default_is_the_pre_change_table(replica):
+    """Criterion 1's spirit on this path: a caller passing no source gets
+    exactly the table the pre-change code read."""
+    _extend(replica, "energy_generation")
+    assert db.get_latest_data_timestamp(COUNTRY, "wind_onshore") == OBS
+
+
+def test_an_aggregate_type_ignores_a_renewable_source(replica):
+    """`load`, `price` and `renewable` read one fixed table each — a renewable
+    source table is meaningless for them and must not redirect the read."""
+    _extend(replica, "energy_generation")
+    assert db.get_latest_data_timestamp(
+        COUNTRY, "renewable", source="energy_generation"
+    ) == OBS
+
+
+def test_the_freshness_probe_rejects_a_table_it_does_not_know(replica):
+    """Mirrors `load_renewable_type_data`: the table name is interpolated into
+    the query, so an unknown one has to fail before it reaches SQL."""
+    with pytest.raises(ValueError, match="Unknown renewable source table"):
+        db.get_latest_data_timestamp(COUNTRY, "wind_onshore", source="forecasts")
+
+
+@pytest.mark.parametrize(
+    "training_source,expected",
+    [("energy_generation", "energy_generation"), (None, "energy_renewable")],
+)
+def test_an_open_window_asks_the_freshness_of_the_table_it_will_train_on(
+    replica, monkeypatch, training_source, expected
+):
+    """The `None` case is the back-compatibility half: a legacy artifact still
+    closes its window on `energy_renewable`, exactly as before."""
+    asked = {}
+
+    def _probe(country_code, data_type, source=None):
+        asked["source"] = source
+        return None  # end_date then falls back to now(); the empty load stops us
+
+    monkeypatch.setattr("src.forecaster.get_latest_data_timestamp", _probe)
+    monkeypatch.setattr("src.forecaster.load_training_data", lambda *a, **k: pd.DataFrame())
+    forecaster = Forecaster(
+        COUNTRY, "wind_onshore", algorithm="catboost", training_source=training_source
+    )
+    with pytest.raises(ValueError):  # empty frame -> "No training data available"
+        forecaster.train(start_date="2026-01-01", end_date=None)
+
+    assert asked["source"] == expected
+
+
+def test_an_aggregate_model_asks_for_no_renewable_source(replica, monkeypatch):
+    """A `load` model must not send a renewable source table into the probe."""
+    asked = {}
+
+    def _probe(country_code, data_type, source=None):
+        asked["source"] = source
+        return None
+
+    monkeypatch.setattr("src.forecaster.get_latest_data_timestamp", _probe)
+    monkeypatch.setattr("src.forecaster.load_training_data", lambda *a, **k: pd.DataFrame())
+    with pytest.raises(ValueError):
+        Forecaster(COUNTRY, "load", algorithm="catboost").train(
+            start_date="2026-01-01", end_date=None
+        )
+
+    assert asked["source"] is None
+
+
+def test_the_walk_forward_window_asks_the_same_question(replica, monkeypatch):
+    """`train_with_walk_forward` resolves its own window and had the same
+    source-blind read. `validation` is stubbed because that method imports it
+    flat (`from validation import ...`) before reaching the window code."""
+    asked = {}
+
+    def _probe(country_code, data_type, source=None):
+        asked["source"] = source
+        return None
+
+    monkeypatch.setitem(
+        sys.modules, "validation", types.SimpleNamespace(WalkForwardValidator=object)
+    )
+    monkeypatch.setattr("src.forecaster.get_latest_data_timestamp", _probe)
+    monkeypatch.setattr("src.forecaster.load_training_data", lambda *a, **k: pd.DataFrame())
+    forecaster = Forecaster(
+        COUNTRY, "wind_onshore", algorithm="catboost", training_source="energy_generation"
+    )
+    with pytest.raises(ValueError):
+        forecaster.train_with_walk_forward(start_date="2026-01-01", end_date=None)
+
+    assert asked["source"] == "energy_generation"

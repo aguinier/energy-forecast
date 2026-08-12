@@ -506,12 +506,13 @@ def get_feature_columns(forecast_type: str, include_holidays: bool = True) -> Li
 # ============================================================================
 
 if __name__ == "__main__":
+    # Relative imports need a parent package, so run this demo as a module:
+    #   python -m src.features
     import sys
 
     logging.basicConfig(level=logging.INFO, format=config.LOG_FORMAT)
 
-    # Import db module
-    from db import load_training_data
+    from .db import load_training_data
 
     print("Testing feature engineering...")
 

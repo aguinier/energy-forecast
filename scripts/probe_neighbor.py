@@ -3,12 +3,11 @@
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import config
-import db
+from src import db
 import logging
-from features import create_all_features, get_feature_columns
+from src.features import create_all_features, get_feature_columns
 from lightgbm import LGBMRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import lightgbm

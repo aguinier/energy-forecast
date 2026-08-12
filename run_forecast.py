@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
-"""Local dev wrapper to run forecast_daily.py with correct imports."""
-import sys, os
+"""Local dev wrapper: run scripts/forecast_daily.py from the repo root.
+
+Until ABL-340 this file existed to work around the broken import graph: it
+aliased `sys.modules['db'] = src.db` and `sys.modules['forecaster'] =
+src.forecaster` so that `forecast_daily.py`'s flat `from db import ...` would
+resolve. That aliasing is now actively harmful — it makes each module reachable
+under two names, which is the bug ABL-340 removed — so the wrapper just runs the
+script, which imports `src` as a package on its own.
+
+`python scripts/forecast_daily.py` works directly and is the documented form.
+"""
+
+import runpy
+import sys
 from pathlib import Path
 
-os.chdir(str(Path(__file__).parent))
-sys.path.insert(0, str(Path(__file__).parent))
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
 
-# Patch the script's imports to use package-style
-import importlib.util
-spec = importlib.util.spec_from_file_location("forecast_daily", "scripts/forecast_daily.py",
-    submodule_search_locations=[])
-
-# Monkey-patch: make 'from forecaster import' resolve to 'from src.forecaster import'
-import src.forecaster as forecaster_mod
-import src.db as db_mod
-sys.modules['forecaster'] = forecaster_mod
-sys.modules['db'] = db_mod
-
-# Now exec the script
-exec(open("scripts/forecast_daily.py").read())
+runpy.run_path(str(ROOT / "scripts" / "forecast_daily.py"), run_name="__main__")

@@ -179,8 +179,13 @@ class Forecaster:
             validation_days = config.VALIDATION_DAYS
 
         if end_date is None:
-            # Get latest available data
-            latest = get_latest_data_timestamp(self.country_code, self.forecast_type)
+            # Get latest available data -- from the table this run will actually
+            # train on (ABL-331 follow-up), not from whatever the global default
+            # says, or the window closes on the wrong table's freshness.
+            latest = get_latest_data_timestamp(
+                self.country_code, self.forecast_type,
+                source=self._resolved_training_source(),
+            )
             if latest:
                 end_date = (latest + timedelta(days=1)).strftime("%Y-%m-%d")
             else:
@@ -443,10 +448,15 @@ class Forecaster:
         Returns:
             Dictionary with aggregated validation metrics
         """
-        from validation import WalkForwardValidator
+        from .validation import WalkForwardValidator
 
         if end_date is None:
-            latest = get_latest_data_timestamp(self.country_code, self.forecast_type)
+            # Same as `train` (ABL-331 follow-up): the window closes on the
+            # freshness of the table this artifact's target series comes from.
+            latest = get_latest_data_timestamp(
+                self.country_code, self.forecast_type,
+                source=self._resolved_training_source(),
+            )
             if latest:
                 end_date = (latest + timedelta(days=1)).strftime("%Y-%m-%d")
             else:
@@ -873,12 +883,23 @@ class Forecaster:
             "saved_at": datetime.now().isoformat(),
         }
 
-    def save(self, path: Optional[str] = None) -> str:
+    def save(
+        self,
+        path: Optional[str] = None,
+        extra_metadata: Optional[Dict[str, Any]] = None,
+    ) -> str:
         """
         Save model to disk.
 
         Args:
             path: Optional custom path (default: models/{country}/{type}/)
+            extra_metadata: ABL-342 — additional keys a caller's own readers
+                need, merged into the artifact. It may not set any key this
+                method writes: the reason for routing every writer through here
+                is that `training_source` and the ABL-183 intercept witness are
+                facts derived from the fitted forecaster, not values a caller
+                supplies. A caller that could overwrite them would be the
+                bypass this parameter exists to remove.
 
         Returns:
             Path where model was saved
@@ -917,6 +938,15 @@ class Forecaster:
 
             model_data["xgboost_version"] = xgboost.__version__
             model_data["base_score"] = xgboost_artifact_guard.base_score(self.model)
+
+        if extra_metadata:
+            collisions = sorted(set(extra_metadata) & set(model_data))
+            if collisions:
+                raise ValueError(
+                    f"extra_metadata may not override keys save() derives: {collisions}. "
+                    "These are properties of the fitted model, not of the caller."
+                )
+            model_data.update(extra_metadata)
 
         joblib.dump(model_data, path)
         logger.info(f"Model saved to {path}")

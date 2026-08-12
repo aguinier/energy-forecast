@@ -30,13 +30,12 @@ from typing import Optional, List
 import numpy as np
 import pandas as pd
 
-# Add parent paths
+# Repo root on the path for the top-level `config` module
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent))
 
 import config
-from db import get_connection, save_forecasts
-from evaluation.tso_correction import (
+from .db import get_connection, save_forecasts
+from .evaluation.tso_correction import (
     TSOCorrectionModel,
     load_tso_vs_actual,
     load_weather_for_correction,
@@ -349,7 +348,7 @@ def retrain_models(
     Retrain all TSO correction models with latest data and save to disk.
     Intended for monthly cron execution.
     """
-    from evaluation.tso_correction import train_and_save_all
+    from .evaluation.tso_correction import train_and_save_all
 
     if train_end is None:
         train_end = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")

@@ -11,14 +11,13 @@ import logging
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
-sys.path.append(str(Path(__file__).parent.parent / 'src'))
 
 # Set environment variable for DB path
 os.environ['ENERGY_DB_PATH'] = r'C:\Code\energy-data-gathering\energy_dashboard.db'
 
 # Direct imports to avoid complex module dependencies
 import config
-from forecaster import Forecaster
+from src.forecaster import Forecaster
 
 # Setup logging
 logging.basicConfig(

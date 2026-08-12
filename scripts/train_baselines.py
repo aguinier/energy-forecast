@@ -21,18 +21,17 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
-# Add parent directory to path
+# Add repo root to path (for the top-level `config` module and the `src` package)
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import config
-from db import (
+from src.db import (
     initialize_all_tables,
     load_training_data,
     save_model_evaluation,
 )
-from metrics import calculate_all_metrics, mae, rmse, mape
-from baselines import (
+from src.metrics import calculate_all_metrics, mae, rmse, mape
+from src.baselines import (
     PersistenceBaseline,
     SeasonalNaiveBaseline,
     WeeklyAverageBaseline,

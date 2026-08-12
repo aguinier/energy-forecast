@@ -9,10 +9,10 @@ import json
 import joblib
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add repo root to path (for the top-level `config` module and the `src` package)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from metrics import MAPE_THRESHOLDS, DEFAULT_MAPE_THRESHOLD, mape
+from src.metrics import MAPE_THRESHOLDS, DEFAULT_MAPE_THRESHOLD, mape
 
 
 def recalculate_mape_if_needed(metrics: dict, forecast_type: str) -> dict:

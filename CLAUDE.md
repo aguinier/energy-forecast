@@ -65,6 +65,45 @@ energy_forecast/
 └── logs/               # Execution logs
 ```
 
+### Importing this repo
+
+`src/` is a package and is always imported as one. There is exactly one shape,
+and every entry point and test uses it:
+
+```python
+sys.path.insert(0, str(Path(__file__).parent.parent))   # repo root, NOT src/
+import config                                            # top-level, at the root
+from src.db import load_training_data                    # package-qualified
+```
+
+Inside `src/`, siblings are imported **relatively** — `from .db import ...`,
+`from ..features import ...`. Never `import db`.
+
+This is not style. Putting `src/` on `sys.path` and importing flat gives a module
+no parent package, so any relative import inside it raises `ImportError:
+attempted relative import with no known parent package` — and where it does not
+raise, it silently loads a *second* copy of the module under a second name, with
+its own module-level state. `scripts/train.py` was dead by the first mechanism
+from ABL-188 (`574eb80`, which added `src/db.py`'s `from .data_quality import
+...`) until ABL-340 fixed it: seven months of a documented CLI that could not
+run. Nine of 34 scripts were affected; five of them were the `test_*.py` probes
+in `scripts/` that also broke bare `pytest` collection (ABL-336).
+
+`tests/test_script_imports.py` holds the line — it executes the module-level
+import block of every entry point in `scripts/` and the repo root, and rejects
+any flat sibling import inside `src/`. A new script that copies an old
+`sys.path.insert(..., 'src')` preamble fails there rather than seven months
+later.
+
+Two consequences worth knowing:
+
+- A `__main__` demo inside `src/` (e.g. `src/features.py`) needs a parent
+  package for its relative imports, so run it as `python -m src.features`, not
+  `python src/features.py`.
+- `src/evaluation.py` is dead code. `src/evaluation/` is a package and shadows
+  it — `src.evaluation` always resolves to the directory. `src/__init__.py:44`
+  already has its re-export commented out.
+
 ## Database
 
 Two files, and pointing at the wrong one is the trap this section exists to
@@ -81,6 +120,29 @@ scheduled job, and `reports/net_position_eval/latest.json` → `meta.replica_db`
 The replica is refreshed at 07:00 by the `able-db-sync` job; the forecast runs
 at 08:00 behind it. **All writes go to the sidecar** — the replica is a
 read-only mirror of prod and nothing here may write to it.
+
+> **That claim is conditional, and the condition is unset by default.**
+> `src/db.py:48` resolves a write target as `FORECAST_OUTPUT_DB or
+> DATABASE_PATH`, and `config.py:23` is a bare `os.getenv` — no default, no
+> assertion. With the variable unset the `or` does not fail; it falls through and
+> every write connection targets **the replica**. So "all writes go to the
+> sidecar" is a property of the environment, not of the code, for any caller that
+> does not check.
+>
+> Callers that refuse the unset case rather than falling through:
+> `scripts/train.py:908-929` (ABL-346, exit `2` before `initialize_all_tables()`
+> at `scripts/train.py:940`)
+> and `scripts/forecast_challengers.py:322-325`. Both also take `--sidecar-db`,
+> as do `evaluate_scorecard.py`, `evaluate_net_position.py`,
+> `evaluate_solar_retrain.py`, `evaluate_wind_retrain.py` and
+> `attest_net_position_serve_faithfulness.py`. **Everything else still
+> fallthrough-writes to the replica when the variable is unset** — if you add an
+> entry point that writes, port the guard.
+>
+> `train.py` is the one that threads `--sidecar-db` back into
+> `config.FORECAST_OUTPUT_DB`, because its writes go through `src/db.py`'s
+> module-level helpers, which read that attribute per connection rather than
+> taking a path. A `--sidecar-db` that only lands in `args` is decorative.
 
 Local runs read `.env` (via `python-dotenv`, `config.py:11`). It is gitignored
 and must stay untracked — it carries a machine-specific absolute path.
@@ -134,7 +196,7 @@ window, proposed but not executed in the ABL-188 report.
 **Which table an individual renewable type is read from is a property of the
 model artifact, not a global** (ABL-331). `model_data["training_source"]` is
 written by `Forecaster.save`/`_get_model_data` and read back by
-`Forecaster.load` (`forecaster.py:975`), which threads it into
+`Forecaster.load` (`forecaster.py:1005`), which threads it into
 `RenewableFeatureBuilder` at serve time and into `load_training_data` at train
 time — so a pair is always served features from the table it was fitted on.
 `db.RENEWABLE_TYPE_SOURCE_TABLE` (`db.py:361`) is now **only** the default for
@@ -143,8 +205,44 @@ flipping it moves no existing forecast. An artifact with no `training_source`
 key predates ABL-331 and resolves to `db.LEGACY_RENEWABLE_TRAINING_SOURCE`
 (`db.py:371`) — deliberately the literal `'energy_renewable'` rather than an
 alias of the training default, because those artifacts were fitted on it and
-must not follow a later flip. Train a pair on the other table with
-`scripts/train.py --renewable-source energy_generation`.
+must not follow a later flip.
+
+That default is silent, and `load` reads every key with `.get(..., default)` —
+so an artifact written **without** the key does not fail, it serves from
+`energy_renewable` whatever it was fitted on. **`Forecaster.save` is therefore
+the only writer of a renewable artifact** (ABL-342). Do not add a second one.
+The two pre-registered gate harnesses used to `joblib.dump` seven keys of their
+own; they now go through `src/evaluation/gate_artifacts.py:41`
+`save_gate_artifact`, which takes the `RenewableFeatureBuilder` that produced
+the training rows rather than a source string, so the recorded table cannot
+drift from the series that was fitted. `ModelRegistry.save_model` takes a
+caller's dict verbatim and cannot derive the value, so it **refuses** a
+`RENEWABLE_TYPES` payload with no `training_source` (`model_registry.py:165`)
+rather than let one reach `candidate/` or `production/`. Routing through `save`
+also picks up the ABL-183 intercept witness, which the bare dumps omitted —
+that is what made the guard a no-op for exactly the artifacts a gate produces.
+`CascadeForecaster.save` (`forecaster.py:1408`) is not an exception: it stores
+only the aggregate `load`/`renewable`/`price` types, which carry no source by
+the rule above, and is read back by `CascadeForecaster.load_model`.
+
+Note that both harnesses still build their features with no `actuals_source`,
+so today they fit on `energy_renewable`; ABL-342 made the provenance faithful,
+it did not give them a source argument. The ABL-316 pairs that need
+`energy_generation` want one added.
+
+The **training window** obeys the same rule. Both `train` entry points close an
+open-ended window (`end_date is None`) with `db.get_latest_data_timestamp`, which
+takes a `source=` and is handed `_resolved_training_source()`
+(`forecaster.py:187`, `forecaster.py:458`). Until that was threaded, a run naming
+`energy_generation` closed its window on `energy_renewable`'s last instant —
+truncated where that table lags, and falling through to `datetime.now()` for a
+pair with no rows in it at all, which is the normal case for the 39 unmodelled
+pairs. Anything new that resolves a window or reports freshness for an
+individual renewable type must pass the source; the constant is not the answer.
+
+Train a pair on the other table with `scripts/train.py --renewable-source
+energy_generation`. That CLI works again as of ABL-340 — it had been import-dead
+since ABL-188 (`574eb80`), see "Importing this repo" below.
 
 This exists because ABL-321 measured that switching globally makes 3 of the 10
 serving pairs materially worse (AT solar +4.3%, DE wind_onshore +3.6%, BE
@@ -271,9 +369,17 @@ bash scripts/scheduler_setup.sh
 
 ### Training
 
+Every command below needs a sidecar target. `scripts/train.py` exits `2` without
+writing anything when neither `FORECAST_OUTPUT_DB` nor `--sidecar-db` resolves
+(ABL-346) — see the Database section for why the fallthrough it replaces aimed at
+the replica.
+
 ```bash
 # Train all models (includes load, price, renewable, and individual renewable types)
 python scripts/train.py --countries all --types all
+
+# Explicit sidecar, no environment dependency
+python scripts/train.py --countries DE --types renewable --sidecar-db C:\Code\able\data\forecasts_local.db
 
 # Train specific country/type
 python scripts/train.py --countries DE --types load
