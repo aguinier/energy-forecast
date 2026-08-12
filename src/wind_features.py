@@ -1,4 +1,5 @@
-"""Serve-faithful feature builder for renewable xgboost forecasts (ABL-183).
+"""Serve-faithful feature builder for renewable xgboost forecasts (ABL-183,
+extended to solar by ABL-191).
 
 Root cause, per `reports/abl_179_wind_diagnosis.md`: `Forecaster.predict_d2`
 (`src/forecaster.py:616-690`, pre-fix) built each target hour's feature row by
@@ -69,6 +70,27 @@ the same weather-forecast row it uses for the allow-listed columns — it is
 not gated by `config.WEATHER_FEATURES`, because the artifact contract
 (what `feature_columns` names) is not the same list as "which raw columns are
 this type's primary drivers".
+
+## Solar (ABL-191)
+
+`reports/abl_185_solar_diagnosis.md` found solar shares this same proxy-row
+defect: target-relative lags and rolling statistics carried a historical
+row's own values rather than being resolved against `observation_as_of`. Per
+that report's finding #3, solar's generic weather-inference block already
+recomputed `temperature_c` from forecast temperature whenever present (unlike
+wind's original pre-fix serving code) — solar was never missing temperature
+the way wind was; confirmed to still hold under this shared builder by
+`tests/test_solar_features.py::test_temperature_c_is_always_populated_from_the_same_weather_row`,
+since `_weather_features` resolves `temperature_c` unconditionally for every
+`forecast_type`, not just wind's.
+
+Solar's actuals load through the same `load_renewable_type_data` this
+builder already calls for wind, which already applies the ABL-188
+training-data invariant (`exclude_suspect_constant_runs`) — the DE solar
+zero-fill window (2025-09-08 22:00–2025-11-14 15:45 UTC, 6,408 quarter-hours)
+is nulled before it can reach a lag or rolling-window feature, with no
+solar-specific code needed here. See
+`tests/test_solar_features.py::test_a_suspect_constant_actuals_run_is_excluded_from_lags_and_rolling`.
 """
 
 from __future__ import annotations
@@ -100,25 +122,29 @@ STRICT_LAG_DAYS: Tuple[int, ...] = (7, 14)
 #: Rolling windows in hours, anchored at `observation_as_of` (see docstring).
 ROLLING_WINDOWS_HOURS: Tuple[int, ...] = (24, 168)
 
-#: ABL-183 wires this builder into serving for wind only — the two types
-#: ABL-179 diagnosed. Confirmed against the real frozen artifacts, 2026-08-11:
-#: BE/FR wind_offshore (xgboost) and BE/DE/FR wind_onshore (catboost) plus AT
-#: wind_onshore (xgboost) all report exactly this builder's 24 feature names —
-#: 10 calendar + 3 point lags + 8 rolling stats + 2 wind-speed + temperature_c,
-#: no holiday or heating/cooling-degree columns.
+#: ABL-183 wired wind_onshore/wind_offshore — the two types ABL-179 diagnosed.
+#: ABL-191 adds solar, per ABL-185's diagnosis that it shares the same
+#: proxy-row lag/rolling defect. Confirmed against the real frozen artifacts,
+#: 2026-08-11: BE/FR wind_offshore (xgboost) and BE/DE/FR wind_onshore
+#: (catboost) plus AT wind_onshore (xgboost) all report exactly this
+#: builder's 24 feature names for wind — 10 calendar + 3 point lags + 8
+#: rolling stats + 2 wind-speed + temperature_c; AT/BE/DE/FR solar
+#: (xgboost/catboost) report the same 24-name shape with the weather trio
+#: swapped for 3 radiation columns — 10 calendar + 3 point lags + 8 rolling
+#: stats + 3 radiation (shortwave/direct/diffuse) + temperature_c. No holiday
+#: or heating/cooling-degree columns in either.
 #:
-#: solar/hydro_total/biomass/renewable are deliberately excluded even though
-#: the calendar/lag/rolling logic below is generic across renewable types:
-#: `_WEATHER_RAW_COLUMNS` below only fetches temperature and wind speed, not
-#: the shortwave/direct/diffuse radiation columns solar's and renewable's
-#: WEATHER_FEATURES require — adding those types here without also extending
-#: the weather query would silently NaN every solar weather feature. Solar is
-#: ABL-185 (separate diagnosis, in progress); if it lands on the same
-#: train/serve mismatch, extend `_WEATHER_RAW_COLUMNS` and this tuple together
-#: rather than assuming today's wind-only query already covers it. load/price
-#: are out of scope for a different reason: different artifact shape, not
+#: hydro_total/biomass/renewable are still excluded, but no longer for a
+#: missing-weather-column reason now that solar's radiation columns are in
+#: `_WEATHER_RAW_COLUMNS`: hydro_total/biomass need only `temperature_2m_k`
+#: (already fetched, even pre-ABL-191) and renewable's five WEATHER_FEATURES
+#: (radiation trio + both wind speeds) are now all present too. They stay out
+#: because neither ABL-179 nor ABL-185 diagnosed them as sharing this defect —
+#: extending SUPPORTED_FORECAST_TYPES to a type nobody has shown this builder
+#: fixes would be an untested claim, not a mechanical extension. load/price
+#: remain out of scope for a different reason: different artifact shape, not
 #: diagnosed by ABL-179, left on the original code path.
-SUPPORTED_FORECAST_TYPES: Tuple[str, ...] = ("wind_onshore", "wind_offshore")
+SUPPORTED_FORECAST_TYPES: Tuple[str, ...] = ("wind_onshore", "wind_offshore", "solar")
 
 
 @dataclass(frozen=True)
@@ -282,7 +308,17 @@ def _rolling_features(actuals: pd.Series, req: FeatureRequest) -> Dict[str, Feat
 # Weather — resolved at the target hour, bounded by weather_publication_as_of.
 # ---------------------------------------------------------------------------
 
-_WEATHER_RAW_COLUMNS: Tuple[str, ...] = ("temperature_2m_k", "wind_speed_10m_ms", "wind_speed_100m_ms")
+#: ABL-191 adds the radiation trio solar's WEATHER_FEATURES require
+#: (config.py's `WEATHER_FEATURES['solar']`), alongside wind's temperature
+#: and wind-speed columns already fetched here.
+_WEATHER_RAW_COLUMNS: Tuple[str, ...] = (
+    "temperature_2m_k",
+    "wind_speed_10m_ms",
+    "wind_speed_100m_ms",
+    "shortwave_radiation_wm2",
+    "direct_radiation_wm2",
+    "diffuse_radiation_wm2",
+)
 
 
 def _load_weather_archive(country_code: str, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:

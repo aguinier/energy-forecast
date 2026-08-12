@@ -1,14 +1,15 @@
-"""Golden D+1/D+2 feature-vector tests for the shared wind feature builder
-(ABL-183, `src/wind_features.py`). Solar's equivalent golden tests
-(ABL-191) are in `tests/test_solar_features.py`, since this module now
-serves both — the lag/rolling/calendar logic under test here is identical
-for either forecast_type.
+"""Golden D+1/D+2 feature-vector tests for solar via the shared renewable
+feature builder (ABL-191, extending ABL-183's `src/wind_features.py` to
+solar per ABL-185's diagnosis).
 
-These pin *meaning*, not shape: which `as_of` each lag and rolling stat
-resolves against, and that weather never reaches past its publication
-cutoff. Feature order was already 24/24 correct against the frozen wind
-artifacts while the underlying semantics were wrong (ABL-179) — a
-shape-only test would have passed throughout that bug. Every actuals row
+These pin *meaning*, not shape, same standard as `test_wind_features.py`:
+which `as_of` each lag and rolling stat resolves against, that weather never
+reaches past its publication cutoff, and that solar's actuals inherit the
+ABL-188 constant-run exclusion with no solar-specific code. The lag/rolling/
+calendar logic under test is the same code path wind's tests already cover;
+this file exists to prove it holds for a second `forecast_type` rather than
+assuming it, and to pin solar's own weather columns (radiation, not wind
+speed) and its frozen artifacts' exact feature order. Every actuals row
 after `OBS` here is poisoned (`POISON`) so a leak shows up as a wrong value,
 not just a wrong index.
 """
@@ -24,16 +25,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import config
 from src.wind_features import (
-    POINT_LAG_DAYS,
     ROLLING_WINDOWS_HOURS,
     RenewableFeatureBuilder,
-    ServeFaithfulnessError,
     SUPPORTED_FORECAST_TYPES,
     to_vector,
 )
 
 COUNTRY = "XX"
-FORECAST_TYPE = "wind_offshore"
+FORECAST_TYPE = "solar"
 OBS = pd.Timestamp("2026-08-11 08:00:00")  # the generation instant
 POISON = -99999.0                            # must never surface in a feature
 
@@ -51,7 +50,7 @@ def replica(tmp_path, monkeypatch):
     con.executescript(
         """
         CREATE TABLE energy_renewable (country_code TEXT, timestamp_utc TIMESTAMP,
-            wind_offshore_mw REAL, wind_onshore_mw REAL);
+            solar_mw REAL);
         CREATE TABLE weather_data (country_code TEXT, timestamp_utc TIMESTAMP,
             forecast_run_time TIMESTAMP, data_quality TEXT,
             temperature_2m_k REAL, wind_speed_10m_ms REAL, wind_speed_100m_ms REAL,
@@ -60,30 +59,31 @@ def replica(tmp_path, monkeypatch):
     )
 
     # Actuals: hourly from well before the lookback window through three days
-    # *past* OBS. Rows after OBS are poisoned — the builder must never read
+    # *past* OBS. Rows after OBS are poisoned -- the builder must never read
     # them (the dashboard-wide "never extrapolate" invariant, served here as
     # "never look past observation_as_of").
     for ts in pd.date_range(OBS - pd.Timedelta(days=40), OBS + pd.Timedelta(days=3), freq="h"):
         value = POISON if ts > OBS else _epoch_hours(ts)
         con.execute(
-            "INSERT INTO energy_renewable VALUES (?, ?, ?, ?)",
-            (COUNTRY, str(ts), value, value),
+            "INSERT INTO energy_renewable VALUES (?, ?, ?)",
+            (COUNTRY, str(ts), value),
         )
 
     # Weather: two forecast runs per target hour. `early_run` is before every
     # publication cutoff used below and must be selected; `late_run` is after
     # OBS, poisoned, and must never be selected when weather_publication_as_of
-    # <= OBS. Radiation columns are irrelevant to wind but must be present --
-    # _WEATHER_RAW_COLUMNS fetches them for every forecast_type since ABL-191.
+    # <= OBS. Wind-speed columns are irrelevant to solar but must be present
+    # -- _WEATHER_RAW_COLUMNS fetches them for every forecast_type.
     early_run = OBS - pd.Timedelta(hours=6)
     late_run = OBS + pd.Timedelta(hours=6)
     for ts in pd.date_range(OBS - pd.Timedelta(days=1), OBS + pd.Timedelta(days=3), freq="h"):
-        temp_k = 280.0 + ts.hour
-        wind10 = 5.0 + ts.hour * 0.1
-        wind100 = 8.0 + ts.hour * 0.1
+        temp_k = 290.0 + ts.hour
+        shortwave = 100.0 + ts.hour * 2.0
+        direct = 50.0 + ts.hour
+        diffuse = 20.0 + ts.hour * 0.5
         con.execute(
-            "INSERT INTO weather_data VALUES (?, ?, ?, 'forecast', ?, ?, ?, 0, 0, 0)",
-            (COUNTRY, str(ts), str(early_run), temp_k, wind10, wind100),
+            "INSERT INTO weather_data VALUES (?, ?, ?, 'forecast', ?, 0, 0, ?, ?, ?)",
+            (COUNTRY, str(ts), str(early_run), temp_k, shortwave, direct, diffuse),
         )
         con.execute(
             "INSERT INTO weather_data VALUES (?, ?, ?, 'forecast', ?, ?, ?, ?, ?, ?)",
@@ -99,10 +99,10 @@ def replica(tmp_path, monkeypatch):
     return path
 
 
-def _builder(forecast_type=FORECAST_TYPE):
+def _builder():
     span_start = OBS - pd.Timedelta(days=45)
     span_end = OBS + pd.Timedelta(days=3)
-    return RenewableFeatureBuilder(COUNTRY, forecast_type, span_start, span_end)
+    return RenewableFeatureBuilder(COUNTRY, FORECAST_TYPE, span_start, span_end)
 
 
 # --- point lags: which as_of each lag resolves against ----------------------
@@ -121,7 +121,7 @@ def test_d1_early_hour_lag_1d_is_the_true_one_day_lag(replica):
 
 def test_d1_late_hour_lag_1d_degrades_to_the_nearest_reachable_same_hour(replica):
     """D+1, hour 15 (horizon 31h): target-1d is 2026-08-11 15:00, seven hours
-    *after* OBS (08:00) — not yet observed. The builder must fall back to
+    *after* OBS (08:00) -- not yet observed. The builder must fall back to
     target-2d rather than serve an unobserved value, and must say so."""
     target = pd.Timestamp("2026-08-12 15:00:00")
     assert target - pd.Timedelta(days=1) > OBS  # the condition this test exists for
@@ -134,7 +134,8 @@ def test_d1_late_hour_lag_1d_degrades_to_the_nearest_reachable_same_hour(replica
 
 def test_d2_lag_1d_is_always_degraded(replica):
     """D+2 horizons (40-63h at this OBS) always exceed 24h, so lag_1d can
-    never be a true one-day lag at D+2 — the diagnosis's central claim."""
+    never be a true one-day lag at D+2 -- the diagnosis's central claim,
+    confirmed here for solar rather than assumed from wind."""
     for hour in (0, 12, 23):
         target = pd.Timestamp(f"2026-08-13 {hour:02d}:00:00")
         row = _builder().row(target, OBS, OBS)
@@ -156,21 +157,11 @@ def test_lag_7d_and_lag_14d_are_true_lags_at_both_horizons_never_degraded(replic
             assert feat.value == pytest.approx(_epoch_hours(target - pd.Timedelta(days=days)))
 
 
-def test_a_lag_that_would_reach_the_future_raises_rather_than_degrading(replica):
-    """lag_7d/lag_14d have no fallback (see POINT_LAG_DAYS vs STRICT_LAG_DAYS
-    in wind_features.py) — reaching the future for them is a bug, not an
-    expected D+1/D+2 condition, so it must raise, not silently serve a wrong
-    value."""
-    target = OBS + pd.Timedelta(days=8)  # target-7d is one day *after* OBS
-    with pytest.raises(ServeFaithfulnessError):
-        _builder().row(target, OBS, OBS)
-
-
 # --- rolling windows: anchored at observation_as_of, not the target --------
 
 
 def test_rolling_windows_are_anchored_at_observation_as_of(replica):
-    """Both windows end at OBS (inclusive), not at the target hour — the
+    """Both windows end at OBS (inclusive), not at the target hour -- the
     fix for the same "always in the future at D+1/D+2" problem lag_1d has."""
     target = pd.Timestamp("2026-08-12 05:00:00")
     row = _builder().row(target, OBS, OBS)
@@ -186,7 +177,7 @@ def test_rolling_windows_are_anchored_at_observation_as_of(replica):
 
 def test_rolling_windows_are_identical_across_every_target_hour_of_one_run(replica):
     """A single generation run anchors every target hour's rolling stats to
-    the same instant — D+1 hour 3, D+1 hour 22, and D+2 hour 10 must all
+    the same instant -- D+1 hour 3, D+1 hour 22, and D+2 hour 10 must all
     report the *same* rolling values, because the run happened once."""
     builder = _builder()
     targets = [
@@ -204,7 +195,7 @@ def test_rolling_windows_are_identical_across_every_target_hour_of_one_run(repli
 
 def test_no_actuals_after_observation_as_of_ever_reach_a_feature(replica):
     """Every FeatureValue's source_timestamp must be <= OBS, and the poison
-    marker must never appear — the leakage check the poisoned future rows
+    marker must never appear -- the leakage check the poisoned future rows
     exist for."""
     for target in (pd.Timestamp("2026-08-12 05:00:00"), pd.Timestamp("2026-08-13 20:00:00")):
         row = _builder().row(target, OBS, OBS)
@@ -217,38 +208,48 @@ def test_no_actuals_after_observation_as_of_ever_reach_a_feature(replica):
 # --- weather: resolved at the target hour, bounded by publication cutoff ---
 
 
-def test_weather_resolves_the_latest_run_at_or_before_the_publication_cutoff(replica):
+def test_weather_resolves_the_latest_radiation_run_at_or_before_the_publication_cutoff(replica):
+    """Solar's weather allow-list is the radiation trio, not wind speed --
+    confirm the same publication-cutoff selection ABL-183 built applies to
+    it: the newest forecast run at or before the cutoff wins."""
     target = pd.Timestamp("2026-08-12 05:00:00")
     early_run = OBS - pd.Timedelta(hours=6)
     row = _builder().row(target, OBS, weather_publication_as_of=OBS)
-    wind100 = row["wind_speed_100m_ms"]
-    assert wind100.published_at == early_run
-    assert wind100.value == pytest.approx(8.0 + target.hour * 0.1)
-    assert wind100.value != POISON
+    for col, formula in (
+        ("shortwave_radiation_wm2", lambda h: 100.0 + h * 2.0),
+        ("direct_radiation_wm2", lambda h: 50.0 + h),
+        ("diffuse_radiation_wm2", lambda h: 20.0 + h * 0.5),
+    ):
+        feat = row[col]
+        assert feat.published_at == early_run
+        assert feat.value == pytest.approx(formula(target.hour))
+        assert feat.value != POISON
 
 
 def test_a_tighter_weather_cutoff_than_observation_as_of_is_honoured(replica):
     """weather_publication_as_of is a distinct parameter from observation_as_of
-    — a scheduler that generated late but still wants the weather run that
+    -- a scheduler that generated late but still wants the weather run that
     was live at the nominal schedule time must be able to pin it separately."""
     target = pd.Timestamp("2026-08-12 05:00:00")
     tight_cutoff = OBS - pd.Timedelta(hours=12)  # earlier than the only run before OBS
     row = _builder().row(target, OBS, weather_publication_as_of=tight_cutoff)
-    wind100 = row["wind_speed_100m_ms"]
-    assert wind100.published_at is None
-    assert np.isnan(wind100.value)
+    shortwave = row["shortwave_radiation_wm2"]
+    assert shortwave.published_at is None
+    assert np.isnan(shortwave.value)
 
 
 def test_temperature_c_is_always_populated_from_the_same_weather_row(replica):
-    """Diagnosis finding #3: wind's weather allow-list has no temperature
-    column, so serving never overrode it. This builder resolves temperature_c
-    unconditionally, from the same row as the allow-listed wind columns."""
+    """The issue's open question: does solar's generic temperature_c
+    inference still hold under the shared builder? `_weather_features`
+    resolves temperature_c unconditionally for every forecast_type, not
+    gated by config.WEATHER_FEATURES (which has no temperature_2m_k entry
+    for solar, same as wind) -- confirmed here rather than assumed."""
     target = pd.Timestamp("2026-08-12 05:00:00")
     row = _builder().row(target, OBS, OBS)
     early_run = OBS - pd.Timedelta(hours=6)
     temp = row["temperature_c"]
     assert temp.published_at == early_run
-    assert temp.value == pytest.approx((280.0 + target.hour) - 273.15)
+    assert temp.value == pytest.approx((290.0 + target.hour) - 273.15)
 
 
 def test_weather_publication_as_of_defaults_to_observation_as_of(replica):
@@ -257,28 +258,66 @@ def test_weather_publication_as_of_defaults_to_observation_as_of(replica):
     target = pd.Timestamp("2026-08-12 05:00:00")
     explicit = _builder().row(target, OBS, OBS)
     defaulted = _builder().row(target, OBS)
-    assert defaulted["wind_speed_100m_ms"].value == pytest.approx(explicit["wind_speed_100m_ms"].value)
-    assert defaulted["wind_speed_100m_ms"].published_at == explicit["wind_speed_100m_ms"].published_at
+    assert defaulted["shortwave_radiation_wm2"].value == pytest.approx(explicit["shortwave_radiation_wm2"].value)
+    assert defaulted["shortwave_radiation_wm2"].published_at == explicit["shortwave_radiation_wm2"].published_at
 
 
-# --- calendar features: pure functions of the target hour ------------------
+# --- ABL-188: the constant-run invariant is inherited, not reimplemented ---
 
 
-def test_calendar_features_describe_the_target_hour_not_the_generation_hour(replica):
-    target = pd.Timestamp("2026-08-13 15:00:00")  # a Thursday
+@pytest.fixture
+def constant_run_replica(tmp_path, monkeypatch):
+    """A dedicated, minimal fixture isolating one suspect constant run inside
+    the lookback window a lag_7d lookup will hit -- proves the DE-solar-zero
+    invariant (`exclude_suspect_constant_runs`, ABL-188) reaches solar
+    through this builder with no solar-specific code, since `_load_actuals_series`
+    calls the same `load_renewable_type_data` wind already goes through."""
+    path = tmp_path / "replica.db"
+    con = sqlite3.connect(path)
+    con.executescript(
+        "CREATE TABLE energy_renewable (country_code TEXT, timestamp_utc TIMESTAMP, solar_mw REAL);"
+        "CREATE TABLE weather_data (country_code TEXT, timestamp_utc TIMESTAMP, "
+        "forecast_run_time TIMESTAMP, data_quality TEXT, temperature_2m_k REAL, "
+        "wind_speed_10m_ms REAL, wind_speed_100m_ms REAL, shortwave_radiation_wm2 REAL, "
+        "direct_radiation_wm2 REAL, diffuse_radiation_wm2 REAL);"
+    )
+
+    target = pd.Timestamp("2026-08-12 05:00:00")
+    lag7_source = target - pd.Timedelta(days=7)
+    run_start = lag7_source - pd.Timedelta(hours=15)
+    run_end = lag7_source + pd.Timedelta(hours=15)  # 30h span, over the 24h min
+
+    for ts in pd.date_range(OBS - pd.Timedelta(days=40), OBS, freq="h"):
+        value = 0.0 if run_start <= ts <= run_end else _epoch_hours(ts)
+        con.execute("INSERT INTO energy_renewable VALUES (?, ?, ?)", (COUNTRY, str(ts), value))
+    con.commit()
+    con.close()
+
+    monkeypatch.setenv("ENERGY_DB_PATH", str(path))
+    import importlib
+
+    importlib.reload(config)
+    return {"target": target, "lag7_source": lag7_source}
+
+
+def test_a_suspect_constant_actuals_run_is_excluded_from_lags_and_rolling(constant_run_replica):
+    target = constant_run_replica["target"]
+    lag7_source = constant_run_replica["lag7_source"]
     row = _builder().row(target, OBS, OBS)
-    assert row["hour"].value == 15
-    assert row["day_of_week"].value == target.dayofweek
-    assert row["is_weekend"].value == 0
-    assert row["hour"].source_timestamp == target
+    lag7 = row["target_value_lag_7d"]
+    assert lag7.source_timestamp == lag7_source
+    # Not 0.0 -- ABL-188: a bit-identical 30h run is unadjudicated-missing,
+    # not a measured value, so the invariant nulls it before it reaches a lag.
+    assert np.isnan(lag7.value)
 
 
 # --- contract: to_vector / SUPPORTED_FORECAST_TYPES / artifact shape -------
 
 
 #: The exact 24 names, in the exact order, read from the real frozen
-#: artifacts (models/BE/wind_offshore, models/FR/wind_offshore,
-#: models/BE|DE|FR/wind_onshore, models/AT/wind_onshore), 2026-08-11.
+#: artifacts (models/AT|BE|DE|FR/solar/model.joblib), 2026-08-11. Same shape
+#: as wind's 24 (10 calendar + 3 lags + 8 rolling + temperature_c) with the
+#: two wind-speed columns swapped for solar's three radiation columns.
 REAL_ARTIFACT_FEATURE_COLUMNS = [
     "hour", "day_of_week", "month", "is_weekend", "hour_sin", "hour_cos",
     "day_sin", "day_cos", "month_sin", "month_cos",
@@ -287,7 +326,8 @@ REAL_ARTIFACT_FEATURE_COLUMNS = [
     "target_value_roll_24h_min", "target_value_roll_24h_max",
     "target_value_roll_168h_mean", "target_value_roll_168h_std",
     "target_value_roll_168h_min", "target_value_roll_168h_max",
-    "wind_speed_100m_ms", "wind_speed_10m_ms", "temperature_c",
+    "shortwave_radiation_wm2", "direct_radiation_wm2", "diffuse_radiation_wm2",
+    "temperature_c",
 ]
 
 
@@ -298,20 +338,5 @@ def test_to_vector_produces_exactly_the_real_artifacts_24_columns_in_order(repli
     assert all(isinstance(v, float) for v in vector.values())
 
 
-def test_to_vector_raises_for_a_column_the_builder_cannot_build(replica):
-    row = _builder().row(pd.Timestamp("2026-08-12 05:00:00"), OBS, OBS)
-    with pytest.raises(KeyError):
-        to_vector(row, ["is_holiday"])
-
-
-def test_supported_forecast_types_is_wind_and_solar():
-    """ABL-183 scope was the two wind types ABL-179 diagnosed; ABL-191 adds
-    solar, per ABL-185's diagnosis. See wind_features.py's
-    SUPPORTED_FORECAST_TYPES docstring for why hydro_total/biomass/renewable
-    are not included yet."""
-    assert set(SUPPORTED_FORECAST_TYPES) == {"wind_onshore", "wind_offshore", "solar"}
-
-
-def test_builder_refuses_an_unsupported_forecast_type(replica):
-    with pytest.raises(ValueError):
-        RenewableFeatureBuilder(COUNTRY, "hydro_total", OBS - pd.Timedelta(days=1), OBS)
+def test_solar_is_in_supported_forecast_types():
+    assert "solar" in SUPPORTED_FORECAST_TYPES

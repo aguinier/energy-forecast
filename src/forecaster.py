@@ -585,9 +585,10 @@ class Forecaster:
                 fixed instant instead of the wall clock.
             weather_publication_as_of: Newest weather forecast run instant
                 admitted (default: observation_as_of). Only consulted for
-                `self.forecast_type in SERVE_FAITHFUL_FORECAST_TYPES` (wind);
-                other types still resolve weather via
-                `load_weather_forecast_for_hour`, unchanged by ABL-183.
+                `self.forecast_type in SERVE_FAITHFUL_FORECAST_TYPES` (wind
+                onshore/offshore, solar — ABL-183/ABL-191); other types still
+                resolve weather via `load_weather_forecast_for_hour`,
+                unchanged by either.
 
         Returns:
             DataFrame with forecast columns:
@@ -750,12 +751,14 @@ class Forecaster:
         observation_as_of: pd.Timestamp,
         weather_publication_as_of: pd.Timestamp,
     ) -> List[Dict[str, Any]]:
-        """Wind-type prediction via the shared train/serve feature builder
-        (ABL-183, `wind_features.py`). One `RenewableFeatureBuilder` per call
-        loads actuals/weather once for the whole target day; `.row()` per
-        target hour returns each feature with the provenance
-        (`source_timestamp`, `published_at`, `degraded`) a golden test checks,
-        which `to_vector` strips before the model sees it.
+        """Prediction for any `SUPPORTED_FORECAST_TYPES` member (wind
+        onshore/offshore, solar) via the shared train/serve feature builder
+        (ABL-183, extended to solar by ABL-191; `wind_features.py`). One
+        `RenewableFeatureBuilder` per call loads actuals/weather once for the
+        whole target day; `.row()` per target hour returns each feature with
+        the provenance (`source_timestamp`, `published_at`, `degraded`) a
+        golden test checks, which `to_vector` strips before the model sees
+        it. Nothing here branches on `forecast_type` — the builder is.
         """
         generated_at = observation_as_of.to_pydatetime()
         target_hours = [
