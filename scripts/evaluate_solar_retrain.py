@@ -10,7 +10,6 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-import joblib
 import numpy as np
 import pandas as pd
 from catboost import CatBoostRegressor
@@ -18,6 +17,7 @@ from catboost import CatBoostRegressor
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 from src.data_quality import find_suspect_constant_runs
+from src.evaluation.gate_artifacts import save_gate_artifact
 from src.evaluation.scorecard import (
     ScorecardConfig, _load_forecasts, _load_tso, _ro_connect,
     score_predictions, select_latest_per_band,
@@ -173,12 +173,13 @@ def main() -> int:
         model, params = _model()
         model.fit(fit[list(FEATURE_COLUMNS)], fit["actual"])
 
-        path = artifact_dir / country / "solar" / "model.joblib"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        joblib.dump({"model": model, "feature_columns": list(FEATURE_COLUMNS),
-                     "country_code": country, "forecast_type": "solar",
-                     "algorithm": ALGORITHM, "params": params,
-                     "fit_window": [str(fit_start), str(gate_start)]}, path)
+        # ABL-342: through `Forecaster.save`, so the artifact carries the table
+        # it was fitted on and the ABL-183 intercept witness by construction.
+        path = save_gate_artifact(
+            artifact_dir / country / "solar" / "model.joblib",
+            model=model, builder=builder, algorithm=ALGORITHM, params=params,
+            feature_columns=FEATURE_COLUMNS, fit_window=(fit_start, gate_start),
+        )
 
         gate_raw = build_vintage_frame(builder, gate_start, gate_end, FEATURE_COLUMNS)
         gate_finite, gate_audit = finite_training_rows(gate_raw, FEATURE_COLUMNS)

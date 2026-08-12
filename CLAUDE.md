@@ -173,7 +173,7 @@ window, proposed but not executed in the ABL-188 report.
 **Which table an individual renewable type is read from is a property of the
 model artifact, not a global** (ABL-331). `model_data["training_source"]` is
 written by `Forecaster.save`/`_get_model_data` and read back by
-`Forecaster.load` (`forecaster.py:975`), which threads it into
+`Forecaster.load` (`forecaster.py:1005`), which threads it into
 `RenewableFeatureBuilder` at serve time and into `load_training_data` at train
 time — so a pair is always served features from the table it was fitted on.
 `db.RENEWABLE_TYPE_SOURCE_TABLE` (`db.py:361`) is now **only** the default for
@@ -183,6 +183,29 @@ key predates ABL-331 and resolves to `db.LEGACY_RENEWABLE_TRAINING_SOURCE`
 (`db.py:371`) — deliberately the literal `'energy_renewable'` rather than an
 alias of the training default, because those artifacts were fitted on it and
 must not follow a later flip.
+
+That default is silent, and `load` reads every key with `.get(..., default)` —
+so an artifact written **without** the key does not fail, it serves from
+`energy_renewable` whatever it was fitted on. **`Forecaster.save` is therefore
+the only writer of a renewable artifact** (ABL-342). Do not add a second one.
+The two pre-registered gate harnesses used to `joblib.dump` seven keys of their
+own; they now go through `src/evaluation/gate_artifacts.py:41`
+`save_gate_artifact`, which takes the `RenewableFeatureBuilder` that produced
+the training rows rather than a source string, so the recorded table cannot
+drift from the series that was fitted. `ModelRegistry.save_model` takes a
+caller's dict verbatim and cannot derive the value, so it **refuses** a
+`RENEWABLE_TYPES` payload with no `training_source` (`model_registry.py:165`)
+rather than let one reach `candidate/` or `production/`. Routing through `save`
+also picks up the ABL-183 intercept witness, which the bare dumps omitted —
+that is what made the guard a no-op for exactly the artifacts a gate produces.
+`CascadeForecaster.save` (`forecaster.py:1408`) is not an exception: it stores
+only the aggregate `load`/`renewable`/`price` types, which carry no source by
+the rule above, and is read back by `CascadeForecaster.load_model`.
+
+Note that both harnesses still build their features with no `actuals_source`,
+so today they fit on `energy_renewable`; ABL-342 made the provenance faithful,
+it did not give them a source argument. The ABL-316 pairs that need
+`energy_generation` want one added.
 
 The **training window** obeys the same rule. Both `train` entry points close an
 open-ended window (`end_date is None`) with `db.get_latest_data_timestamp`, which

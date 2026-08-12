@@ -146,6 +146,31 @@ class ModelRegistry:
         if location not in ("candidate", "production"):
             raise ValueError(f"Invalid location for save: {location}")
 
+        # ABL-342: this writer takes the caller's dict verbatim, so it is a way
+        # around `Forecaster.save`. For an individual renewable type that is not
+        # a cosmetic gap: `Forecaster.load` resolves an absent `training_source`
+        # to `LEGACY_RENEWABLE_TRAINING_SOURCE` ('energy_renewable') silently,
+        # so a payload written here without one describes a model that will be
+        # served from whichever table that literal names — correct only by luck,
+        # and never louder than a clean load.
+        #
+        # Rejected rather than documented as an internal-only writer: the second
+        # option would rest on the claim that nothing serves from here, and this
+        # class's own `promote_to_production` copies the candidate to
+        # `production/model.joblib`, which is a deployment destination by name.
+        # A claim like that rots the first time someone points a loader at it.
+        # This writer cannot derive the value itself — it never saw the fit — so
+        # it refuses instead of guessing. The sole caller in the repo
+        # (`scripts/train.py`, via `Forecaster._get_model_data`) already sets it.
+        if forecast_type in config.RENEWABLE_TYPES and not model_data.get("training_source"):
+            raise ValueError(
+                f"Refusing to save a {forecast_type} model for {country_code} with no "
+                "'training_source': Forecaster.load would resolve the absent key to "
+                "'energy_renewable' and serve it from that table whatever it was fitted "
+                "on. Build the payload with Forecaster._get_model_data() or save through "
+                "Forecaster.save()."
+            )
+
         path = self.get_model_path(country_code, forecast_type, location)
         path.parent.mkdir(parents=True, exist_ok=True)
 
