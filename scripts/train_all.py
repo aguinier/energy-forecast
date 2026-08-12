@@ -22,12 +22,11 @@ from pathlib import Path
 from typing import List, Dict, Optional
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-# Add parent directory to path
+# Add repo root to path (for the top-level `config` module and the `src` package)
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import config
-from db import initialize_all_tables
+from src.db import initialize_all_tables
 
 
 def setup_logging():
@@ -166,7 +165,6 @@ def train_single_model(
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
     import logging
     logging.basicConfig(level=logging.WARNING)  # Quiet mode for workers

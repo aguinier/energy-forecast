@@ -11,10 +11,7 @@ from typing import Dict, Optional, Tuple
 from datetime import datetime, timedelta
 import sqlite3
 
-try:
-    from .metrics import calculate_all_metrics, skill_score
-except ImportError:
-    from metrics import calculate_all_metrics, skill_score
+from .metrics import calculate_all_metrics, skill_score
 
 
 class PersistenceBaseline:

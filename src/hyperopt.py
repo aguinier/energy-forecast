@@ -26,7 +26,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 
-from metrics import mae, rmse, mape
+from .metrics import mae, rmse, mape
 
 logger = logging.getLogger("energy_forecast")
 

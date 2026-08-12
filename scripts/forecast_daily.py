@@ -19,13 +19,12 @@ from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import List
 
-# Add parent directory to path
+# Add repo root to path (for the top-level `config` module and the `src` package)
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import config
-from db import save_forecasts, create_forecasts_table, start_forecast_run, complete_forecast_run
-from forecaster import Forecaster
+from src.db import save_forecasts, create_forecasts_table, start_forecast_run, complete_forecast_run
+from src.forecaster import Forecaster
 
 
 def setup_logging():
