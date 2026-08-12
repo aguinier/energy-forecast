@@ -19,17 +19,10 @@ from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import List
 
-# Add parent directory to path
+# Add repo root to path (for the top-level `config` module and the `src` package)
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import config
-# Package-qualified: src/ modules import each other relatively, so importing
-# them as top-level modules (`from db import ...`) raises ImportError. This
-# script has been unable to start since 574eb80 (ABL-188) added the first
-# relative import to src/db.py — the scheduled job kept running only because
-# its container image predates that commit. Same convention as the scripts that
-# do work, e.g. scripts/evaluate_scorecard.py:14.
 from src.db import save_forecasts, create_forecasts_table, start_forecast_run, complete_forecast_run
 from src.forecaster import Forecaster
 

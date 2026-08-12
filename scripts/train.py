@@ -29,30 +29,61 @@ from typing import List, Dict, Optional, Any
 import numpy as np
 import pandas as pd
 
-# Add parent directory to path
+# Add repo root to path (for the top-level `config` module and the `src` package)
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import config
-import db
-from db import (
+from src import db
+from src.db import (
     create_forecasts_table,
     initialize_all_tables,
     save_model_evaluation,
     get_latest_evaluation,
     get_latest_data_timestamp,
 )
-from forecaster import Forecaster, CascadeForecaster
-from metrics import format_metrics, calculate_all_metrics
-from baselines import compute_baseline_metrics, PersistenceBaseline, SeasonalNaiveBaseline
-from model_registry import get_registry
-from deployment import auto_promote_if_better
-from validation import WalkForwardValidator, TimeSeriesValidator, format_validation_report
-from hyperopt import OptunaOptimizer, compare_algorithms as optuna_compare_algorithms
-from feature_selection import FeatureSelector
-from features import create_all_features, get_feature_columns
+from src.forecaster import Forecaster, CascadeForecaster
+from src.metrics import format_metrics, calculate_all_metrics
+from src.baselines import compute_baseline_metrics, PersistenceBaseline, SeasonalNaiveBaseline
+from src.model_registry import get_registry
+from src.deployment import auto_promote_if_better
+from src.validation import WalkForwardValidator, TimeSeriesValidator, format_validation_report
+from src.hyperopt import OptunaOptimizer, compare_algorithms as optuna_compare_algorithms
+from src.feature_selection import FeatureSelector
+from src.features import create_all_features, get_feature_columns
 from datetime import timedelta
 import pytz
+
+
+#: Exit code for "refused to start: no sidecar target". Distinct from the `1`
+#: that a configuration error exits with, so a caller — or a test — can tell a
+#: refusal to write to the replica apart from every other startup failure.
+SIDECAR_REQUIRED_EXIT = 2
+
+SIDECAR_REQUIRED_MESSAGE = (
+    "FORECAST_OUTPUT_DB (or --sidecar-db) is required: training writes to the "
+    "sidecar, never the replica. src/db.py resolves a write target as "
+    "`FORECAST_OUTPUT_DB or DATABASE_PATH`, so with neither set every write "
+    "this run makes - starting with initialize_all_tables()'s DDL - would land "
+    "on the replica at ENERGY_DB_PATH. Set FORECAST_OUTPUT_DB, or pass "
+    "--sidecar-db PATH."
+)
+
+
+def resolve_sidecar_db(sidecar_db):
+    """Pure. The sidecar file this run must send every write to, or None.
+
+    `None` means "no sidecar target resolved", which is the case `main()`
+    refuses on. It is deliberately not the same as "the file does not exist
+    yet": a sidecar is created on first write, and requiring it to pre-exist
+    would break the first run on a clean workstation.
+
+    The empty string is folded into `None` because it is what the two ways of
+    supplying nothing actually produce -- `FORECAST_OUTPUT_DB=` in a `.env`, and
+    `--sidecar-db "$env:FORECAST_OUTPUT_DB"` with the variable unset. Both read
+    as "configured" to a bare truthiness check on the argument's presence while
+    meaning the opposite.
+    """
+    return (sidecar_db or '').strip() or None
 
 
 def setup_logging():
@@ -251,6 +282,26 @@ Examples:
             'Source table for individual renewable types (default: '
             f'{db.RENEWABLE_TYPE_SOURCE_TABLE}). Recorded as the artifact\'s '
             'training_source and used for its serve-time features.'
+        ),
+    )
+
+    # ABL-346: replica purity. Parity with the six sibling scripts that already
+    # surface this flag (`forecast_challengers.py:316`, `evaluate_scorecard.py:20`,
+    # `evaluate_net_position.py:45`, `evaluate_solar_retrain.py:147`,
+    # `evaluate_wind_retrain.py:155`, `attest_net_position_serve_faithfulness.py:198`).
+    # Unlike those, this one is threaded back into `config.FORECAST_OUTPUT_DB`
+    # in `main()` -- training's writes go through `src/db.py`'s module-level
+    # helpers, which read that attribute rather than taking a path, so a flag
+    # that only sat in `args` would satisfy the guard while every write still
+    # went to the replica.
+    parser.add_argument(
+        '--sidecar-db',
+        type=str,
+        default=config.FORECAST_OUTPUT_DB,
+        help=(
+            'SQLite file every write from this run goes to (default: '
+            '$FORECAST_OUTPUT_DB). Required: training never writes to the '
+            'replica at $ENERGY_DB_PATH.'
         ),
     )
 
@@ -468,16 +519,27 @@ def train_model(
 
         # Load and prepare data for potential Optuna/feature selection
         if use_optuna or feature_selection:
-            # Handle None end_date - get latest available data
+            # ABL-331 follow-up: this block runs *before* the `Forecaster` below
+            # is constructed with `training_source=renewable_source`, and it used
+            # to load with no source at all. With `--renewable-source
+            # energy_generation` that tuned the hyperparameters and selected the
+            # feature set on `energy_renewable` and then fitted the shipped model
+            # on `energy_generation` -- a train/train skew inside one run, in the
+            # flag's own code path.
             effective_end_date = end_date
             if effective_end_date is None:
-                latest = get_latest_data_timestamp(country_code, forecast_type)
+                latest = get_latest_data_timestamp(
+                    country_code, forecast_type, source=renewable_source
+                )
                 if latest:
                     effective_end_date = (latest + timedelta(days=1)).strftime("%Y-%m-%d")
                 else:
                     effective_end_date = datetime.now().strftime("%Y-%m-%d")
 
-            df = db.load_training_data(country_code, forecast_type, start_date, effective_end_date)
+            df = db.load_training_data(
+                country_code, forecast_type, start_date, effective_end_date,
+                source=renewable_source,
+            )
             if df.empty:
                 raise ValueError(f"No training data for {country_code} {forecast_type}")
 
@@ -649,7 +711,7 @@ def evaluate_against_baselines(
             return skill_scores
 
         # Create features and predict
-        from features import create_all_features
+        from src.features import create_all_features
         val_df = create_all_features(val_df, forecast_type)
         val_df = val_df.dropna()
 
@@ -680,7 +742,7 @@ def evaluate_against_baselines(
         valid_seasonal = ~np.isnan(y_seasonal)
 
         # Compute skill scores
-        from metrics import skill_score as compute_skill
+        from src.metrics import skill_score as compute_skill
 
         if valid_persist.sum() > 0:
             skill_scores['skill_vs_persistence'] = compute_skill(
@@ -810,7 +872,7 @@ def evaluate_cascade_against_baselines(
         y_persistence = persistence.predict_for_target(hist_series, target_timestamps)
         y_seasonal = seasonal.predict_for_target(hist_series, target_timestamps)
 
-        from metrics import skill_score as compute_skill
+        from src.metrics import skill_score as compute_skill
 
         valid_persist = ~np.isnan(y_persistence)
         valid_seasonal = ~np.isnan(y_seasonal)
@@ -842,6 +904,30 @@ def main():
     logger.info("=" * 60)
     logger.info("Energy Forecasting Model Training")
     logger.info("=" * 60)
+
+    # ABL-346: refuse to start when no sidecar target resolves.
+    #
+    # This has to stay above `initialize_all_tables()`. `src/db.py:48` resolves
+    # every write target as `FORECAST_OUTPUT_DB or DATABASE_PATH`, and that `or`
+    # does not fail when the variable is unset -- it falls through to the
+    # replica. `initialize_all_tables()` is DDL on a write connection and is the
+    # first thing this script does, so a check placed after it has already let
+    # the write it exists to prevent happen. A silent fallthrough is not a
+    # safety property; refusing the ambiguous case is.
+    #
+    # Above `validate_config()` as well, so the refusal does not depend on the
+    # replica being present and current: "I have nowhere safe to write" is
+    # answerable without opening the replica at all.
+    sidecar = resolve_sidecar_db(args.sidecar_db)
+    if sidecar is None:
+        logger.error(SIDECAR_REQUIRED_MESSAGE)
+        return SIDECAR_REQUIRED_EXIT
+
+    # `src/db.py` reads this attribute per connection, so assigning it here is
+    # what makes `--sidecar-db` real rather than decorative. A no-op when the
+    # value came from the environment, which is the default.
+    config.FORECAST_OUTPUT_DB = sidecar
+    logger.info(f"Sidecar output DB (all writes): {sidecar}")
 
     # Validate config
     try:

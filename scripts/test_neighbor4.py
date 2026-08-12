@@ -3,12 +3,12 @@
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import config
 config.ENABLE_NEIGHBOR_PRICE_FEATURES = True
-import db, logging
-from features import create_all_features, get_feature_columns
+import logging
+from src import db
+from src.features import create_all_features, get_feature_columns
 from lightgbm import LGBMRegressor
 from sklearn.metrics import mean_absolute_error
 import lightgbm, numpy as np
