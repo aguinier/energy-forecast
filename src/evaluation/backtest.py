@@ -26,10 +26,9 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import config
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from db import load_training_data, load_energy_data, load_weather_data
-from features import create_all_features, get_feature_columns
-from evaluation.metrics import (
+from ..db import load_training_data, load_energy_data, load_weather_data
+from ..features import create_all_features, get_feature_columns
+from .metrics import (
     calculate_point_metrics,
     diebold_mariano_test,
     skill_score,
@@ -120,7 +119,7 @@ def run_xgboost_backtest(
     Returns:
         BacktestResult with per-day forecasts and actuals
     """
-    from forecaster import Forecaster
+    from ..forecaster import Forecaster
 
     result = BacktestResult(f"{algorithm}_D+{horizon_days}")
 
