@@ -26,7 +26,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def test_multipoint():
+def probe_multipoint():
     """
     Test multipoint training with Belgium wind_onshore
     """
@@ -105,4 +105,4 @@ def test_multipoint():
         traceback.print_exc()
 
 if __name__ == "__main__":
-    test_multipoint()
+    probe_multipoint()

@@ -14,7 +14,12 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
+# Relative, so callers must import this module as `src.db` — the convention the
+# working scripts already follow (e.g. scripts/evaluate_scorecard.py:14).
+# `from db import ...` with src/ on sys.path has been an ImportError since
+# 574eb80 (ABL-188) added the first relative import here.
 from .data_quality import exclude_suspect_constant_runs
+from .solar_clamp import SolarClampStats, clamp_solar_forecasts
 
 
 logger = logging.getLogger('energy_forecast')
@@ -74,11 +79,17 @@ def create_forecasts_table():
     with get_connection(readonly=False) as conn:
         cursor = conn.cursor()
 
+        # renewable_type has been in save_forecasts' INSERT and in the shared
+        # database for a long time, but was missing from this CREATE — so every
+        # row of a run against a *fresh* database failed with "table forecasts
+        # has no column named renewable_type" while the run still reported
+        # success. Adding it is a no-op on any existing table.
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS forecasts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 country_code TEXT NOT NULL,
                 forecast_type TEXT NOT NULL,
+                renewable_type TEXT,
                 target_timestamp_utc TIMESTAMP NOT NULL,
                 generated_at TIMESTAMP NOT NULL,
                 horizon_hours INTEGER NOT NULL,
@@ -395,6 +406,104 @@ RENEWABLE_TYPE_COLUMNS = {
 }
 
 
+def aggregate_renewable_to_hourly(
+    df: pd.DataFrame,
+    value_col: str = 'target_value',
+    timestamp_col: str = 'timestamp_utc',
+    context: str = '',
+) -> pd.DataFrame:
+    """Collapse a native-resolution renewable target series onto the hour.
+
+    ABL-332. Both source tables store **mixed** resolutions: 22 of the 24
+    `config.SUPPORTED_COUNTRIES` carry quarter-hourly rows for at least part of
+    their history in `energy_renewable`, and 20 of 24 do in `energy_generation`
+    (only BE, BG, CH, LV, PT are hourly throughout both). It is not a property
+    of the country either -- most of these have an hourly backbone for the early
+    years and switch to 15 minutes partway through, so the same country is both.
+
+    Before this function existed the two consumers of that series disagreed
+    about what an "hour" was, and neither said so:
+
+      - **Training** (`load_training_data`) resampled to the hourly *mean*, then
+        `features.py` built lags with `shift(days * 24)` -- a positional shift
+        that only means one day on an hourly frame.
+      - **Serving** (`src/wind_features.py`) took `series.loc[ts.floor("h")]`.
+        On a quarter-hourly country the `:00` row exists, so that returned a
+        scalar and every lag was built from the `:00` sub-sample alone --
+        3 of every 4 samples discarded, with no error and no log line. Its
+        rolling windows, meanwhile, sliced the raw index by time and so
+        averaged ~96 samples a day. Three definitions, one feature row.
+
+    Aggregating here -- at the single read both paths go through -- is what
+    makes them the same number. `load_training_data`'s own `resample('h').mean()`
+    becomes a no-op on this output, so the frame a model is **fitted** on is
+    byte-unchanged; the serving path converges onto it.
+
+    One training-path consumer does move, and it is not the fitted frame:
+    `scripts/train.py`'s availability screen reads this same loader and
+    thresholds on `(target_value > 0).sum() / len(df)` without resampling
+    first. An hourly mean is > 0 whenever *any* sub-sample in the hour is, so
+    that fraction can only rise. Measured on the replica 2026-08-12 over the
+    screen's own 30-day window, all supported pairs, both source tables: 53
+    pairs move their percentage without changing verdict, and exactly one
+    changes verdict -- IT/wind_offshore, 0.4865 -> 0.5764 across the 0.50
+    threshold, so it becomes eligible to train where it was skipped. That is a
+    correction, not a regression: the screen now measures the same hourly frame
+    the model is actually fitted on, instead of a quarter-hourly one nothing
+    downstream ever sees. It takes effect only on the next training run for
+    that pair; merging ABL-332 retrains nothing.
+
+    The rule is the hourly mean of whatever sub-samples the hour actually has,
+    which is exactly what `resample('h').mean()` has always done for training.
+    An hour with no sub-sample at all does not appear; an hour whose every
+    sub-sample is NaN stays NaN. `mean` is deliberate: `sum` would collapse an
+    all-NaN hour to 0.0 without `min_count=1`, and NULL is not 0.
+
+    A partial hour (fewer sub-samples than the series cadence implies) is
+    counted and logged rather than dropped or filled -- the value is still a
+    mean over real measurements, and dropping it would discard an hour training
+    has always kept.
+    """
+    if df.empty or value_col not in df.columns:
+        return df
+
+    stamps = pd.to_datetime(df[timestamp_col], format='mixed', errors='coerce')
+    if stamps.isna().all():
+        return df
+
+    floored = stamps.dt.floor('h')
+    if floored.equals(stamps):
+        # Already hourly. Nothing to aggregate, nothing to say.
+        return df
+
+    # Cadence before aggregation, for the log line only -- the aggregation
+    # itself makes no assumption about it and handles an irregular grid.
+    steps = stamps.sort_values().diff().dropna()
+    steps = steps[steps > pd.Timedelta(0)]
+    cadence = steps.median() if not steps.empty else None
+    expected_per_hour = (
+        int(round(pd.Timedelta(hours=1) / cadence))
+        if cadence is not None and pd.Timedelta(0) < cadence <= pd.Timedelta(hours=1)
+        else None
+    )
+
+    grouped = df.assign(**{timestamp_col: floored}).groupby(timestamp_col, sort=True)
+    hourly = grouped[value_col].mean().reset_index()
+    counts = grouped[value_col].size()
+
+    partial = int((counts < expected_per_hour).sum()) if expected_per_hour else 0
+    logger.warning(
+        "ABL-332: aggregated %d sub-hourly rows to %d hourly means (%s cadence, "
+        "%s partial hour(s))%s -- the pre-ABL-332 serving builder read only the "
+        ":00 sub-sample of each hour and silently discarded the rest.",
+        len(df), len(hourly),
+        f"{cadence}" if cadence is not None else "unknown",
+        partial if expected_per_hour else "unknown",
+        f" [{context}]" if context else "",
+    )
+    return hourly[[timestamp_col, value_col]]
+
+
 def load_renewable_type_data(
     country_code: str,
     renewable_type: str,
@@ -528,8 +637,18 @@ def load_renewable_type_data(
             f"for {country_code} (see warnings above for exact runs)"
         )
 
+    # ABL-332: one resolution leaves this function -- hourly. Deliberately
+    # *after* `exclude_suspect_constant_runs`: that guard infers a series'
+    # cadence from its own median step and measures runs in hours, so it reads
+    # a quarter-hourly zero-fill (ABL-188's is 6,408 quarter-hours) at the
+    # resolution it was written against. Averaging first would blur the edge of
+    # such a run into a non-constant value and hide it from the guard.
+    df = aggregate_renewable_to_hourly(
+        df, context=f"{country_code}/{renewable_type} from {source}"
+    )
+
     logger.info(
-        f"Loaded {len(df)} {renewable_type} records for {country_code} from {source}"
+        f"Loaded {len(df)} hourly {renewable_type} records for {country_code} from {source}"
     )
     return df
 
@@ -757,7 +876,15 @@ def load_training_data(
         logger.warning(f"No energy data for {country_code} {forecast_type}")
         return energy_df
 
-    # Resample energy data to hourly (mean of sub-hourly values)
+    # Resample energy data to hourly (mean of sub-hourly values).
+    #
+    # ABL-332: for the individual renewable types this is now a **no-op** --
+    # `load_renewable_type_data` already returns hourly means, deliberately, so
+    # that serving (`src/wind_features.py`) and training agree on what an hour
+    # is. It still does real work for 'load'/'price'/'renewable', which read
+    # their own tables at native resolution. Removing it would therefore break
+    # those three; keeping it costs one pass and keeps this the one place a
+    # reader has to look to know the training frame is hourly.
     energy_df = energy_df.set_index('timestamp_utc')
     energy_df = energy_df.resample('h').mean().reset_index()
     energy_df = energy_df.dropna()
@@ -945,6 +1072,10 @@ def save_forecasts(forecasts_df: pd.DataFrame) -> int:
             logger.warning(f"All forecast values are zero for {forecasts_df['forecast_type'].iloc[0]} - skipping save")
             return 0
 
+    # ABL-337: physical clamp on solar, applied to new rows on the way in.
+    # Nothing here rewrites stored history. See src/solar_clamp.py.
+    forecasts_df, clamp_stats = clamp_solar_forecasts(forecasts_df)
+
     records_inserted = 0
 
     with get_connection(readonly=False) as conn:
@@ -974,6 +1105,15 @@ def save_forecasts(forecasts_df: pd.DataFrame) -> int:
                 logger.error(f"Failed to insert forecast: {e}")
 
     logger.info(f"Saved {records_inserted} forecasts to database")
+
+    # Telemetry last, and never fatal: a failure to record what the clamp did
+    # must not lose forecasts that are already written.
+    if clamp_stats:
+        try:
+            save_solar_clamp_stats(clamp_stats)
+        except Exception as e:
+            logger.error(f"Failed to record solar clamp telemetry: {e}")
+
     return records_inserted
 
 
@@ -1631,6 +1771,101 @@ def create_forecast_runs_table():
         logger.info("Forecast runs table created/verified")
 
 
+def create_solar_clamp_log_table():
+    """
+    Create forecast_clamp_log: what the ABL-337 solar clamp removed, per run,
+    per country, per model.
+
+    This is the instrument, not a debug log. The clamp hides a fit defect
+    (ABL-338) by construction, and this table is what keeps that honest — it is
+    the record of how much of the served number the guard is responsible for,
+    and the measure ABL-338's retrain gets scored against. It lives in the same
+    database the clamped rows went into, so it can be read without running
+    anything:
+
+        SELECT clamped_at, country_code, model_name, hours_zeroed_night,
+               hours_raised_floor, mw_removed_total
+        FROM forecast_clamp_log ORDER BY clamped_at DESC;
+    """
+    with get_connection(readonly=False) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS forecast_clamp_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                clamped_at TIMESTAMP NOT NULL,
+                generated_at TIMESTAMP,
+                country_code TEXT NOT NULL,
+                model_name TEXT NOT NULL,
+                renewable_type TEXT NOT NULL,
+                night_threshold_deg REAL NOT NULL,
+                rows_total INTEGER NOT NULL,
+                hours_zeroed_night INTEGER NOT NULL,
+                hours_raised_floor INTEGER NOT NULL,
+                mw_removed_night REAL NOT NULL,
+                mw_added_floor REAL NOT NULL,
+                mw_removed_total REAL NOT NULL,
+                min_forecast_mw REAL,
+                max_night_forecast_mw REAL,
+                target_start TIMESTAMP,
+                target_end TIMESTAMP
+            )
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_forecast_clamp_log_lookup
+            ON forecast_clamp_log(country_code, clamped_at DESC)
+        """)
+
+        logger.debug("Forecast clamp log table created/verified")
+
+
+def save_solar_clamp_stats(stats: List['SolarClampStats']) -> int:
+    """
+    Append one forecast_clamp_log row per (country, model) the clamp touched.
+
+    Rows are appended, never updated: two runs on the same vintage are two
+    facts about two runs.
+    """
+    if not stats:
+        return 0
+
+    create_solar_clamp_log_table()
+    clamped_at = datetime.now().isoformat()
+
+    with get_connection(readonly=False) as conn:
+        cursor = conn.cursor()
+        for s in stats:
+            cursor.execute("""
+                INSERT INTO forecast_clamp_log
+                (clamped_at, generated_at, country_code, model_name, renewable_type,
+                 night_threshold_deg, rows_total, hours_zeroed_night, hours_raised_floor,
+                 mw_removed_night, mw_added_floor, mw_removed_total,
+                 min_forecast_mw, max_night_forecast_mw, target_start, target_end)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                clamped_at,
+                s.generated_at.isoformat() if s.generated_at is not None else None,
+                s.country_code,
+                s.model_name,
+                s.renewable_type,
+                s.night_threshold_deg,
+                s.rows_total,
+                s.hours_zeroed_night,
+                s.hours_raised_floor,
+                s.mw_removed_night,
+                s.mw_added_floor,
+                s.mw_removed_total,
+                s.min_forecast_mw,
+                s.max_night_forecast_mw,
+                s.target_start.isoformat() if s.target_start is not None else None,
+                s.target_end.isoformat() if s.target_end is not None else None,
+            ))
+
+    logger.info(f"Recorded solar clamp telemetry for {len(stats)} country/model pairs")
+    return len(stats)
+
+
 def start_forecast_run(
     run_type: str = "scheduled",
     trigger_source: str = "bat_file",
@@ -1757,6 +1992,7 @@ def initialize_all_tables():
     create_model_evaluations_table()
     create_deployed_models_table()
     create_forecast_runs_table()
+    create_solar_clamp_log_table()
     logger.info("All tables initialized")
 
 
