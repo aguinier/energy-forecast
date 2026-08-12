@@ -186,7 +186,11 @@ def test_an_unflagged_run_still_reads_the_default_table(replica, monkeypatch, tm
     assert captured.kwargs["actuals_source"] == "energy_renewable"
 
 
-def test_an_unknown_source_is_rejected_before_anything_is_fitted(replica, monkeypatch, tmp_path):
+def test_an_unknown_source_is_rejected_before_anything_is_fitted(replica, monkeypatch,
+                                                                 capsys):
+    """A typo must not reach a fit. Asserted on the message as well as the exit
+    code, because a harness that does not know the flag at all also exits 2 —
+    the same failure this file exists to prevent, passing as a success."""
     monkeypatch.setattr(harness, "RenewableFeatureBuilder", None)
     monkeypatch.setattr(sys, "argv", [
         "evaluate_solar_retrain.py", "--replica-db", str(replica),
@@ -195,6 +199,10 @@ def test_an_unknown_source_is_rejected_before_anything_is_fitted(replica, monkey
     with pytest.raises(SystemExit) as caught:
         harness.main()
     assert caught.value.code == 2
+    stderr = capsys.readouterr().err
+    assert "argument --renewable-source: invalid choice" in stderr
+    for known in db._RENEWABLE_TYPE_SOURCES:
+        assert known in stderr
 
 
 def _result(source, constant_runs=()):
