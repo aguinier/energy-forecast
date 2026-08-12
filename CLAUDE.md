@@ -125,7 +125,7 @@ and redundant with `energy_generation` — retiring or re-deriving it is its
 own cross-module migration requiring separate CEO/board approval, not a fix
 available to this issue — so `src/data_quality.py`'s `exclude_suspect_constant_runs`
 guards the training-data boundary instead: any individual-renewable-type
-target loaded via `load_renewable_type_data` (`src/db.py:461`) that holds a
+target loaded via `load_renewable_type_data` (`src/db.py:482`) that holds a
 bit-identical value for 24+ hours is nulled before it can enter training,
 with a `logger.warning` naming the exact excluded window. No stored row is
 fixed by this — that needs a supplemental ENTSO-E re-fetch for the affected
@@ -144,7 +144,7 @@ table is in `reports/abl_332_renewable_resolution.md`, regenerable with
 
 Everything downstream of the read is hourly, and this is the contract:
 `load_renewable_type_data` calls `aggregate_renewable_to_hourly`
-(`src/db.py:377`) so **exactly one resolution leaves the read — the hourly
+(`src/db.py:398`) so **exactly one resolution leaves the read — the hourly
 mean**. It has to be the read and not the consumer, because both consumers
 already assumed hourly and disagreed about it: `features.py:227`'s
 `create_lag_features` shifts by `days * 24` **rows** (a day only on an hourly
@@ -160,6 +160,26 @@ every individual hour.
 If you hand `src/wind_features.py` a sub-hourly series it now raises
 `SubHourlyResolutionError` (`src/wind_features.py:142`) rather than
 subsampling. Do not "fix" that by flooring the index — aggregate it.
+
+**Which table an individual renewable type is read from is a property of the
+model artifact, not a global** (ABL-331). `model_data["training_source"]` is
+written by `Forecaster.save`/`_get_model_data` and read back by
+`Forecaster.load` (`forecaster.py:975`), which threads it into
+`RenewableFeatureBuilder` at serve time and into `load_training_data` at train
+time — so a pair is always served features from the table it was fitted on.
+`db.RENEWABLE_TYPE_SOURCE_TABLE` (`db.py:361`) is now **only** the default for
+a training run that names no source; it is no longer read at inference, and
+flipping it moves no existing forecast. An artifact with no `training_source`
+key predates ABL-331 and resolves to `db.LEGACY_RENEWABLE_TRAINING_SOURCE`
+(`db.py:371`) — deliberately the literal `'energy_renewable'` rather than an
+alias of the training default, because those artifacts were fitted on it and
+must not follow a later flip. Train a pair on the other table with
+`scripts/train.py --renewable-source energy_generation`.
+
+This exists because ABL-321 measured that switching globally makes 3 of the 10
+serving pairs materially worse (AT solar +4.3%, DE wind_onshore +3.6%, BE
+wind_onshore +2.7% relative WAPE) while the other 39 pairs cannot use
+`energy_renewable` at all. Do not collapse it back to one constant.
 
 **New Table:** `forecasts`
 ```sql

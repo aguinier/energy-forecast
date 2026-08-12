@@ -238,6 +238,22 @@ Examples:
         help='Exclude backtest weeks from training data (for fair cross-model comparison)'
     )
 
+    # ABL-331: which table individual renewable types train from. Recorded in
+    # the artifact and read back at serve time, so a pair trained here on
+    # `energy_generation` is also served features from it -- the whole point is
+    # that this is no longer one global answer for all 49 pairs.
+    parser.add_argument(
+        '--renewable-source',
+        type=str,
+        default=None,
+        choices=list(db._RENEWABLE_TYPE_SOURCES),
+        help=(
+            'Source table for individual renewable types (default: '
+            f'{db.RENEWABLE_TYPE_SOURCE_TABLE}). Recorded as the artifact\'s '
+            'training_source and used for its serve-time features.'
+        ),
+    )
+
     return parser.parse_args()
 
 
@@ -255,9 +271,20 @@ def get_forecast_types(types_arg: str) -> List[str]:
     return [t.strip().lower() for t in types_arg.split(',')]
 
 
-def should_train_renewable_type(country_code: str, renewable_type: str, logger: logging.Logger) -> bool:
+def should_train_renewable_type(
+    country_code: str,
+    renewable_type: str,
+    logger: logging.Logger,
+    source: Optional[str] = None,
+) -> bool:
     """
     Determine if we should train this renewable type for this country
+
+    Args:
+        source: ABL-331 — the table this pair will be trained from. The
+            availability screen has to read the same table the training run
+            will, or a pair can pass the screen against one source and then be
+            fitted on another; `None` takes db.py's default.
 
     Returns:
         True if data availability is sufficient, False otherwise
@@ -277,7 +304,8 @@ def should_train_renewable_type(country_code: str, renewable_type: str, logger: 
             country_code,
             renewable_type,
             start_date.strftime('%Y-%m-%d'),
-            end_date.strftime('%Y-%m-%d')
+            end_date.strftime('%Y-%m-%d'),
+            source=source,
         )
 
         if df.empty:
@@ -338,6 +366,7 @@ def train_model(
     feature_selection: bool = False,
     cascade: bool = False,
     exclude_backtest: bool = False,
+    renewable_source: Optional[str] = None,
 ) -> dict:
     """
     Train a single model with evaluation and optional auto-promotion.
@@ -493,11 +522,15 @@ def train_model(
                 logger.info(f"  Optuna best MAE: {optuna_result.best_score:.2f}")
 
         # Create forecaster with potentially optimized hyperparameters
+        # ABL-331: `training_source` reaches both the loader used below and the
+        # artifact `_get_model_data` writes, so the recorded value is the value
+        # that was used rather than a claim about it.
         forecaster = Forecaster(
             country_code,
             forecast_type,
             algorithm=algorithm,
-            hyperparams=hyperparams
+            hyperparams=hyperparams,
+            training_source=renewable_source,
         )
 
         # Train with walk-forward validation or standard training
@@ -528,6 +561,7 @@ def train_model(
         result['metrics'] = metrics
         result['model_version'] = forecaster.model_version
         result['hyperparams'] = forecaster.hyperparams
+        result['training_source'] = forecaster._resolved_training_source()
 
         if forecaster.grid_search_results:
             result['grid_search_results'] = forecaster.grid_search_results
@@ -877,7 +911,9 @@ def main():
         for forecast_type in forecast_types:
             # Check if we should skip this renewable type
             if forecast_type in config.RENEWABLE_TYPES:
-                if not should_train_renewable_type(country, forecast_type, logger):
+                if not should_train_renewable_type(
+                    country, forecast_type, logger, source=args.renewable_source
+                ):
                     skipped += len(algorithms)
                     completed += len(algorithms)
                     continue
@@ -906,6 +942,7 @@ def main():
                     feature_selection=args.feature_selection,
                     cascade=args.cascade,
                     exclude_backtest=args.exclude_backtest,
+                    renewable_source=args.renewable_source,
                 )
                 results.append(result)
 
