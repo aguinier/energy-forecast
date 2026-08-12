@@ -14,7 +14,12 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
+# Relative, so callers must import this module as `src.db` — the convention the
+# working scripts already follow (e.g. scripts/evaluate_scorecard.py:14).
+# `from db import ...` with src/ on sys.path has been an ImportError since
+# 574eb80 (ABL-188) added the first relative import here.
 from .data_quality import exclude_suspect_constant_runs
+from .solar_clamp import SolarClampStats, clamp_solar_forecasts
 
 
 logger = logging.getLogger('energy_forecast')
@@ -74,11 +79,17 @@ def create_forecasts_table():
     with get_connection(readonly=False) as conn:
         cursor = conn.cursor()
 
+        # renewable_type has been in save_forecasts' INSERT and in the shared
+        # database for a long time, but was missing from this CREATE — so every
+        # row of a run against a *fresh* database failed with "table forecasts
+        # has no column named renewable_type" while the run still reported
+        # success. Adding it is a no-op on any existing table.
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS forecasts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 country_code TEXT NOT NULL,
                 forecast_type TEXT NOT NULL,
+                renewable_type TEXT,
                 target_timestamp_utc TIMESTAMP NOT NULL,
                 generated_at TIMESTAMP NOT NULL,
                 horizon_hours INTEGER NOT NULL,
@@ -1061,6 +1072,10 @@ def save_forecasts(forecasts_df: pd.DataFrame) -> int:
             logger.warning(f"All forecast values are zero for {forecasts_df['forecast_type'].iloc[0]} - skipping save")
             return 0
 
+    # ABL-337: physical clamp on solar, applied to new rows on the way in.
+    # Nothing here rewrites stored history. See src/solar_clamp.py.
+    forecasts_df, clamp_stats = clamp_solar_forecasts(forecasts_df)
+
     records_inserted = 0
 
     with get_connection(readonly=False) as conn:
@@ -1090,6 +1105,15 @@ def save_forecasts(forecasts_df: pd.DataFrame) -> int:
                 logger.error(f"Failed to insert forecast: {e}")
 
     logger.info(f"Saved {records_inserted} forecasts to database")
+
+    # Telemetry last, and never fatal: a failure to record what the clamp did
+    # must not lose forecasts that are already written.
+    if clamp_stats:
+        try:
+            save_solar_clamp_stats(clamp_stats)
+        except Exception as e:
+            logger.error(f"Failed to record solar clamp telemetry: {e}")
+
     return records_inserted
 
 
@@ -1747,6 +1771,101 @@ def create_forecast_runs_table():
         logger.info("Forecast runs table created/verified")
 
 
+def create_solar_clamp_log_table():
+    """
+    Create forecast_clamp_log: what the ABL-337 solar clamp removed, per run,
+    per country, per model.
+
+    This is the instrument, not a debug log. The clamp hides a fit defect
+    (ABL-338) by construction, and this table is what keeps that honest — it is
+    the record of how much of the served number the guard is responsible for,
+    and the measure ABL-338's retrain gets scored against. It lives in the same
+    database the clamped rows went into, so it can be read without running
+    anything:
+
+        SELECT clamped_at, country_code, model_name, hours_zeroed_night,
+               hours_raised_floor, mw_removed_total
+        FROM forecast_clamp_log ORDER BY clamped_at DESC;
+    """
+    with get_connection(readonly=False) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS forecast_clamp_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                clamped_at TIMESTAMP NOT NULL,
+                generated_at TIMESTAMP,
+                country_code TEXT NOT NULL,
+                model_name TEXT NOT NULL,
+                renewable_type TEXT NOT NULL,
+                night_threshold_deg REAL NOT NULL,
+                rows_total INTEGER NOT NULL,
+                hours_zeroed_night INTEGER NOT NULL,
+                hours_raised_floor INTEGER NOT NULL,
+                mw_removed_night REAL NOT NULL,
+                mw_added_floor REAL NOT NULL,
+                mw_removed_total REAL NOT NULL,
+                min_forecast_mw REAL,
+                max_night_forecast_mw REAL,
+                target_start TIMESTAMP,
+                target_end TIMESTAMP
+            )
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_forecast_clamp_log_lookup
+            ON forecast_clamp_log(country_code, clamped_at DESC)
+        """)
+
+        logger.debug("Forecast clamp log table created/verified")
+
+
+def save_solar_clamp_stats(stats: List['SolarClampStats']) -> int:
+    """
+    Append one forecast_clamp_log row per (country, model) the clamp touched.
+
+    Rows are appended, never updated: two runs on the same vintage are two
+    facts about two runs.
+    """
+    if not stats:
+        return 0
+
+    create_solar_clamp_log_table()
+    clamped_at = datetime.now().isoformat()
+
+    with get_connection(readonly=False) as conn:
+        cursor = conn.cursor()
+        for s in stats:
+            cursor.execute("""
+                INSERT INTO forecast_clamp_log
+                (clamped_at, generated_at, country_code, model_name, renewable_type,
+                 night_threshold_deg, rows_total, hours_zeroed_night, hours_raised_floor,
+                 mw_removed_night, mw_added_floor, mw_removed_total,
+                 min_forecast_mw, max_night_forecast_mw, target_start, target_end)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                clamped_at,
+                s.generated_at.isoformat() if s.generated_at is not None else None,
+                s.country_code,
+                s.model_name,
+                s.renewable_type,
+                s.night_threshold_deg,
+                s.rows_total,
+                s.hours_zeroed_night,
+                s.hours_raised_floor,
+                s.mw_removed_night,
+                s.mw_added_floor,
+                s.mw_removed_total,
+                s.min_forecast_mw,
+                s.max_night_forecast_mw,
+                s.target_start.isoformat() if s.target_start is not None else None,
+                s.target_end.isoformat() if s.target_end is not None else None,
+            ))
+
+    logger.info(f"Recorded solar clamp telemetry for {len(stats)} country/model pairs")
+    return len(stats)
+
+
 def start_forecast_run(
     run_type: str = "scheduled",
     trigger_source: str = "bat_file",
@@ -1873,6 +1992,7 @@ def initialize_all_tables():
     create_model_evaluations_table()
     create_deployed_models_table()
     create_forecast_runs_table()
+    create_solar_clamp_log_table()
     logger.info("All tables initialized")
 
 

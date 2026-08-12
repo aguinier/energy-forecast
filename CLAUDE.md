@@ -38,6 +38,10 @@ energy_forecast/
 │   ├── data_quality.py     # Training-data invariants (ABL-188: rejects
 │   │                       # suspect constant-value runs from energy_renewable)
 │   ├── features.py         # Feature engineering (incl. holiday features)
+│   ├── solar_geometry.py   # Sun elevation per (country, timestamp) — one
+│   │                       # capacity-weighted point per country (ABL-337)
+│   ├── solar_clamp.py      # Serving-path night mask + non-negativity floor
+│   │                       # for solar, with per-run telemetry (ABL-337)
 │   ├── metrics.py          # Evaluation metrics
 │   ├── forecaster.py       # Forecaster class (XGBoost/LightGBM/CatBoost)
 │   ├── hyperopt.py         # Optuna Bayesian hyperparameter optimization
@@ -55,6 +59,7 @@ energy_forecast/
 │   ├── train.py              # Training script (enhanced)
 │   ├── train_chronos2.py     # Chronos-2 fine-tuning script
 │   ├── forecast_daily.py     # Daily forecast job
+│   ├── abl335_solar_night_probe.py # Solar forecasts/actuals vs sun geometry
 │   ├── forecast_chronos2.py  # Chronos-2 forecast generation
 │   ├── compare_experiments.py # Cross-experiment backtest comparison
 │   └── scheduler_setup.sh    # Cron setup
@@ -490,6 +495,63 @@ python scripts/forecast_daily.py --dry-run
 # Specific countries
 python scripts/forecast_daily.py --countries DE,FR
 ```
+
+### Solar is clamped to physical reality on the way out (ABL-337)
+
+`save_forecasts()` (`src/db.py`) is the choke point every serving write goes
+through, and solar rows do not pass it unchanged. `src/solar_clamp.py` zeroes any
+hour whose sun stays below `NIGHT_ELEVATION_THRESHOLD_DEG` (-8 deg, geometric)
+for the whole hour, and floors the rest at zero. `renewable_type='solar'` only,
+**new rows only** — stored history is never rewritten, and no `UPDATE` is issued,
+so the vintage archive stays a faithful record of what the models said.
+
+This is a guard, not a fix. ABL-335 measured what the models emit: 22,718 of
+131,356 stored solar rows negative, DE holding a 155-268 MW floor straight
+through local midnight. The fit defect underneath is ABL-338's. **So the clamp
+reports itself**: every run appends one row per country and model to
+`forecast_clamp_log`, in the same database the clamped rows went into —
+
+```sql
+SELECT clamped_at, country_code, model_name, hours_zeroed_night,
+       hours_raised_floor, mw_removed_night, mw_removed_total
+FROM forecast_clamp_log ORDER BY clamped_at DESC;
+```
+
+A retrain that fixes the fit drives `hours_zeroed_night` and `mw_removed_total`
+toward zero; the clamp going quiet is the measurement, and the clamp staying busy
+after a retrain means the retrain did not work.
+
+Sun elevation comes from `src/solar_geometry.py` — one capacity-weighted
+representative point per country, taken from `weather_location`. Import it; do
+not write a second copy (a training-side solar-geometry feature must use the same
+number the serving clamp uses). The -8 deg threshold was chosen by measurement,
+not convention: at -6 the mask would zero hours that recorded up to 18.7 MW of
+real DE generation, at -8 up to 3.6 MW, and below -10 it stops covering 02:00 UTC
+in August, which is one of the hours the defect appears in. Re-measure before
+changing it:
+
+```bash
+python scripts/abl335_solar_night_probe.py --check-actuals     # threshold vs actuals
+python scripts/abl335_solar_night_probe.py --stored-forecasts  # negative/night rows
+```
+
+Caveat worth knowing before trusting that check: FR's `energy_renewable.solar_mw`
+itself carries 137-440 MW at sun elevations down to -65 deg on 337 distinct days,
+so FR's "the mask would zero a real actual" count is dominated by an actuals
+defect rather than by the threshold.
+
+The clamp sits in `save_forecasts()`, so it covers every serving writer that
+goes through it, by construction rather than by each caller remembering to
+clamp. Two writers import it: `scripts/forecast_daily.py` and
+`src/tso_correction_forecaster.py:37`.
+
+The second one does not currently run at all. `forecast_daily.py:226` launches
+it as a subprocess **by file path**, and ABL-340 moved it to relative imports,
+so it dies at import with `attempted relative import with no known parent
+package` — every BE solar / wind row from the `tso-correction` runner has failed
+since, while the run summary still reports `[DONE]`. ABL-354. That path
+inherits the clamp the moment it can start; nothing about the clamp needs to
+change for it.
 
 ### Tests
 
