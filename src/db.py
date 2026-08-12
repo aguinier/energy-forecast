@@ -314,7 +314,40 @@ def load_energy_data(
 #: ingest gap). Countries are not backfilled from the other table here: mixing
 #: two sources inside one series would put a zero-fillable segment inside an
 #: otherwise NULL-honest one with nothing recording which rows came from where.
-RENEWABLE_TYPE_SOURCE_TABLE = 'energy_generation'
+#:
+#: ---------------------------------------------------------------------------
+#: AND YET THIS STILL SAYS `energy_renewable`. That is deliberate, and it is the
+#: result of ABL-321's own acceptance criterion 2, not an oversight.
+#:
+#: The before/after backtest the switch was approved against **failed**. On the
+#: registered decision window (fit 2026-01-14 -> 2026-07-11, score 2026-07-11 ->
+#: 2026-08-10, D+2 bands 24-64 h, primary truth `energy_generation`, common rows,
+#: n=1,950 per pair except FR at 287), three of the ten already-serving pairs are
+#: materially worse under `energy_generation`:
+#:
+#:     AT solar          12.89% -> 13.44% WAPE   +4.3%
+#:     DE wind_onshore   51.63% -> 53.50%        +3.6%
+#:     BE wind_onshore   46.56% -> 47.81%        +2.7%
+#:
+#: Four pairs improve (FR wind_onshore -18.5%, FR wind_offshore -9.8%, BE
+#: wind_offshore -3.1%, AT wind_onshore -2.6%), but criterion 2 is a
+#: non-inferiority check on models that already serve, not a vote. In that window
+#: the gate truth is byte-identical between the two tables for 9 of 10 pairs, so
+#: this is not an artifact of which table is called "truth".
+#:
+#: The regression tracks the fit-window *level* gap between the arms rather than
+#: any data-quality property -- AT is the only solar pair where `energy_renewable`
+#: trains materially higher, and it has the largest regression -- and the fit
+#: window is short only because arm A's history is. But a story is not a result.
+#: See `reports/abl_321_findings.md` §6 for the full verdict and the caveats.
+#:
+#: **Flipping this constant is the whole switch.** Everything else on the
+#: ABL-321 branch -- the `source=` parameter, the NULL-drop, the NULL-aware
+#: `hydro_total` sum, the duplicate-instant collapse, the tests, the harness --
+#: lands independently and is a strict improvement to both sources. Do not flip
+#: it without a CEO decision that reads the §6 verdict first.
+#: ---------------------------------------------------------------------------
+RENEWABLE_TYPE_SOURCE_TABLE = 'energy_renewable'
 
 _RENEWABLE_TYPE_SOURCES = ('energy_generation', 'energy_renewable')
 

@@ -92,15 +92,32 @@ def replica(tmp_path, monkeypatch):
     importlib.reload(db)
 
 
-def test_default_source_is_energy_generation():
-    """The switch itself. Pinned as a constant so a silent revert is a test
-    failure rather than a quiet retraining against the wrong table."""
-    assert db.RENEWABLE_TYPE_SOURCE_TABLE == "energy_generation"
+def test_the_switch_is_withheld_pending_a_ceo_decision():
+    """ABL-321 acceptance criterion 2 **failed**, so the source switch does not
+    land and the default stays where it was.
+
+    On the registered decision window three of the ten already-serving pairs are
+    materially worse under `energy_generation` -- AT solar +4.3%, DE wind_onshore
+    +3.6%, BE wind_onshore +2.7% relative WAPE -- against a pre-registered 2.0%
+    material threshold, on a gate truth that is byte-identical between the two
+    tables for 9 of 10 pairs. `reports/abl_321_findings.md` §6 is the verdict.
+
+    Everything else on this branch lands and improves both sources. This one
+    constant is the switch, and flipping it needs a CEO decision that has read
+    the regression, not a passing test suite."""
+    assert db.RENEWABLE_TYPE_SOURCE_TABLE == "energy_renewable", (
+        "the training-source switch is withheld: ABL-321 criterion 2 failed on "
+        "AT solar, DE wind_onshore and BE wind_onshore. If you are flipping this "
+        "deliberately after a CEO decision, update this test and say which "
+        "decision, so the next reader can find it."
+    )
 
 
 def test_an_unreported_stream_yields_an_empty_frame_not_a_zero_series(replica):
     """Acceptance criterion 3. This is the property the whole issue turns on."""
-    frame = db.load_renewable_type_data(COUNTRY, "wind_offshore", START, END)
+    frame = db.load_renewable_type_data(
+        COUNTRY, "wind_offshore", START, END, source="energy_generation"
+    )
     assert frame.empty, (
         "NOT REPORTED IS NOT ZERO. A country/stream the TSO does not report must "
         f"reach the trainer as an empty frame; got {len(frame)} rows.\n"
@@ -154,7 +171,9 @@ def test_a_sub_24h_zero_fill_survives_the_guard_on_the_old_source(replica):
 def test_the_new_source_carries_the_real_values_the_zero_fill_masked(replica):
     """...and `energy_generation` has the real, non-zero generation at exactly
     those instants. This is ABL-188's own adjudication test, in miniature."""
-    new = db.load_renewable_type_data(COUNTRY, "solar", START, END)
+    new = db.load_renewable_type_data(
+        COUNTRY, "solar", START, END, source="energy_generation"
+    )
     recovered = new["target_value"].iloc[list(ZERO_FILL_HOURS)]
     assert (recovered > 0).all()
     assert recovered.iloc[0] == pytest.approx(500.0 + ZERO_FILL_HOURS[0])
@@ -162,7 +181,9 @@ def test_the_new_source_carries_the_real_values_the_zero_fill_masked(replica):
 
 def test_a_reported_stream_is_unchanged_by_the_switch(replica):
     """The switch must not cost coverage where both tables agree."""
-    new = db.load_renewable_type_data(COUNTRY, "wind_onshore", START, END)
+    new = db.load_renewable_type_data(
+        COUNTRY, "wind_onshore", START, END, source="energy_generation"
+    )
     old = db.load_renewable_type_data(
         COUNTRY, "wind_onshore", START, END, source="energy_renewable"
     )
@@ -206,7 +227,9 @@ def test_hydro_total_is_empty_when_neither_component_is_reported(replica, tmp_pa
     monkeypatch.setenv("ENERGY_DB_PATH", str(path))
     importlib.reload(config)
     importlib.reload(db)
-    assert db.load_renewable_type_data(COUNTRY, "hydro_total", START, END).empty
+    assert db.load_renewable_type_data(
+        COUNTRY, "hydro_total", START, END, source="energy_generation"
+    ).empty
 
 
 def test_an_unknown_source_is_rejected_rather_than_interpolated(replica):
@@ -220,7 +243,9 @@ def test_the_feature_builder_carries_the_source_through_to_its_actuals(replica):
     vary exactly one thing, and so a serving path cannot end up reading a
     different table than the one its model was fitted on."""
     span = (pd.Timestamp("2026-01-01"), pd.Timestamp("2026-01-03 23:00"))
-    new = RenewableFeatureBuilder(COUNTRY, "wind_offshore", *span)
+    new = RenewableFeatureBuilder(
+        COUNTRY, "wind_offshore", *span, actuals_source="energy_generation"
+    )
     old = RenewableFeatureBuilder(
         COUNTRY, "wind_offshore", *span, actuals_source="energy_renewable"
     )
@@ -332,6 +357,8 @@ def test_the_collapse_is_a_no_op_for_energy_generation(replica_with_duplicate_sp
     """`energy_generation` has zero duplicate instants, so none of this can
     touch the arm the switch moves to -- which is what stops the collapse being
     an accusation that the A/B was tilted."""
-    frame = db.load_renewable_type_data(COUNTRY, "solar", START, END)
+    frame = db.load_renewable_type_data(
+        COUNTRY, "solar", START, END, source="energy_generation"
+    )
     assert len(frame) == len(_HOURS)
     assert frame["target_value"].notna().all()

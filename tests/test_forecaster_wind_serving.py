@@ -69,6 +69,9 @@ def replica(tmp_path, monkeypatch):
         CREATE TABLE energy_generation (country_code TEXT, timestamp_utc TIMESTAMP,
             wind_offshore_mw REAL, wind_onshore_mw REAL, solar_mw REAL,
             data_quality TEXT DEFAULT 'actual');
+        CREATE TABLE energy_renewable (country_code TEXT, timestamp_utc TIMESTAMP,
+            wind_offshore_mw REAL DEFAULT 0, wind_onshore_mw REAL DEFAULT 0, solar_mw REAL DEFAULT 0,
+            data_quality TEXT DEFAULT 'actual');
         CREATE TABLE weather_data (country_code TEXT, timestamp_utc TIMESTAMP,
             forecast_run_time TIMESTAMP, data_quality TEXT,
             temperature_2m_k REAL, wind_speed_10m_ms REAL, wind_speed_100m_ms REAL,
@@ -79,6 +82,10 @@ def replica(tmp_path, monkeypatch):
         value = _epoch_hours(ts)
         con.execute(
             "INSERT INTO energy_generation VALUES (?, ?, ?, ?, ?, 'actual')",
+            (COUNTRY, str(ts), value, value, value),
+        )
+        con.execute(
+            "INSERT INTO energy_renewable VALUES (?, ?, ?, ?, ?, 'actual')",
             (COUNTRY, str(ts), value, value, value),
         )
     run = OBS - pd.Timedelta(hours=6)

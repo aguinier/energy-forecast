@@ -172,7 +172,201 @@ not fitted on. Two recommendations follow, neither of which is mine to make:
    for the interpreter. That is Founding Engineer territory (serving path), so
    it is a proposal, not a patch in this branch.
 
-## 6. Operational note
+## 6. VERDICT — criterion 2 fails. The switch does not land.
+
+**Three of the ten served pairs are materially worse under `energy_generation`
+in the registered decision window.** The pre-registered rule fires, and the CEO's
+approval made criterion 2 a hard stop. So the source switch is withheld, and this
+regression is the deliverable.
+
+Window 1 (registered), fit 2026-01-14 → 2026-07-11, score 2026-07-11 → 2026-08-10,
+D+2 bands 24–64 h, primary truth `energy_generation`, common rows only:
+
+| pair | n | before (ren) | after (gen) | relative | vs D-7 | verdict |
+|---|---:|---:|---:|---:|---:|:---|
+| AT solar | 1,950 | 12.89% | 13.44% | **+4.3%** | +49.4 / +47.2 | **after WORSE** |
+| DE wind_onshore | 1,950 | 51.63% | 53.50% | **+3.6%** | +33.7 / +31.3 | **after WORSE** |
+| BE wind_onshore | 1,950 | 46.56% | 47.81% | **+2.7%** | +43.6 / +42.1 | **after WORSE** |
+| BE solar | 1,950 | 16.76% | 16.99% | +1.4% | +49.2 / +48.5 | no material change |
+| DE solar | 1,950 | 13.52% | 13.58% | +0.5% | +44.0 / +43.8 | no material change |
+| FR solar | 287 | 15.05% | 15.00% | −0.3% | +35.5 / +35.8 | no material change |
+| AT wind_onshore | 1,950 | 72.32% | 70.43% | −2.6% | +31.5 / +33.3 | after better |
+| BE wind_offshore | 1,950 | 77.54% | 75.14% | −3.1% | +27.0 / +29.2 | after better |
+| FR wind_offshore | 287 | 44.04% | 39.72% | −9.8% | +18.0 / +26.0 | after better |
+| FR wind_onshore | 287 | 39.27% | 32.02% | −18.5% | +29.7 / +42.7 | after better |
+
+Four pairs improve and three regress, but the rule is not a vote — it is a
+non-inferiority check on models that already serve, and three of them lose.
+
+**The result is not an artifact of the truth definition.** In window 1 the gate
+truth is *identical* between the two tables for nine of ten pairs (verified
+hour-by-hour: AT/BE/DE/FR solar and wind_onshore all differ on 0 hours in the
+scoring window). The secondary-truth table is therefore numerically identical to
+the primary one except BE wind_offshore, where it moves the third decimal. Both
+arms are scored on the same numbers; the only thing that differs is what they
+trained on. The switch is not grading its own homework here.
+
+**Do not lean on FR.** Its two largest wins (−18.5%, −9.8%) sit on **n = 287
+against 1,950** for every other pair, because the ABL-323 gap removes 279 of 720
+gate hours from the after arm and common-row scoring then drops them from both.
+FR's window-1 cells are 15% of the evidence the other pairs carry, and I would
+not defend a decision resting on them.
+
+### Window 2 does not rescue it, and does not test what I registered it to test
+
+I have to report a failure of my own experimental design. Amendment 1 registered
+the winter holdout on the claim that it "runs the seasonal bias the other way".
+**It does not.** Measured after the fact:
+
+| window | solar fit-window level (AT) | gate truth level (AT) | level jump |
+|---|---:|---:|---:|
+| 1 | 884.9 MW | 1,410.1 MW | 1.6× |
+| 2 | 127.4 MW | 544.8 MW | **4.3×** |
+
+Both windows fit low and score high; window 2 does it *harder*. Fitting
+Nov 21 → Feb 15 and scoring Feb 15 → Mar 17 does not invert the seasonal
+gradient, it steepens it. So window 2 cannot discriminate the level-artifact
+hypothesis, and I am not going to pretend it confirms anything about it.
+
+Worse for its usefulness, **window 2's four solar cells fail the protocol's own
+baseline precondition** — "both arms must also beat D-7 to be worth discussing at
+all". Skill against seasonal-naive D-7 is negative for both arms in all four:
+AT −44.2 / −51.6, BE −15.9 / −15.8, DE −41.3 / −22.9, FR −32.2 / −31.3. A
+30-day early-spring solar holdout where neither arm beats D-7 is not a window
+that can adjudicate solar. So AT solar's window-2 "+5.1% worse" is **inadmissible
+under the registered rules**, and so is DE solar's headline −13.0% improvement.
+Window 2's six wind cells do clear D-7 and are admissible; none of them is
+materially worse, and AT wind_onshore improves in both windows (−2.6%, −3.8%).
+
+Two further window-2 caveats, both discovered by measurement rather than
+assumption: its gate truth is **not** shared for AT solar (39.2% of hours differ)
+or DE solar (99.7%), unlike window 1 — though the secondary-truth column moves
+those conclusions by ≤0.2 pp, so the truth choice is not what drives them.
+
+### What the regression actually is, as far as I can show
+
+Not a data-quality defect in `energy_generation`. The pattern across the solar
+pairs is monotone in the **fit-window level gap between the arms**:
+
+| pair | arm A fit mean | arm B fit mean | A/B | relative WAPE change |
+|---|---:|---:|---:|---:|
+| AT solar | 899.8 | 884.9 | 1.017 | **+4.3%** |
+| BE solar | 1,557.0 | 1,557.0 | 1.000 | +1.4% |
+| DE solar | 10,936.2 | 10,992.8 | 0.995 | +0.5% |
+| FR solar | 4,208.9 | 4,208.9 | 1.000 | −0.3% |
+
+Both arms under-predict a summer gate from a winter-weighted fit; the arm whose
+training series sits higher under-predicts less. AT is the only pair where arm A
+trains materially higher, and AT is the pair with the largest regression. Where
+the two arms train at an identical level the effect is ~0.
+
+**And the reason AT's fit window is seasonally truncated is arm A itself.** AT's
+`energy_renewable` history starts 2025-11-07, so the A/B cannot fit earlier than
+that without arm A having no data. The protocol holds the fit window fixed across
+arms to isolate the source variable — which is correct for attribution, and which
+also means **this backtest is structurally incapable of measuring the switch's
+main benefit**: that arm B has 2,049 days of history where arm A has 278. The
+comparison penalises arm B for a constraint that exists only because arm A is in
+the room.
+
+That is a limitation of the test I designed, not a defence of the result. Under
+the rules as registered, the switch does not land.
+
+### What I recommend, and what is not mine to decide
+
+The census case in §2 is untouched by this — history, NULL-vs-0, duplicates and
+coverage are not things this backtest measures, and nothing here contradicts
+them. What the backtest establishes is narrower and real: **on an identical short
+fit window, `energy_renewable` is the better training series for AT solar and for
+BE/DE wind_onshore, and the largest such gap is explained by level rather than by
+data quality.**
+
+The test that would actually settle it is one the acceptance criteria did not
+ask for, and I am proposing rather than running it: fit each arm on **the history
+it actually has** — arm A from 2025-11-07, arm B from 2021-01-01 — and score on
+the same rows. That is the "what would ship" comparison rather than the
+one-variable comparison, and it is the only way to put arm B's seasonal coverage
+on the board. It needs its own pre-registration before anyone sees a number, and
+it needs a CEO call, because it changes the question criterion 2 asked.
+
+Three things I am **not** doing on my own authority: landing the switch against
+a failed criterion, reinterpreting the threshold after seeing the numbers, or
+declaring AT solar's regression benign because I have a story for it. The story
+is a hypothesis with one supporting table, not a result.
+
+## 7. The duplicate-instant defect is worse than the issue said
+
+The issue filed duplicate instants as nondeterminism: `energy_renewable`'s
+UNIQUE index is on `(country_code, timestamp_utc)` as a *string*, so one instant
+is storable under several spellings, and the training set's content depends on
+which row the query returns. That is true, and it is not the whole cost.
+
+**The duplicates make the pre-ABL-321 source unbacktestable in winter.** They
+survive into `RenewableFeatureBuilder`'s index, where a same-hour lag lookup
+resolves to a two-element `Series` instead of a scalar and `float()` raises.
+Window 2's first attempt died on AT/solar for exactly this reason. Measured over
+each window's builder span, all ten served pairs, `energy_renewable`:
+
+| window | builder span | duplicate rows per pair | pairs with disagreeing instants |
+|---|---|---|---|
+| 1 | 2025-12-31 → 2026-08-10 | **0**, every pair | 0 / 10 |
+| 2 | 2025-11-07 → 2026-03-17 | 299 – 2,259 | **6 / 10** (AT wind_onshore worst, 700) |
+
+Two consequences worth stating plainly:
+
+- **Window 1's numbers are untouched by the fix.** The collapse branch never
+  fires over its span, so the two windows remain comparable and window 1 did not
+  need re-running.
+- **The defect is concentrated in exactly the era where `energy_renewable` is
+  the only history AT and DE have.** AT's `energy_renewable` starts 2025-11-07
+  and the duplicates begin 2025-11-17. So the window where arm A has any data at
+  all is the window where arm A is most corrupt. That is not an argument the
+  backtest can make — it is a census fact, and it points the same way as §2.
+
+The loader now collapses agreeing spellings to their shared value and nulls
+disagreeing ones as unadjudicated, the same treatment `exclude_suspect_constant_runs`
+already applies. Picking a spelling would make the training set depend on which
+row the query returned; averaging would invent a value the TSO never published.
+It is a **no-op for `energy_generation`**, which has zero duplicates, and that is
+pinned by its own test so the fix cannot be read as tilting the A/B toward the
+arm the switch moves to.
+
+## 8. ABL-326 cross-check: the corrected gap baseline does not move this backtest
+
+ABL-326 refuted the ABL-318 claim — mine — that FR was the only country with a
+`energy_generation` gap over 7 days. Seven countries carry one; FR ranks 9th, not
+1st. Since criterion 2 rests on the holdout windows being uncontaminated, I
+re-ran that census scoped to the four served countries, using ABL-326's own
+measure and its caution that **a NULL run and an absent row both mean "not
+reported" and neither is a zero**.
+
+`energy_generation`, missing hours against each window's full hourly grid:
+
+| pair | W1 fit (4,272 h) | W1 gate (720 h) | W2 fit (2,064 h) | W2 gate (720 h) |
+|---|---:|---:|---:|---:|
+| AT solar, AT wind_onshore | 0 | 0 | 0 | 0 |
+| BE solar, wind_onshore, wind_offshore | 0 | 0 | 0 | 0 |
+| DE solar, DE wind_onshore | 0 | 0 | 0 | 0 |
+| FR solar, wind_onshore, wind_offshore | 240 | **279** | 30 | **0** |
+
+None of the six countries ABL-326 surfaced (BA, CY, IE, MD, ME, MK) is served, so
+none is in criterion 2's scope. The only hole in a scoring window is FR's, which
+is ABL-323's, already handled by common-row scoring.
+
+**One thing I did not expect: in window 2 the coverage asymmetry reverses.**
+`energy_generation` is complete for all ten pairs including FR, while
+`energy_renewable` has a 27–28 h hole at 2026-02-15 14:00 in every one of them.
+So in window 2 the *before* arm is the one losing coverage, and FR is measurable
+there in a way it is not in window 1, where its after arm loses 279 of 720 gate
+hours. The winter holdout is therefore worth more than the amendment registered
+it for.
+
+Where ABL-326 does bite is **ABL-316 sizing**, not this issue: the ABL-318
+verdict table qualifies a pair on history *span*, and a span does not see an
+interior hole. CY `wind_onshore` clears a 365-day bar while carrying a 995-day
+hole. The tranche issues need a per-pair gap screen, not just a span check.
+
+## 9. Operational note
 
 `energy-forecast/.env` sets `DATABASE_PATH=C:/Code/energy-data-gathering/energy_dashboard.db`
 — a path that does not exist, one directory away from the 3.0 GB stale decoy
