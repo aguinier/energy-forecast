@@ -66,14 +66,30 @@ def _load_train_script():
     very `src.db` this test suite imports elsewhere, so what the spies below
     replace is the real function object, and a signature the real `db` does not
     accept would still be an error.
+
+    The aliases are installed unconditionally and restored afterwards rather
+    than left in place with `setdefault`. Once ABL-340 lands, a bare `import db`
+    may start succeeding on its own, and it would then produce a module object
+    *distinct* from `src.db` — a `setdefault` would keep whichever one some
+    earlier test file happened to import first, and the identity this file
+    patches through would depend on collection order. Restoring also keeps the
+    rest of the session's `sys.modules` exactly as it was found.
     """
-    for flat in _FLAT_ALIASES:
-        sys.modules.setdefault(flat, importlib.import_module("src." + flat))
-    spec = importlib.util.spec_from_file_location(
-        "scripts_train", ROOT / "scripts" / "train.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    saved = {flat: sys.modules.get(flat) for flat in _FLAT_ALIASES}
+    try:
+        for flat in _FLAT_ALIASES:
+            sys.modules[flat] = importlib.import_module("src." + flat)
+        spec = importlib.util.spec_from_file_location(
+            "scripts_train", ROOT / "scripts" / "train.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    finally:
+        for flat, previous in saved.items():
+            if previous is None:
+                sys.modules.pop(flat, None)
+            else:
+                sys.modules[flat] = previous
     return module
 
 
@@ -315,6 +331,10 @@ def test_the_spies_replaced_the_real_functions(spies):
     assert train.db is db, (
         "train.db is not the src.db this suite patches; the alias shim in "
         "_load_train_script no longer matches how scripts/train.py imports"
+    )
+    assert sys.modules.get("db") is not train.db, (
+        "the alias shim leaked into sys.modules; _load_train_script is supposed "
+        "to restore it, so a later test file's own `db` import is unaffected"
     )
     assert train.get_latest_data_timestamp is spies.probe
     assert train.db.load_training_data is spies.loader
