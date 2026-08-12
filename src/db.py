@@ -1081,21 +1081,42 @@ def get_forecasts(
     return df
 
 
-def get_latest_data_timestamp(country_code: str, data_type: str) -> Optional[datetime]:
+def get_latest_data_timestamp(
+    country_code: str,
+    data_type: str,
+    source: Optional[str] = None,
+) -> Optional[datetime]:
     """
     Get the most recent data timestamp for a country/type.
 
     Args:
         country_code: ISO 2-letter country code
         data_type: 'load', 'price', 'renewable', or 'weather'
+        source: for an individual renewable type, which table's freshness to
+            report. Defaults to `RENEWABLE_TYPE_SOURCE_TABLE`, which is the
+            pre-ABL-331 behaviour. Ignored for the aggregate types, which each
+            read one fixed table.
 
     Returns:
         Most recent timestamp or None
     """
     # ABL-321: individual renewable types report the freshness of the table
     # they are actually trained from, not of `energy_renewable` regardless.
+    #
+    # ABL-331 follow-up: once the source moved onto the artifact, "the table they
+    # are actually trained from" became per-artifact, so this has to be told
+    # which one. Callers use the answer to close an open-ended training window
+    # (`end_date is None`) and then load the target series from `source` -- if the
+    # two disagree the window is silently cut to the wrong table's freshness, or,
+    # when the named table has no rows for the pair at all, left to
+    # `datetime.now()`.
     if data_type in config.RENEWABLE_TYPES:
-        table = RENEWABLE_TYPE_SOURCE_TABLE
+        table = source or RENEWABLE_TYPE_SOURCE_TABLE
+        if table not in _RENEWABLE_TYPE_SOURCES:
+            raise ValueError(
+                f"Unknown renewable source table: {table!r}; "
+                f"expected one of {_RENEWABLE_TYPE_SOURCES}"
+            )
     else:
         table_map = {
             'load': 'energy_load',
