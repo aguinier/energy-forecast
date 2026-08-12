@@ -1,0 +1,72 @@
+{
+  "issue": "ABL-322",
+  "parent": "ABL-316",
+  "status": "PRE-REGISTERED — frozen before any DE/NL wind_offshore model exists",
+  "registered_at": "2026-08-12T21:00:00Z",
+  "registered_by": "Forecasting Scientist",
+
+  "window_provenance": "Inherited verbatim from experiments/ABL195/config.json. These bounds were fixed by a prior issue, before ABL-322 existed; they are not selected here and cannot be shopped against a challenger score.",
+  "fit_target_window": ["2026-01-14T00:00:00Z", "2026-07-11T00:00:00Z"],
+  "gate_target_window": ["2026-07-11T00:00:00Z", "2026-08-10T00:00:00Z"],
+  "run_times_utc": ["D-2 07:00", "D-2 14:00", "D-2 15:30", "D-2 19:00", "D-1 07:00", "D-1 14:00", "D-1 15:30", "D-1 19:00"],
+
+  "pairs": {
+    "wind_offshore": {"algorithm": "xgboost", "countries": ["DE", "NL"]}
+  },
+  "training_source": {
+    "table": "energy_generation",
+    "mechanism": "per-artifact training_source (ABL-331), not the global RENEWABLE_TYPE_SOURCE_TABLE constant",
+    "rationale": "NL offshore carries 447 provably zero-filled rows and 668 disagreeing duplicate instants in energy_renewable (ABL-318). DE/NL must not inherit the global switch that ABL-321 withheld."
+  },
+  "parameters": {
+    "xgboost": {"n_estimators": 500, "max_depth": 8, "learning_rate": 0.05, "min_child_weight": 3, "subsample": 0.8, "colsample_bytree": 0.8, "objective": "reg:squarederror", "n_jobs": -1, "random_state": 42, "verbosity": 0}
+  },
+
+  "metric": "WAPE",
+  "baseline": "literal seasonal-naive D-7",
+  "primary_bands": ["24-36h", "36-48h", "48-64h"],
+  "registered_minimum_n": {"24-36h": 684, "36-48h": 684, "48-64h": 456},
+  "primary_bar": "challenger WAPE < literal seasonal-naive D-7 WAPE in all 6 cells (2 countries x 3 primary D+2 bands), each cell meeting its registered minimum n",
+
+  "baseline_measured_before_challenger_exists": {
+    "note": "Measured read-only on the live replica 2026-08-12 by scripts/abl322_preregistration_probe.py, on the plain hourly target series over the full gate window. No model existed when these were taken. The harness's per-band, finite-intersection D-7 is the authoritative gate number and will differ slightly; these are the pre-committed bar.",
+    "source_table": "energy_generation",
+    "aggregation": "hourly :00 instant",
+    "DE": {"d7_wape_pct": 88.82, "d7_mae_mw": 2232.2, "n": 720, "mean_actual_mw": 2513.2},
+    "NL": {"d7_wape_pct": 81.78, "d7_mae_mw": 925.8, "n": 720, "mean_actual_mw": 1131.0}
+  },
+
+  "aggregation_convention": {
+    "decision": "score the hourly :00 instant",
+    "rationale": "matches the served product's hourly cadence and the ABL-195 harness",
+    "measured_sensitivity": "switching to the hourly mean moves the D-7 bar by 0.04pp (DE, 88.82 -> 88.86) and 0.01pp (NL, 81.78 -> 81.79). The bar is invariant to the convention, so ABL-332's resolution cannot materially move it."
+  },
+
+  "incumbent": {
+    "DE": "none — 0 rows in forecasts",
+    "NL": "none — 0 rows in forecasts",
+    "reporting": "the incumbent column reads 'Not measured' by construction, not by omission"
+  },
+
+  "contamination_statement": {
+    "ABL-67": "net_position only — does not intersect these targets",
+    "ABL-109": "load only — does not intersect",
+    "ABL-111": "load only — does not intersect",
+    "ABL-71": "known wrong-write modes are load and net position; a provenance caveat, not proof wind ingest is pristine",
+    "ABL-188": "an energy_renewable zero-fill defect. DE/NL train from energy_generation, so the mechanism does not reach the target — but the constant-run screen must be run against the table actually trained from (see required_harness_corrections)."
+  },
+
+  "required_harness_corrections": [
+    "scripts/evaluate_wind_retrain.py:64 hardcodes 'FROM energy_renewable' in _constant_runs. For a pair trained from energy_generation this screens a table the model never saw. Must take the pair's training source before ABL-322 is read.",
+    "PAIRS in scripts/evaluate_wind_retrain.py must gain DE and NL under wind_offshore."
+  ],
+
+  "cost_measurement": {
+    "criterion": "ABL-322 acceptance criterion 3 — per-pair training wall-clock for tranche sizing",
+    "protocol": "wall-clock of the fit call per country/stream on the rail interpreter (.venv, Python 3.14.3, xgboost 3.3.0), reported with concurrent-load caveat and separated from feature-build time"
+  },
+
+  "voids_this_registration": "any change to the windows, bands, metric, baseline, or minimum n after a challenger score has been seen",
+  "promotion": "none. Evidence only. Promotion is a CEO-to-Board decision.",
+  "artifact_location": "experiments/ABL322/artifacts (local generated output; not a serving registry)"
+}
