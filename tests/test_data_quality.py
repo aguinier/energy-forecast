@@ -50,6 +50,19 @@ def test_does_not_flag_a_single_ordinary_night():
     assert find_suspect_constant_runs(df, "target_value", min_run_hours=24.0) == []
 
 
+def test_missing_day_splits_identical_solar_nights():
+    # ABL-253 found FR nighttime zeros on either side of a wholly missing day.
+    # Adjacency after sorting is not continuity: the missing interval must
+    # split the runs or two legitimate nights become a false contamination hit.
+    first_night = pd.date_range("2025-12-31 17:00", periods=28, freq="15min")
+    second_night = pd.date_range("2026-01-02 01:45", periods=23, freq="15min")
+    df = pd.DataFrame({
+        "timestamp_utc": first_night.append(second_night),
+        "target_value": 0.0,
+    })
+    assert find_suspect_constant_runs(df, "target_value", min_run_hours=24.0) == []
+
+
 def test_short_runs_below_threshold_pass_through_untouched():
     values = [0.0, 0.0, 0.0, 5.0, 0.0, 0.0]
     df = _hourly_series(values)

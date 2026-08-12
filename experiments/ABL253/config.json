@@ -1,0 +1,31 @@
+{
+  "issue": "ABL-253",
+  "pre_registration_status": "frozen before fitting or reading challenger scores",
+  "pre_registration_comment": "37acf009-1c10-47e1-b395-8ae8fbd8fb5e",
+  "fit_target_window": ["2026-01-14T00:00:00Z", "2026-07-11T00:00:00Z"],
+  "gate_target_window": ["2026-07-11T00:00:00Z", "2026-08-10T00:00:00Z"],
+  "run_times_utc": ["D-2 07:00", "D-2 14:00", "D-2 15:30", "D-2 19:00", "D-1 07:00", "D-1 14:00", "D-1 15:30", "D-1 19:00"],
+  "pairs": {
+    "solar": {"algorithm": "catboost", "countries": ["BE", "DE", "FR"]}
+  },
+  "served_country_rule": "countries with stored production catboost solar vintages in the gate window; AT has an artifact but no stored served vintages and is excluded",
+  "horizon_bands": {
+    "primary": ["24-36h", "36-48h", "48-64h"],
+    "registered_intended_n_per_country": {"24-36h": 720, "36-48h": 720, "48-64h": 480},
+    "minimum_pair_coverage": 0.95
+  },
+  "parameters": {
+    "catboost": {"iterations": 500, "depth": 8, "learning_rate": 0.05, "l2_leaf_reg": 3, "random_seed": 42, "verbose": 0, "thread_count": -1}
+  },
+  "primary_bar": "challenger WAPE < literal D-7 WAPE in every served country x 24-36h/36-48h/48-64h cell, with >=95% of registered intended pairs",
+  "identical_intersection": ["challenger", "incumbent catboost", "literal D-7", "persistence", "actual"],
+  "reported_metrics": ["WAPE", "MAE", "signed bias", "slope", "correlation", "pair count"],
+  "tso_role": "revision-contaminated context only; not a gate criterion",
+  "contamination": {
+    "ABL-188": "scan the fitted/scored solar window plus 14-day feature lookback and verify exclusion through RenewableFeatureBuilder's actual loader",
+    "ABL-67": "net-position-only",
+    "ABL-109_ABL-111": "load-only",
+    "ABL-71": "known wrong-write modes are load and net position; provenance caveat remains"
+  },
+  "artifact_location": "experiments/ABL253/artifacts (experiment output only; not a serving registry)"
+}
