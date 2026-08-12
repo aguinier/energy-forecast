@@ -121,6 +121,29 @@ The replica is refreshed at 07:00 by the `able-db-sync` job; the forecast runs
 at 08:00 behind it. **All writes go to the sidecar** — the replica is a
 read-only mirror of prod and nothing here may write to it.
 
+> **That claim is conditional, and the condition is unset by default.**
+> `src/db.py:48` resolves a write target as `FORECAST_OUTPUT_DB or
+> DATABASE_PATH`, and `config.py:23` is a bare `os.getenv` — no default, no
+> assertion. With the variable unset the `or` does not fail; it falls through and
+> every write connection targets **the replica**. So "all writes go to the
+> sidecar" is a property of the environment, not of the code, for any caller that
+> does not check.
+>
+> Callers that refuse the unset case rather than falling through:
+> `scripts/train.py:908-929` (ABL-346, exit `2` before `initialize_all_tables()`
+> at `scripts/train.py:940`)
+> and `scripts/forecast_challengers.py:322-325`. Both also take `--sidecar-db`,
+> as do `evaluate_scorecard.py`, `evaluate_net_position.py`,
+> `evaluate_solar_retrain.py`, `evaluate_wind_retrain.py` and
+> `attest_net_position_serve_faithfulness.py`. **Everything else still
+> fallthrough-writes to the replica when the variable is unset** — if you add an
+> entry point that writes, port the guard.
+>
+> `train.py` is the one that threads `--sidecar-db` back into
+> `config.FORECAST_OUTPUT_DB`, because its writes go through `src/db.py`'s
+> module-level helpers, which read that attribute per connection rather than
+> taking a path. A `--sidecar-db` that only lands in `args` is decorative.
+
 Local runs read `.env` (via `python-dotenv`, `config.py:11`). It is gitignored
 and must stay untracked — it carries a machine-specific absolute path.
 
@@ -346,9 +369,17 @@ bash scripts/scheduler_setup.sh
 
 ### Training
 
+Every command below needs a sidecar target. `scripts/train.py` exits `2` without
+writing anything when neither `FORECAST_OUTPUT_DB` nor `--sidecar-db` resolves
+(ABL-346) — see the Database section for why the fallthrough it replaces aimed at
+the replica.
+
 ```bash
 # Train all models (includes load, price, renewable, and individual renewable types)
 python scripts/train.py --countries all --types all
+
+# Explicit sidecar, no environment dependency
+python scripts/train.py --countries DE --types renewable --sidecar-db C:\Code\able\data\forecasts_local.db
 
 # Train specific country/type
 python scripts/train.py --countries DE --types load

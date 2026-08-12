@@ -54,6 +54,38 @@ from datetime import timedelta
 import pytz
 
 
+#: Exit code for "refused to start: no sidecar target". Distinct from the `1`
+#: that a configuration error exits with, so a caller — or a test — can tell a
+#: refusal to write to the replica apart from every other startup failure.
+SIDECAR_REQUIRED_EXIT = 2
+
+SIDECAR_REQUIRED_MESSAGE = (
+    "FORECAST_OUTPUT_DB (or --sidecar-db) is required: training writes to the "
+    "sidecar, never the replica. src/db.py resolves a write target as "
+    "`FORECAST_OUTPUT_DB or DATABASE_PATH`, so with neither set every write "
+    "this run makes - starting with initialize_all_tables()'s DDL - would land "
+    "on the replica at ENERGY_DB_PATH. Set FORECAST_OUTPUT_DB, or pass "
+    "--sidecar-db PATH."
+)
+
+
+def resolve_sidecar_db(sidecar_db):
+    """Pure. The sidecar file this run must send every write to, or None.
+
+    `None` means "no sidecar target resolved", which is the case `main()`
+    refuses on. It is deliberately not the same as "the file does not exist
+    yet": a sidecar is created on first write, and requiring it to pre-exist
+    would break the first run on a clean workstation.
+
+    The empty string is folded into `None` because it is what the two ways of
+    supplying nothing actually produce -- `FORECAST_OUTPUT_DB=` in a `.env`, and
+    `--sidecar-db "$env:FORECAST_OUTPUT_DB"` with the variable unset. Both read
+    as "configured" to a bare truthiness check on the argument's presence while
+    meaning the opposite.
+    """
+    return (sidecar_db or '').strip() or None
+
+
 def setup_logging():
     """Setup logging to file and console."""
     config.LOGS_DIR.mkdir(parents=True, exist_ok=True)
@@ -250,6 +282,26 @@ Examples:
             'Source table for individual renewable types (default: '
             f'{db.RENEWABLE_TYPE_SOURCE_TABLE}). Recorded as the artifact\'s '
             'training_source and used for its serve-time features.'
+        ),
+    )
+
+    # ABL-346: replica purity. Parity with the six sibling scripts that already
+    # surface this flag (`forecast_challengers.py:316`, `evaluate_scorecard.py:20`,
+    # `evaluate_net_position.py:45`, `evaluate_solar_retrain.py:147`,
+    # `evaluate_wind_retrain.py:155`, `attest_net_position_serve_faithfulness.py:198`).
+    # Unlike those, this one is threaded back into `config.FORECAST_OUTPUT_DB`
+    # in `main()` -- training's writes go through `src/db.py`'s module-level
+    # helpers, which read that attribute rather than taking a path, so a flag
+    # that only sat in `args` would satisfy the guard while every write still
+    # went to the replica.
+    parser.add_argument(
+        '--sidecar-db',
+        type=str,
+        default=config.FORECAST_OUTPUT_DB,
+        help=(
+            'SQLite file every write from this run goes to (default: '
+            '$FORECAST_OUTPUT_DB). Required: training never writes to the '
+            'replica at $ENERGY_DB_PATH.'
         ),
     )
 
@@ -852,6 +904,30 @@ def main():
     logger.info("=" * 60)
     logger.info("Energy Forecasting Model Training")
     logger.info("=" * 60)
+
+    # ABL-346: refuse to start when no sidecar target resolves.
+    #
+    # This has to stay above `initialize_all_tables()`. `src/db.py:48` resolves
+    # every write target as `FORECAST_OUTPUT_DB or DATABASE_PATH`, and that `or`
+    # does not fail when the variable is unset -- it falls through to the
+    # replica. `initialize_all_tables()` is DDL on a write connection and is the
+    # first thing this script does, so a check placed after it has already let
+    # the write it exists to prevent happen. A silent fallthrough is not a
+    # safety property; refusing the ambiguous case is.
+    #
+    # Above `validate_config()` as well, so the refusal does not depend on the
+    # replica being present and current: "I have nowhere safe to write" is
+    # answerable without opening the replica at all.
+    sidecar = resolve_sidecar_db(args.sidecar_db)
+    if sidecar is None:
+        logger.error(SIDECAR_REQUIRED_MESSAGE)
+        return SIDECAR_REQUIRED_EXIT
+
+    # `src/db.py` reads this attribute per connection, so assigning it here is
+    # what makes `--sidecar-db` real rather than decorative. A no-op when the
+    # value came from the environment, which is the default.
+    config.FORECAST_OUTPUT_DB = sidecar
+    logger.info(f"Sidecar output DB (all writes): {sidecar}")
 
     # Validate config
     try:
