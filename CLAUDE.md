@@ -143,8 +143,27 @@ flipping it moves no existing forecast. An artifact with no `training_source`
 key predates ABL-331 and resolves to `db.LEGACY_RENEWABLE_TRAINING_SOURCE`
 (`db.py:371`) — deliberately the literal `'energy_renewable'` rather than an
 alias of the training default, because those artifacts were fitted on it and
-must not follow a later flip. Train a pair on the other table with
-`scripts/train.py --renewable-source energy_generation`.
+must not follow a later flip.
+
+The **training window** obeys the same rule. Both `train` entry points close an
+open-ended window (`end_date is None`) with `db.get_latest_data_timestamp`, which
+takes a `source=` and is handed `_resolved_training_source()`
+(`forecaster.py:187`, `forecaster.py:458`). Until that was threaded, a run naming
+`energy_generation` closed its window on `energy_renewable`'s last instant —
+truncated where that table lags, and falling through to `datetime.now()` for a
+pair with no rows in it at all, which is the normal case for the 39 unmodelled
+pairs. Anything new that resolves a window or reports freshness for an
+individual renewable type must pass the source; the constant is not the answer.
+
+Train a pair on the other table with `scripts/train.py --renewable-source
+energy_generation` — but note that **`scripts/train.py` does not currently
+import at all**: it does a flat `import db` (`train.py:37`) after putting `src/`
+on `sys.path`, and `src/db.py:17`'s `from .data_quality import ...` (added by
+ABL-188, `574eb80`) then raises `ImportError: attempted relative import with no
+known parent package`. Every `scripts/*.py` entry point using that flat-import
+preamble is affected, which is also why bare `python -m pytest` cannot collect
+(ABL-336) — use `python -m pytest tests/`. Fix that before relying on any
+training CLI flag.
 
 This exists because ABL-321 measured that switching globally makes 3 of the 10
 serving pairs materially worse (AT solar +4.3%, DE wind_onshore +3.6%, BE

@@ -179,8 +179,13 @@ class Forecaster:
             validation_days = config.VALIDATION_DAYS
 
         if end_date is None:
-            # Get latest available data
-            latest = get_latest_data_timestamp(self.country_code, self.forecast_type)
+            # Get latest available data -- from the table this run will actually
+            # train on (ABL-331 follow-up), not from whatever the global default
+            # says, or the window closes on the wrong table's freshness.
+            latest = get_latest_data_timestamp(
+                self.country_code, self.forecast_type,
+                source=self._resolved_training_source(),
+            )
             if latest:
                 end_date = (latest + timedelta(days=1)).strftime("%Y-%m-%d")
             else:
@@ -446,7 +451,12 @@ class Forecaster:
         from validation import WalkForwardValidator
 
         if end_date is None:
-            latest = get_latest_data_timestamp(self.country_code, self.forecast_type)
+            # Same as `train` (ABL-331 follow-up): the window closes on the
+            # freshness of the table this artifact's target series comes from.
+            latest = get_latest_data_timestamp(
+                self.country_code, self.forecast_type,
+                source=self._resolved_training_source(),
+            )
             if latest:
                 end_date = (latest + timedelta(days=1)).strftime("%Y-%m-%d")
             else:

@@ -468,16 +468,27 @@ def train_model(
 
         # Load and prepare data for potential Optuna/feature selection
         if use_optuna or feature_selection:
-            # Handle None end_date - get latest available data
+            # ABL-331 follow-up: this block runs *before* the `Forecaster` below
+            # is constructed with `training_source=renewable_source`, and it used
+            # to load with no source at all. With `--renewable-source
+            # energy_generation` that tuned the hyperparameters and selected the
+            # feature set on `energy_renewable` and then fitted the shipped model
+            # on `energy_generation` -- a train/train skew inside one run, in the
+            # flag's own code path.
             effective_end_date = end_date
             if effective_end_date is None:
-                latest = get_latest_data_timestamp(country_code, forecast_type)
+                latest = get_latest_data_timestamp(
+                    country_code, forecast_type, source=renewable_source
+                )
                 if latest:
                     effective_end_date = (latest + timedelta(days=1)).strftime("%Y-%m-%d")
                 else:
                     effective_end_date = datetime.now().strftime("%Y-%m-%d")
 
-            df = db.load_training_data(country_code, forecast_type, start_date, effective_end_date)
+            df = db.load_training_data(
+                country_code, forecast_type, start_date, effective_end_date,
+                source=renewable_source,
+            )
             if df.empty:
                 raise ValueError(f"No training data for {country_code} {forecast_type}")
 
