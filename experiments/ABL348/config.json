@@ -1,0 +1,522 @@
+{
+  "issue": "ABL-348",
+  "parent": "ABL-316",
+  "title": "Generic pre-registration for the 37 tranche pairs fitted on energy_generation",
+  "status": "PRE-REGISTERED - frozen before any model exists for any of the 37 pairs",
+  "registered_at": "2026-08-12T00:00:00Z",
+  "registered_by": "Forecasting Scientist",
+  "evidence_pack": "reports/abl_348_source_change_registration.md",
+  "measurement": "reports/abl_348_probe.json (scripts/abl348_source_registration_probe.py)",
+  "why_a_new_registration": [
+    "ABL-195 registers only {wind_offshore: [BE, FR], wind_onshore: [BE, DE, FR]} and ABL-253 only {solar: [BE, DE, FR]}. A pre-registration is a commitment over a stated pair set; none of these 37 pairs appears in either.",
+    "Neither predecessor names a source table - both predate ABL-331, so their implicit source is the global default energy_renewable. A registration must now name its table.",
+    "Two pairs cannot meet the registered minimum n and must be declared NOT-EVALUABLE before fitting, not after (see not_evaluable).",
+    "It is NOT because the windows moved. Measured: for all 37 pairs both tables begin before 2025-12-31, the earliest instant the registered window reaches, so the 678-1780 day depth shortfall lies entirely outside the registration."
+  ],
+  "window_provenance": "Inherited verbatim from experiments/ABL195/config.json and experiments/ABL253/config.json, which are identical on these fields and were fixed by prior issues before ABL-348 existed. Not selected here, and not shoppable against a challenger score - no challenger exists for any of the 37 pairs.",
+  "fit_target_window": [
+    "2026-01-14T00:00:00Z",
+    "2026-07-11T00:00:00Z"
+  ],
+  "gate_target_window": [
+    "2026-07-11T00:00:00Z",
+    "2026-08-10T00:00:00Z"
+  ],
+  "feature_lookback_start": "2025-12-31T00:00:00Z",
+  "run_times_utc": [
+    "D-2 07:00",
+    "D-2 14:00",
+    "D-2 15:30",
+    "D-2 19:00",
+    "D-1 07:00",
+    "D-1 14:00",
+    "D-1 15:30",
+    "D-1 19:00"
+  ],
+  "pairs": {
+    "solar": {
+      "algorithm": "catboost",
+      "countries": [
+        "BG",
+        "CH",
+        "CZ",
+        "EE",
+        "ES",
+        "FI",
+        "GR",
+        "HR",
+        "HU",
+        "IT",
+        "LT",
+        "LV",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SE",
+        "SI",
+        "SK"
+      ]
+    },
+    "wind_onshore": {
+      "algorithm": "catboost",
+      "countries": [
+        "BG",
+        "CH",
+        "CZ",
+        "EE",
+        "ES",
+        "FI",
+        "GR",
+        "HR",
+        "HU",
+        "IT",
+        "LT",
+        "LV",
+        "NL",
+        "NO",
+        "PL",
+        "PT",
+        "RO",
+        "SE"
+      ]
+    }
+  },
+  "pair_count": 37,
+  "pair_provenance": "Every ABL-318 verdict==TRAIN pair (39) minus the two ABL-322 pilot pairs (DE/NL wind_offshore), which carry their own registration at 40debf3. The ten already-serving pairs carry verdict ALREADY-COVERED and are out of scope here; migrating them is ABL-333/ABL-334.",
+  "algorithm_provenance": "catboost for both streams, matching ABL-253 (solar) and ABL-195 (wind_onshore). ABL-195's xgboost is registered for wind_offshore only, which this tranche does not contain.",
+  "training_source": {
+    "table": "energy_generation",
+    "mechanism": "per-artifact training_source (ABL-331), threaded to the builder via the --actuals-source flag ABL-345 adds; never the global RENEWABLE_TYPE_SOURCE_TABLE constant",
+    "applies_to": "target actuals, the D-7 baseline, and the ABL-188 constant-run screen - all three read the same table as the fit",
+    "rationale": "Measured: the source change removes ABL-188-screened contamination from three pairs' fit windows (CZ solar, CZ wind_onshore, NL solar) and adds none. Depth is a separate and larger argument, but it does not bear on this window."
+  },
+  "metric": "WAPE",
+  "baseline": "literal seasonal-naive D-7, recomputed on the same table the challenger is scored against",
+  "primary_bands": [
+    "24-36h",
+    "36-48h",
+    "48-64h"
+  ],
+  "registered_minimum_n": {
+    "24-36h": 684,
+    "36-48h": 684,
+    "48-64h": 456
+  },
+  "registered_intended_n": {
+    "24-36h": 720,
+    "36-48h": 720,
+    "48-64h": 480
+  },
+  "minimum_pair_coverage": 0.95,
+  "primary_bar": "challenger WAPE < literal seasonal-naive D-7 WAPE in all three primary D+2 bands for the pair, each cell meeting its registered minimum n",
+  "bar_is_relative_not_absolute": "No absolute WAPE threshold is registered. The baseline is recomputed on whatever series the challenger is scored against, which is what makes this band source-portable. Measured: switching table moves the D-7 bar by 0.00pp for 26 of 37 pairs and by at most 1.17pp for any pair, against decision margins of +24% to +53% relative in ABL-195/ABL-253.",
+  "identical_intersection": [
+    "challenger",
+    "literal D-7",
+    "persistence",
+    "actual"
+  ],
+  "incumbent": "none - all 37 pairs are unserved. The incumbent column reads 'Not measured' by construction, not by omission.",
+  "reported_metrics": [
+    "WAPE",
+    "MAE",
+    "signed bias",
+    "slope",
+    "correlation",
+    "pair count"
+  ],
+  "tso_role": "revision-contaminated context only; not a gate criterion",
+  "not_evaluable": {
+    "declared_before_any_fit": true,
+    "rule": "A pair listed here is reported NOT-EVALUABLE on the named bands. It is not a FAIL and must not be counted as one; a gate read that scores it has misread this registration.",
+    "pairs": {
+      "EE/solar": {
+        "n_d7_scorable_energy_generation": 630,
+        "n_d7_scorable_energy_renewable": 630,
+        "registered_min_n_684_bands": [
+          "24-36h",
+          "36-48h"
+        ],
+        "cause": "ABL-188 excludes a 44.8h bit-identical zero run, 2026-07-21 00:00 -> 2026-07-22 20:45, present identically in BOTH tables. Not caused by the source change.",
+        "source_dependent": false
+      },
+      "FI/solar": {
+        "n_d7_scorable_energy_generation": 650,
+        "n_d7_scorable_energy_renewable": 714,
+        "registered_min_n_684_bands": [
+          "24-36h",
+          "36-48h"
+        ],
+        "cause": "energy_generation holds 663 of 720 gate hours against energy_renewable's 717 - the ABL-322 section 3.3 phenomenon on a second pair. Broken by the source change itself.",
+        "source_dependent": true
+      }
+    },
+    "note_48_64h": "n_d7_scorable bounds the two 684-bands directly. The 48-64h band selects a 480-510 row subset, so its n scales proportionally rather than being hard-bounded; a pair declared here may still clear 456 in that band and should be reported if it does."
+  },
+  "fit_window_is_part_of_the_registration": {
+    "primary_arm": "the inherited 2026-01-14 -> 2026-07-11 fit window, on energy_generation",
+    "long_history_arm": "energy_generation offers 678-1780 additional days per pair. Fitting them is a DIFFERENT experiment and is not licensed by this registration. It is permitted only as a second arm declared before fitting, with both arms reported whenever the long arm is run. Funding it is a CEO sequencing and budget call.",
+    "shopping_prohibition": "Fitting the short window, observing a failed cell, then refitting on the long window and reporting the pass, voids this registration for that pair."
+  },
+  "per_pair_bar_measured_before_any_challenger_exists": {
+    "protocol": "Literal seasonal-naive D-7 over the registered gate window on the plain hourly :00 target series, read through db.load_renewable_type_data on the live replica (9,432,453,120 bytes, mode=ro) 2026-08-12, under .venv Python 3.14.3 / xgboost 3.3.0. No model existed for any of these pairs when these were taken. The harness's per-band, finite-intersection D-7 is the authoritative gate number and will differ slightly; these are the pre-committed bar.",
+    "bars": {
+      "BG/solar": {
+        "d7_wape_pct": 24.4,
+        "d7_mae_mw": 351.2,
+        "mean_actual_mw": 1439.2,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 24.4,
+        "bar_delta_pp": 0.0
+      },
+      "CH/solar": {
+        "d7_wape_pct": 12.67,
+        "d7_mae_mw": 168.7,
+        "mean_actual_mw": 1331.0,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 12.67,
+        "bar_delta_pp": 0.0
+      },
+      "CZ/solar": {
+        "d7_wape_pct": 24.1,
+        "d7_mae_mw": 230.6,
+        "mean_actual_mw": 956.9,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 24.1,
+        "bar_delta_pp": 0.0
+      },
+      "EE/solar": {
+        "d7_wape_pct": 36.67,
+        "d7_mae_mw": 81.8,
+        "mean_actual_mw": 223.0,
+        "n_d7_scorable": 630,
+        "d7_wape_pct_on_energy_renewable": 36.67,
+        "bar_delta_pp": 0.0
+      },
+      "ES/solar": {
+        "d7_wape_pct": 11.78,
+        "d7_mae_mw": 1314.2,
+        "mean_actual_mw": 11157.3,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 11.78,
+        "bar_delta_pp": 0.0
+      },
+      "FI/solar": {
+        "d7_wape_pct": 37.88,
+        "d7_mae_mw": 169.7,
+        "mean_actual_mw": 448.0,
+        "n_d7_scorable": 650,
+        "d7_wape_pct_on_energy_renewable": 37.9,
+        "bar_delta_pp": 0.02
+      },
+      "GR/solar": {
+        "d7_wape_pct": 10.37,
+        "d7_mae_mw": 277.1,
+        "mean_actual_mw": 2672.9,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 9.66,
+        "bar_delta_pp": -0.71,
+        "tables_disagree_in_gate_window": {
+          "pct_hours_bit_identical": 81.2,
+          "mean_abs_diff_mw": 130.357,
+          "mean_abs_diff_pct_of_level": 4.877,
+          "max_abs_diff_mw": 1342.0
+        }
+      },
+      "HR/solar": {
+        "d7_wape_pct": 16.43,
+        "d7_mae_mw": 26.0,
+        "mean_actual_mw": 158.4,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 16.43,
+        "bar_delta_pp": 0.0
+      },
+      "HU/solar": {
+        "d7_wape_pct": 18.35,
+        "d7_mae_mw": 243.4,
+        "mean_actual_mw": 1326.7,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 18.35,
+        "bar_delta_pp": 0.0,
+        "tables_disagree_in_gate_window": {
+          "pct_hours_bit_identical": 78.5,
+          "mean_abs_diff_mw": 0.283,
+          "mean_abs_diff_pct_of_level": 0.021,
+          "max_abs_diff_mw": 9.1
+        }
+      },
+      "IT/solar": {
+        "d7_wape_pct": 7.11,
+        "d7_mae_mw": 457.9,
+        "mean_actual_mw": 6441.9,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 7.11,
+        "bar_delta_pp": 0.0
+      },
+      "LT/solar": {
+        "d7_wape_pct": 30.84,
+        "d7_mae_mw": 167.7,
+        "mean_actual_mw": 543.8,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 30.84,
+        "bar_delta_pp": 0.0
+      },
+      "LV/solar": {
+        "d7_wape_pct": 47.85,
+        "d7_mae_mw": 140.0,
+        "mean_actual_mw": 292.5,
+        "n_d7_scorable": 714,
+        "d7_wape_pct_on_energy_renewable": 47.85,
+        "bar_delta_pp": 0.0
+      },
+      "NL/solar": {
+        "d7_wape_pct": 46.53,
+        "d7_mae_mw": 31.1,
+        "mean_actual_mw": 66.7,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 46.54,
+        "bar_delta_pp": 0.01,
+        "tables_disagree_in_gate_window": {
+          "pct_hours_bit_identical": 65.0,
+          "mean_abs_diff_mw": 0.05,
+          "mean_abs_diff_pct_of_level": 0.075,
+          "max_abs_diff_mw": 1.0
+        }
+      },
+      "PL/solar": {
+        "d7_wape_pct": 26.11,
+        "d7_mae_mw": 1063.7,
+        "mean_actual_mw": 4074.2,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 26.11,
+        "bar_delta_pp": 0.0
+      },
+      "PT/solar": {
+        "d7_wape_pct": 13.09,
+        "d7_mae_mw": 156.0,
+        "mean_actual_mw": 1191.4,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 12.97,
+        "bar_delta_pp": -0.12,
+        "tables_disagree_in_gate_window": {
+          "pct_hours_bit_identical": 77.4,
+          "mean_abs_diff_mw": 3.777,
+          "mean_abs_diff_pct_of_level": 0.317,
+          "max_abs_diff_mw": 239.0
+        }
+      },
+      "RO/solar": {
+        "d7_wape_pct": 24.41,
+        "d7_mae_mw": 210.1,
+        "mean_actual_mw": 861.0,
+        "n_d7_scorable": 718,
+        "d7_wape_pct_on_energy_renewable": 24.41,
+        "bar_delta_pp": 0.0
+      },
+      "SE/solar": {
+        "d7_wape_pct": 23.92,
+        "d7_mae_mw": 155.8,
+        "mean_actual_mw": 651.5,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 23.92,
+        "bar_delta_pp": 0.0
+      },
+      "SI/solar": {
+        "d7_wape_pct": 22.28,
+        "d7_mae_mw": 74.0,
+        "mean_actual_mw": 332.2,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 22.28,
+        "bar_delta_pp": 0.0
+      },
+      "SK/solar": {
+        "d7_wape_pct": 19.14,
+        "d7_mae_mw": 22.0,
+        "mean_actual_mw": 114.8,
+        "n_d7_scorable": 717,
+        "d7_wape_pct_on_energy_renewable": 19.14,
+        "bar_delta_pp": 0.0
+      },
+      "BG/wind_onshore": {
+        "d7_wape_pct": 93.75,
+        "d7_mae_mw": 102.1,
+        "mean_actual_mw": 108.9,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 93.75,
+        "bar_delta_pp": 0.0
+      },
+      "CH/wind_onshore": {
+        "d7_wape_pct": 59.26,
+        "d7_mae_mw": 7.7,
+        "mean_actual_mw": 12.9,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 59.26,
+        "bar_delta_pp": 0.0
+      },
+      "CZ/wind_onshore": {
+        "d7_wape_pct": 87.12,
+        "d7_mae_mw": 55.1,
+        "mean_actual_mw": 63.3,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 87.12,
+        "bar_delta_pp": 0.0
+      },
+      "EE/wind_onshore": {
+        "d7_wape_pct": 86.78,
+        "d7_mae_mw": 88.8,
+        "mean_actual_mw": 102.4,
+        "n_d7_scorable": 702,
+        "d7_wape_pct_on_energy_renewable": 87.95,
+        "bar_delta_pp": 1.17
+      },
+      "ES/wind_onshore": {
+        "d7_wape_pct": 41.27,
+        "d7_mae_mw": 1729.0,
+        "mean_actual_mw": 4189.5,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 41.27,
+        "bar_delta_pp": 0.0
+      },
+      "FI/wind_onshore": {
+        "d7_wape_pct": 59.77,
+        "d7_mae_mw": 1198.8,
+        "mean_actual_mw": 2005.8,
+        "n_d7_scorable": 714,
+        "d7_wape_pct_on_energy_renewable": 59.77,
+        "bar_delta_pp": 0.0
+      },
+      "GR/wind_onshore": {
+        "d7_wape_pct": 63.94,
+        "d7_mae_mw": 861.4,
+        "mean_actual_mw": 1347.1,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 63.42,
+        "bar_delta_pp": -0.52,
+        "tables_disagree_in_gate_window": {
+          "pct_hours_bit_identical": 70.4,
+          "mean_abs_diff_mw": 12.551,
+          "mean_abs_diff_pct_of_level": 0.932,
+          "max_abs_diff_mw": 158.0
+        }
+      },
+      "HR/wind_onshore": {
+        "d7_wape_pct": 99.58,
+        "d7_mae_mw": 224.4,
+        "mean_actual_mw": 225.4,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 99.58,
+        "bar_delta_pp": 0.0
+      },
+      "HU/wind_onshore": {
+        "d7_wape_pct": 125.38,
+        "d7_mae_mw": 52.1,
+        "mean_actual_mw": 41.5,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 125.28,
+        "bar_delta_pp": -0.1
+      },
+      "IT/wind_onshore": {
+        "d7_wape_pct": 70.97,
+        "d7_mae_mw": 1125.6,
+        "mean_actual_mw": 1586.0,
+        "n_d7_scorable": 715,
+        "d7_wape_pct_on_energy_renewable": 71.71,
+        "bar_delta_pp": 0.74
+      },
+      "LT/wind_onshore": {
+        "d7_wape_pct": 100.36,
+        "d7_mae_mw": 382.5,
+        "mean_actual_mw": 381.1,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 100.36,
+        "bar_delta_pp": 0.0
+      },
+      "LV/wind_onshore": {
+        "d7_wape_pct": 97.11,
+        "d7_mae_mw": 33.5,
+        "mean_actual_mw": 34.5,
+        "n_d7_scorable": 714,
+        "d7_wape_pct_on_energy_renewable": 97.11,
+        "bar_delta_pp": 0.0
+      },
+      "NL/wind_onshore": {
+        "d7_wape_pct": 95.3,
+        "d7_mae_mw": 215.1,
+        "mean_actual_mw": 224.6,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 94.3,
+        "bar_delta_pp": -1.0,
+        "tables_disagree_in_gate_window": {
+          "pct_hours_bit_identical": 68.9,
+          "mean_abs_diff_mw": 1.491,
+          "mean_abs_diff_pct_of_level": 0.661,
+          "max_abs_diff_mw": 13.4
+        }
+      },
+      "NO/wind_onshore": {
+        "d7_wape_pct": 61.19,
+        "d7_mae_mw": 699.5,
+        "mean_actual_mw": 1143.2,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 61.19,
+        "bar_delta_pp": 0.0
+      },
+      "PL/wind_onshore": {
+        "d7_wape_pct": 93.3,
+        "d7_mae_mw": 1668.2,
+        "mean_actual_mw": 1788.0,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 93.3,
+        "bar_delta_pp": 0.0
+      },
+      "PT/wind_onshore": {
+        "d7_wape_pct": 49.63,
+        "d7_mae_mw": 395.6,
+        "mean_actual_mw": 797.1,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 49.57,
+        "bar_delta_pp": -0.06,
+        "tables_disagree_in_gate_window": {
+          "pct_hours_bit_identical": 75.1,
+          "mean_abs_diff_mw": 1.209,
+          "mean_abs_diff_pct_of_level": 0.152,
+          "max_abs_diff_mw": 132.9
+        }
+      },
+      "RO/wind_onshore": {
+        "d7_wape_pct": 104.14,
+        "d7_mae_mw": 512.3,
+        "mean_actual_mw": 491.9,
+        "n_d7_scorable": 718,
+        "d7_wape_pct_on_energy_renewable": 104.14,
+        "bar_delta_pp": 0.0
+      },
+      "SE/wind_onshore": {
+        "d7_wape_pct": 53.76,
+        "d7_mae_mw": 1993.0,
+        "mean_actual_mw": 3707.1,
+        "n_d7_scorable": 720,
+        "d7_wape_pct_on_energy_renewable": 53.76,
+        "bar_delta_pp": 0.0
+      }
+    }
+  },
+  "reading_caveats_not_band_changes": {
+    "southern_solar_bar_is_tight": "ABL-253 read solar against D-7 bars of 22.8-32.9% (BE/DE/FR). Tranche solar bars run 7.11% (IT), 11.78% (ES), 12.67% (CH), 13.09% (PT), 16.43% (HR) - Mediterranean July/August solar is nearly D-7 periodic. Same band, materially harder task. A lower southern pass rate is not model quality.",
+    "small_fleet_wind_bar_is_loose": "HU 125.38%, RO 104.14%, LT 100.36%, HR 99.58%, LV 97.11%. A pass there is not model strength.",
+    "CH_wind_onshore_is_not_decision_grade": "gate-window mean 12.9 MW (ABL-318 max 198.6 MW). WAPE on a ~13 MW series cannot carry a promotion decision either way. Registration-compatible; report it, do not decide on it.",
+    "GR_tables_are_different_series": "GR solar is the only pair where the tables materially disagree inside the gate window: 81.2% of hours bit-identical, mean abs diff 130.36 MW = 4.88% of level, max 1342.0 MW. Its evidence pack must report this and a GR gate read must not be treated as interchangeable between sources.",
+    "first_tranche_recommendation": "BG solar, CH solar, BG wind_onshore, then CH wind_onshore as build-and-report. The four BG/CH pairs are level across both tables, 720/720 gate hours and D-7-scorable in each, bit-identical in all 720 co-observed hours, no ABL-188 hit in either window."
+  },
+  "contamination": {
+    "ABL-67": "net_position only - does not intersect these targets. GR provenance flag only.",
+    "ABL-109_ABL-111": "load only - does not intersect.",
+    "ABL-71": "known wrong-write modes are load and net position; a provenance caveat, not proof solar/wind ingest is pristine.",
+    "ABL-188": "DOES intersect. Five hits inside the registered windows, four of them energy_renewable-only: CZ solar fit -93h, CZ wind_onshore fit -86h, NL solar fit -45h (all energy_renewable only), EE solar gate -45h (BOTH tables). The screen is applied to both sources by db.load_renewable_type_data, so handling is identical between arms."
+  },
+  "harness_prerequisite": "ABL-345 gives both gate harnesses --actuals-source. Until it lands, a harness run for these pairs fits on energy_renewable through the global default and this registration is not satisfied. ABL-345 is the Founding Engineer's; nothing in this registration is blocked on measuring it again.",
+  "voids_this_registration": "any change to the windows, bands, metric, baseline, minimum n, source table, or the not_evaluable list after a challenger score has been seen for the affected pair",
+  "promotion": "none. Evidence only. Promotion is a CEO-to-Board decision.",
+  "artifact_location": "experiments/ABL348/artifacts (local generated output; not a serving registry)"
+}
