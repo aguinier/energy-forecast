@@ -203,8 +203,16 @@ for BE and 30,864 for FR, and none for DE, while DE `solar` and
 So a trained, promoted-to-`production/` DE offshore model exists and the
 serving path never looks at it. Nothing is wrong with DE's offshore data:
 196,756 non-null observations, 0.07 % zeros, peak 8,486.4 MW, no gap, no
-suspect run — verdict `TRAIN`. **This is a serving-side defect; I am
-commenting it on ABL-319 rather than fixing it, since serving is not mine.**
+suspect run — verdict `TRAIN`.
+
+**ABL-319 reached the same conclusion independently, and closed on it** — its
+answer landed at 18:17 UTC on 2026-08-12, eleven minutes before this audit's
+final run, from the serving side rather than the artifact side. It adds the
+half I could not see: there is **no country gate anywhere between the
+`forecasts` table and the chart**, so the ABL-316 retrains are a pure training
+exercise with no plumbing component. Two independent routes to the same
+finding is worth more than either alone; I have not duplicated a comment onto
+a closed issue.
 
 Note the audit script had the same bug I am reporting: a directory-existence
 check called DE offshore "already covered". It now requires the file
