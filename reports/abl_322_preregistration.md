@@ -294,3 +294,149 @@ all made in the same diff that runs the gate:
 
 Corrections 1 and 2 are independent failure modes and both are silent. Together
 they are the reason this pilot was worth running on two countries.
+
+## 8. Update 2026-08-12 — ABL-345 sized against the registered window
+
+ABL-345 was made a first-class blocker on this issue after the CEO triage, and
+the finding behind it is mine (`0e6b8ba`). This section does not contest the
+blocker. It corrects the number attached to it, because that number is being
+used to size the 37 tranches behind this pilot.
+
+Reproduce with `scripts/abl322_source_sensitivity_probe.py` (read-only,
+`mode=ro`, `uri=True`; nothing written to either database).
+
+### 8.1 The "13-16%" figure does not describe this pilot
+
+The triage states the pilot "fits 13-16% of the window §1 pre-registers",
+from whole-table spans — 337 d (DE) / 275 d (NL) of `energy_renewable` against
+2,049 d of `energy_generation`.
+
+That ratio is a property of the **tables**, not of the **registered window**.
+§1 does not register a 2,049-day fit. It inherits ABL-195's frozen 178-day fit
+window (2026-01-14 → 2026-07-11); with the builder's 14-day lag warm-up the
+earliest instant this pilot asks any source for is **2025-12-31**. DE
+`energy_renewable` opens 2025-09-08 and NL 2025-11-09 — **both before it**.
+
+Measured coverage inside the registered windows, `wind_offshore_mw` non-null:
+
+| window | | `energy_generation` | `energy_renewable` | ratio |
+|---|---|---:|---:|---:|
+| builder (2025-12-31 → 2026-08-10) | DE | 21,312 | 21,202 | **99.5%** |
+| | NL | 21,312 | 21,196 | **99.5%** |
+| fit (2026-01-14 → 2026-07-11) | DE | 17,088 | 16,978 | **99.4%** |
+| | NL | 17,088 | 16,972 | **99.3%** |
+| gate (2026-07-11 → 2026-08-10) | DE | 2,880 | 2,880 | **100.0%** |
+| | NL | 2,880 | 2,880 | **100.0%** |
+
+Neither source truncates the registered window. The gate window — the one that
+produces the reported number — is **row-for-row identical in count**. The
+shortfall is 0.5-0.7%, not 84-87%.
+
+### 8.2 What it is actually worth: the bar moves 0.00pp on DE, -0.97pp on NL
+
+The harness computes its baseline from `builder._actuals`
+(`evaluate_wind_retrain.py:200`, `attach_baselines(selected, builder._actuals)`),
+so the defect moves the **D-7 bar** as well as the fit. §2 registered the bar
+from `energy_generation`. Recomputed from `energy_renewable` by the identical
+method, same window, n=720 in every cell:
+
+| pair | registered bar (`energy_generation`) | counterfactual (`energy_renewable`) | delta |
+|---|---:|---:|---:|
+| DE `wind_offshore` | 88.82% | 88.82% | **+0.00pp** |
+| NL `wind_offshore` | 81.78% | 80.81% | **−0.97pp** |
+
+DE is unmoved to two decimal places. NL's bar tightens by about one point,
+because `energy_renewable` carries 4 zero-filled rows inside the gate window
+where `energy_generation` carries none, and a mean actual 10.1 MW higher.
+Same under the `hourly_mean` aggregation (DE +0.00pp, NL −0.98pp), so this is
+not an artefact of the `:00` convention.
+
+For scale: ABL-195's offshore challengers beat D-7 by 26-30 **percentage points
+relative**. A 0.97pp baseline shift does not decide a pass at that margin — but
+it is not nothing on a pair with no incumbent and no prior.
+
+### 8.3 ABL-345 still blocks this issue, on compliance not magnitude
+
+Stating the correction is not an argument to unblock, and I am not asking for
+one. Three reasons survive the correction, and the first is dispositive on its
+own:
+
+1. **The run cannot comply with its own pre-registration.** §1 registers
+   `training_source = energy_generation`. Until a source argument reaches the
+   builder there is no way to execute the registered protocol. Magnitude is
+   irrelevant to this one.
+2. **Contamination inside the fit window.** `energy_renewable` carries 12 (DE)
+   and 35 (NL) fabricated zeros where `energy_generation` carries 0 — the
+   ABL-67 / ABL-111 class. NL has 4 more inside the *scoring* window.
+3. **Provenance.** The artifact would record `training_source='energy_renewable'`,
+   contradicting §1 — which is precisely the skew ABL-342 built the writer to
+   make visible.
+
+### 8.4 The ABL-345 guard will be silent for this pilot — measured
+
+The triage instructs me to pass the source flag explicitly, noting ABL-345 adds
+a guard that refuses a fit window starting before the source's first row, "so a
+mistake here should become loud".
+
+**Measured, that guard cannot fire on either pilot pair.** Both tables begin
+before the builder's 2025-12-31 start (`covers_builder_start: YES`, all four
+table/country combinations in §8.1). A silent fall-through to `energy_renewable`
+passes the guard cleanly and returns a plausible gate read.
+
+This is a finding *for* the guard, not against it: it is correctly scoped to the
+33 tranche pairs whose `energy_renewable` opens 2025-10 or later, and it is
+those pairs it will protect. It simply does not protect this pilot. So §1 gains
+one amendment:
+
+> **Amendment (§8.4).** The source is passed explicitly on the command line, and
+> after the run the artifact's recorded `training_source` is asserted to equal
+> `energy_generation` for both pairs before any gate number is reported. The
+> explicit flag is the only protection this pilot has; the recorded provenance
+> is the only check that it took effect.
+
+### 8.5 Harness-correction ownership, superseding §7.5
+
+§7.5's three corrections have moved. Recorded so the pilot diff does not
+collide with an in-flight one:
+
+| §7.5 correction | site on `84371b3` | owner now |
+|---|---|---|
+| 1. builder `actuals_source` | `evaluate_wind_retrain.py:179` | **ABL-345** (Founding Engineer) |
+| 2. artifact via `Forecaster.save` | `:186-191` | **landed** — ABL-342, PR #21 |
+| 3. `_constant_runs` source | `:64` | **ABL-345** (Founding Engineer) |
+
+Nothing in §7.5 remains mine. What remains ABL-322's own is the `PAIRS` entry —
+`wind_offshore` is `("BE", "FR")` on `84371b3` and the pilot needs DE and NL —
+plus the gate read itself.
+
+An implementation of corrections 1 and 3, with the measurements behind them,
+exists unpushed on branch `ABL-322-pilot` (`8662989`). It is offered to ABL-345
+as reference and will not be landed from here. One divergence to settle there:
+that branch names the flag `--renewable-source`; the CEO's instruction on this
+issue says `--actuals-source`. **ABL-345 picks the name**; §1's registered
+command line will be written against whatever ships.
+
+### 8.6 The intercept witness does not cover the `wind_onshore` tranches
+
+Confirmed by reading `src/forecaster.py:922-931`: the `base_score` witness and
+`xgboost_version` are written only when `algorithm == "xgboost"`, since
+`base_score` is a booster attribute. `PAIRS` on `84371b3` sets `wind_offshore`
+to xgboost and `wind_onshore` to catboost.
+
+So this pilot (`wind_offshore`, xgboost) **is** covered by the ABL-183 guard —
+its artifacts carry the witness. The `wind_onshore` half of the ABL-316
+tranches is not, and cannot be by this mechanism. Correct behaviour, not a short
+write; recorded here so it is not rediscovered mid-tranche.
+
+### 8.7 Preconditions, re-checked at this heartbeat
+
+- `87edd501` and `84371b3` are both ancestors of `origin/main` (now `82529c0`).
+- **ABL-346 landed** (`d0d19aa`): `scripts/train.py` now exits 2 rather than
+  falling through to the replica when `FORECAST_OUTPUT_DB` is unset. It does not
+  change this pilot — §7.4 established the gate harness never routes through
+  `scripts/train.py` — and the harness already surfaces `--sidecar-db` at
+  `:155`. The harness's only database access is `_ro_connect` (`:61`); it reads
+  the replica read-only and writes no rows.
+- Blockers verified live, not read off the card: **ABL-332** PR #16 `OPEN`,
+  `MERGEABLE`, awaiting the Board click; **ABL-345** `in_progress` with the
+  Founding Engineer. No gate read and no training was run this heartbeat.
