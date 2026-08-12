@@ -115,6 +115,9 @@ universally true, which matters to the 37 pairs behind this pilot.
 
 ## 4. Consequence for the blockers
 
+> **Superseded in part by §7 (2026-08-12).** ABL-331 has since landed. The
+> paragraph below is kept as written for provenance; read §7 for current state.
+
 - **ABL-331 remains a genuine blocker.** I cannot train DE/NL from
   `energy_generation` while the source is a global constant read at inference
   time — that is precisely what ABL-321 refused. Nothing in these measurements
@@ -152,3 +155,108 @@ that runs it.
   robustness claim.
 - No production deploy, serving-registry change, model promotion, ingest change,
   dashboard change, replica write or sidecar write was performed.
+
+## 7. Update 2026-08-12 — blocker state, and the artifact-shape trap
+
+Appended after the Founding Engineer reported ABL-331 merged. §1–§3 are
+unchanged: **no window, band, metric, baseline or minimum n is touched here**, no
+challenger score exists, and this registration is not voided by anything below.
+
+### 7.1 Blocker state
+
+| | state | effect on ABL-322 |
+|---|---|---|
+| **ABL-331** per-artifact training source | **done** — `1d6f9ee` (PR #14) | cleared |
+| **ABL-339** window closed on the artifact's own source | **merged** — `1a133d6`, merge `87edd50` (PR #17) | cleared; was already moot, see §7.3 |
+| **ABL-332** hourly builder discards 15-min samples | **`in_review`** | **still blocking** |
+| ABL-340 `scripts/train.py` import | open | **does not touch ABL-322**, see §7.4 |
+
+PR #17 merged after the Founding Engineer's comment described it as awaiting
+merge; `origin/main` is at `87edd50`.
+
+### 7.2 The gate harness writes an artifact that silently serves from the wrong table
+
+This is the finding of this update, and it is exactly the class of thing the
+pilot exists to catch. It is in **my** harness, not the Founding Engineer's code.
+
+`scripts/evaluate_wind_retrain.py:186-191` does not save through
+`Forecaster.save`. It writes a bare `joblib.dump` of seven keys. Post-ABL-331,
+`Forecaster.load` resolves an absent `training_source` to
+`LEGACY_RENEWABLE_TRAINING_SOURCE = 'energy_renewable'` — correct and deliberate
+for the 88 legacy artifacts, and **wrong for a pair fitted on
+`energy_generation`**.
+
+Measured, not inferred. Both shapes built and round-tripped on the rail
+(`.venv`, Python 3.14.3, xgboost 3.3.0) against worktree `87edd50`; synthetic
+2-feature fit, no replica read:
+
+| | keys written | `training_source` | `base_score` / `xgboost_version` | `Forecaster.load` | **resolves to** |
+|---|---|---|---|---|---|
+| **A** — harness bare `joblib.dump` | 7 | absent | absent | **OK, no error** | **`energy_renewable`** |
+| **B** — `Forecaster.save(training_source='energy_generation')` | 14 | present | present | OK | **`energy_generation`** |
+
+Every key in `load` is read with `.get(..., default)`, so shape A does not fail —
+it loads clean and serves the wrong table. A DE/NL artifact written this way to
+`models/<CC>/wind_offshore/model.joblib` would be **fitted on
+`energy_generation` and served from `energy_renewable`**: precisely the
+train/serve skew ABL-321 was withheld to prevent, reintroduced through the
+artifact writer rather than the global constant. NL offshore is the worst pair in
+the audit for that table — 447 zero-filled rows, 668 disagreeing duplicates.
+
+Second defect in the same shape: absent `base_score`/`xgboost_version` make
+ABL-183's `assert_survived_load` intercept witness a **no-op**. That is the guard
+against an xgboost-3.3.0 pickle loading under 2.1.4 with its intercept silently
+reset to 0.5. The pilot artifact would ship with that protection disabled.
+
+Neither defect is reachable by test today because no renewable artifact on disk
+was written by this harness to a serving path.
+
+### 7.3 ABL-339 — measured, and it did not bite these two pairs
+
+The Founding Engineer asked whether `energy_renewable` carries DE/NL offshore
+rows at all, since an absent series would have sent the pre-fix window end to
+`datetime.now()`. It does, and the head is not behind:
+
+| table | DE non-null rows | DE max ts | NL non-null rows | NL max ts |
+|---|---:|---|---:|---|
+| `energy_renewable` | 33,503 | 2026-08-12 13:00 | 27,485 | 2026-08-12 13:00 |
+| `energy_generation` | 196,756 | 2026-08-12 12:45 | 196,757 | 2026-08-12 13:00 |
+
+So the pre-fix end would have closed on `energy_renewable`'s last instant, which
+is **level with or 15 minutes ahead of** `energy_generation`'s — truncation of
+zero. The `datetime.now()` fall-through never applied here.
+
+Independently, **ABL-339 could not have reached this gate read**: the harness
+passes explicit bounds (`fit_start - 14d`, `gate_end`) to
+`RenewableFeatureBuilder` at `:179-180`, so `end_date=None` never arises. The
+registered windows are closed on both ends.
+
+The depth difference is at the *start*, not the end — `energy_renewable` begins
+2025-09-08 (DE) / 2025-11-09 (NL) against `energy_generation`'s 2021-01-01. The
+registered fit window opens 2026-01-14, after both, so it is not affected.
+
+### 7.4 ABL-340 does not touch this issue
+
+`scripts/train.py` is not on ABL-322's path. The gate harness imports `src.*`
+directly (`from src.wind_features import RenewableFeatureBuilder`) and fits an
+`XGBRegressor` itself at `:184`. It has never routed through `scripts/train.py`,
+including for the reproducible ABL-195 and ABL-253 reads. No workaround needed
+and no waiting on ABL-340.
+
+### 7.5 Harness corrections this issue now owns
+
+Superseding §5, three corrections, all in `scripts/evaluate_wind_retrain.py`,
+all made in the same diff that runs the gate:
+
+1. **`:179-180`** — pass `actuals_source='energy_generation'` to
+   `RenewableFeatureBuilder`. Not passed today, so it defaults through the global
+   constant to `energy_renewable`. Without this the model is *fitted* on the
+   wrong table.
+2. **`:186-191`** — write the serving-path artifact through `Forecaster.save`
+   with `training_source='energy_generation'`, not the bare `joblib.dump`. §7.2.
+   Without this the model is *served* from the wrong table.
+3. **`:64`** — `_constant_runs` hardcodes `FROM energy_renewable`; must screen
+   the table actually trained from. Carried unchanged from §5.
+
+Corrections 1 and 2 are independent failure modes and both are silent. Together
+they are the reason this pilot was worth running on two countries.
