@@ -68,3 +68,52 @@ coverage loss is reported separately, not absorbed into the metric.
 
 No promotion, no serving change, no registry change, no ingest change, no
 replica write, no sidecar write.
+
+---
+
+## Amendment 1 — a second, winter holdout (registered before it was run)
+
+Registered after reading window 1's AT/solar and BE/solar cells and **before**
+fitting anything on window 2. The decision rule above is **not** changed; this
+amendment tests whether the *measurement* is stable, which is a different
+question from what the threshold should be.
+
+**Why.** Window 1 fits on Jan–Jul and scores on Jul–Aug, so it trains on low
+solar and scores on high solar. Both arms therefore under-predict, and the arm
+whose training data sits at a higher level under-predicts less. Measured on the
+fit window against the window-1 gate truth, arm A does sit higher for solar:
+
+| pair | fit mean, arm A | fit mean, arm B | gate truth mean | A / gate | B / gate |
+|---|---:|---:|---:|---:|---:|
+| AT solar | 899.8 | 880.1 | 1,410.1 | 0.638 | 0.624 |
+| BE solar | 1,557.0 | 1,550.5 | 2,164.5 | 0.719 | 0.716 |
+| DE solar | 10,936.2 | 10,939.6 | 16,885.0 | 0.648 | 0.648 |
+
+AT — the one pair beyond the material band — has the largest level gap of the
+three, and DE — where the two arms sit at an identical level — has the smallest
+WAPE difference (+0.5 %). That is what a level artifact looks like, not what a
+data-quality effect looks like.
+
+**The test.** A winter holdout runs the seasonal bias the other way: fit across
+autumn/winter, score in winter. If arm B's deficit is a level artifact it should
+shrink or reverse; if it is a property of the source it should persist.
+
+- Fit targets: 2025-11-21 → 2026-02-15 (exclusive)
+- Scoring targets: 2026-02-15 → 2026-03-17 (exclusive)
+- Everything else unchanged.
+
+Window 2's fit span is bounded by `energy_renewable` itself: AT's history starts
+2025-11-07 and DE's 2025-09-08, so no earlier fit start is available to arm A.
+The fit is therefore ~86 days against window 1's ~178 — **both arms are equally
+handicapped**, so the A/B stays fair, but the absolute WAPEs are not comparable
+across windows and no cross-window absolute claim is made.
+
+**How the two windows combine.** Window 1 remains the registered decision
+window. Window 2 can show that window 1's result is unstable; it cannot by
+itself license the switch. Reported outcomes:
+
+- worse in both windows → the switch does not land. Reported as the finding.
+- worse in one, not the other → the evidence does not settle it on 30-day
+  holdouts; the recommendation says so and does not pretend otherwise.
+- not materially worse in either → non-inferiority holds on the evidence
+  available, and the census arguments carry the decision.
