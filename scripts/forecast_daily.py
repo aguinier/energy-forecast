@@ -20,7 +20,10 @@ from pathlib import Path
 from typing import List
 
 # Add repo root to path (for the top-level `config` module and the `src` package)
-sys.path.insert(0, str(Path(__file__).parent.parent))
+REPO_ROOT = Path(__file__).parent.parent
+# Runners whose `script` lives here are modules of a package, not loose files.
+SRC_PACKAGE = 'src'
+sys.path.insert(0, str(REPO_ROOT))
 
 import config
 from src.db import save_forecasts, create_forecasts_table, start_forecast_run, complete_forecast_run
@@ -183,6 +186,38 @@ def generate_forecast(
     return result
 
 
+def build_runner_command(
+    runner: dict,
+    args: List[str],
+    repo_root: Path = REPO_ROOT,
+) -> List[str]:
+    """Build the argv for an external runner, launched the way its imports need.
+
+    A runner hosted inside `src/` is a *module of the `src` package*: its
+    siblings are imported relatively (`from .db import ...`), which only
+    resolves when it has a parent package. Handing its path to the interpreter
+    gives it none, and it dies at the import line with "attempted relative
+    import with no known parent package" — which is exactly what happened to
+    `src/tso_correction_forecaster.py` from ABL-340 until ABL-354: every BE
+    solar / wind forecast from the `tso-correction` runner failed while the job
+    still exited `[DONE]`.
+
+    So a `src/`-hosted runner is launched as `python -m src.<module>`, with the
+    subprocess `cwd` at the repo root so `src` and `config` resolve. Runners
+    outside the package keep the by-path form; they have no parent package to
+    need. See CLAUDE.md, "Importing this repo".
+    """
+    script = Path(runner['script'])
+    python_exe = runner.get('python_executable') or 'python'
+
+    if script.parts[0] == SRC_PACKAGE:
+        launch = ['-m', '.'.join(script.with_suffix('').parts)]
+    else:
+        launch = [str(repo_root / script)]
+
+    return [python_exe, *launch, *args]
+
+
 def run_external_model(
     runner: dict,
     country_code: str,
@@ -222,19 +257,16 @@ def run_external_model(
         'error': None
     }
 
-    python_exe = runner.get('python_executable', 'python')
-    script_path = str(Path(__file__).parent.parent / runner['script'])
-
-    cmd = [
-        python_exe,
-        script_path,
+    run_args = [
         '--country', country_code,
         '--horizon', str(horizon_days),
         '--date', reference_date.strftime('%Y-%m-%d'),
     ]
 
     if not dry_run:
-        cmd.append('--save')
+        run_args.append('--save')
+
+    cmd = build_runner_command(runner, run_args)
 
     logger.info(f"[{runner_name}] Running: {country_code} {forecast_type} D+{horizon_days}")
 
@@ -244,6 +276,7 @@ def run_external_model(
             capture_output=True,
             text=True,
             timeout=300,  # 5 minute timeout
+            cwd=str(REPO_ROOT),  # `-m src.x` resolves the package from here
         )
 
         if proc.returncode == 0:

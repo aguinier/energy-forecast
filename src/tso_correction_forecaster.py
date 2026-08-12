@@ -12,10 +12,12 @@ Two model_names are written:
 This ensures the dashboard can show both, and the frontend's
 getAvailableMLModels() picks them up automatically.
 
-Usage:
-    python src/tso_correction_forecaster.py --country BE --horizon 1 --save
-    python src/tso_correction_forecaster.py --country BE --horizon 1 --date 2026-02-25 --save
-    python src/tso_correction_forecaster.py --retrain --country BE
+Usage — module-style, from the repo root. This file is a module of the `src`
+package: its relative imports need a parent package, and running it by path
+raises `ImportError` at line 1 of the import block (ABL-354).
+    python -m src.tso_correction_forecaster --country BE --horizon 1 --save
+    python -m src.tso_correction_forecaster --country BE --horizon 1 --date 2026-02-25 --save
+    python -m src.tso_correction_forecaster --retrain --country BE
 
 Author: Aurora / OpenClaw
 Date: 2026-02-25

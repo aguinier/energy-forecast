@@ -15,6 +15,17 @@ statements (and only those: no `def`, no `class`, no `if __name__`), which is
 the cheapest thing that proves the import graph resolves. It runs the whole set
 in one subprocess and purges repo-local modules between scripts, so each script
 re-imports `src.*` from scratch while third-party wheels stay cached.
+
+`config.MODEL_RUNNERS` is the second set of entry points, and it was not
+covered here until ABL-354: `forecast_daily.py` launches those as subprocesses,
+and one of them (`src/tso_correction_forecaster.py`) lives *inside* the package.
+Running a package module by path gives it no parent package, so the relative
+import that `test_no_flat_intra_src_imports` requires is the one by-path
+execution forbids — the two guards pointed opposite ways, and every BE solar /
+wind forecast from the `tso-correction` runner failed for it while the job still
+logged `[DONE]`. The runner tests below close that: they assert each runner is
+launched in a mode its own imports can survive, and then prove it by launching
+it.
 """
 
 import ast
@@ -28,6 +39,16 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 # Every entry point: scripts/ plus the repo-root runners (run_forecast.py, config.py).
 SCRIPTS = sorted((REPO_ROOT / "scripts").glob("*.py")) + sorted(REPO_ROOT.glob("*.py"))
+
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+
+import config  # noqa: E402
+import forecast_daily  # noqa: E402
+
+# Every configured subprocess entry point, enabled or not: a disabled runner is
+# one config flip away from being launched, so it is held to the same rule.
+RUNNERS = [r for r in config.MODEL_RUNNERS if r.get("script")]
 
 # Top-level module names inside src/. Imported flat, each of these either
 # resolves to a second, independent copy of a src module or raises ImportError.
@@ -165,4 +186,95 @@ def test_no_flat_intra_src_imports(py_file):
     assert not offenders, (
         f"{py_file} imports a sibling src module flat:\n  " + "\n  ".join(offenders)
         + "\nUse a relative import (`from .db import ...`) instead (ABL-340)."
+    )
+
+
+# --- config.MODEL_RUNNERS entry points (ABL-354) -----------------------------
+
+def _runner_id(runner):
+    return f"{runner['name']}:{runner['script']}"
+
+
+RUNNER_IDS = [_runner_id(r) for r in RUNNERS]
+
+
+def test_model_runners_are_covered():
+    # Guards the parametrisation below against silently covering nothing.
+    assert len(RUNNERS) >= 3, f"only found {len(RUNNERS)} runners with a script"
+
+
+@pytest.mark.parametrize("runner", RUNNERS, ids=RUNNER_IDS)
+def test_model_runner_script_exists(runner):
+    script = REPO_ROOT / runner["script"]
+    assert script.is_file(), (
+        f"MODEL_RUNNERS['{runner['name']}'] points at {runner['script']}, "
+        "which does not exist."
+    )
+
+
+@pytest.mark.parametrize("runner", RUNNERS, ids=RUNNER_IDS)
+def test_model_runner_launch_mode_matches_its_imports(runner):
+    """Each runner is launched in a mode its own import style can survive.
+
+    Two modes, and each rules something out:
+
+    - ``-m src.foo`` needs a real package — every directory from the repo root
+      down must have an ``__init__.py``, or the module has no parent package and
+      the relative import raises anyway.
+    - by path needs no relative imports at all, since a file executed by path is
+      ``__main__`` with no package.
+
+    This is the static half; ``test_model_runner_launches`` runs the command.
+    """
+    cmd = forecast_daily.build_runner_command(runner, [], repo_root=REPO_ROOT)
+    script = REPO_ROOT / runner["script"]
+    tree = ast.parse(script.read_text(encoding="utf-8"))
+    relative = [
+        f"line {n.lineno}: from {'.' * n.level}{n.module or ''} import ..."
+        for n in ast.walk(tree)
+        if isinstance(n, ast.ImportFrom) and n.level > 0
+    ]
+
+    if cmd[1:2] == ["-m"]:
+        module = cmd[2]
+        assert module == ".".join(Path(runner["script"]).with_suffix("").parts)
+        package = script.parent
+        while package != REPO_ROOT:
+            assert (package / "__init__.py").is_file(), (
+                f"{runner['script']} is launched as `-m {module}`, but "
+                f"{package.relative_to(REPO_ROOT).as_posix()}/ has no "
+                "__init__.py, so it is not a package."
+            )
+            package = package.parent
+    else:
+        assert not relative, (
+            f"{runner['script']} is launched by path:\n  {cmd[1]}\n"
+            "but imports relatively:\n  " + "\n  ".join(relative)
+            + "\nA file run by path has no parent package, so these raise "
+            "ImportError. Move the runner under src/ and launch it as "
+            "`-m src.<module>` (ABL-354)."
+        )
+
+
+@pytest.mark.parametrize("runner", RUNNERS, ids=RUNNER_IDS)
+def test_model_runner_launches(runner):
+    """The command `forecast_daily` builds actually starts (ABL-354).
+
+    `--help` is the cheapest argv that runs every module-level import and then
+    exits 0 without touching the database or a model. The runner's configured
+    `python_executable` is deliberately *not* used: it is an absolute path to
+    one box's venv, and this test is about the import graph, not that box.
+    Launched with `sys.executable` — the same interpreter the preamble probe
+    above uses — and from the repo root, which is where `forecast_daily` runs it.
+    """
+    cmd = forecast_daily.build_runner_command(runner, ["--help"], repo_root=REPO_ROOT)
+    proc = subprocess.run(
+        [sys.executable, *cmd[1:]],
+        capture_output=True, text=True, cwd=str(REPO_ROOT), timeout=600,
+    )
+    assert proc.returncode == 0, (
+        f"`{' '.join(cmd[1:])}` exits {proc.returncode} — the {runner['name']} "
+        f"runner cannot start.\n\nstderr:\n{proc.stderr[-2000:]}\n\n"
+        "forecast_daily runs this as a subprocess and only logs the failure, so "
+        "the daily job still reports [DONE] with these forecasts missing."
     )
