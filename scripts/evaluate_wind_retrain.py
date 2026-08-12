@@ -9,6 +9,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -17,6 +18,7 @@ from xgboost import XGBRegressor
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
+from src import db
 from src.data_quality import find_suspect_constant_runs
 from src.evaluation.gate_artifacts import save_gate_artifact
 from src.evaluation.scorecard import (
@@ -32,7 +34,12 @@ from src.wind_features import RenewableFeatureBuilder
 
 
 PAIRS = {
-    "wind_offshore": {"algorithm": "xgboost", "countries": ("BE", "FR")},
+    # ABL-322 adds DE and NL, which close the offshore programme (BE/DE/FR/NL
+    # per the ABL-318 verdict table).  Note this widens the *default* scope:
+    # an unflagged run now fits four offshore countries, not ABL-195's BE/FR,
+    # and does so on the default source.  Pass --countries to pin a run to one
+    # pre-registered scope -- the pilot uses `--countries DE,NL`.
+    "wind_offshore": {"algorithm": "xgboost", "countries": ("BE", "DE", "FR", "NL")},
     "wind_onshore": {"algorithm": "catboost", "countries": ("BE", "DE", "FR")},
 }
 COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw"}
@@ -57,11 +64,18 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _constant_runs(replica: str, country: str, forecast_type: str, start, end) -> list[dict]:
+def _constant_runs(replica: str, country: str, forecast_type: str, start, end,
+                   source: Optional[str] = None) -> list[dict]:
+    # ABL-322: the contamination audit has to read the same table the model was
+    # fitted on.  Hardcoding `energy_renewable` here while the builder trains
+    # from `energy_generation` reports zero-fill runs for a series nothing used.
+    table = source or db.RENEWABLE_TYPE_SOURCE_TABLE
+    if table not in db._RENEWABLE_TYPE_SOURCES:
+        raise ValueError(f"unknown renewable source table: {table!r}")
     con = _ro_connect(replica)
     try:
         df = pd.read_sql_query(
-            f"SELECT timestamp_utc, {COLUMNS[forecast_type]} AS value FROM energy_renewable "
+            f"SELECT timestamp_utc, {COLUMNS[forecast_type]} AS value FROM {table} "
             "WHERE country_code=? AND timestamp_utc>=? AND timestamp_utc<? ORDER BY timestamp_utc",
             con, params=(country, str(start), str(end)),
         )
@@ -159,7 +173,19 @@ def main() -> int:
     parser.add_argument("--artifact-dir", default="experiments/ABL195/artifacts")
     parser.add_argument("--json-out", default="experiments/ABL195/results.json")
     parser.add_argument("--report-out", default="reports/abl_195_wind_retrain.md")
+    # ABL-322: the pilot gates DE/NL wind_offshore off `energy_generation`.
+    # Both stay opt-in so an unflagged run reproduces ABL-195 exactly.
+    parser.add_argument("--countries", default=None,
+                        help="Comma-separated country filter applied to every pair "
+                             "(default: the pairs' own country lists)")
+    parser.add_argument("--renewable-source", default=None,
+                        choices=list(db._RENEWABLE_TYPE_SOURCES),
+                        help="Source table for the fitted series, its features and the "
+                             f"contamination audit (default: {db.RENEWABLE_TYPE_SOURCE_TABLE})")
     args = parser.parse_args()
+    country_filter = None
+    if args.countries:
+        country_filter = {c.strip().upper() for c in args.countries.split(",") if c.strip()}
     fit_start, gate_start, gate_end = map(pd.Timestamp, (args.fit_start, args.gate_start, args.gate_end))
     if not fit_start < gate_start < gate_end:
         parser.error("require fit-start < gate-start < gate-end")
@@ -175,9 +201,15 @@ def main() -> int:
     training, scored_frames = [], []
     for forecast_type, spec in PAIRS.items():
         tso = _load_tso(cfg, forecast_type)
-        for country in spec["countries"]:
+        countries = spec["countries"]
+        if country_filter is not None:
+            countries = tuple(c for c in countries if c in country_filter)
+        for country in countries:
+            # ABL-342 records provenance from the builder, not a source string,
+            # so passing the source here is what makes the artifact truthful.
             builder = RenewableFeatureBuilder(country, forecast_type,
-                                               fit_start - pd.Timedelta(days=14), gate_end)
+                                               fit_start - pd.Timedelta(days=14), gate_end,
+                                               actuals_source=args.renewable_source)
             fit_raw = build_vintage_frame(builder, fit_start, gate_start)
             fit, audit = finite_training_rows(fit_raw)
             model, params = _model(spec["algorithm"])
@@ -212,7 +244,8 @@ def main() -> int:
                              "algorithm": spec["algorithm"], "params": params,
                              "audit": audit, "gate_build_audit": gate_audit,
                              "constant_runs": _constant_runs(str(replica), country, forecast_type,
-                                                               fit_start - pd.Timedelta(days=14), gate_end),
+                                                               fit_start - pd.Timedelta(days=14), gate_end,
+                                                               source=args.renewable_source),
                              "artifact_path": str(path.resolve()), "artifact_sha256": _sha256(path)})
 
     all_scored = pd.concat(scored_frames, ignore_index=True)
