@@ -226,3 +226,112 @@ def test_the_feature_builder_carries_the_source_through_to_its_actuals(replica):
     )
     assert new._actuals.empty
     assert len(old._actuals) == len(_HOURS)
+
+
+# ---------------------------------------------------------------------------
+# Duplicate instants (ABL-321 defect 3)
+# ---------------------------------------------------------------------------
+
+#: The three spellings the replica actually holds for one instant, because
+#: `energy_renewable`'s UNIQUE index is on `(country_code, timestamp_utc)` as a
+#: *string*: 78,510 duplicate-instant rows across all 24 countries, 5,425
+#: carrying disagreeing values. `energy_generation` has zero.
+_AGREE_TS = pd.Timestamp("2026-01-01 05:00")
+_DISAGREE_TS = pd.Timestamp("2026-01-01 06:00")
+
+
+@pytest.fixture
+def replica_with_duplicate_spellings(tmp_path, monkeypatch):
+    path = tmp_path / "dup.db"
+    con = sqlite3.connect(path)
+    con.executescript(
+        """
+        CREATE TABLE energy_renewable (country_code TEXT, timestamp_utc TIMESTAMP,
+            solar_mw REAL DEFAULT 0, wind_onshore_mw REAL DEFAULT 0,
+            wind_offshore_mw REAL DEFAULT 0, hydro_run_mw REAL DEFAULT 0,
+            hydro_reservoir_mw REAL DEFAULT 0, biomass_mw REAL DEFAULT 0,
+            data_quality TEXT DEFAULT 'actual');
+        CREATE TABLE energy_generation (country_code TEXT, timestamp_utc TIMESTAMP,
+            solar_mw REAL, wind_onshore_mw REAL, wind_offshore_mw REAL,
+            hydro_run_mw REAL, hydro_reservoir_mw REAL, biomass_mw REAL,
+            data_quality TEXT DEFAULT 'actual');
+        """
+    )
+    for i, ts in enumerate(_HOURS):
+        con.execute(
+            "INSERT INTO energy_renewable VALUES (?, ?, ?, 1.0, 0.0, 0.0, 0.0, 0.0, 'actual')",
+            (COUNTRY, str(ts), 100.0 + i),
+        )
+        con.execute(
+            "INSERT INTO energy_generation VALUES (?, ?, ?, 1.0, NULL, NULL, NULL, NULL, 'actual')",
+            (COUNTRY, str(ts), 100.0 + i),
+        )
+    # A second spelling of one instant carrying the *same* value, and of
+    # another carrying a different one -- the AT wind_onshore case, which holds
+    # both 0.0 and 3,788.0 for 2025-11-17 16:45.
+    con.execute(
+        "INSERT INTO energy_renewable VALUES (?, ?, ?, 1.0, 0.0, 0.0, 0.0, 0.0, 'actual')",
+        (COUNTRY, _AGREE_TS.isoformat(), 100.0 + list(_HOURS).index(_AGREE_TS)),
+    )
+    con.execute(
+        "INSERT INTO energy_renewable VALUES (?, ?, ?, 1.0, 0.0, 0.0, 0.0, 0.0, 'actual')",
+        (COUNTRY, _DISAGREE_TS.isoformat(), 3788.0),
+    )
+    con.commit()
+    con.close()
+    monkeypatch.setenv("ENERGY_DB_PATH", str(path))
+    importlib.reload(config)
+    importlib.reload(db)
+    yield path
+    monkeypatch.undo()
+    importlib.reload(config)
+    importlib.reload(db)
+
+
+def test_duplicate_instants_collapse_to_one_row_each(replica_with_duplicate_spellings):
+    """One instant, one row. Beyond the nondeterminism the issue named, a
+    duplicated instant reaches `RenewableFeatureBuilder`'s index and makes a
+    same-hour lag lookup resolve to a Series instead of a scalar, so `float()`
+    raises and the arm cannot be backtested at all -- measured on AT/solar over
+    2025-11-21 -> 2026-02-15 (10,761 rows, 9,564 distinct instants)."""
+    frame = db.load_renewable_type_data(
+        COUNTRY, "solar", START, END, source="energy_renewable"
+    )
+    assert len(frame) == len(_HOURS)
+    assert not frame["timestamp_utc"].duplicated().any()
+
+
+def test_agreeing_spellings_keep_their_value(replica_with_duplicate_spellings):
+    """Collapsing must not cost data where the spellings do not conflict."""
+    frame = db.load_renewable_type_data(
+        COUNTRY, "solar", START, END, source="energy_renewable"
+    ).set_index("timestamp_utc")
+    expected = 100.0 + list(_HOURS).index(_AGREE_TS)
+    assert frame.loc[_AGREE_TS, "target_value"] == pytest.approx(expected)
+
+
+def test_disagreeing_spellings_are_nulled_not_arbitrarily_resolved(
+    replica_with_duplicate_spellings,
+):
+    """The table holds two contradictory answers and no tiebreaker. Picking one
+    makes the training set depend on which row the query happened to return;
+    averaging invents a value the TSO never published. Both are worse than
+    saying "unadjudicated", which is what the ABL-188 guard already says."""
+    frame = db.load_renewable_type_data(
+        COUNTRY, "solar", START, END, source="energy_renewable"
+    ).set_index("timestamp_utc")
+    value = frame.loc[_DISAGREE_TS, "target_value"]
+    assert pd.isna(value), (
+        f"a disagreeing duplicate instant must be nulled, not resolved; got {value}. "
+        "3788.0 would mean the last spelling won, and the last spelling is an "
+        "artifact of string ordering, not of which reading is correct."
+    )
+
+
+def test_the_collapse_is_a_no_op_for_energy_generation(replica_with_duplicate_spellings):
+    """`energy_generation` has zero duplicate instants, so none of this can
+    touch the arm the switch moves to -- which is what stops the collapse being
+    an accusation that the A/B was tilted."""
+    frame = db.load_renewable_type_data(COUNTRY, "solar", START, END)
+    assert len(frame) == len(_HOURS)
+    assert frame["target_value"].notna().all()

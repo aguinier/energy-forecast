@@ -414,6 +414,44 @@ def load_renewable_type_data(
         df['timestamp_utc'], format='mixed', utc=True
     ).dt.tz_localize(None)
 
+    # ABL-321: one instant, one row. `energy_renewable`'s UNIQUE index is on
+    # (country_code, timestamp_utc) as a *string*, so a single instant is
+    # storable under several spellings ('...09 23:00:00', '...09T23:00:00',
+    # '...T00:00:00+01:00') -- 78,510 duplicate-instant rows across all 24
+    # countries, 5,425 carrying disagreeing values. `energy_generation` has
+    # zero duplicates, so all of this is a no-op there.
+    #
+    # This is not only the nondeterminism the issue named. The duplicates
+    # survive into the feature builder's index, where a same-hour lag lookup
+    # resolves to a two-element Series instead of a scalar and `float()`
+    # raises: measured on AT/solar over 2025-11-21 -> 2026-02-15, 10,761 rows
+    # for 9,564 distinct instants (1,918 duplicated entries, beginning
+    # 2025-11-17 16:15). The pre-ABL-321 source therefore cannot complete a
+    # winter backtest at all without this, which is why it is fixed here and
+    # not worked around in the harness -- `source=` exists to keep the
+    # before/after comparison runnable, and without this it is not.
+    #
+    # Agreeing spellings collapse to their shared value; no information is
+    # lost. Disagreeing spellings become NaN -- the same "unadjudicated-
+    # missing" treatment the ABL-188 guard below applies -- because the table
+    # holds two contradictory answers and no tiebreaker. Picking one would
+    # make the training set depend on which row the query happened to return;
+    # averaging would invent a value the TSO never published.
+    if df['timestamp_utc'].duplicated().any():
+        spellings = df.groupby('timestamp_utc')['target_value']
+        disagreeing = spellings.nunique(dropna=False) > 1
+        collapsed = spellings.last()
+        collapsed[disagreeing] = float('nan')
+        n_dropped = int(len(df) - len(collapsed))
+        df = collapsed.reset_index()[['timestamp_utc', 'target_value']]
+        logger.warning(
+            f"Collapsed {n_dropped} duplicate-instant rows into "
+            f"{len(df)} distinct instants for {country_code}/{renewable_type} "
+            f"in {source}; {int(disagreeing.sum())} instants held disagreeing "
+            f"values and were nulled as unadjudicated rather than resolved "
+            f"arbitrarily"
+        )
+
     # ABL-188: `energy_renewable`'s mapper zero-fills a production type that's
     # absent from a given ENTSO-E response instead of leaving it NULL (see
     # src/data_quality.py docstring) -- reject long bit-identical runs (0.0
