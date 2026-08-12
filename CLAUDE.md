@@ -510,6 +510,24 @@ since, while the run summary still reports `[DONE]`. ABL-354. That path
 inherits the clamp the moment it can start; nothing about the clamp needs to
 change for it.
 
+### Tests
+
+```bash
+# The whole suite — run it from the repo root, under .venv
+.venv\Scripts\python.exe -m pytest -q
+```
+
+`pytest.ini` pins `testpaths = tests`, so the bare command above and
+`python -m pytest tests/` are the same run. That pin exists because pytest
+otherwise walks the entire tree and collects anything named `test_*.py` —
+including untracked scratch files, which made the bare command fail collection
+for months (ABL-336). Files under `scripts/` that probe or benchmark something
+are named `probe_*.py`, not `test_*.py`, for the same reason: they execute
+training at import time and must never be collected.
+
+If you add tests outside `tests/`, add that directory to `testpaths` — the bare
+command will not find them otherwise.
+
 ## Model Details
 
 ### Features
