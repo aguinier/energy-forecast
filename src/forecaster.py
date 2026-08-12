@@ -43,6 +43,47 @@ from . import xgboost_artifact_guard
 logger = logging.getLogger("energy_forecast")
 
 
+#: ABL-338: loss functions whose **link function** makes a negative prediction
+#: unrepresentable, per algorithm.
+#:
+#: The choice is a link, not a post-hoc clip and not a target transform, and the
+#: reason is what ABL-335 actually measured. Two failure shapes were reported —
+#: AT/BE/FR emitting negative MW, DE holding a positive ~200 MW midnight floor —
+#: and only one of them is a sign problem. Both objectives here predict
+#: `exp(margin)`, so the model can approach zero from above without ever
+#: crossing it, and "return to zero at night" becomes reachable in the limit
+#: instead of requiring the ensemble's residual to cancel to exactly zero.
+#:
+#: A target transform (`log1p` and back) was rejected: it makes the fit optimise
+#: relative error across a target whose daylight range spans four orders of
+#: magnitude, which trades the peak hours that carry the WAPE for night hours
+#: that are worth ~0 MW. A post-hoc `max(0, .)` in `predict` was rejected for a
+#: sharper reason — it is the serving clamp (ABL-337), and putting a second copy
+#: of it inside the model would drive `forecast_clamp_log` to zero by
+#: construction. That log is this fix's independent success metric; a fix that
+#: edits its own instrument has not been measured.
+#:
+#: Both losses require `y >= 0`, which `_assert_nonneg_target` checks before the
+#: fit rather than letting the library raise from inside boosting.
+NONNEG_OBJECTIVES: Dict[str, Dict[str, Dict[str, Any]]] = {
+    "tweedie": {
+        # variance_power 1.3 sits between Poisson (1.0) and Gamma (2.0): it puts
+        # a point mass at exactly zero, which a solar target needs — half its
+        # rows are night — while staying closer to Poisson than to Gamma so the
+        # daylight peaks are not down-weighted as hard as a pure relative-error
+        # loss would down-weight them.
+        "xgboost": {"objective": "reg:tweedie", "tweedie_variance_power": 1.3},
+        "lightgbm": {"objective": "tweedie", "tweedie_variance_power": 1.3},
+        "catboost": {"loss_function": "Tweedie:variance_power=1.3"},
+    },
+    "poisson": {
+        "xgboost": {"objective": "count:poisson"},
+        "lightgbm": {"objective": "poisson"},
+        "catboost": {"loss_function": "Poisson"},
+    },
+}
+
+
 class Forecaster:
     """
     Multi-algorithm forecaster for energy D+2 prediction.
@@ -68,6 +109,7 @@ class Forecaster:
         hyperparams: Optional[Dict[str, Any]] = None,
         weather_mode: str = "centroid",
         training_source: Optional[str] = None,
+        nonneg_objective: Optional[str] = None,
     ):
         """
         Initialize forecaster.
@@ -84,12 +126,27 @@ class Forecaster:
                 which is what `save` then records. Only ever consulted for
                 `config.RENEWABLE_TYPES`; the aggregate types have one table
                 each and ignore it.
+            nonneg_objective: ABL-338 — `'tweedie'`, `'poisson'`, or `None` for
+                the algorithm's default squared-error loss. A log-link loss that
+                makes a negative prediction unrepresentable; see
+                `NONNEG_OBJECTIVES` for why a link rather than a clip. Recorded
+                in the artifact and restored by `load`, because it changes what
+                the stored booster's raw scores *mean* — reading them back under
+                the default objective would exponentiate nothing and return
+                margins in log-MW as if they were MW.
         """
         self.country_code = country_code
         self.forecast_type = forecast_type
         self.algorithm = algorithm.lower()
         self.weather_mode = weather_mode.lower()
         self.training_source = training_source
+        self.nonneg_objective = nonneg_objective
+
+        if nonneg_objective is not None and nonneg_objective not in NONNEG_OBJECTIVES:
+            raise ValueError(
+                f"Unknown nonneg_objective: {nonneg_objective!r}. "
+                f"Supported: {sorted(NONNEG_OBJECTIVES)} or None"
+            )
 
         # Validate algorithm
         if self.algorithm not in config.SUPPORTED_ALGORITHMS:
@@ -105,9 +162,24 @@ class Forecaster:
                 f"Supported: ['centroid', 'multipoint']"
             )
 
-        # Merge provided hyperparams with defaults
+        # Merge provided hyperparams with defaults, then the non-negativity
+        # loss last: it is a constraint on the fit, not a default to be
+        # overridden by a stale `objective` carried in a saved hyperparams dict.
         default_params = config.get_default_params(self.algorithm)
         self.hyperparams = {**default_params, **(hyperparams or {})}
+        if nonneg_objective is not None:
+            by_algorithm = NONNEG_OBJECTIVES[nonneg_objective]
+            if self.algorithm not in by_algorithm:
+                raise ValueError(
+                    f"nonneg_objective={nonneg_objective!r} has no mapping for "
+                    f"algorithm={self.algorithm!r}; known: {sorted(by_algorithm)}"
+                )
+            # CatBoost names its loss `loss_function`; leaving an inherited
+            # `objective` beside it would be silently ignored and read as if it
+            # applied.
+            self.hyperparams.pop("objective", None)
+            self.hyperparams.pop("loss_function", None)
+            self.hyperparams.update(by_algorithm[self.algorithm])
 
         self.model: Optional[Any] = None
         self.feature_columns: List[str] = []
@@ -130,6 +202,29 @@ class Forecaster:
         if self.forecast_type not in config.RENEWABLE_TYPES:
             return None
         return self.training_source or RENEWABLE_TYPE_SOURCE_TABLE
+
+    def _assert_nonneg_target(self, y: pd.Series) -> None:
+        """Refuse a log-link fit on a target that goes negative.
+
+        Both `NONNEG_OBJECTIVES` losses are undefined for `y < 0`. XGBoost and
+        CatBoost do raise on their own, but from inside boosting and without
+        naming the country, the stream or how far negative the data went — and
+        for a renewable target a negative actual is itself a data defect worth
+        reporting, not just a fit precondition. So the check is here, and it
+        says what it found.
+        """
+        if self.nonneg_objective is None:
+            return
+        values = np.asarray(y, dtype=float)
+        negative = values < 0
+        if negative.any():
+            raise ValueError(
+                f"nonneg_objective={self.nonneg_objective!r} needs a non-negative target, but "
+                f"{self.country_code}/{self.forecast_type} has {int(negative.sum())} of "
+                f"{len(values)} training rows below zero (min {values.min():.2f}). "
+                f"A negative generation actual is a data defect — resolve or exclude "
+                f"those rows rather than relaxing the constraint."
+            )
 
     def _create_model(self, params: Optional[Dict] = None) -> Any:
         """
@@ -224,8 +319,10 @@ class Forecaster:
             if removed > 0:
                 logger.info(f"Excluded {removed} rows from backtest weeks")
 
-        # Create features
-        df = create_all_features(df, self.forecast_type)
+        # Create features. The country is passed explicitly: ABL-338's solar
+        # geometry needs it, and `load_training_data` does not always carry a
+        # `country_code` column for the caller to fall back on.
+        df = create_all_features(df, self.forecast_type, country_code=self.country_code)
 
         if len(df) < config.MIN_TRAINING_HOURS:
             logger.warning(
@@ -254,6 +351,11 @@ class Forecaster:
 
         X_val = val_df[self.feature_columns] if not val_df.empty else None
         y_val = val_df["target_value"] if not val_df.empty else None
+
+        # ABL-338: a log-link loss is undefined below zero — check before the fit
+        self._assert_nonneg_target(y_train)
+        if y_val is not None and len(y_val):
+            self._assert_nonneg_target(y_val)
 
         # Train with or without grid search
         if grid_search:
@@ -870,6 +972,7 @@ class Forecaster:
             "grid_search_results": self.grid_search_results,
             "walk_forward_results": getattr(self, 'walk_forward_results', None),
             "training_source": self._resolved_training_source(),
+            "nonneg_objective": self.nonneg_objective,
             "saved_at": datetime.now().isoformat(),
         }
 
@@ -906,6 +1009,7 @@ class Forecaster:
             "training_metrics": self.training_metrics,
             "grid_search_results": self.grid_search_results,
             "training_source": self._resolved_training_source(),
+            "nonneg_objective": self.nonneg_objective,
             "saved_at": datetime.now().isoformat(),
         }
 
@@ -976,9 +1080,14 @@ class Forecaster:
         if training_source is None and forecast_type in config.RENEWABLE_TYPES:
             training_source = LEGACY_RENEWABLE_TRAINING_SOURCE
 
+        # ABL-338: like `training_source`, a property of the artifact and not of
+        # the process loading it. Absent means the artifact predates the
+        # constraint and was fitted under squared error — which is the honest
+        # reading, not a default worth changing later.
         forecaster = cls(
             country_code, forecast_type, algorithm=algorithm, hyperparams=hyperparams,
             weather_mode=weather_mode, training_source=training_source,
+            nonneg_objective=model_data.get("nonneg_objective"),
         )
         forecaster.model = model_data["model"]
         forecaster.feature_columns = model_data["feature_columns"]

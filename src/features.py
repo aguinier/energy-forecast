@@ -7,6 +7,7 @@ Creates features for D+2 forecasting including:
 - Historical patterns (same hour from D-1, D-7, D-14)
 - Rolling statistics
 - Weather features
+- Solar geometry, for `solar` only (ABL-338)
 """
 
 import numpy as np
@@ -20,6 +21,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
+
+from .solar_features import SOLAR_GEOMETRY_FEATURES, solar_geometry_frame
 
 
 logger = logging.getLogger("energy_forecast")
@@ -392,14 +395,31 @@ def create_all_features(
     # Create time features
     df = create_time_features(df)
 
-    # Create holiday features if country code is provided
-    if country_code is not None:
-        df = create_holiday_features(df, country_code)
-    elif "country_code" in df.columns:
-        # Try to get country code from data
-        cc = df["country_code"].iloc[0] if len(df) > 0 else None
-        if cc:
-            df = create_holiday_features(df, cc)
+    # Resolve the country once: both holiday and solar-geometry features need it.
+    cc = country_code
+    if cc is None and "country_code" in df.columns and len(df) > 0:
+        cc = df["country_code"].iloc[0]
+
+    # Create holiday features if a country code is available
+    if cc:
+        df = create_holiday_features(df, cc)
+
+    # ABL-338: solar geometry — the only features here that depend on *where*
+    # the country is rather than only on when. Computed from the same
+    # `solar_features.solar_geometry_frame` the serve-faithful builder calls, so
+    # a training row and its serving counterpart carry identical values. Solar
+    # only: no other forecast type's artifact names these columns.
+    if forecast_type == "solar":
+        if not cc:
+            raise ValueError(
+                "create_all_features needs a country_code for forecast_type='solar': "
+                "the solar-geometry features (ABL-338) are country-specific, and "
+                "omitting them would silently train a solar model without the "
+                "daylight variable this issue exists to add."
+            )
+        geometry = solar_geometry_frame(cc, df["timestamp_utc"])
+        for col in SOLAR_GEOMETRY_FEATURES:
+            df[col] = geometry[col].to_numpy()
 
     # Create lag features
     df = create_lag_features(df, target_col)
@@ -494,8 +514,18 @@ def get_feature_columns(forecast_type: str, include_holidays: bool = True) -> Li
     else:
         weather_features = weather_features + ["temperature_c"]
 
+    # ABL-338: solar geometry, appended last so an artifact trained before this
+    # issue keeps its own 25-name `feature_columns` and is served unchanged —
+    # `Forecaster.load` reads the list off the artifact, never from here.
+    geometry_features = list(SOLAR_GEOMETRY_FEATURES) if forecast_type == "solar" else []
+
     all_features = (
-        time_features + holiday_features + lag_features + rolling_features + weather_features
+        time_features
+        + holiday_features
+        + lag_features
+        + rolling_features
+        + weather_features
+        + geometry_features
     )
 
     return all_features

@@ -95,6 +95,7 @@ solar-specific code needed here. See
 
 from __future__ import annotations
 
+import logging
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -107,6 +108,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 
 from .db import get_connection, load_renewable_type_data
+from .solar_features import SOLAR_GEOMETRY_FEATURES, solar_geometry_frame
+
+logger = logging.getLogger("energy_forecast")
 
 
 class ServeFaithfulnessError(AssertionError):
@@ -391,6 +395,44 @@ def _weather_features(archive: pd.DataFrame, req: FeatureRequest) -> Dict[str, F
 
 
 # ---------------------------------------------------------------------------
+# Solar geometry — pure function of (country, target hour), like the calendar
+# features. Never degraded, never NaN, available at any horizon.
+# ---------------------------------------------------------------------------
+
+
+def _solar_geometry_features(req: FeatureRequest) -> Dict[str, FeatureValue]:
+    """ABL-338's two solar features, for `forecast_type='solar'` only.
+
+    Delegates to `solar_features.solar_geometry_frame` — the same call the
+    training pipeline makes — so a served row and the training row for the same
+    country and hour carry bit-identical values. There is no cutoff argument
+    because there is nothing to bound: sun position at a future hour is not an
+    observation, so no `as_of` can make it unavailable.
+    """
+    if req.forecast_type != "solar":
+        return {}
+    target = req.target_timestamp_utc.floor("h")
+    try:
+        frame = solar_geometry_frame(req.country_code, [target])
+    except KeyError:
+        # No representative point for this country. Contribute nothing rather
+        # than guessing a latitude: a pre-ABL-338 artifact names none of these
+        # columns and is served exactly as before, while an artifact that *does*
+        # name them fails in `to_vector` — which is the right place, because
+        # there the model expecting the feature is what makes it an error.
+        logger.error(
+            f"No solar geometry for {req.country_code}: absent from "
+            f"solar_geometry.SOLAR_REPRESENTATIVE_POINTS. Serving without the "
+            f"ABL-338 geometry features; an artifact trained with them will refuse."
+        )
+        return {}
+    return {
+        name: FeatureValue(value=float(frame[name].iloc[0]), source_timestamp=target)
+        for name in SOLAR_GEOMETRY_FEATURES
+    }
+
+
+# ---------------------------------------------------------------------------
 # Public entrypoints
 # ---------------------------------------------------------------------------
 
@@ -450,6 +492,7 @@ class RenewableFeatureBuilder:
             req.target_timestamp_utc.floor("h"), self._weather.iloc[0:0]
         )
         out.update(_weather_features(target_weather, req))
+        out.update(_solar_geometry_features(req))
         return out
 
 
