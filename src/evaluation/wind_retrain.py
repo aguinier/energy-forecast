@@ -43,7 +43,12 @@ def schedule_vintages(target_timestamp: pd.Timestamp) -> list[pd.Timestamp]:
             for days, clock in RUN_TIMES]
 
 
-def build_vintage_frame(builder: RenewableFeatureBuilder, start, end) -> pd.DataFrame:
+def build_vintage_frame(
+    builder: RenewableFeatureBuilder,
+    start,
+    end,
+    feature_columns: Iterable[str] = FEATURE_COLUMNS,
+) -> pd.DataFrame:
     """Call the shared builder once per target/vintage, retaining provenance counts."""
     rows = []
     actuals = builder._actuals  # the builder's ABL-188-filtered exact-hour series
@@ -51,7 +56,7 @@ def build_vintage_frame(builder: RenewableFeatureBuilder, start, end) -> pd.Data
         actual = actuals.get(target, np.nan)
         for generated_at in schedule_vintages(target):
             features = builder.row(target, generated_at, generated_at)
-            vector = to_vector(features, FEATURE_COLUMNS)
+            vector = to_vector(features, feature_columns)
             rows.append({
                 "target_ts": target,
                 "generated_at": generated_at,
@@ -64,8 +69,11 @@ def build_vintage_frame(builder: RenewableFeatureBuilder, start, end) -> pd.Data
     return pd.DataFrame(rows)
 
 
-def finite_training_rows(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    required = ["actual", *FEATURE_COLUMNS]
+def finite_training_rows(
+    frame: pd.DataFrame,
+    feature_columns: Iterable[str] = FEATURE_COLUMNS,
+) -> tuple[pd.DataFrame, dict]:
+    required = ["actual", *feature_columns]
     valid = np.isfinite(frame[required].to_numpy(dtype=float)).all(axis=1)
     kept = frame.loc[valid].reset_index(drop=True)
     return kept, {

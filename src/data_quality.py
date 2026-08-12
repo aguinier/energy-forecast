@@ -61,13 +61,33 @@ def find_suspect_constant_runs(
         return []
 
     values = d[value_col].to_numpy()
-    times = d[timestamp_col].to_numpy()
+    parsed_times = pd.to_datetime(d[timestamp_col], format="mixed", errors="coerce")
+    valid_time = parsed_times.notna()
+    values = values[valid_time.to_numpy()]
+    times = parsed_times.loc[valid_time].to_numpy()
+    if len(times) == 0:
+        return []
+
+    # "Contiguous" is about observation cadence, not merely adjacency after
+    # sorting.  Without this boundary, two ordinary solar nights separated by
+    # a missing daytime block become one apparently multi-day zero run.  Infer
+    # the series cadence from its median positive step; a gap greater than 1.5
+    # cadences terminates the run even when the values on both sides match.
+    positive_steps = pd.Series(times).diff().dropna()
+    positive_steps = positive_steps[positive_steps > pd.Timedelta(0)]
+    max_contiguous_step = (
+        positive_steps.median() * 1.5 if not positive_steps.empty else None
+    )
 
     runs: List[SuspectConstantRun] = []
     run_start_idx = 0
     n = len(values)
     for i in range(1, n + 1):
-        if i == n or values[i] != values[run_start_idx]:
+        gap_break = (
+            i < n and max_contiguous_step is not None
+            and pd.Timestamp(times[i]) - pd.Timestamp(times[i - 1]) > max_contiguous_step
+        )
+        if i == n or values[i] != values[run_start_idx] or gap_break:
             run_len = i - run_start_idx
             if run_len >= 2:
                 start_t = pd.Timestamp(times[run_start_idx])
