@@ -240,6 +240,82 @@ the fix**, and I will report the mismatch whether or not it is exculpatory. This
 does not suppress or delay the trigger: the trigger reads as written, and this
 goes to the CEO as interpretation attached to it.
 
+### Registered addition 3 — BE is an untreated control group, and that makes a falsifiable prediction
+
+Registered while the re-run was still in flight and **before any result file
+existed on disk** (`experiments/ABL334/results_rerun.json`,
+`results_prefix_control.json` and `reports/abl_334_source_switch_rerun.md` all
+absent at the time of the commit that carries this paragraph). Derived from a
+read-only replica measurement, not from a model run.
+
+Measured over the builder's full span (2025-12-31 → 2026-08-10), both source
+tables, `data_quality='actual'`, non-NULL target — share of observations that
+are **off the hour**:
+
+| pair | `energy_renewable` | `energy_generation` |
+|---|---:|---:|
+| AT solar, AT wind_onshore | 75.0 % | 75.0 % |
+| DE solar, DE wind_onshore | 75.0 % | 75.0 % |
+| FR solar, FR wind_onshore, FR wind_offshore | 75.0 % | 75.0 % |
+| **BE solar, BE wind_onshore, BE wind_offshore** | **0.0 %** | **0.0 %** |
+
+BE carries no sub-hourly observation anywhere in this window, in either table.
+`aggregate_renewable_to_hourly` returns early on an already-hourly frame
+(`floored.equals(stamps)`), so for BE's three pairs **ABL-332 is a literal
+no-op**. The ten serving pairs therefore split into **7 treated** (AT, DE, FR)
+and **3 untreated** (BE), and the untreated three are a built-in control the
+protocol got for free.
+
+**Prediction, registered before reading any result:**
+
+1. **BE solar, BE wind_onshore and BE wind_offshore must be numerically
+   identical between ABL-321's recorded arm A and this re-run's arm A.** Any
+   movement in a BE cell is nondeterminism or another commit's doing — it cannot
+   be ABL-332, and I will report it as such rather than folding it into the
+   fix's effect.
+2. Because **BE wind_onshore is one of the three pairs that decided criterion
+   2** (+2.7 % in §6), and ABL-332 cannot touch it, **criterion 2 cannot flip
+   clean on the corrected instrument.** BE wind_onshore's regression has to
+   survive. If the re-run shows it moving materially, the correct conclusion is
+   that something other than the builder changed, not that the switch is
+   rescued.
+
+This also sharpens the revert trigger's arithmetic in advance: the trigger asks
+for ≥2 of 10 pairs materially worse post-fix, and only 7 of the 10 are capable
+of moving at all. Three of the ten are structurally pinned at zero change.
+
+### How big the convention mismatch is, measured before any result was read
+
+Registered addition 2 said truth stays the `:00` sample while the corrected
+target becomes the hourly mean. Measured on the gate window (2026-07-11 →
+2026-08-10) with no model in the loop — the hourly mean scored *as if it were a
+forecast* of the `:00` sample, which is the WAPE this harness would charge a
+**perfect** hourly-mean predictor:
+
+| pair | WAPE(mean vs `:00`) | median \|Δ\| | p90 \|Δ\| |
+|---|---:|---:|---:|
+| AT solar | 9.34 % | 65.0 MW | 359.1 MW |
+| FR solar | 9.08 % | 313.0 MW | 1,610.8 MW |
+| DE solar | 8.76 % | 1,159.0 MW | 3,753.9 MW |
+| AT wind_onshore | 8.14 % | 39.0 MW | 135.0 MW |
+| FR wind_offshore | 6.24 % | 24.6 MW | 78.4 MW |
+| FR wind_onshore | 4.35 % | 101.4 MW | 322.7 MW |
+| DE wind_onshore | 4.27 % | 249.4 MW | 808.4 MW |
+| **BE — all three pairs** | **0.00 %** | 0.0 MW | 0.0 MW |
+
+For scale: AT solar's recorded arm A WAPE is 12.89 % in total, and the material
+threshold is 2.0 % relative. The floor this convention imposes on the treated
+pairs is **4–9 % absolute WAPE**, which is multiples of the margin the trigger
+reads. BE's exact 0.00 % is the same fact as the control group above, arrived at
+independently.
+
+This is registered as **interpretation, not as an exemption**: the trigger still
+reads as the CEO wrote it, on the numbers as they come out. But if it fires on
+treated pairs while BE sits still, the honest reading is a scoring-convention
+mismatch in the harness rather than a degradation of served forecasts, and the
+recommendation to the CEO will say so and will propose the harness fix rather
+than a revert.
+
 ### Contamination touching this window
 
 Unchanged from window 1 and restated rather than assumed: ABL-67 is
