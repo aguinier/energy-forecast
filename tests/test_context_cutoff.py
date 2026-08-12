@@ -149,3 +149,51 @@ def test_missing_target_data_raises_rather_than_forecasting_zeros(monkeypatch, t
 
     with pytest.raises(ValueError, match="No target data"):
         ib.InputBuilder().build_for_country("ZZ", "net_position", TARGET_DATE, as_of=AS_OF)
+
+
+def test_context_guard_accepts_real_series_that_crosses_zero():
+    """A zero-valued point is legitimate; only the whole series may be judged."""
+    from src.chronos2.input_builder import _net_position_context_refusal_reasons
+
+    series = pd.Series(np.tile([-2.0, 0.0, 2.0], 224))
+    reasons = _net_position_context_refusal_reasons(
+        series,
+        NOMINAL_CUTOFF - pd.Timedelta(hours=26),
+        NOMINAL_CUTOFF,
+    )
+    assert reasons == []
+
+
+@pytest.mark.parametrize(
+    ("series", "staleness_hours", "expected"),
+    [
+        (pd.Series(np.full(672, LEVEL)), 73, "stale_context=73h>72h"),
+        (pd.Series(np.full(167, LEVEL)), 26, "thin_context=167<168_real_hours"),
+        (pd.Series(np.linspace(-0.9, 0.9, 672)), 26,
+         "degenerate_context=max_abs_0.9MW<1MW"),
+    ],
+)
+def test_context_guard_records_countable_refusal_reason(
+    series, staleness_hours, expected
+):
+    from src.chronos2.input_builder import _net_position_context_refusal_reasons
+
+    reasons = _net_position_context_refusal_reasons(
+        series,
+        NOMINAL_CUTOFF - pd.Timedelta(hours=staleness_hours),
+        NOMINAL_CUTOFF,
+    )
+    assert expected in reasons
+
+
+def test_stale_historical_context_is_refused_before_alignment(monkeypatch, tmp_path):
+    """Post-ABL-181 GR shape: real history exists, but it is far too old."""
+    db = tmp_path / "t.db"
+    historical_last_obs = NOMINAL_CUTOFF - pd.Timedelta(days=100)
+    _seed_db(db, last_obs=historical_last_obs)
+    ib = _builder(monkeypatch, db)
+
+    with pytest.raises(ib.ContextRefusalError, match="stale_context=2400h>72h"):
+        ib.InputBuilder().build_for_country(
+            "FR", "net_position", TARGET_DATE, as_of=AS_OF
+        )

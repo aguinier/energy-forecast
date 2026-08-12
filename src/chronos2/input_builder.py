@@ -33,6 +33,58 @@ from src.chronos2.covariate_mapper import build_covariate_map
 logger = logging.getLogger("energy_forecast.chronos2")
 
 
+# A healthy scheduled net-position run has 672/672 real context hours and ends
+# 26h before the nominal cutoff (measured across all 19 live countries on
+# 2026-08-12).  Allow one missed daily refresh (50h), but refuse before a
+# second missed refresh would extend the gap to 74h.  One week is the minimum
+# real history accepted: it is a full weekly seasonal cycle and sits safely
+# between the old GR failure (24 real hours) and the live cohort (672).
+NET_POSITION_MAX_STALENESS_HOURS = 72
+NET_POSITION_MIN_REAL_OBSERVATIONS = 168
+NET_POSITION_MIN_MAX_ABS_MW = 1.0
+
+
+class ContextRefusalError(ValueError):
+    """The observed target context is not safe to forecast or publish from."""
+
+
+def _net_position_context_refusal_reasons(
+    target_series: pd.Series,
+    past_cutoff: pd.Timestamp,
+    nominal_cutoff: pd.Timestamp,
+) -> list[str]:
+    """Return countable reasons a net-position context must be refused.
+
+    Zero is a legitimate point value for net position, so degeneracy is judged
+    over the entire real series.  Alignment happens only after this check: zero
+    padding must never make missing observations look real.
+    """
+    real_values = pd.to_numeric(target_series, errors="coerce").dropna()
+    real_observations = int(real_values.size)
+    staleness_hours = int(
+        (nominal_cutoff - past_cutoff) / pd.Timedelta(hours=1)
+    )
+    max_abs_mw = float(real_values.abs().max()) if real_observations else 0.0
+
+    reasons = []
+    if staleness_hours > NET_POSITION_MAX_STALENESS_HOURS:
+        reasons.append(
+            f"stale_context={staleness_hours}h>"
+            f"{NET_POSITION_MAX_STALENESS_HOURS}h"
+        )
+    if real_observations < NET_POSITION_MIN_REAL_OBSERVATIONS:
+        reasons.append(
+            f"thin_context={real_observations}<"
+            f"{NET_POSITION_MIN_REAL_OBSERVATIONS}_real_hours"
+        )
+    if max_abs_mw < NET_POSITION_MIN_MAX_ABS_MW:
+        reasons.append(
+            f"degenerate_context=max_abs_{max_abs_mw:g}MW<"
+            f"{NET_POSITION_MIN_MAX_ABS_MW:g}MW"
+        )
+    return reasons
+
+
 # Table/column mapping for target loading (same as db.py)
 TARGET_TABLE_MAP = {
     "load": ("energy_load", "load_mw"),
@@ -638,8 +690,19 @@ class InputBuilder:
             raise ValueError(f"No target data for {country_code}/{forecast_type} "
                            f"from {context_start_str} to {past_cutoff_str}")
 
-        # Create hourly index for past context
+        # Exact context index (the query starts at midnight for compatibility,
+        # which can return a few earlier hours that must not count as context).
         past_index = pd.date_range(context_start, past_cutoff, freq="h")
+        if forecast_type == "net_position":
+            refusal_reasons = _net_position_context_refusal_reasons(
+                target_series.reindex(past_index), past_cutoff, nominal_cutoff
+            )
+            if refusal_reasons:
+                raise ContextRefusalError(
+                    f"Refusing {country_code}/{forecast_type} target={target_date}: "
+                    + "; ".join(refusal_reasons)
+                )
+
         target_aligned = _align_to_index(target_series, past_index)
 
         # Create hourly index for future
