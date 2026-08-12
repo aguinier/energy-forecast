@@ -281,11 +281,105 @@ def load_energy_data(
     return df
 
 
+#: ABL-321: the table individual-renewable-type targets train from.
+#:
+#: `energy_renewable` was the original source and is kept selectable so a
+#: before/after comparison stays runnable (`scripts/evaluate_renewable_source_switch.py`),
+#: but it carries three defects `energy_generation` does not, measured across
+#: the 49 trainable country/stream pairs in the ABL-318 audit:
+#:
+#:   1. Its columns are `REAL DEFAULT 0` and its per-column mapper initialises
+#:      each to 0.0 before checking whether ENTSO-E returned the production type
+#:      (ABL-188), so it cannot encode "not reported". The 15 countries whose
+#:      `wind_offshore_mw` is NULL in every `energy_generation` row read as
+#:      100.0% exactly 0.0 here -- a complete, non-null, all-zero series for a
+#:      country with no offshore fleet, and no signal anything is wrong.
+#:   2. 6,711 rows across 35 of 72 pairs are exactly 0.0 while
+#:      `energy_generation` has materially non-zero generation at the identical
+#:      timestamp. `exclude_suspect_constant_runs` catches only the runs that
+#:      last 24+ hours; LV solar has 374 such rows and zero qualifying runs.
+#:   3. Its UNIQUE index is on `(country_code, timestamp_utc)` as a *string*, so
+#:      one instant is storable under several spellings: 78,510 duplicate-instant
+#:      rows across all 24 countries, 5,425 of them carrying disagreeing values.
+#:      `energy_generation` has zero duplicates.
+#:
+#: `energy_generation` also carries far more history (median 2,049 d of usable
+#: history per pair against 277 d; 49/49 pairs reach 365 d against 10/49).
+#:
+#: The one thing it does *not* dominate on is coverage during a single FR
+#: outage: over the 2025-10-01 -> 2026-08-11 overlap era `energy_generation`
+#: covers 24,694 hours `energy_renewable` does not, and `energy_renewable`
+#: covers 586 hours `energy_generation` does not -- 518 of which are FR,
+#: 2026-06-30 23:45 -> 2026-07-22 14:15 (ABL-318 §3, an open and unfiled-until-then
+#: ingest gap). Countries are not backfilled from the other table here: mixing
+#: two sources inside one series would put a zero-fillable segment inside an
+#: otherwise NULL-honest one with nothing recording which rows came from where.
+#:
+#: ---------------------------------------------------------------------------
+#: AND YET THIS STILL SAYS `energy_renewable`. That is deliberate, and it is the
+#: result of ABL-321's own acceptance criterion 2, not an oversight.
+#:
+#: The before/after backtest the switch was approved against **failed**. On the
+#: registered decision window (fit 2026-01-14 -> 2026-07-11, score 2026-07-11 ->
+#: 2026-08-10, D+2 bands 24-64 h, primary truth `energy_generation`, common rows,
+#: n=1,950 per pair except FR at 287), three of the ten already-serving pairs are
+#: materially worse under `energy_generation`:
+#:
+#:     AT solar          12.89% -> 13.44% WAPE   +4.3%
+#:     DE wind_onshore   51.63% -> 53.50%        +3.6%
+#:     BE wind_onshore   46.56% -> 47.81%        +2.7%
+#:
+#: Four pairs improve (FR wind_onshore -18.5%, FR wind_offshore -9.8%, BE
+#: wind_offshore -3.1%, AT wind_onshore -2.6%), but criterion 2 is a
+#: non-inferiority check on models that already serve, not a vote. In that window
+#: the gate truth is byte-identical between the two tables for 9 of 10 pairs, so
+#: this is not an artifact of which table is called "truth".
+#:
+#: The regression tracks the fit-window *level* gap between the arms rather than
+#: any data-quality property -- AT is the only solar pair where `energy_renewable`
+#: trains materially higher, and it has the largest regression -- and the fit
+#: window is short only because arm A's history is. But a story is not a result.
+#: See `reports/abl_321_findings.md` §6 for the full verdict and the caveats.
+#:
+#: **Flipping this constant is the whole switch.** Everything else on the
+#: ABL-321 branch -- the `source=` parameter, the NULL-drop, the NULL-aware
+#: `hydro_total` sum, the duplicate-instant collapse, the tests, the harness --
+#: lands independently and is a strict improvement to both sources. Do not flip
+#: it without a CEO decision that reads the §6 verdict first.
+#: ---------------------------------------------------------------------------
+RENEWABLE_TYPE_SOURCE_TABLE = 'energy_renewable'
+
+_RENEWABLE_TYPE_SOURCES = ('energy_generation', 'energy_renewable')
+
+#: `hydro_total` is a sum of two reported components and needs NULL-aware
+#: addition rather than SQL's NULL-propagating `+`. Measured on the replica
+#: 2026-08-12: for 9 of the 24 supported countries exactly one component is
+#: 100% NULL in `energy_generation` -- BE/EE/FI/LT/LV/NL/SI report run-of-river
+#: and never reservoir, GR/SE report reservoir and never run-of-river. A plain
+#: `hydro_run_mw + hydro_reservoir_mw` yields NULL for every row of all nine and
+#: erases them. Summing the reported components and returning NULL only when
+#: *both* are absent keeps the "not reported at all -> empty frame" property
+#: without inventing a zero for a component the TSO does report.
+_HYDRO_TOTAL_EXPR = (
+    'CASE WHEN hydro_run_mw IS NULL AND hydro_reservoir_mw IS NULL THEN NULL '
+    'ELSE COALESCE(hydro_run_mw, 0) + COALESCE(hydro_reservoir_mw, 0) END'
+)
+
+RENEWABLE_TYPE_COLUMNS = {
+    'solar': 'solar_mw',
+    'wind_onshore': 'wind_onshore_mw',
+    'wind_offshore': 'wind_offshore_mw',
+    'hydro_total': _HYDRO_TOTAL_EXPR,
+    'biomass': 'biomass_mw',
+}
+
+
 def load_renewable_type_data(
     country_code: str,
     renewable_type: str,
     start_date: str,
-    end_date: str
+    end_date: str,
+    source: str = None,
 ) -> pd.DataFrame:
     """
     Load specific renewable type data as training target
@@ -295,30 +389,41 @@ def load_renewable_type_data(
         renewable_type: 'solar', 'wind_onshore', 'wind_offshore', 'hydro_total', 'biomass'
         start_date: Start date YYYY-MM-DD
         end_date: End date YYYY-MM-DD
+        source: source table, defaults to `RENEWABLE_TYPE_SOURCE_TABLE`. Pass
+            'energy_renewable' only to reproduce the pre-ABL-321 behaviour.
 
     Returns:
-        DataFrame with timestamp_utc and target_value columns
+        DataFrame with timestamp_utc and target_value columns. A country/stream
+        the TSO does not report yields an **empty** frame, not a zero series:
+        rows whose target column is NULL are dropped rather than read as a
+        measured zero.
     """
-    # Map renewable type to database columns
-    column_map = {
-        'solar': 'solar_mw',
-        'wind_onshore': 'wind_onshore_mw',
-        'wind_offshore': 'wind_offshore_mw',
-        'hydro_total': '(hydro_run_mw + hydro_reservoir_mw)',
-        'biomass': 'biomass_mw'
-    }
+    source = source or RENEWABLE_TYPE_SOURCE_TABLE
+    if source not in _RENEWABLE_TYPE_SOURCES:
+        raise ValueError(
+            f"Unknown renewable source table: {source!r}; "
+            f"expected one of {_RENEWABLE_TYPE_SOURCES}"
+        )
+
+    column_map = RENEWABLE_TYPE_COLUMNS
 
     if renewable_type not in column_map:
         raise ValueError(f"Unknown renewable type: {renewable_type}")
 
     target_col = column_map[renewable_type]
 
+    # NULL is the honest "TSO does not report this" encoding and the whole
+    # reason for preferring `energy_generation` -- drop those rows here so a
+    # not-reported stream reaches the caller as an empty frame rather than as
+    # a feature-complete series of zeros.
     query = f"""
         SELECT timestamp_utc, {target_col} as target_value
-        FROM energy_renewable
+        FROM {source}
         WHERE country_code = ?
           AND timestamp_utc >= ?
           AND timestamp_utc < ?
+          AND data_quality = 'actual'
+          AND ({target_col}) IS NOT NULL
         ORDER BY timestamp_utc
     """
 
@@ -330,7 +435,11 @@ def load_renewable_type_data(
         )
 
     if df.empty:
-        logger.warning(f"No {renewable_type} data for {country_code}")
+        logger.warning(
+            f"No {renewable_type} data for {country_code} in {source} "
+            f"({start_date} -> {end_date}); the TSO reports no such stream, "
+            f"or the window is empty"
+        )
         return df
 
     # Parse timestamps handling mixed formats (some may have TZ offsets)
@@ -338,11 +447,54 @@ def load_renewable_type_data(
         df['timestamp_utc'], format='mixed', utc=True
     ).dt.tz_localize(None)
 
-    # ABL-188: energy_renewable's mapper zero-fills a production type that's
+    # ABL-321: one instant, one row. `energy_renewable`'s UNIQUE index is on
+    # (country_code, timestamp_utc) as a *string*, so a single instant is
+    # storable under several spellings ('...09 23:00:00', '...09T23:00:00',
+    # '...T00:00:00+01:00') -- 78,510 duplicate-instant rows across all 24
+    # countries, 5,425 carrying disagreeing values. `energy_generation` has
+    # zero duplicates, so all of this is a no-op there.
+    #
+    # This is not only the nondeterminism the issue named. The duplicates
+    # survive into the feature builder's index, where a same-hour lag lookup
+    # resolves to a two-element Series instead of a scalar and `float()`
+    # raises: measured on AT/solar over 2025-11-21 -> 2026-02-15, 10,761 rows
+    # for 9,564 distinct instants (1,918 duplicated entries, beginning
+    # 2025-11-17 16:15). The pre-ABL-321 source therefore cannot complete a
+    # winter backtest at all without this, which is why it is fixed here and
+    # not worked around in the harness -- `source=` exists to keep the
+    # before/after comparison runnable, and without this it is not.
+    #
+    # Agreeing spellings collapse to their shared value; no information is
+    # lost. Disagreeing spellings become NaN -- the same "unadjudicated-
+    # missing" treatment the ABL-188 guard below applies -- because the table
+    # holds two contradictory answers and no tiebreaker. Picking one would
+    # make the training set depend on which row the query happened to return;
+    # averaging would invent a value the TSO never published.
+    if df['timestamp_utc'].duplicated().any():
+        spellings = df.groupby('timestamp_utc')['target_value']
+        disagreeing = spellings.nunique(dropna=False) > 1
+        collapsed = spellings.last()
+        collapsed[disagreeing] = float('nan')
+        n_dropped = int(len(df) - len(collapsed))
+        df = collapsed.reset_index()[['timestamp_utc', 'target_value']]
+        logger.warning(
+            f"Collapsed {n_dropped} duplicate-instant rows into "
+            f"{len(df)} distinct instants for {country_code}/{renewable_type} "
+            f"in {source}; {int(disagreeing.sum())} instants held disagreeing "
+            f"values and were nulled as unadjudicated rather than resolved "
+            f"arbitrarily"
+        )
+
+    # ABL-188: `energy_renewable`'s mapper zero-fills a production type that's
     # absent from a given ENTSO-E response instead of leaving it NULL (see
     # src/data_quality.py docstring) -- reject long bit-identical runs (0.0
     # included) as unadjudicated-missing rather than training through them
     # as a measured value.
+    #
+    # ABL-321 kept this on the boundary for both sources. It is cheap, it is
+    # the right guard if the source is ever switched back, and a bit-identical
+    # 24-hour run is not a thing a real weather-driven series does regardless
+    # of which table it was read from.
     before_n = df['target_value'].notna().sum()
     df = exclude_suspect_constant_runs(
         df, value_col='target_value', timestamp_col='timestamp_utc',
@@ -355,7 +507,9 @@ def load_renewable_type_data(
             f"for {country_code} (see warnings above for exact runs)"
         )
 
-    logger.info(f"Loaded {len(df)} {renewable_type} records for {country_code}")
+    logger.info(
+        f"Loaded {len(df)} {renewable_type} records for {country_code} from {source}"
+    )
     return df
 
 
@@ -907,9 +1061,10 @@ def get_latest_data_timestamp(country_code: str, data_type: str) -> Optional[dat
     Returns:
         Most recent timestamp or None
     """
-    # Map renewable types to energy_renewable table
+    # ABL-321: individual renewable types report the freshness of the table
+    # they are actually trained from, not of `energy_renewable` regardless.
     if data_type in config.RENEWABLE_TYPES:
-        table = 'energy_renewable'
+        table = RENEWABLE_TYPE_SOURCE_TABLE
     else:
         table_map = {
             'load': 'energy_load',
