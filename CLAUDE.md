@@ -542,6 +542,52 @@ Four things about the gate are load-bearing (ABL-72):
 `--model` names given. Anything claiming it picks up new versions automatically
 is wrong — that was ABL-68 scope item 1 and plan Rev 3:29.
 
+#### Per-country re-read: zero baseline, level vs shape (ABL-280)
+
+`src/evaluation/country_reread.py` + `scripts/reread_net_position_country.py`
+answer "is this one zone's forecast actually worse than a free baseline, and
+*how*". It reuses the eval's loaders, serve-faithful baselines and
+`point_metrics`, so it cannot disagree with the gate about a country's MAE.
+
+```bash
+.venv\Scripts\python.exe scripts/reread_net_position_country.py --country RO --fleet \
+    --replica-db ...\energy_dashboard.db --sidecar-db ...\forecasts_local.db --stdout
+```
+
+Three things it adds, each because a real reading went wrong without them:
+
+- **The zero forecast is a named baseline, and `skill_vs_zero < 0` is
+  identically `WAPE > 100%`** — the same fact twice, pinned as an equality in
+  the tests. Naming it is what stops "WAPE 102.6%" reading as an emergency on
+  its own: zero is not a baseline anyone would serve for net position, and RO
+  loses to it while beating persistence by 20.6%. The decision-relevant row is
+  climatology, not zero.
+- **Level vs shape.** Demeaning both series *within each vintage day* separates
+  a wrong profile from a right profile at the wrong level. Measured 2026-08-12
+  on the 7-scored-vintage cohort, RO reads pooled corr 0.50 / within-day 0.83
+  and a per-vintage-day bias sd of 721.5 MW against mean |actual| 709.0 MW.
+  That is what refutes a *static* per-country offset for RO — a constant cannot
+  track a bias that swings +259 to −1095 MW across six days. NL (+0.37 gap) and
+  LV (+0.28) carry the same signature; it is a cluster, not one zone.
+- **Vintages that carry evidence, counted separately from vintages that
+  exist.** `build_gate_scope` counts off the left-merged frame, so a vintage
+  whose D+2 targets have no published actuals still counts toward
+  `min_live_shadow_vintages`. That gap is permanent, not incidental — the rail
+  generates at D for D+2, so the two newest vintages are always unscorable.
+  Measured 2026-08-12: **9 counted, 7 scored**. So `min_live_shadow_vintages`
+  reaches 14 on 2026-08-17 with ~12 vintages of evidence behind it; 14 *scored*
+  vintages land 2026-08-19. This module counts scored vintages and labels its
+  own output `INTERIM` / `CONFIRMATORY`; it deliberately does **not** change the
+  gate, which is pre-registered.
+
+`--fleet` sweeps every `GATE_COUNTRIES` zone beside the named one. That is not
+decoration: on the interim cohort 4 of 19 lose to climatology (RO −23.3%, NL
+−18.3%, then BE −2.4% and HR −0.2% inside noise), so a fallback proposed for RO
+alone would leave NL served by a model it also loses with. Evidence pack:
+`reports/abl_280_ro_climatology_reread.md`. Dated outputs land in
+`reports/net_position_eval/country_reread/`, which is gitignored like the rest
+of that directory.
+
 ### All-type forecast scorecard (ABL-129)
 
 `scripts/evaluate_scorecard.py` is the recurring answer to "is the served
