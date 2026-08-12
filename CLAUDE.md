@@ -498,10 +498,17 @@ so FR's "the mask would zero a real actual" count is dominated by an actuals
 defect rather than by the threshold.
 
 The clamp sits in `save_forecasts()`, so it covers every serving writer that
-goes through it — `scripts/forecast_daily.py` and
-`src/tso_correction_forecaster.py:37`, which imports the same function. On
-importing `src/` as a package, see "Importing this repo" above; ABL-340 put
-every entry point on that one shape.
+goes through it, by construction rather than by each caller remembering to
+clamp. Two writers import it: `scripts/forecast_daily.py` and
+`src/tso_correction_forecaster.py:37`.
+
+The second one does not currently run at all. `forecast_daily.py:226` launches
+it as a subprocess **by file path**, and ABL-340 moved it to relative imports,
+so it dies at import with `attempted relative import with no known parent
+package` — every BE solar / wind row from the `tso-correction` runner has failed
+since, while the run summary still reports `[DONE]`. ABL-354. That path
+inherits the clamp the moment it can start; nothing about the clamp needs to
+change for it.
 
 ## Model Details
 
