@@ -65,6 +65,45 @@ energy_forecast/
 └── logs/               # Execution logs
 ```
 
+### Importing this repo
+
+`src/` is a package and is always imported as one. There is exactly one shape,
+and every entry point and test uses it:
+
+```python
+sys.path.insert(0, str(Path(__file__).parent.parent))   # repo root, NOT src/
+import config                                            # top-level, at the root
+from src.db import load_training_data                    # package-qualified
+```
+
+Inside `src/`, siblings are imported **relatively** — `from .db import ...`,
+`from ..features import ...`. Never `import db`.
+
+This is not style. Putting `src/` on `sys.path` and importing flat gives a module
+no parent package, so any relative import inside it raises `ImportError:
+attempted relative import with no known parent package` — and where it does not
+raise, it silently loads a *second* copy of the module under a second name, with
+its own module-level state. `scripts/train.py` was dead by the first mechanism
+from ABL-188 (`574eb80`, which added `src/db.py`'s `from .data_quality import
+...`) until ABL-340 fixed it: seven months of a documented CLI that could not
+run. Nine of 34 scripts were affected; five of them were the `test_*.py` probes
+in `scripts/` that also broke bare `pytest` collection (ABL-336).
+
+`tests/test_script_imports.py` holds the line — it executes the module-level
+import block of every entry point in `scripts/` and the repo root, and rejects
+any flat sibling import inside `src/`. A new script that copies an old
+`sys.path.insert(..., 'src')` preamble fails there rather than seven months
+later.
+
+Two consequences worth knowing:
+
+- A `__main__` demo inside `src/` (e.g. `src/features.py`) needs a parent
+  package for its relative imports, so run it as `python -m src.features`, not
+  `python src/features.py`.
+- `src/evaluation.py` is dead code. `src/evaluation/` is a package and shadows
+  it — `src.evaluation` always resolves to the directory. `src/__init__.py:44`
+  already has its re-export commented out.
+
 ## Database
 
 Two files, and pointing at the wrong one is the trap this section exists to
@@ -179,14 +218,8 @@ pairs. Anything new that resolves a window or reports freshness for an
 individual renewable type must pass the source; the constant is not the answer.
 
 Train a pair on the other table with `scripts/train.py --renewable-source
-energy_generation` — but note that **`scripts/train.py` does not currently
-import at all**: it does a flat `import db` (`train.py:37`) after putting `src/`
-on `sys.path`, and `src/db.py:17`'s `from .data_quality import ...` (added by
-ABL-188, `574eb80`) then raises `ImportError: attempted relative import with no
-known parent package`. Every `scripts/*.py` entry point using that flat-import
-preamble is affected, which is also why bare `python -m pytest` cannot collect
-(ABL-336) — use `python -m pytest tests/`. Fix that before relying on any
-training CLI flag.
+energy_generation`. That CLI works again as of ABL-340 — it had been import-dead
+since ABL-188 (`574eb80`), see "Importing this repo" below.
 
 This exists because ABL-321 measured that switching globally makes 3 of the 10
 serving pairs materially worse (AT solar +4.3%, DE wind_onshore +3.6%, BE

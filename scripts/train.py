@@ -29,28 +29,27 @@ from typing import List, Dict, Optional, Any
 import numpy as np
 import pandas as pd
 
-# Add parent directory to path
+# Add repo root to path (for the top-level `config` module and the `src` package)
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import config
-import db
-from db import (
+from src import db
+from src.db import (
     create_forecasts_table,
     initialize_all_tables,
     save_model_evaluation,
     get_latest_evaluation,
     get_latest_data_timestamp,
 )
-from forecaster import Forecaster, CascadeForecaster
-from metrics import format_metrics, calculate_all_metrics
-from baselines import compute_baseline_metrics, PersistenceBaseline, SeasonalNaiveBaseline
-from model_registry import get_registry
-from deployment import auto_promote_if_better
-from validation import WalkForwardValidator, TimeSeriesValidator, format_validation_report
-from hyperopt import OptunaOptimizer, compare_algorithms as optuna_compare_algorithms
-from feature_selection import FeatureSelector
-from features import create_all_features, get_feature_columns
+from src.forecaster import Forecaster, CascadeForecaster
+from src.metrics import format_metrics, calculate_all_metrics
+from src.baselines import compute_baseline_metrics, PersistenceBaseline, SeasonalNaiveBaseline
+from src.model_registry import get_registry
+from src.deployment import auto_promote_if_better
+from src.validation import WalkForwardValidator, TimeSeriesValidator, format_validation_report
+from src.hyperopt import OptunaOptimizer, compare_algorithms as optuna_compare_algorithms
+from src.feature_selection import FeatureSelector
+from src.features import create_all_features, get_feature_columns
 from datetime import timedelta
 import pytz
 
@@ -660,7 +659,7 @@ def evaluate_against_baselines(
             return skill_scores
 
         # Create features and predict
-        from features import create_all_features
+        from src.features import create_all_features
         val_df = create_all_features(val_df, forecast_type)
         val_df = val_df.dropna()
 
@@ -691,7 +690,7 @@ def evaluate_against_baselines(
         valid_seasonal = ~np.isnan(y_seasonal)
 
         # Compute skill scores
-        from metrics import skill_score as compute_skill
+        from src.metrics import skill_score as compute_skill
 
         if valid_persist.sum() > 0:
             skill_scores['skill_vs_persistence'] = compute_skill(
@@ -821,7 +820,7 @@ def evaluate_cascade_against_baselines(
         y_persistence = persistence.predict_for_target(hist_series, target_timestamps)
         y_seasonal = seasonal.predict_for_target(hist_series, target_timestamps)
 
-        from metrics import skill_score as compute_skill
+        from src.metrics import skill_score as compute_skill
 
         valid_persist = ~np.isnan(y_persistence)
         valid_seasonal = ~np.isnan(y_seasonal)

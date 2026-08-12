@@ -21,9 +21,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# Add parent directory to path
+# Add repo root to path (for the top-level `config` module and the `src` package)
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import config
 
@@ -31,7 +30,7 @@ import config
 def check_database_connection() -> Tuple[bool, str]:
     """Check if database is accessible."""
     try:
-        from db import get_connection
+        from src.db import get_connection
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT 1")
@@ -49,7 +48,7 @@ def check_last_forecast_run() -> Tuple[str, Optional[dict]]:
         status: 'healthy', 'warning', 'critical', 'unknown'
     """
     try:
-        from db import get_latest_forecast_run
+        from src.db import get_latest_forecast_run
         run = get_latest_forecast_run()
 
         if not run:
@@ -78,7 +77,7 @@ def check_production_models() -> Tuple[str, dict]:
         Tuple of (status, coverage_info)
     """
     try:
-        from db import get_deployed_models
+        from src.db import get_deployed_models
         deployed = get_deployed_models()
 
         if not deployed:
@@ -127,7 +126,7 @@ def check_model_files() -> Tuple[str, dict]:
 
     # Check deployed models from database
     try:
-        from db import get_deployed_models
+        from src.db import get_deployed_models
         deployed = get_deployed_models()
 
         for model in deployed:
@@ -180,7 +179,7 @@ def check_data_freshness() -> Tuple[str, dict]:
         Tuple of (status, freshness_info)
     """
     try:
-        from db import get_connection
+        from src.db import get_connection
 
         with get_connection() as conn:
             cursor = conn.cursor()

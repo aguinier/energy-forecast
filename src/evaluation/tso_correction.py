@@ -32,10 +32,9 @@ from lightgbm import LGBMRegressor
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import config
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from db import get_connection
-from evaluation.metrics import calculate_point_metrics, skill_score, diebold_mariano_test
-from evaluation.backtest import BacktestResult
+from ..db import get_connection
+from .metrics import calculate_point_metrics, skill_score, diebold_mariano_test
+from .backtest import BacktestResult
 
 logger = logging.getLogger("energy_forecast.tso_correction")
 
@@ -597,7 +596,7 @@ def run_full_tso_correction_eval(
     Run rolling backtest for all renewable types and generate comparison report.
     Uses the same BacktestResult + compare_models infrastructure as Phase 1.
     """
-    from evaluation.backtest import compare_models
+    from .backtest import compare_models
 
     types = ["solar", "wind_onshore", "wind_offshore"]
     all_results = []  # pairs of (tso, corrected)
