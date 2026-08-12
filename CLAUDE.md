@@ -125,11 +125,41 @@ and redundant with `energy_generation` — retiring or re-deriving it is its
 own cross-module migration requiring separate CEO/board approval, not a fix
 available to this issue — so `src/data_quality.py`'s `exclude_suspect_constant_runs`
 guards the training-data boundary instead: any individual-renewable-type
-target loaded via `load_renewable_type_data` (`db.py:280`) that holds a
+target loaded via `load_renewable_type_data` (`src/db.py:461`) that holds a
 bit-identical value for 24+ hours is nulled before it can enter training,
 with a `logger.warning` naming the exact excluded window. No stored row is
 fixed by this — that needs a supplemental ENTSO-E re-fetch for the affected
 window, proposed but not executed in the ABL-188 report.
+
+**Neither generation table is hourly, and most countries are both** (ABL-332).
+`energy_generation` and `energy_renewable` store whatever resolution ENTSO-E
+published, and for most countries that changed partway through the history —
+an hourly backbone for the early years, quarter-hourly later. Measured on the
+replica 2026-08-12 over `config.SUPPORTED_COUNTRIES`: **22 of 24** carry
+sub-hourly rows in `energy_renewable` and **20 of 24** in `energy_generation`.
+Only **BE, BG, CH, LV, PT** are hourly throughout both. Do not reason about a
+country's resolution from its name or its row count alone; the per-country
+table is in `reports/abl_332_renewable_resolution.md`, regenerable with
+`scripts/audit_renewable_resolution.py`.
+
+Everything downstream of the read is hourly, and this is the contract:
+`load_renewable_type_data` calls `aggregate_renewable_to_hourly`
+(`src/db.py:377`) so **exactly one resolution leaves the read — the hourly
+mean**. It has to be the read and not the consumer, because both consumers
+already assumed hourly and disagreed about it: `features.py:227`'s
+`create_lag_features` shifts by `days * 24` **rows** (a day only on an hourly
+frame) and `src/wind_features.py` floors every lookup to the hour. Before
+ABL-332 the serving builder therefore read the `:00` sub-sample and discarded
+`:15`/`:30`/`:45` while training used the hourly mean — the same column name
+carrying two different numbers, with no error and no log line. Measured on DE
+solar over 2026-01-01 → 2026-08-12 (5,339 hours), the `:00` sub-sample differs
+from its hour's mean by a median of **373.6 MW** (p90 3,211 MW, max 5,500 MW)
+at a mean bias of only +3 MW — near-unbiased in aggregate, wrong in almost
+every individual hour.
+
+If you hand `src/wind_features.py` a sub-hourly series it now raises
+`SubHourlyResolutionError` (`src/wind_features.py:142`) rather than
+subsampling. Do not "fix" that by flooring the index — aggregate it.
 
 **New Table:** `forecasts`
 ```sql
