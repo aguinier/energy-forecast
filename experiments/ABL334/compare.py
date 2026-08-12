@@ -35,6 +35,16 @@ SERVED_PAIRS = [
 #: The three pairs whose regression decided criterion 2 in ABL-321 section 6.
 ORIGINAL_REGRESSORS = [("AT", "solar"), ("DE", "wind_onshore"), ("BE", "wind_onshore")]
 
+#: Amendment 3, registered addition 3. BE carries zero sub-hourly observations in
+#: either source table over the builder's span, so `aggregate_renewable_to_hourly`
+#: returns early and ABL-332 is a literal no-op for these three pairs. They are an
+#: untreated control group: they must not move, and if they do it is not the fix.
+UNTREATED = {("BE", "solar"), ("BE", "wind_onshore"), ("BE", "wind_offshore")}
+
+
+def treated(pair: tuple[str, str]) -> bool:
+    return pair not in UNTREATED
+
 
 def load(path: Path) -> dict | None:
     if not path.exists():
@@ -69,14 +79,15 @@ def arm_table(title: str, left: dict, right: dict, arm: str,
               left_label: str, right_label: str) -> tuple[list[str], list[dict]]:
     """One arm, two runs, per serving pair."""
     lines = [f"### {title}", "",
-             f"| pair | n {left_label} | n {right_label} | {left_label} WAPE | "
+             f"| pair | ABL-332 | n {left_label} | n {right_label} | {left_label} WAPE | "
              f"{right_label} WAPE | Δ pp | relative | verdict |",
-             "|---|---:|---:|---:|---:|---:|---:|:---|"]
+             "|---|:--|---:|---:|---:|---:|---:|---:|:---|"]
     rows = []
     for country, stream in SERVED_PAIRS:
         lrow, rrow = left.get((country, stream)), right.get((country, stream))
+        mark = "treated" if treated((country, stream)) else "**no-op**"
         if not lrow or not rrow:
-            lines.append(f"| {country} {stream} | — | — | — | — | — | — | missing |")
+            lines.append(f"| {country} {stream} | {mark} | — | — | — | — | — | — | missing |")
             continue
         lw = lrow[arm]["wape_pct"]
         rw = rrow[arm]["wape_pct"]
@@ -84,14 +95,38 @@ def arm_table(title: str, left: dict, right: dict, arm: str,
         same_n = lrow["n"] == rrow["n"]
         flag = "" if same_n else " ⚠"
         lines.append(
-            f"| {country} {stream} | {lrow['n']:,}{flag} | {rrow['n']:,}{flag} | "
+            f"| {country} {stream} | {mark} | {lrow['n']:,}{flag} | {rrow['n']:,}{flag} | "
             f"{lw:.4f}% | {rw:.4f}% | {rw - lw:+.4f} | {r:+.2f}% | {verdict(r)} |")
         rows.append({"country": country, "stream": stream,
+                     "treated": treated((country, stream)),
                      "left_wape": lw, "right_wape": rw,
                      "left_n": lrow["n"], "right_n": rrow["n"],
                      "same_n": same_n, "relative_pct": r, "verdict": verdict(r)})
     lines.append("")
     return lines, rows
+
+
+def check_be_prediction(rows: list[dict], what: str) -> list[str]:
+    """Amendment 3's registered prediction: the untreated pairs must not move."""
+    untreated = [r for r in rows if not r["treated"]]
+    if not untreated:
+        return []
+    moved = [r for r in untreated if r["relative_pct"] is None
+             or abs(r["relative_pct"]) > 0.005]
+    out = [f"**Registered prediction — the untreated BE pairs must not move ({what}).**", ""]
+    for r in untreated:
+        state = ("moved" if r in moved else "identical")
+        out.append(f"- BE {r['stream']}: {r['left_wape']:.4f}% → {r['right_wape']:.4f}% "
+                   f"({r['relative_pct']:+.4f}%) — **{state}**")
+    out += ["", ("**Prediction holds.** ABL-332 is a no-op for BE and BE does not move, so "
+                 "the harness is deterministic across these runs and any movement elsewhere "
+                 "is attributable to the treated pairs' feature change."
+                 if not moved else
+                 f"**Prediction fails on {len(moved)} of {len(untreated)} untreated pairs.** "
+                 "ABL-332 cannot have caused this — it is nondeterminism or another commit. "
+                 "Movement on treated pairs cannot be cleanly attributed to the fix until "
+                 "this is explained."), ""]
+    return out
 
 
 def criterion2_table(result: dict, truth: str = PRIMARY_TRUTH) -> list[str]:
@@ -174,6 +209,36 @@ def main() -> int:
             f"{r['country']} {r['stream']} ({r['left_n']:,}→{r['right_n']:,})"
             for r in n_mismatch) + ". Those cells are not scored on identical rows.", ""]
 
+    out += check_be_prediction(d4, "recorded → re-run")
+
+    treated_worse = [r for r in worse if r["treated"]]
+    untreated_worse = [r for r in worse if not r["treated"]]
+    if fired:
+        out += ["**Composition of the trigger.** "
+                f"{len(treated_worse)} of the regressing pairs are ABL-332-treated and "
+                f"{len(untreated_worse)} are pairs ABL-332 cannot touch. Only 7 of the 10 "
+                "serving pairs are capable of moving at all.", ""]
+
+    gap = load(REPO / "experiments/ABL334/truth_convention_gap.json")
+    if gap:
+        out += ["### The convention floor, for scale (measured before any result was read)", "",
+                "The hourly mean scored as a forecast of the `:00` sample — what this harness "
+                "charges a *perfect* hourly-mean predictor, with no model in the loop:", "",
+                "| pair | convention floor WAPE | arm A recorded WAPE |", "|---|---:|---:|"]
+        for p in gap["pairs"]:
+            key = (p["country"], p["stream"])
+            src = p["sources"].get("energy_renewable", {})
+            floor = src.get("wape_pct" if "wape_pct" in src else "wape_mean_vs_00_pct")
+            rec = rec_i.get(key)
+            if floor is None:
+                continue
+            out.append(f"| {p['country']} {p['stream']} | {floor:.4f}% | "
+                       + (f"{rec['before']['wape_pct']:.4f}% |" if rec else "— |"))
+        out += ["", "Post-fix the fitted target is the hourly mean while truth stays the `:00` "
+                "sample, so this floor is charged to the post-fix arm and not to the pre-fix "
+                "one. It is 4–9 % absolute on every treated pair and exactly 0 % on BE — "
+                "multiples of the 2.0 % relative margin the trigger reads.", ""]
+
     # -- Attribution --------------------------------------------------------
     out += ["## Attribution — is ABL-332 actually the cause?", ""]
     if ctl_i is None:
@@ -196,6 +261,8 @@ def main() -> int:
                  + ", ".join(f"{r['country']} {r['stream']} ({r['relative_pct']:+.3f}%)"
                              for r in moved) + "."), ""]
 
+        out += check_be_prediction(drift, "recorded → control")
+
         lines, clean = arm_table(
             "ABL-332 alone: control (pre-fix) → re-run (post-fix), same commit",
             ctl_i, run_i, "before", "control", "re-run")
@@ -204,6 +271,7 @@ def main() -> int:
         cb = [r for r in clean if r["relative_pct"] is not None and r["relative_pct"] < -MATERIAL_PCT]
         out += [f"Attributable to ABL-332 alone: {len(cw)} pair(s) materially worse, "
                 f"{len(cb)} materially better.", ""]
+        out += check_be_prediction(clean, "control → re-run")
 
     # -- Deliverables 1-3 ---------------------------------------------------
     out += ["## Deliverables 1–3 — criterion 2 re-read on the corrected builder", ""]
