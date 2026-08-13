@@ -35,6 +35,7 @@ import pytest
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
+from src.evaluation.scorecard import ScorecardConfig, opened_databases  # noqa: E402
 from src.evaluation.wind_retrain import common_scores  # noqa: E402
 
 
@@ -160,6 +161,10 @@ def test_render_markdown_does_not_crash_on_an_unscored_cell():
     result = {
         "meta": {"generated_at": "2026-08-13 00:00 UTC", "replica_db": "x.db",
                  "replica_bytes": 1, "training_source": "energy_generation",
+                 # ABL-355: built by the same function `main()` uses.
+                 "databases": opened_databases(
+                     ScorecardConfig("x.db", None, pd.Timestamp("2026-07-11"),
+                                     pd.Timestamp("2026-08-10")), "x.db", "x.db"),
                  "scope": "abl253", "registered_countries": ["BE", "DE", "FR"],
                  "registered_cells": 9,
                  "gate_basis": ["challenger", "incumbent", "seasonal_naive", "persistence"],
