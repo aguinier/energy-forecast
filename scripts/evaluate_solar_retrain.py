@@ -153,9 +153,14 @@ REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistenc
 # values the sun says are impossible, and we still score against whatever the
 # source reports.  A scope that filtered its own gate would be marking its own
 # homework.
+#: What a scope gets if it registers no fit rule at all.  Off: the pre-ABL-376
+#: behaviour, which is what every already-dispositioned read was taken under.
+DEFAULT_FIT_RULES = {"exclude_impossible_night": False}
+
 FIT_RULES = {
-    # ABL-253 was read without this rule.  Keeping it False is what makes an
-    # unflagged run still reproduce the dispositioned read.
+    # ABL-253 was read without this rule.  Stated rather than left to the
+    # default, because "this read predates the rule" is a fact about the
+    # registration and not an absence.
     "abl253": {"exclude_impossible_night": False},
     "abl376": {"exclude_impossible_night": True},
 }
@@ -171,16 +176,39 @@ SCOPE_TITLES = {
     "abl376": "ABL-376 — Serve-faithful solar retrain gate, impossible night rows excluded from the fit",
 }
 
-# ABL-387: the tables above are one registration in several views.  Checked at
-# import, so a scope registered in one and not the others fails before any fit
+
+def fit_rules_for(scope: str) -> dict:
+    """The scope's registered fit rules, over the defaults."""
+    return {**DEFAULT_FIT_RULES, **FIT_RULES.get(scope, {})}
+
+
+def title_for(scope: str) -> str:
+    """The scope's report heading, or a derived one."""
+    return SCOPE_TITLES.get(scope, f"{scope} — Serve-faithful solar retrain gate")
+
+
+# ABL-387: the three tables above are one registration in three views.  Checked
+# at import, so a scope registered in one and not the others fails before any fit
 # -- and identically under `--help` and in the test suite -- rather than raising
 # `KeyError` partway through a gate run, or writing over another scope's evidence.
-# ABL-376 adds `FIT_RULES` to the same check for the same reason: a scope that
-# registers countries and outputs but no fit rule would otherwise `KeyError`
-# after its first fit, having already written an artifact.
-check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS,
-                          SCOPE_OUTPUTS=SCOPE_OUTPUTS, FIT_RULES=FIT_RULES,
-                          SCOPE_TITLES=SCOPE_TITLES)
+#
+# ABL-376's two tables are deliberately **not** in this check, and the asymmetry
+# is the point rather than an oversight.  What makes the three strict is that
+# omitting an entry fails *destructively and silently*: a missing `SCOPE_OUTPUTS`
+# row sends a run's results over another scope's dispositioned evidence, and no
+# exit status shows it.  A missing `FIT_RULES` or `SCOPE_TITLES` row does not --
+# it resolves through `fit_rules_for`/`title_for` to the pre-ABL-376 behaviour,
+# and the report then says in as many words that the rule is not registered for
+# that scope.  Self-documenting degradation does not need an import-time abort.
+#
+# The cost of getting this wrong is concrete and was measured, not imagined:
+# `ABL-381-tranche-1b` and `fix/abl-379-solar-gate-scope` are both live and both
+# add a solar scope to the three tables.  Had the new tables joined the strict
+# check, either merge order would produce a **textually CLEAN** merge that raises
+# on `import` -- taking `--help` and the whole suite with it -- with nothing on
+# GitHub to warn either author.  Adding a required table is not free; it is a
+# tax on every branch already in flight.
+check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
 check_scope_outputs(SCOPE_OUTPUTS)
 
 
@@ -293,7 +321,7 @@ def render_markdown(result: dict) -> str:
     # name on every other scope's report. `abl253` keeps its exact heading, so
     # the dispositioned read still renders byte-for-byte.
     lines = [
-        f"# {SCOPE_TITLES[meta['scope']]}", "",
+        f"# {title_for(meta['scope'])}", "",
         f"**Disposition: {result['verdict']}**", "",
         f"Generated: {meta['generated_at']}",
         f"Fit targets: {meta['fit_window']['start']} → {meta['fit_window']['end_exclusive']} (exclusive).",
@@ -487,7 +515,7 @@ def main() -> int:
     outputs = SCOPE_OUTPUTS[args.scope]
     artifact_dir = Path(args.artifact_dir or outputs["artifact_dir"])
     registered_countries = SCOPES[args.scope]
-    fit_rules = FIT_RULES[args.scope]
+    fit_rules = fit_rules_for(args.scope)
     registered_cells = len(registered_countries) * len(PRIMARY_BANDS)
     training, scored_frames = [], []
     for country in registered_countries:

@@ -182,25 +182,55 @@ def test_the_exclusion_is_applied_to_the_fit_frame_and_to_nothing_else():
     )
 
 
-def test_registration_tables_cover_every_scope_and_pin_abl253_unchanged():
-    """ABL-253 stays reproducible: same title, and the rule off."""
-    sys.path.insert(0, str(HARNESS.parent))
+@pytest.fixture(scope="module")
+def harness():
     import importlib.util
 
     spec = importlib.util.spec_from_file_location("_solar_harness", HARNESS)
-    harness = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(harness)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
-    scopes = set(harness.SCOPES)
-    assert set(harness.FIT_RULES) == scopes
-    assert set(harness.SCOPE_TITLES) == scopes
-    for scope in scopes:
-        assert "exclude_impossible_night" in harness.FIT_RULES[scope]
 
-    # The dispositioned read must keep both its rule and its heading.
-    assert harness.FIT_RULES["abl253"]["exclude_impossible_night"] is False
-    assert harness.SCOPE_TITLES["abl253"] == "ABL-253 — Serve-faithful solar retrain gate"
-    assert harness.FIT_RULES["abl376"]["exclude_impossible_night"] is True
-    # The A/B is on the rule alone.
+def test_abl253_keeps_its_rule_and_its_heading(harness):
+    """The dispositioned read must still reproduce: rule off, heading identical."""
+    assert harness.fit_rules_for("abl253")["exclude_impossible_night"] is False
+    assert harness.title_for("abl253") == "ABL-253 — Serve-faithful solar retrain gate"
+
+
+def test_abl376_is_abl253_with_only_the_rule_changed(harness):
+    assert harness.fit_rules_for("abl376")["exclude_impossible_night"] is True
     assert harness.SCOPES["abl376"] == harness.SCOPES["abl253"]
     assert harness.GATE_BASIS["abl376"] == harness.GATE_BASIS["abl253"]
+
+
+def test_every_registered_scope_resolves_a_rule_and_a_title(harness):
+    for scope in harness.SCOPES:
+        assert "exclude_impossible_night" in harness.fit_rules_for(scope)
+        assert harness.title_for(scope)
+
+
+def test_an_unregistered_scope_degrades_instead_of_raising(harness):
+    """`FIT_RULES`/`SCOPE_TITLES` are deliberately outside the strict check.
+
+    Two solar-scope branches are in flight at the time of writing. Had these
+    tables joined `check_registration_tables`, either merge order would produce a
+    textually CLEAN merge that raises on import and takes `--help` and the whole
+    suite with it. They default instead, and the report says the rule is not
+    registered — degradation a reader can see, rather than an import-time abort
+    charged to a branch that never touched this feature.
+    """
+    assert harness.fit_rules_for("scope-that-does-not-exist") == {
+        "exclude_impossible_night": False
+    }
+    assert "scope-that-does-not-exist" in harness.title_for("scope-that-does-not-exist")
+
+
+def test_the_three_destructive_tables_are_still_strictly_checked(harness):
+    """Weakening the ABL-387 check would let a scope overwrite another's evidence."""
+    with pytest.raises(KeyError):
+        harness.check_registration_tables(
+            SCOPES={**harness.SCOPES, "unregistered": ("BE",)},
+            GATE_BASIS=harness.GATE_BASIS,
+            SCOPE_OUTPUTS=harness.SCOPE_OUTPUTS,
+        )
