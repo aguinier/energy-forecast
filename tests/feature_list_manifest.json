@@ -433,7 +433,7 @@
           "sun_elevation_deg",
           "is_night"
         ],
-        "note": "Artifacts written before ABL-395 carry 25 names in their own feature_columns and are served from that list, so they are unaffected by this change and are not comparable cell-by-cell to a fit from ABL-395 forward. Refit is ABL-401."
+        "note": "Artifacts written before ABL-395 carry 25 names in their own feature_columns and are served from that list, so they are unaffected by this change and are not comparable cell-by-cell to a fit from ABL-395 forward. Those two scopes therefore pin the legacy 25 in evaluate_solar_retrain.py's SCOPE_FEATURES rather than following this constant; an unregistered scope gets all 27. Whether either is re-read at 27 is ABL-401."
       }
     },
     "wind": {

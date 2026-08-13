@@ -32,6 +32,7 @@ which is the failure this file exists to catch.
 """
 
 import importlib
+import importlib.util
 import json
 import sqlite3
 import sys
@@ -63,6 +64,25 @@ MANIFEST = json.loads(
     (Path(__file__).parent / "feature_list_manifest.json").read_text(encoding="utf-8")
 )
 GATE = MANIFEST["gate_harness"]
+
+ROOT = Path(__file__).parent.parent
+
+
+def _load(name: str, relative: str):
+    spec = importlib.util.spec_from_file_location(name, ROOT / relative)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+#: Imported by path, as `test_solar_gate_unreadable.py` does: these are scripts,
+#: not package modules, and the registration tables live in them.
+harness = _load("scripts_evaluate_solar_retrain_abl395",
+                "scripts/evaluate_solar_retrain.py")
+seed_spread = _load("scripts_abl376_night_seed_spread_abl395",
+                    "scripts/abl376_night_seed_spread.py")
+geometry_probe = _load("scripts_abl395_geometry_feature_probe",
+                       "scripts/abl395_geometry_feature_probe.py")
 
 #: A country with a solar representative point, so the geometry features are
 #: actually computable — and one of the two pairs ABL-381 read at 25 features.
@@ -271,3 +291,79 @@ def test_the_written_artifact_declares_the_27_it_was_fitted_on(replica, tmp_path
     assert loaded.feature_columns == list(SOLAR_GATE_COLUMNS)
     assert len(loaded.feature_columns) == 27
     assert loaded.training_source == "energy_generation"
+
+
+# ---------------------------------------------------------------------------
+# 4. A dispositioned scope does not follow the constant (ABL-395)
+# ---------------------------------------------------------------------------
+#
+# The list moving is a real change to the challenger, measured: on the two
+# ABL-381 pairs at seed 42, CH's 24-36h cell moves 8.16% -> 7.78% WAPE and BG's
+# 18.89% -> 19.95%. So `SCOPE_FEATURES` is the same kind of registration
+# `FIT_RULES` is, and for the same stated reason -- two gate reads are not
+# comparable unless both say what they trained on.
+
+
+def test_the_legacy_25_is_the_current_list_minus_the_geometry_pair():
+    """Derived by subtraction, never a second copy. A hand-written 25 would drift
+    from the live list the moment anything else is added to it."""
+    assert harness.LEGACY_FEATURE_COLUMNS == tuple(
+        c for c in SOLAR_GATE_COLUMNS if c not in SOLAR_GEOMETRY_FEATURES)
+    assert len(harness.LEGACY_FEATURE_COLUMNS) == 25
+    assert not set(SOLAR_GEOMETRY_FEATURES) & set(harness.LEGACY_FEATURE_COLUMNS)
+
+
+@pytest.mark.parametrize("scope", ["abl253", "abl376"])
+def test_an_already_dispositioned_scope_keeps_the_25_it_was_read_on(scope):
+    """`abl253` and `abl376` were both read before ABL-395. Re-basing either onto
+    the new list would move published numbers with nothing in `git status` to
+    show it -- the ABL-387 failure mode with a feature list in place of a path."""
+    assert harness.features_for(scope) == harness.LEGACY_FEATURE_COLUMNS
+    assert len(harness.features_for(scope)) == 25
+
+
+def test_a_scope_that_registers_no_feature_set_gets_the_current_27():
+    """The point of the change: a new ABL-316 tranche is fitted at 27 without
+    touching this table, which is what unblocks the remaining 33."""
+    assert harness.features_for("a-scope-nobody-registered") == tuple(SOLAR_GATE_COLUMNS)
+    assert len(harness.features_for("a-scope-nobody-registered")) == 27
+
+
+def test_every_registered_scope_has_a_feature_set_that_is_one_of_the_two():
+    """A `SCOPE_FEATURES` entry naming something else is a silent third protocol.
+    `features_for` would serve it happily; this is what makes it a review event."""
+    for scope in harness.SCOPES:
+        resolved = harness.features_for(scope)
+        assert resolved in (harness.LEGACY_FEATURE_COLUMNS, tuple(SOLAR_GATE_COLUMNS)), scope
+
+
+# ---------------------------------------------------------------------------
+# 5. The ABL-376 probe's two arms stay 25 and 27, and never 29
+# ---------------------------------------------------------------------------
+
+
+def test_the_seed_spread_arms_are_the_two_lists_with_no_duplicates():
+    """`abl376_night_seed_spread.py --with-geometry` used to *append* the geometry
+    pair to `FEATURE_COLUMNS`. Once ABL-395 put them in that constant, the old
+    form would hand CatBoost both columns twice and relabel the registered arm
+    `legacy25` while fitting 27. Neither raises; both are wrong."""
+    assert seed_spread.LEGACY_FEATURE_COLUMNS == harness.LEGACY_FEATURE_COLUMNS
+    for arm in (seed_spread.LEGACY_FEATURE_COLUMNS, tuple(SOLAR_GATE_COLUMNS)):
+        assert len(set(arm)) == len(arm)
+    assert len(seed_spread.LEGACY_FEATURE_COLUMNS) == 25
+    assert len(SOLAR_GATE_COLUMNS) == 27
+
+
+def test_the_two_arms_of_the_abl395_probe_are_the_same_two_lists():
+    assert geometry_probe.ARMS["f25"] == harness.LEGACY_FEATURE_COLUMNS
+    assert geometry_probe.ARMS["f27"] == tuple(SOLAR_GATE_COLUMNS)
+
+
+def test_the_abl395_sweep_reuses_abl376s_registered_seeds_verbatim():
+    """Restated in the probe rather than imported (a script importing a script),
+    so the two are pinned equal here instead of being allowed to drift. Reusing a
+    seed set frozen before another issue's first fit is what makes it a set this
+    issue's effect was not selected on -- and it keeps the two solar seed reads
+    commensurable."""
+    assert geometry_probe.SWEEP_SEEDS == seed_spread.SEEDS
+    assert geometry_probe.GATE_SEED not in geometry_probe.SWEEP_SEEDS

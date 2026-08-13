@@ -43,7 +43,7 @@ from src.evaluation.solar_retrain import (
 )
 from src.solar_features import (
     IMPOSSIBLE_NIGHT_THRESHOLD_MW, NIGHT_ELEVATION_THRESHOLD_DEG,
-    exclude_impossible_night_rows,
+    SOLAR_GEOMETRY_FEATURES, exclude_impossible_night_rows,
 )
 from src.wind_features import RenewableFeatureBuilder
 
@@ -188,6 +188,42 @@ FIT_RULES = {
     "abl376": {"exclude_impossible_night": True},
 }
 
+# ABL-395: and so is the feature *vector*, for exactly the reason stated above
+# `FIT_RULES` -- two gate reads are not comparable unless both say what they
+# trained on, and a column list is a stronger statement about that than a row
+# filter is.
+#
+# `solar_retrain.FEATURE_COLUMNS` is now 27: the 25 every read from ABL-253 to
+# ABL-381 was taken on, plus ABL-338's two adopted daylight-safe geometry
+# features, which the harness had never asked the builder for.  That is the right
+# default for a *new* tranche and it is what an unregistered scope gets.
+#
+# It is not right for a scope already dispositioned.  Measured on the two ABL-381
+# pairs (`scripts/abl395_geometry_feature_probe.py`, one vintage frame, both arms
+# from the same retained rows, seed 42): CH's 24-36h cell moves 8.16% -> 7.78%
+# WAPE and BG's 18.89% -> 19.95%.  Those are real movements in cells that have
+# been read, so silently re-basing `abl253` or `abl376` would move published
+# numbers with nothing in `git status` to show it -- the ABL-387 failure mode
+# with a feature list in place of a path.  Both therefore pin the 25 they were
+# read on, and whether either is re-read at 27 is ABL-401's decision, not a
+# side-effect of this table.
+#
+# `abl376` pins it for a second reason: its whole registration is a controlled
+# A/B against `abl253` on the fit rule alone.  Moving its feature vector at the
+# same time would confound the two, which is the argument its own `GATE_BASIS`
+# entry already makes.
+LEGACY_FEATURE_COLUMNS = tuple(c for c in FEATURE_COLUMNS
+                               if c not in SOLAR_GEOMETRY_FEATURES)
+
+#: What a scope gets if it registers no feature set: the current list.  A new
+#: ABL-316 tranche is fitted at 27 without touching this table.
+DEFAULT_SCOPE_FEATURES = FEATURE_COLUMNS
+
+SCOPE_FEATURES = {
+    "abl253": LEGACY_FEATURE_COLUMNS,
+    "abl376": LEGACY_FEATURE_COLUMNS,
+}
+
 # The report's H1.  This was the string literal "ABL-253 -- Serve-faithful solar
 # retrain gate", which put ABL-253's name on the top line of every other scope's
 # report -- a mislabel that survives being copied into an evidence pack, since
@@ -203,6 +239,11 @@ SCOPE_TITLES = {
 def fit_rules_for(scope: str) -> dict:
     """The scope's registered fit rules, over the defaults."""
     return {**DEFAULT_FIT_RULES, **FIT_RULES.get(scope, {})}
+
+
+def features_for(scope: str) -> tuple:
+    """The scope's registered feature vector, or the current default (ABL-395)."""
+    return tuple(SCOPE_FEATURES.get(scope, DEFAULT_SCOPE_FEATURES))
 
 
 def title_for(scope: str) -> str:
@@ -359,6 +400,15 @@ def render_markdown(result: dict) -> str:
         # leaves NULL. Two runs of this report are not comparable unless both
         # say which table they read, so it is stated, never defaulted silently.
         f"Target series, features, baselines and contamination screen: `{meta['training_source']}`.",
+        # ABL-395. Stated for the same reason the source table is: the feature
+        # vector moved when the ABL-338 geometry pair was added to it, so two
+        # reads of this gate are not comparable unless both name the set they
+        # fitted. `legacy25` is what every read up to ABL-381 was taken on.
+        f"Feature set: **{meta.get('feature_set', 'legacy25')}** "
+        f"({meta.get('n_features', 25)} columns), "
+        + ("registered for this scope."
+           if meta.get("feature_set_is_registered_for_scope")
+           else "the module default -- this scope registers no feature set of its own."),
         "", "## Gate read", "",
         f"Registered scope `{meta['scope']}`: {', '.join(meta['registered_countries'])}.",
         f"Gate basis — the columns that must be simultaneously finite for a row to be scored: {', '.join(f'`{c}`' for c in meta.get('gate_basis', []))}. "
@@ -557,6 +607,9 @@ def main() -> int:
     artifact_dir = Path(args.artifact_dir or outputs["artifact_dir"])
     registered_countries = SCOPES[args.scope]
     fit_rules = fit_rules_for(args.scope)
+    # ABL-395: the scope's registered feature vector, not the module constant.
+    # `abl253`/`abl376` pin the 25 they were read on; anything new gets 27.
+    features = features_for(args.scope)
     registered_cells = len(registered_countries) * len(PRIMARY_BANDS)
     training, scored_frames = [], []
     for country in registered_countries:
@@ -571,8 +624,8 @@ def main() -> int:
         builder = RenewableFeatureBuilder(country, "solar", fit_start - pd.Timedelta(days=14),
                                           gate_end, actuals_source=source,
                                           db_path=str(replica))
-        fit_raw = build_vintage_frame(builder, fit_start, gate_start, FEATURE_COLUMNS)
-        fit, audit = finite_training_rows(fit_raw, FEATURE_COLUMNS)
+        fit_raw = build_vintage_frame(builder, fit_start, gate_start, features)
+        fit, audit = finite_training_rows(fit_raw, features)
         # ABL-376, and only where the scope registered it.  Fit frame only: the
         # gate frame below is built from the same builder and is deliberately
         # *not* filtered, so a contaminated actual still scores against us.
@@ -583,19 +636,19 @@ def main() -> int:
         else:
             night_audit = None
         model, params = _model()
-        model.fit(fit[list(FEATURE_COLUMNS)], fit["actual"])
+        model.fit(fit[list(features)], fit["actual"])
 
         # ABL-342: through `Forecaster.save`, so the artifact carries the table
         # it was fitted on and the ABL-183 intercept witness by construction.
         path = save_gate_artifact(
             artifact_dir / country / "solar" / "model.joblib",
             model=model, builder=builder, algorithm=ALGORITHM, params=params,
-            feature_columns=FEATURE_COLUMNS, fit_window=(fit_start, gate_start),
+            feature_columns=features, fit_window=(fit_start, gate_start),
         )
 
-        gate_raw = build_vintage_frame(builder, gate_start, gate_end, FEATURE_COLUMNS)
-        gate_finite, gate_audit = finite_training_rows(gate_raw, FEATURE_COLUMNS)
-        gate_finite["challenger"] = model.predict(gate_finite[list(FEATURE_COLUMNS)])
+        gate_raw = build_vintage_frame(builder, gate_start, gate_end, features)
+        gate_finite, gate_audit = finite_training_rows(gate_raw, features)
+        gate_finite["challenger"] = model.predict(gate_finite[list(features)])
         selected = attach_baselines(select_latest_challenger_per_band(gate_finite), builder._actuals)
         # ABL-389: from the same ABL-188-filtered series the baselines and the
         # gate actuals come from, so the reference is arithmetic on data already
@@ -663,6 +716,17 @@ def main() -> int:
                        # what it was scored on. Two reads of this gate are not
                        # comparable unless both state it.
                        "fit_rules": dict(fit_rules),
+                       # ABL-395: and what it was allowed to see column-wise. A
+                       # scope pinned to the legacy 25 and a scope on the current
+                       # 27 produce artifacts that are indistinguishable after
+                       # the fact unless the read says which it was.
+                       "feature_columns": list(features),
+                       "n_features": len(features),
+                       "feature_set": ("legacy25" if tuple(features) == LEGACY_FEATURE_COLUMNS
+                                       else "legacy25+geometry"
+                                       if tuple(features) == tuple(FEATURE_COLUMNS)
+                                       else "custom"),
+                       "feature_set_is_registered_for_scope": args.scope in SCOPE_FEATURES,
                        "night_threshold_deg": NIGHT_ELEVATION_THRESHOLD_DEG,
                        "impossible_night_threshold_mw": IMPOSSIBLE_NIGHT_THRESHOLD_MW,
                        # ABL-389: the basis is what gates; this is what is

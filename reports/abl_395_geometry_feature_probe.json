@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-13 12:42 UTC",
+  "generated_at": "2026-08-13 12:59 UTC",
   "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
   "replica_bytes": 9432453120,
   "renewable_source": "energy_generation",
@@ -13,6 +13,29 @@
     "verbose": 0,
     "thread_count": -1
   },
+  "seeds": [
+    42,
+    101,
+    103,
+    107,
+    109,
+    113,
+    127,
+    131,
+    137
+  ],
+  "gate_seed": 42,
+  "sweep_seeds": [
+    101,
+    103,
+    107,
+    109,
+    113,
+    127,
+    131,
+    137
+  ],
+  "seeds_are_registered": true,
   "windows": {
     "fit": [
       "2026-01-14 00:00:00",
@@ -96,13 +119,17 @@
         "is_night": 1.0
       },
       "rows_identical_across_arms": true,
-      "arms": {
+      "fit_rows": 34176,
+      "gate_rows": 5760,
+      "degraded_lag_1d_rows": 23674,
+      "reproduction": {
         "f25": {
+          "arm": "f25",
+          "seed": 42,
           "n_features_fitted": 25,
           "geometry_features_in_fit": [],
           "fit_rows": 34176,
-          "fit_intended_rows": 34176,
-          "degraded_lag_1d_rows": 23674,
+          "fit_seconds": 3.7,
           "night": {
             "n_selected_rows": 2730,
             "n_negative": 141,
@@ -148,8 +175,9 @@
             }
           ],
           "artifact": {
-            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts\\f25\\BG\\solar\\model.joblib",
-            "sha256": "f6193b1196a9cf8f491cea0a7529f66d09755ac8b87f44388397e8978a72e27c",
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts2\\f25\\BG\\solar\\model.joblib",
+            "sha256": "2973a994fd2ac6e63e39c496db5a3902f07d11c72224b2ed591b9f65621368b9",
+            "n_declared": 25,
             "declared_feature_columns": [
               "hour",
               "day_of_week",
@@ -177,20 +205,20 @@
               "diffuse_radiation_wm2",
               "temperature_c"
             ],
-            "n_declared": 25,
             "training_source": "energy_generation",
             "nonneg_objective": null
           }
         },
         "f27": {
+          "arm": "f27",
+          "seed": 42,
           "n_features_fitted": 27,
           "geometry_features_in_fit": [
             "sun_elevation_deg",
             "is_night"
           ],
           "fit_rows": 34176,
-          "fit_intended_rows": 34176,
-          "degraded_lag_1d_rows": 23674,
+          "fit_seconds": 3.6,
           "night": {
             "n_selected_rows": 2730,
             "n_negative": 223,
@@ -236,8 +264,9 @@
             }
           ],
           "artifact": {
-            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts\\f27\\BG\\solar\\model.joblib",
-            "sha256": "1bea4de9164aba14fe3f23fdadf1c7e5809636fb58a1d53c47de3b22f2fb6997",
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts2\\f27\\BG\\solar\\model.joblib",
+            "sha256": "5d491918912a921b9441dfced389251883e2d326d11a9dfee125d585ba23cc77",
+            "n_declared": 27,
             "declared_feature_columns": [
               "hour",
               "day_of_week",
@@ -267,10 +296,1430 @@
               "sun_elevation_deg",
               "is_night"
             ],
-            "n_declared": 27,
             "training_source": "energy_generation",
             "nonneg_objective": null
           }
+        }
+      },
+      "runs": [
+        {
+          "arm": "f25",
+          "seed": 42,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.7,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 141,
+            "pct_negative": 5.165,
+            "min_prediction_mw": -33.36,
+            "sum_negative_mwh": 1429.7,
+            "n_night_rows": 690,
+            "n_negative_at_night": 113,
+            "pct_of_night_rows_negative": 16.38,
+            "mean_prediction_at_night_mw": 224.78,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 18.89,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 18.9,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 18.6,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 18.59,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.03,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.17,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": {
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts2\\f25\\BG\\solar\\model.joblib",
+            "sha256": "2973a994fd2ac6e63e39c496db5a3902f07d11c72224b2ed591b9f65621368b9",
+            "n_declared": 25,
+            "declared_feature_columns": [
+              "hour",
+              "day_of_week",
+              "month",
+              "is_weekend",
+              "hour_sin",
+              "hour_cos",
+              "day_sin",
+              "day_cos",
+              "month_sin",
+              "month_cos",
+              "target_value_lag_1d",
+              "target_value_lag_7d",
+              "target_value_lag_14d",
+              "target_value_roll_24h_mean",
+              "target_value_roll_24h_std",
+              "target_value_roll_24h_min",
+              "target_value_roll_24h_max",
+              "target_value_roll_168h_mean",
+              "target_value_roll_168h_std",
+              "target_value_roll_168h_min",
+              "target_value_roll_168h_max",
+              "shortwave_radiation_wm2",
+              "direct_radiation_wm2",
+              "diffuse_radiation_wm2",
+              "temperature_c"
+            ],
+            "training_source": "energy_generation",
+            "nonneg_objective": null
+          }
+        },
+        {
+          "arm": "f27",
+          "seed": 42,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.6,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 223,
+            "pct_negative": 8.168,
+            "min_prediction_mw": -23.12,
+            "sum_negative_mwh": 1577.8,
+            "n_night_rows": 690,
+            "n_negative_at_night": 159,
+            "pct_of_night_rows_negative": 23.04,
+            "mean_prediction_at_night_mw": 218.8,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.95,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.96,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.75,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.72,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 21.4,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 21.54,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": {
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts2\\f27\\BG\\solar\\model.joblib",
+            "sha256": "5d491918912a921b9441dfced389251883e2d326d11a9dfee125d585ba23cc77",
+            "n_declared": 27,
+            "declared_feature_columns": [
+              "hour",
+              "day_of_week",
+              "month",
+              "is_weekend",
+              "hour_sin",
+              "hour_cos",
+              "day_sin",
+              "day_cos",
+              "month_sin",
+              "month_cos",
+              "target_value_lag_1d",
+              "target_value_lag_7d",
+              "target_value_lag_14d",
+              "target_value_roll_24h_mean",
+              "target_value_roll_24h_std",
+              "target_value_roll_24h_min",
+              "target_value_roll_24h_max",
+              "target_value_roll_168h_mean",
+              "target_value_roll_168h_std",
+              "target_value_roll_168h_min",
+              "target_value_roll_168h_max",
+              "shortwave_radiation_wm2",
+              "direct_radiation_wm2",
+              "diffuse_radiation_wm2",
+              "temperature_c",
+              "sun_elevation_deg",
+              "is_night"
+            ],
+            "training_source": "energy_generation",
+            "nonneg_objective": null
+          }
+        },
+        {
+          "arm": "f25",
+          "seed": 101,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.5,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 143,
+            "pct_negative": 5.238,
+            "min_prediction_mw": -33.77,
+            "sum_negative_mwh": 1496.4,
+            "n_night_rows": 690,
+            "n_negative_at_night": 119,
+            "pct_of_night_rows_negative": 17.25,
+            "mean_prediction_at_night_mw": 221.74,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.36,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.38,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.12,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.08,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.62,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.77,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 101,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.6,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 183,
+            "pct_negative": 6.703,
+            "min_prediction_mw": -20.48,
+            "sum_negative_mwh": 1237.7,
+            "n_night_rows": 690,
+            "n_negative_at_night": 143,
+            "pct_of_night_rows_negative": 20.72,
+            "mean_prediction_at_night_mw": 224.84,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 20.09,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 20.09,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.95,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.93,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 21.19,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 21.33,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 103,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.6,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 224,
+            "pct_negative": 8.205,
+            "min_prediction_mw": -36.2,
+            "sum_negative_mwh": 1956.0,
+            "n_night_rows": 690,
+            "n_negative_at_night": 184,
+            "pct_of_night_rows_negative": 26.67,
+            "mean_prediction_at_night_mw": 217.36,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.47,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.49,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.37,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.35,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.71,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.86,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 103,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.8,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 196,
+            "pct_negative": 7.179,
+            "min_prediction_mw": -18.71,
+            "sum_negative_mwh": 1161.8,
+            "n_night_rows": 690,
+            "n_negative_at_night": 156,
+            "pct_of_night_rows_negative": 22.61,
+            "mean_prediction_at_night_mw": 223.95,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.95,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 20.0,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.79,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.81,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 21.21,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 21.38,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 107,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.6,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 192,
+            "pct_negative": 7.033,
+            "min_prediction_mw": -34.22,
+            "sum_negative_mwh": 1793.1,
+            "n_night_rows": 690,
+            "n_negative_at_night": 149,
+            "pct_of_night_rows_negative": 21.59,
+            "mean_prediction_at_night_mw": 223.22,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.11,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.16,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 18.94,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 18.98,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.6,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.8,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 107,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.6,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 154,
+            "pct_negative": 5.641,
+            "min_prediction_mw": -24.06,
+            "sum_negative_mwh": 1127.3,
+            "n_night_rows": 690,
+            "n_negative_at_night": 128,
+            "pct_of_night_rows_negative": 18.55,
+            "mean_prediction_at_night_mw": 224.5,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 20.77,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 20.81,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 20.49,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 20.5,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 21.64,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 21.8,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 109,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.6,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 178,
+            "pct_negative": 6.52,
+            "min_prediction_mw": -25.47,
+            "sum_negative_mwh": 1489.8,
+            "n_night_rows": 690,
+            "n_negative_at_night": 138,
+            "pct_of_night_rows_negative": 20.0,
+            "mean_prediction_at_night_mw": 225.17,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 18.79,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 18.83,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 18.56,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 18.57,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.04,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.19,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 109,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.7,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 183,
+            "pct_negative": 6.703,
+            "min_prediction_mw": -18.93,
+            "sum_negative_mwh": 1452.4,
+            "n_night_rows": 690,
+            "n_negative_at_night": 147,
+            "pct_of_night_rows_negative": 21.3,
+            "mean_prediction_at_night_mw": 226.79,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.57,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.5,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.31,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.19,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.47,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.53,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 113,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.7,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 177,
+            "pct_negative": 6.484,
+            "min_prediction_mw": -35.9,
+            "sum_negative_mwh": 1575.7,
+            "n_night_rows": 690,
+            "n_negative_at_night": 155,
+            "pct_of_night_rows_negative": 22.46,
+            "mean_prediction_at_night_mw": 222.93,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.68,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.65,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.47,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.42,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.9,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 21.02,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 113,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.8,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 158,
+            "pct_negative": 5.788,
+            "min_prediction_mw": -23.78,
+            "sum_negative_mwh": 1057.5,
+            "n_night_rows": 690,
+            "n_negative_at_night": 132,
+            "pct_of_night_rows_negative": 19.13,
+            "mean_prediction_at_night_mw": 222.66,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.47,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.49,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.26,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.25,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.75,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.88,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 127,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.7,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 190,
+            "pct_negative": 6.96,
+            "min_prediction_mw": -31.88,
+            "sum_negative_mwh": 1396.8,
+            "n_night_rows": 690,
+            "n_negative_at_night": 147,
+            "pct_of_night_rows_negative": 21.3,
+            "mean_prediction_at_night_mw": 220.8,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 18.96,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.01,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 18.76,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 18.78,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.39,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.54,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 127,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.9,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 163,
+            "pct_negative": 5.971,
+            "min_prediction_mw": -28.47,
+            "sum_negative_mwh": 1207.8,
+            "n_night_rows": 690,
+            "n_negative_at_night": 150,
+            "pct_of_night_rows_negative": 21.74,
+            "mean_prediction_at_night_mw": 220.33,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 20.14,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 20.2,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.87,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.88,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 21.11,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 21.28,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 131,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.7,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 109,
+            "pct_negative": 3.993,
+            "min_prediction_mw": -24.12,
+            "sum_negative_mwh": 855.7,
+            "n_night_rows": 690,
+            "n_negative_at_night": 87,
+            "pct_of_night_rows_negative": 12.61,
+            "mean_prediction_at_night_mw": 231.71,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.61,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.54,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.22,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.1,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.62,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.67,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 131,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.8,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 210,
+            "pct_negative": 7.692,
+            "min_prediction_mw": -31.99,
+            "sum_negative_mwh": 1852.4,
+            "n_night_rows": 690,
+            "n_negative_at_night": 166,
+            "pct_of_night_rows_negative": 24.06,
+            "mean_prediction_at_night_mw": 221.12,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.85,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.82,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.48,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.39,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.78,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.86,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 137,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.7,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 154,
+            "pct_negative": 5.641,
+            "min_prediction_mw": -25.75,
+            "sum_negative_mwh": 1161.0,
+            "n_night_rows": 690,
+            "n_negative_at_night": 130,
+            "pct_of_night_rows_negative": 18.84,
+            "mean_prediction_at_night_mw": 221.42,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 20.28,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 20.36,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 20.04,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 20.08,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 21.52,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 21.76,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 137,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.8,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 211,
+            "pct_negative": 7.729,
+            "min_prediction_mw": -32.1,
+            "sum_negative_mwh": 1896.7,
+            "n_night_rows": 690,
+            "n_negative_at_night": 172,
+            "pct_of_night_rows_negative": 24.93,
+            "mean_prediction_at_night_mw": 224.44,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.11,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.04,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 18.85,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 18.74,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.13,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.2,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": null
+        }
+      ],
+      "summary": {
+        "night_pct_negative": {
+          "metric": "night rows predicted negative (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            17.25,
+            26.67,
+            21.59,
+            20.0,
+            22.46,
+            21.3,
+            12.61,
+            18.84
+          ],
+          "treatment": [
+            20.72,
+            22.61,
+            18.55,
+            21.3,
+            19.13,
+            21.74,
+            24.06,
+            24.93
+          ],
+          "control_mean": 20.090000000000003,
+          "control_sd": 4.109466423480582,
+          "treatment_mean": 21.63,
+          "treatment_sd": 2.218133063121842,
+          "paired_mean": 1.5399999999999991,
+          "paired_mean_pct": 7.665505226480831,
+          "paired_sd": 5.344642176984349,
+          "seeds_down": 3,
+          "n_seeds": 8,
+          "null_max": 14.060000000000002,
+          "null_max_pct": 69.98506719761075,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "night_mean_pred_mw": {
+          "metric": "mean prediction at night (MW)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            221.74,
+            217.36,
+            223.22,
+            225.17,
+            222.93,
+            220.8,
+            231.71,
+            221.42
+          ],
+          "treatment": [
+            224.84,
+            223.95,
+            224.5,
+            226.79,
+            222.66,
+            220.33,
+            221.12,
+            224.44
+          ],
+          "control_mean": 223.04375,
+          "control_sd": 4.163525077554902,
+          "treatment_mean": 223.57874999999999,
+          "treatment_sd": 2.1069642176092342,
+          "paired_mean": 0.5349999999999966,
+          "paired_mean_pct": 0.2398632555272213,
+          "paired_sd": 5.0224268465126904,
+          "seeds_down": 3,
+          "n_seeds": 8,
+          "null_max": 14.349999999999994,
+          "null_max_pct": 6.433715358533918,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "wape_24-36h": {
+          "metric": "challenger WAPE 24-36h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            19.36,
+            19.47,
+            19.11,
+            18.79,
+            19.68,
+            18.96,
+            19.61,
+            20.28
+          ],
+          "treatment": [
+            20.09,
+            19.95,
+            20.77,
+            19.57,
+            19.47,
+            20.14,
+            19.85,
+            19.11
+          ],
+          "control_mean": 19.4075,
+          "control_sd": 0.4709792230782892,
+          "treatment_mean": 19.86875,
+          "treatment_sd": 0.5022360714132066,
+          "paired_mean": 0.46125000000000016,
+          "paired_mean_pct": 2.3766585083086444,
+          "paired_sd": 0.8691775669316045,
+          "seeds_down": 2,
+          "n_seeds": 8,
+          "null_max": 1.490000000000002,
+          "null_max_pct": 7.677444287002459,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "daylight_wape_24-36h": {
+          "metric": "daylight challenger WAPE 24-36h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            19.38,
+            19.49,
+            19.16,
+            18.83,
+            19.65,
+            19.01,
+            19.54,
+            20.36
+          ],
+          "treatment": [
+            20.09,
+            20.0,
+            20.81,
+            19.5,
+            19.49,
+            20.2,
+            19.82,
+            19.04
+          ],
+          "control_mean": 19.4275,
+          "control_sd": 0.4691557767491973,
+          "treatment_mean": 19.86875,
+          "treatment_sd": 0.538581138601365,
+          "paired_mean": 0.44125000000000014,
+          "paired_mean_pct": 2.2712649594646774,
+          "paired_sd": 0.8976546822533863,
+          "seeds_down": 2,
+          "n_seeds": 8,
+          "null_max": 1.5300000000000011,
+          "null_max_pct": 7.875434307038998,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "wape_36-48h": {
+          "metric": "challenger WAPE 36-48h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            19.12,
+            19.37,
+            18.94,
+            18.56,
+            19.47,
+            18.76,
+            19.22,
+            20.04
+          ],
+          "treatment": [
+            19.95,
+            19.79,
+            20.49,
+            19.31,
+            19.26,
+            19.87,
+            19.48,
+            18.85
+          ],
+          "control_mean": 19.185000000000002,
+          "control_sd": 0.4603104542433443,
+          "treatment_mean": 19.625,
+          "treatment_sd": 0.5064159780823884,
+          "paired_mean": 0.43999999999999995,
+          "paired_mean_pct": 2.2934584310659365,
+          "paired_sd": 0.8486459803710833,
+          "seeds_down": 2,
+          "n_seeds": 8,
+          "null_max": 1.4800000000000004,
+          "null_max_pct": 7.71436017722179,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "daylight_wape_36-48h": {
+          "metric": "daylight challenger WAPE 36-48h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            19.08,
+            19.35,
+            18.98,
+            18.57,
+            19.42,
+            18.78,
+            19.1,
+            20.08
+          ],
+          "treatment": [
+            19.93,
+            19.81,
+            20.5,
+            19.19,
+            19.25,
+            19.88,
+            19.39,
+            18.74
+          ],
+          "control_mean": 19.169999999999998,
+          "control_sd": 0.460465602872322,
+          "treatment_mean": 19.58625,
+          "treatment_sd": 0.5495696368198353,
+          "paired_mean": 0.41624999999999934,
+          "paired_mean_pct": 2.171361502347415,
+          "paired_sd": 0.8751642702944401,
+          "seeds_down": 2,
+          "n_seeds": 8,
+          "null_max": 1.509999999999998,
+          "null_max_pct": 7.876890975482516,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "wape_48-64h": {
+          "metric": "challenger WAPE 48-64h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            20.62,
+            20.71,
+            20.6,
+            20.04,
+            20.9,
+            20.39,
+            20.62,
+            21.52
+          ],
+          "treatment": [
+            21.19,
+            21.21,
+            21.64,
+            20.47,
+            20.75,
+            21.11,
+            20.78,
+            20.13
+          ],
+          "control_mean": 20.675,
+          "control_sd": 0.42460065271465863,
+          "treatment_mean": 20.91,
+          "treatment_sd": 0.4759651848012181,
+          "paired_mean": 0.23499999999999988,
+          "paired_mean_pct": 1.1366384522370006,
+          "paired_sd": 0.7462477566369725,
+          "seeds_down": 2,
+          "n_seeds": 8,
+          "null_max": 1.4800000000000004,
+          "null_max_pct": 7.1584038694075,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "daylight_wape_48-64h": {
+          "metric": "daylight challenger WAPE 48-64h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            20.77,
+            20.86,
+            20.8,
+            20.19,
+            21.02,
+            20.54,
+            20.67,
+            21.76
+          ],
+          "treatment": [
+            21.33,
+            21.38,
+            21.8,
+            20.53,
+            20.88,
+            21.28,
+            20.86,
+            20.2
+          ],
+          "control_mean": 20.82625,
+          "control_sd": 0.4512819042935992,
+          "treatment_mean": 21.0325,
+          "treatment_sd": 0.5152184002925362,
+          "paired_mean": 0.20624999999999938,
+          "paired_mean_pct": 0.990336714482921,
+          "paired_sd": 0.7924814103272625,
+          "seeds_down": 2,
+          "n_seeds": 8,
+          "null_max": 1.5700000000000003,
+          "null_max_pct": 7.538563111457896,
+          "null_pairs": 28,
+          "outside_the_null": false
         }
       }
     },
@@ -282,13 +1731,17 @@
         "is_night": 1.0
       },
       "rows_identical_across_arms": true,
-      "arms": {
+      "fit_rows": 34176,
+      "gate_rows": 5760,
+      "degraded_lag_1d_rows": 23674,
+      "reproduction": {
         "f25": {
+          "arm": "f25",
+          "seed": 42,
           "n_features_fitted": 25,
           "geometry_features_in_fit": [],
           "fit_rows": 34176,
-          "fit_intended_rows": 34176,
-          "degraded_lag_1d_rows": 23674,
+          "fit_seconds": 3.4,
           "night": {
             "n_selected_rows": 2730,
             "n_negative": 701,
@@ -334,8 +1787,9 @@
             }
           ],
           "artifact": {
-            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts\\f25\\CH\\solar\\model.joblib",
-            "sha256": "60a7ef2e009bb7d533fa27987273874e0d714b02a574706480dac1976ad1d28e",
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts2\\f25\\CH\\solar\\model.joblib",
+            "sha256": "366c234905732169094feba54bb50c6f717c56bcfa5b45f68a05f3928158ebc8",
+            "n_declared": 25,
             "declared_feature_columns": [
               "hour",
               "day_of_week",
@@ -363,20 +1817,20 @@
               "diffuse_radiation_wm2",
               "temperature_c"
             ],
-            "n_declared": 25,
             "training_source": "energy_generation",
             "nonneg_objective": null
           }
         },
         "f27": {
+          "arm": "f27",
+          "seed": 42,
           "n_features_fitted": 27,
           "geometry_features_in_fit": [
             "sun_elevation_deg",
             "is_night"
           ],
           "fit_rows": 34176,
-          "fit_intended_rows": 34176,
-          "degraded_lag_1d_rows": 23674,
+          "fit_seconds": 3.5,
           "night": {
             "n_selected_rows": 2730,
             "n_negative": 522,
@@ -422,8 +1876,9 @@
             }
           ],
           "artifact": {
-            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts\\f27\\CH\\solar\\model.joblib",
-            "sha256": "5d4e44c3b46cd873b23ae3d8daa07dd9a25fadf55b1ed8e6b3d991d7f0b125a1",
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts2\\f27\\CH\\solar\\model.joblib",
+            "sha256": "fd6247e93f45d695b8849eb7f87eafb1f211a2896799cce9313ab2770e8227ec",
+            "n_declared": 27,
             "declared_feature_columns": [
               "hour",
               "day_of_week",
@@ -453,10 +1908,1430 @@
               "sun_elevation_deg",
               "is_night"
             ],
-            "n_declared": 27,
             "training_source": "energy_generation",
             "nonneg_objective": null
           }
+        }
+      },
+      "runs": [
+        {
+          "arm": "f25",
+          "seed": 42,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.4,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 701,
+            "pct_negative": 25.678,
+            "min_prediction_mw": -31.97,
+            "sum_negative_mwh": 5765.9,
+            "n_night_rows": 640,
+            "n_negative_at_night": 515,
+            "pct_of_night_rows_negative": 80.47,
+            "mean_prediction_at_night_mw": -5.48,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.16,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.99,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.01,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.85,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.39,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.29,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": {
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts2\\f25\\CH\\solar\\model.joblib",
+            "sha256": "366c234905732169094feba54bb50c6f717c56bcfa5b45f68a05f3928158ebc8",
+            "n_declared": 25,
+            "declared_feature_columns": [
+              "hour",
+              "day_of_week",
+              "month",
+              "is_weekend",
+              "hour_sin",
+              "hour_cos",
+              "day_sin",
+              "day_cos",
+              "month_sin",
+              "month_cos",
+              "target_value_lag_1d",
+              "target_value_lag_7d",
+              "target_value_lag_14d",
+              "target_value_roll_24h_mean",
+              "target_value_roll_24h_std",
+              "target_value_roll_24h_min",
+              "target_value_roll_24h_max",
+              "target_value_roll_168h_mean",
+              "target_value_roll_168h_std",
+              "target_value_roll_168h_min",
+              "target_value_roll_168h_max",
+              "shortwave_radiation_wm2",
+              "direct_radiation_wm2",
+              "diffuse_radiation_wm2",
+              "temperature_c"
+            ],
+            "training_source": "energy_generation",
+            "nonneg_objective": null
+          }
+        },
+        {
+          "arm": "f27",
+          "seed": 42,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.5,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 522,
+            "pct_negative": 19.121,
+            "min_prediction_mw": -21.7,
+            "sum_negative_mwh": 2708.8,
+            "n_night_rows": 640,
+            "n_negative_at_night": 410,
+            "pct_of_night_rows_negative": 64.06,
+            "mean_prediction_at_night_mw": -1.91,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 7.78,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.69,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 7.75,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.66,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.32,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.26,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": {
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts2\\f27\\CH\\solar\\model.joblib",
+            "sha256": "fd6247e93f45d695b8849eb7f87eafb1f211a2896799cce9313ab2770e8227ec",
+            "n_declared": 27,
+            "declared_feature_columns": [
+              "hour",
+              "day_of_week",
+              "month",
+              "is_weekend",
+              "hour_sin",
+              "hour_cos",
+              "day_sin",
+              "day_cos",
+              "month_sin",
+              "month_cos",
+              "target_value_lag_1d",
+              "target_value_lag_7d",
+              "target_value_lag_14d",
+              "target_value_roll_24h_mean",
+              "target_value_roll_24h_std",
+              "target_value_roll_24h_min",
+              "target_value_roll_24h_max",
+              "target_value_roll_168h_mean",
+              "target_value_roll_168h_std",
+              "target_value_roll_168h_min",
+              "target_value_roll_168h_max",
+              "shortwave_radiation_wm2",
+              "direct_radiation_wm2",
+              "diffuse_radiation_wm2",
+              "temperature_c",
+              "sun_elevation_deg",
+              "is_night"
+            ],
+            "training_source": "energy_generation",
+            "nonneg_objective": null
+          }
+        },
+        {
+          "arm": "f25",
+          "seed": 101,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.3,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 741,
+            "pct_negative": 27.143,
+            "min_prediction_mw": -40.34,
+            "sum_negative_mwh": 7128.5,
+            "n_night_rows": 640,
+            "n_negative_at_night": 533,
+            "pct_of_night_rows_negative": 83.28,
+            "mean_prediction_at_night_mw": -7.04,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.17,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.99,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.21,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.02,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.59,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.47,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 101,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.5,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 668,
+            "pct_negative": 24.469,
+            "min_prediction_mw": -46.83,
+            "sum_negative_mwh": 7083.2,
+            "n_night_rows": 640,
+            "n_negative_at_night": 540,
+            "pct_of_night_rows_negative": 84.38,
+            "mean_prediction_at_night_mw": -8.61,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.22,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.04,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.14,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.94,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.55,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.43,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 103,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.4,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 724,
+            "pct_negative": 26.52,
+            "min_prediction_mw": -39.08,
+            "sum_negative_mwh": 6933.0,
+            "n_night_rows": 640,
+            "n_negative_at_night": 576,
+            "pct_of_night_rows_negative": 90.0,
+            "mean_prediction_at_night_mw": -8.63,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.4,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.21,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.44,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.25,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.81,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.7,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 103,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.5,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 614,
+            "pct_negative": 22.491,
+            "min_prediction_mw": -29.46,
+            "sum_negative_mwh": 4616.9,
+            "n_night_rows": 640,
+            "n_negative_at_night": 484,
+            "pct_of_night_rows_negative": 75.62,
+            "mean_prediction_at_night_mw": -4.7,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.5,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.37,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.3,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.16,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.77,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.69,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 107,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.5,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 520,
+            "pct_negative": 19.048,
+            "min_prediction_mw": -20.99,
+            "sum_negative_mwh": 2751.4,
+            "n_night_rows": 640,
+            "n_negative_at_night": 401,
+            "pct_of_night_rows_negative": 62.66,
+            "mean_prediction_at_night_mw": -1.79,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.25,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.16,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.07,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.98,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.51,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.46,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 107,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.5,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 574,
+            "pct_negative": 21.026,
+            "min_prediction_mw": -25.0,
+            "sum_negative_mwh": 4412.6,
+            "n_night_rows": 640,
+            "n_negative_at_night": 443,
+            "pct_of_night_rows_negative": 69.22,
+            "mean_prediction_at_night_mw": -2.55,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.1,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.93,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 7.97,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.8,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.45,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.34,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 109,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.3,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 596,
+            "pct_negative": 21.832,
+            "min_prediction_mw": -22.78,
+            "sum_negative_mwh": 4895.4,
+            "n_night_rows": 640,
+            "n_negative_at_night": 477,
+            "pct_of_night_rows_negative": 74.53,
+            "mean_prediction_at_night_mw": -4.61,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.36,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.2,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.31,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.15,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.68,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.57,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 109,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.4,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 578,
+            "pct_negative": 21.172,
+            "min_prediction_mw": -16.04,
+            "sum_negative_mwh": 2768.9,
+            "n_night_rows": 640,
+            "n_negative_at_night": 476,
+            "pct_of_night_rows_negative": 74.38,
+            "mean_prediction_at_night_mw": -2.53,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.15,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.07,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.01,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.92,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.39,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.34,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 113,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.3,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 660,
+            "pct_negative": 24.176,
+            "min_prediction_mw": -32.43,
+            "sum_negative_mwh": 5483.0,
+            "n_night_rows": 640,
+            "n_negative_at_night": 534,
+            "pct_of_night_rows_negative": 83.44,
+            "mean_prediction_at_night_mw": -6.02,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.14,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.97,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.17,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.01,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.51,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.41,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 113,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.4,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 617,
+            "pct_negative": 22.601,
+            "min_prediction_mw": -25.91,
+            "sum_negative_mwh": 4215.7,
+            "n_night_rows": 640,
+            "n_negative_at_night": 495,
+            "pct_of_night_rows_negative": 77.34,
+            "mean_prediction_at_night_mw": -4.47,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 7.99,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.87,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 7.82,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.69,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.18,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.11,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 127,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.4,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 668,
+            "pct_negative": 24.469,
+            "min_prediction_mw": -42.73,
+            "sum_negative_mwh": 6473.3,
+            "n_night_rows": 640,
+            "n_negative_at_night": 544,
+            "pct_of_night_rows_negative": 85.0,
+            "mean_prediction_at_night_mw": -7.66,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.46,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.29,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.4,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.23,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.77,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.65,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 127,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.5,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 480,
+            "pct_negative": 17.582,
+            "min_prediction_mw": -27.33,
+            "sum_negative_mwh": 3176.0,
+            "n_night_rows": 640,
+            "n_negative_at_night": 364,
+            "pct_of_night_rows_negative": 56.88,
+            "mean_prediction_at_night_mw": 1.46,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.37,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.19,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.2,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.03,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.66,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.55,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 131,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.3,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 646,
+            "pct_negative": 23.663,
+            "min_prediction_mw": -23.02,
+            "sum_negative_mwh": 5095.4,
+            "n_night_rows": 640,
+            "n_negative_at_night": 473,
+            "pct_of_night_rows_negative": 73.91,
+            "mean_prediction_at_night_mw": -4.66,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.6,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.47,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.54,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.4,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.96,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.89,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 131,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.4,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 586,
+            "pct_negative": 21.465,
+            "min_prediction_mw": -31.05,
+            "sum_negative_mwh": 4141.4,
+            "n_night_rows": 640,
+            "n_negative_at_night": 499,
+            "pct_of_night_rows_negative": 77.97,
+            "mean_prediction_at_night_mw": -4.08,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.25,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.12,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.02,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.88,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.29,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.2,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f25",
+          "seed": 137,
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_seconds": 3.3,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 533,
+            "pct_negative": 19.524,
+            "min_prediction_mw": -41.78,
+            "sum_negative_mwh": 4888.6,
+            "n_night_rows": 640,
+            "n_negative_at_night": 407,
+            "pct_of_night_rows_negative": 63.59,
+            "mean_prediction_at_night_mw": -4.27,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.39,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.21,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.25,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.11,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.8,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.71,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        },
+        {
+          "arm": "f27",
+          "seed": 137,
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_seconds": 3.5,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 573,
+            "pct_negative": 20.989,
+            "min_prediction_mw": -38.44,
+            "sum_negative_mwh": 4133.1,
+            "n_night_rows": 640,
+            "n_negative_at_night": 447,
+            "pct_of_night_rows_negative": 69.84,
+            "mean_prediction_at_night_mw": -4.15,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.18,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 8.05,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.01,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.89,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.5,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.41,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": null
+        }
+      ],
+      "summary": {
+        "night_pct_negative": {
+          "metric": "night rows predicted negative (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            83.28,
+            90.0,
+            62.66,
+            74.53,
+            83.44,
+            85.0,
+            73.91,
+            63.59
+          ],
+          "treatment": [
+            84.38,
+            75.62,
+            69.22,
+            74.38,
+            77.34,
+            56.88,
+            77.97,
+            69.84
+          ],
+          "control_mean": 77.05125000000001,
+          "control_sd": 10.106601007686582,
+          "treatment_mean": 73.20375,
+          "treatment_sd": 8.155681520966139,
+          "paired_mean": -3.8474999999999993,
+          "paired_mean_pct": -4.9934296977660955,
+          "paired_sd": 12.048206446248692,
+          "seeds_down": 4,
+          "n_seeds": 8,
+          "null_max": 27.340000000000003,
+          "null_max_pct": 35.48287665677066,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "night_mean_pred_mw": {
+          "metric": "mean prediction at night (MW)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            -7.04,
+            -8.63,
+            -1.79,
+            -4.61,
+            -6.02,
+            -7.66,
+            -4.66,
+            -4.27
+          ],
+          "treatment": [
+            -8.61,
+            -4.7,
+            -2.55,
+            -2.53,
+            -4.47,
+            1.46,
+            -4.08,
+            -4.15
+          ],
+          "control_mean": -5.585,
+          "control_sd": 2.1980965791858584,
+          "treatment_mean": -3.7037500000000003,
+          "treatment_sd": 2.812339836709436,
+          "paired_mean": 1.8812500000000003,
+          "paired_mean_pct": 33.68397493285587,
+          "paired_sd": 3.3896625938284775,
+          "seeds_down": 2,
+          "n_seeds": 8,
+          "null_max": 6.840000000000001,
+          "null_max_pct": 122.47090420769922,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "wape_24-36h": {
+          "metric": "challenger WAPE 24-36h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            8.17,
+            8.4,
+            8.25,
+            8.36,
+            8.14,
+            8.46,
+            8.6,
+            8.39
+          ],
+          "treatment": [
+            8.22,
+            8.5,
+            8.1,
+            8.15,
+            7.99,
+            8.37,
+            8.25,
+            8.18
+          ],
+          "control_mean": 8.346250000000001,
+          "control_sd": 0.15361710284247085,
+          "treatment_mean": 8.219999999999999,
+          "treatment_sd": 0.1583847034461164,
+          "paired_mean": -0.1262500000000002,
+          "paired_mean_pct": -1.5126553841545625,
+          "paired_sd": 0.14579217106160783,
+          "seeds_down": 6,
+          "n_seeds": 8,
+          "null_max": 0.4599999999999991,
+          "null_max_pct": 5.51145724127601,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "daylight_wape_24-36h": {
+          "metric": "daylight challenger WAPE 24-36h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            7.99,
+            8.21,
+            8.16,
+            8.2,
+            7.97,
+            8.29,
+            8.47,
+            8.21
+          ],
+          "treatment": [
+            8.04,
+            8.37,
+            7.93,
+            8.07,
+            7.87,
+            8.19,
+            8.12,
+            8.05
+          ],
+          "control_mean": 8.1875,
+          "control_sd": 0.1597095578139984,
+          "treatment_mean": 8.08,
+          "treatment_sd": 0.1544575762374341,
+          "paired_mean": -0.10750000000000037,
+          "paired_mean_pct": -1.3129770992366459,
+          "paired_sd": 0.15745747725293036,
+          "seeds_down": 6,
+          "n_seeds": 8,
+          "null_max": 0.5000000000000009,
+          "null_max_pct": 6.106870229007644,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "wape_36-48h": {
+          "metric": "challenger WAPE 36-48h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            8.21,
+            8.44,
+            8.07,
+            8.31,
+            8.17,
+            8.4,
+            8.54,
+            8.25
+          ],
+          "treatment": [
+            8.14,
+            8.3,
+            7.97,
+            8.01,
+            7.82,
+            8.2,
+            8.02,
+            8.01
+          ],
+          "control_mean": 8.29875,
+          "control_sd": 0.1547751825805967,
+          "treatment_mean": 8.05875,
+          "treatment_sd": 0.14923016738294873,
+          "paired_mean": -0.2400000000000001,
+          "paired_mean_pct": -2.892001807501131,
+          "paired_sd": 0.14842025275740295,
+          "seeds_down": 8,
+          "n_seeds": 8,
+          "null_max": 0.46999999999999886,
+          "null_max_pct": 5.663503539689699,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "daylight_wape_36-48h": {
+          "metric": "daylight challenger WAPE 36-48h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            8.02,
+            8.25,
+            7.98,
+            8.15,
+            8.01,
+            8.23,
+            8.4,
+            8.11
+          ],
+          "treatment": [
+            7.94,
+            8.16,
+            7.8,
+            7.92,
+            7.69,
+            8.03,
+            7.88,
+            7.89
+          ],
+          "control_mean": 8.14375,
+          "control_sd": 0.14421586003527603,
+          "treatment_mean": 7.91375,
+          "treatment_sd": 0.14121285858083676,
+          "paired_mean": -0.2300000000000001,
+          "paired_mean_pct": -2.824251726784345,
+          "paired_sd": 0.1403057884968198,
+          "seeds_down": 8,
+          "n_seeds": 8,
+          "null_max": 0.41999999999999993,
+          "null_max_pct": 5.157329240214888,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "wape_48-64h": {
+          "metric": "challenger WAPE 48-64h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            8.59,
+            8.81,
+            8.51,
+            8.68,
+            8.51,
+            8.77,
+            8.96,
+            8.8
+          ],
+          "treatment": [
+            8.55,
+            8.77,
+            8.45,
+            8.39,
+            8.18,
+            8.66,
+            8.29,
+            8.5
+          ],
+          "control_mean": 8.70375,
+          "control_sd": 0.15999441954554042,
+          "treatment_mean": 8.473749999999999,
+          "treatment_sd": 0.19145588824284615,
+          "paired_mean": -0.2300000000000002,
+          "paired_mean_pct": -2.6425391354301335,
+          "paired_sd": 0.21633307652783984,
+          "seeds_down": 8,
+          "n_seeds": 8,
+          "null_max": 0.45000000000000107,
+          "null_max_pct": 5.170185264972007,
+          "null_pairs": 28,
+          "outside_the_null": false
+        },
+        "daylight_wape_48-64h": {
+          "metric": "daylight challenger WAPE 48-64h (%)",
+          "seeds": [
+            101,
+            103,
+            107,
+            109,
+            113,
+            127,
+            131,
+            137
+          ],
+          "control": [
+            8.47,
+            8.7,
+            8.46,
+            8.57,
+            8.41,
+            8.65,
+            8.89,
+            8.71
+          ],
+          "treatment": [
+            8.43,
+            8.69,
+            8.34,
+            8.34,
+            8.11,
+            8.55,
+            8.2,
+            8.41
+          ],
+          "control_mean": 8.607500000000002,
+          "control_sd": 0.16113437161042238,
+          "treatment_mean": 8.38375,
+          "treatment_sd": 0.18392059622099366,
+          "paired_mean": -0.22375000000000056,
+          "paired_mean_pct": -2.599477200116184,
+          "paired_sd": 0.2186280272190975,
+          "seeds_down": 8,
+          "n_seeds": 8,
+          "null_max": 0.4800000000000004,
+          "null_max_pct": 5.576532094103983,
+          "null_pairs": 28,
+          "outside_the_null": false
         }
       }
     }

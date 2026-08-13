@@ -506,17 +506,43 @@ Three things follow, and the third is the one that bites:
   — without one, `to_vector` raises and a tranche dies at its first fit row.
   Note the two paths fail in opposite directions: `select_feature_columns`
   **drops** an unproducible declared name and warns, `to_vector` **raises**.
-- **A re-run of `abl253` or `abl316-t1b` no longer reproduces its published
-  read.** Those artifacts were fitted at 25 and carry 25 in their own
-  `feature_columns`, so they serve unchanged; a fit from ABL-395 forward is a
-  different challenger and its cells are not comparable to the published ones.
-  Whether either is refit is ABL-401. Nothing else about either registration
-  moved.
+- **A scope already read does not follow the constant.** The list moving is a
+  real change to the challenger — measured, not assumed — so `SCOPE_FEATURES`
+  (`evaluate_solar_retrain.py:215`) is a registration of the same kind
+  `FIT_RULES` is, for the reason stated over that table: two gate reads are not
+  comparable unless both say what they trained on. `abl253` and `abl376` pin the
+  25 they were read on; a scope that registers nothing gets the 27, which is what
+  unblocks the remaining tranches without touching the table. The report and the
+  JSON now name the set (`feature_set`, `n_features`), because a 25-column and a
+  27-column artifact are otherwise indistinguishable after the fact. Whether
+  either scope is re-read at 27 is ABL-401.
 
-Measured A/B on the two ABL-381 pairs, one vintage frame, both arms fitted from
-the same retained rows (`scripts/abl395_geometry_feature_probe.py`,
-`reports/abl_395_geometry_features.md`): the geometry pair is what takes CH's
-night-negative rate to near zero, at no cost to the registered bands.
+`--with-geometry` on `scripts/abl376_night_seed_spread.py` is now
+`LEGACY_FEATURE_COLUMNS` vs `FEATURE_COLUMNS`, not `X` vs `X + geometry`: written
+the old way it would hand CatBoost both columns **twice** and label the
+registered arm `legacy25` while fitting 27.
+
+**The 80.5% that motivated the fix is one draw, not a measurement**, and the
+eight-seed A/B that says so is the reason this section does not claim the fix
+closed it (`scripts/abl395_geometry_feature_probe.py`,
+`reports/abl_395_geometry_features.md`; one vintage frame per country, both arms
+from the same retained rows, ABL-376's eight registered seeds plus the gate's
+42). CH's night-negative rate over eight *control* fits — same data, same
+columns, one integer apart — is **77.05% ± 10.11 with a 27.34pp single-seed
+null**. Both 80.47% (f25) and 64.06% (f27) at seed 42 sit inside it; the paired
+change is −3.85pp at 4/8 seeds. **Do not quote a one-seed night-hour fraction as
+a defect measurement**, here or in ABL-381 §4.
+
+What *is* readable is small and on the accuracy axis: CH loses 0.23-0.24pp of
+WAPE on the two longer bands, **8/8 seeds**, sign p = 0.0078, and identically on
+a daylight-only re-score, so it is not night rows flattering a denominator. BG
+moves the other way (+0.44pp, 6/8, p = 0.29 — not significant), and the
+prediction that explains it is BG's own data: ABL-381 §5 measured 76-85% of BG's
+night hours carrying 152-246 MW, so `is_night` tells the model the sun is down on
+hours the target books at 225 MW, where CH's night actuals are exactly 0.00.
+**Screen a country's night floor before reading its solar gate** — the geometry
+pair is a physical prior and is worth what its actuals' respect for that physics
+is worth.
 
 **Every read reports four model-free references** (ABL-389). `constant_causal` and
 `constant_oracle` are a flat line at the **fit-window mean** — the honest "no

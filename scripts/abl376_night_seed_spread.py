@@ -87,6 +87,19 @@ SEEDS = (101, 103, 107, 109, 113, 127, 131, 137)
 #: name -> whether the fit drops physically impossible night rows.
 ARMS = {"control": False, "night_fit": True}
 
+#: The 25 columns ABL-376's registered read was taken on, by subtraction from the
+#: live list rather than as a second copy of it.
+#:
+#: ABL-395 appended the two ABL-338 geometry features to
+#: `solar_retrain.FEATURE_COLUMNS`, so that constant is now 27 and the arms below
+#: are `LEGACY_FEATURE_COLUMNS` / `FEATURE_COLUMNS`, not `X` / `X + geometry`.
+#: Written the old way this script would have handed CatBoost `sun_elevation_deg`
+#: and `is_night` **twice** under `--with-geometry`, and silently relabelled its
+#: registered arm `legacy25` while fitting 27 -- the same class of defect ABL-395
+#: exists to close, one file over.
+LEGACY_FEATURE_COLUMNS = tuple(c for c in FEATURE_COLUMNS
+                               if c not in SOLAR_GEOMETRY_FEATURES)
+
 COUNTRIES = ("FR", "DE", "BE")
 
 
@@ -117,7 +130,7 @@ def _band_metrics(actual: np.ndarray, predicted: np.ndarray) -> dict:
 
 
 def _fit_predict(fit: pd.DataFrame, gate_x: pd.DataFrame, seed: int,
-                 feature_columns: tuple = FEATURE_COLUMNS) -> np.ndarray:
+                 feature_columns: tuple = LEGACY_FEATURE_COLUMNS) -> np.ndarray:
     """One fit at one seed. Everything but `random_seed` is the gate's own config."""
     params = dict(config.get_default_params(ALGORITHM))
     params["random_seed"] = seed
@@ -129,7 +142,7 @@ def _fit_predict(fit: pd.DataFrame, gate_x: pd.DataFrame, seed: int,
 def sweep_country(country: str, replica: str, source: str,
                   fit_start: pd.Timestamp, gate_start: pd.Timestamp,
                   gate_end: pd.Timestamp, seeds: tuple,
-                  feature_columns: tuple = FEATURE_COLUMNS) -> dict:
+                  feature_columns: tuple = LEGACY_FEATURE_COLUMNS) -> dict:
     """Build once, fit `2 * len(seeds)` times, score every fit on the same rows."""
     builder = RenewableFeatureBuilder(country, "solar", fit_start - pd.Timedelta(days=14),
                                       gate_end, actuals_source=source, db_path=replica)
@@ -348,9 +361,7 @@ def main() -> int:
     source = args.renewable_source or db.RENEWABLE_TYPE_SOURCE_TABLE
     seeds = tuple(int(s) for s in args.seeds.split(",") if s.strip())
     countries = [c.strip().upper() for c in args.countries.split(",") if c.strip()]
-    feature_columns = tuple(FEATURE_COLUMNS)
-    if args.with_geometry:
-        feature_columns += SOLAR_GEOMETRY_FEATURES
+    feature_columns = FEATURE_COLUMNS if args.with_geometry else LEGACY_FEATURE_COLUMNS
 
     payload = {
         "meta": {
