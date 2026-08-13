@@ -70,6 +70,24 @@ SCOPES = {
     # cells.  Unchanged, and the default, so an unflagged run still reproduces
     # ABL-253 exactly.
     "abl253": ("BE", "DE", "FR"),
+    # ABL-381 -- ABL-316 tranche 1b: BG and CH solar, fitted on
+    # `energy_generation` under the frozen registration at
+    # `experiments/ABL348/config.json`.  2 countries x 3 bands = 6 cells.
+    #
+    # This entry *is* the tranche's pre-registration, in the sense the comment
+    # above describes: the country list is fixed here, in the file, and committed
+    # before the first fit, so the cell bar cannot follow what the run turned out
+    # to score.  Windows, metric, baseline, minimum n and source table are
+    # ABL-348's and are deliberately not restated here -- thirty-seven tranches
+    # must not become thirty-seven chances to shop a window.  The solar
+    # counterpart of `abl380-tranche1a` on the wind harness.
+    #
+    # Neither country serves a solar model: measured on the live replica
+    # (9,432,453,120 bytes, mode=ro) on 2026-08-13, `forecasts` holds solar rows
+    # for BE/DE/FR/AT only, and zero for both BG and CH.  So this scope refits no
+    # live pair -- the property `abl253` protects, reached by the same route as
+    # `abl322-pilot` on the wind side.
+    "abl316-t1b": ("BG", "CH"),
     # ABL-376: ABL-253's countries, window and basis with exactly one thing
     # changed -- the fit drops night rows the sun says cannot exist (`FIT_RULES`
     # below).  Registered as its own scope rather than as a flag on `abl253`
@@ -105,6 +123,52 @@ SCOPE_OUTPUTS = {
     "abl253": {"artifact_dir": "experiments/ABL253/artifacts",
                "json_out": "experiments/ABL253/results.json",
                "report_out": "reports/abl_253_solar_retrain.md"},
+    # ABL-381, registered on merging ABL-387 in -- the same sequence the wind
+    # twin records, and the same check working: `abl316-t1b` landed in `SCOPES`
+    # and `GATE_BASIS` at 776bfe7, before `SCOPE_OUTPUTS` existed, and merging
+    # ABL-387 raised `SCOPE_OUTPUTS is missing 'abl316-t1b'` at import.  The
+    # merge itself was textually clean, so the tables disagreeing is the only
+    # thing that could have caught it.
+    #
+    # These are the paths the run *actually wrote*, measured rather than
+    # assigned.  The `json_out` sits under ABL348 because the registration these
+    # fits are read under is `experiments/ABL348/config.json`, frozen at ABL-348
+    # and shared with the wind tranche; the artifacts sit under ABL316 because
+    # they belong to that rollout, not to the registration.
+    #
+    # The first read wrote one level deeper, at `experiments/ABL316/artifacts/t1b`,
+    # to keep the 33 remaining tranches from sharing a directory;
+    # `test_experiment_outputs_stay_one_directory_deep` rejects that, so those
+    # files were moved here rather than loosening another issue's guard.  The
+    # ABL-389 re-read refits into this registered path directly, so the `t1b`
+    # layout and the write-time-path caveat that went with it are both gone.
+    #
+    # A refit is safe to repeat here and is *not* a second look at the result:
+    # `random_seed` is fixed at 42 in `config.py` and the fit is deterministic,
+    # so the re-read reproduced challenger and D-7 WAPE to 1e-12 in all six
+    # cells.  That equality -- not the artifact SHA-256 -- is what witnesses it.
+    # `Forecaster.save` stamps `"saved_at": datetime.now().isoformat()` into
+    # every bundle, so two bit-identical models are *guaranteed* different
+    # hashes; the SHA in `training[].artifact_sha256` identifies a file, and
+    # reading a changed one as a changed model is the wrong inference.  ABL-375's
+    # 4.6-13.8% cross-seed spread is the reason this only holds while the seed
+    # is pinned.
+    #
+    # Depth here is a proxy for the property that actually matters, and on this
+    # path the proxy and the property disagreed: `.gitignore:56`
+    # `experiments/*/artifacts/` matches on the *directory name*, so
+    # `experiments/ABL316/artifacts/` is ignored and everything beneath it is
+    # too -- `git check-ignore -v` confirmed the `t1b/` layout was ignored by
+    # that same line.  Conforming anyway rather than loosening another issue's
+    # freshly-landed guard; ABL-381's evidence pack reports the distinction, as
+    # it decides whether the remaining 33 tranches can group per tranche.
+    #
+    # The `json_out` is deliberately not named `results.json`: at that name the
+    # `.gitignore` glob would swallow it, and it is the machine record this
+    # tranche's evidence cites for a PASS the Board has been asked to review.
+    "abl316-t1b": {"artifact_dir": "experiments/ABL316/artifacts",
+                   "json_out": "experiments/ABL348/results_abl381_tranche1b.json",
+                   "report_out": "reports/abl_381_solar_tranche1b.md"},
     # ABL-376 takes the tracked form the section above recommends, and for the
     # reason given there: this read is meant to be dispositioned against
     # `abl253`, and a `results.json` is the one gate record `git checkout --`
@@ -133,6 +197,15 @@ SCOPE_OUTPUTS = {
 # the basis its own pre-registration names.
 GATE_BASIS = {
     "abl253": ("challenger", "incumbent", "seasonal_naive", "persistence"),
+    # ABL-381: BG and CH hold zero solar rows in `forecasts` -- verified against
+    # the live replica, not assumed -- which is the normal condition of all 37
+    # remaining ABL-316 pairs rather than a fault of these two.  Under the
+    # four-way basis every one of the 6 cells would intersect to n=0 and the run
+    # would render UNREADABLE, having compared nothing.  Gates on the two columns
+    # the registered bar names; the incumbent is still reported, on its own
+    # intersection, where it reads "Not measured" by construction rather than by
+    # omission -- which is what ABL-348's `incumbent` field already anticipated.
+    "abl316-t1b": ("challenger", "seasonal_naive"),
     # Deliberately identical to `abl253`'s.  The A/B is on the fit rule; moving
     # the basis at the same time would confound the two.
     "abl376": ("challenger", "incumbent", "seasonal_naive", "persistence"),
@@ -186,6 +259,21 @@ FIT_RULES = {
     # registration and not an absence.
     "abl253": {"exclude_impossible_night": False},
     "abl376": {"exclude_impossible_night": True},
+    # ABL-381's tranche 1b was fitted and dispositioned before ABL-376 landed,
+    # so it is registered False for the same reason `abl253` is: the read exists
+    # and the rule was not in it.  Left explicit rather than resting on
+    # `DEFAULT_FIT_RULES`, so nobody has to infer from an absence whether the
+    # rule was declined or forgotten.
+    #
+    # This is the scope ABL-376's rule is most likely to move, and that is a
+    # finding rather than a caveat: BG's actuals carry a large overnight floor
+    # (`reports/abl_381_tranche1b_findings.md` §5), which is exactly the "values
+    # the sun says are impossible" the rule refuses to train on.  Re-fitting
+    # BG/CH under the rule is a real experiment and belongs in its own issue with
+    # its own scope, not in an edit to this row -- flipping it here would move
+    # six dispositioned cells and leave no record of which rule produced which
+    # read, which is the confound ABL-376 registered a separate scope to avoid.
+    "abl316-t1b": {"exclude_impossible_night": False},
 }
 
 # The report's H1.  This was the string literal "ABL-253 -- Serve-faithful solar
@@ -197,6 +285,11 @@ FIT_RULES = {
 SCOPE_TITLES = {
     "abl253": "ABL-253 — Serve-faithful solar retrain gate",
     "abl376": "ABL-376 — Serve-faithful solar retrain gate, impossible night rows excluded from the fit",
+    # Registered rather than left to `title_for`'s derived fallback, which would
+    # head this tranche's evidence pack "abl316-t1b".  The scope slug is a key,
+    # not a title, and this report is cited in a PASS the Board has been asked to
+    # review.
+    "abl316-t1b": "ABL-381 — Serve-faithful solar retrain gate, ABL-316 tranche 1b: BG and CH on energy_generation",
 }
 
 

@@ -1,0 +1,81 @@
+{
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 9432453120,
+  "renewable_source": "energy_generation",
+  "windows": {
+    "feature_lookback_start": "2025-12-31 00:00:00",
+    "fit": [
+      "2026-01-14 00:00:00",
+      "2026-07-11 00:00:00"
+    ],
+    "gate": [
+      "2026-07-11 00:00:00",
+      "2026-08-10 00:00:00"
+    ]
+  },
+  "registered_intended_n": {
+    "24-36h": 720,
+    "36-48h": 720,
+    "48-64h": 480
+  },
+  "pairs": [
+    {
+      "country": "BG",
+      "stream": "solar",
+      "source": "energy_generation",
+      "fit_rows_hourly": 4272,
+      "fit_first": "2026-01-14 00:00:00",
+      "fit_last": "2026-07-10 23:00:00",
+      "gate_hours_intended": 720,
+      "gate_hours_present": 720,
+      "gate_hours_missing": 0,
+      "native_sub_hourly_in_gate_window": false,
+      "n_d7_scorable": 720,
+      "d7_wape_pct": 24.4,
+      "mean_actual_mw": 1439.2,
+      "d7_mae_mw": 351.2,
+      "abl188_constant_runs": {
+        "fit": [],
+        "gate": [],
+        "feature_lookback": []
+      },
+      "meets_registered_min_n_720_bands": true,
+      "cross_source": {
+        "compare_source": "energy_renewable",
+        "n_co_observed_hours": 720,
+        "n_bit_identical": 720,
+        "pct_bit_identical": 100.0,
+        "max_abs_diff_mw": 0.0
+      }
+    },
+    {
+      "country": "CH",
+      "stream": "solar",
+      "source": "energy_generation",
+      "fit_rows_hourly": 4272,
+      "fit_first": "2026-01-14 00:00:00",
+      "fit_last": "2026-07-10 23:00:00",
+      "gate_hours_intended": 720,
+      "gate_hours_present": 720,
+      "gate_hours_missing": 0,
+      "native_sub_hourly_in_gate_window": false,
+      "n_d7_scorable": 720,
+      "d7_wape_pct": 12.67,
+      "mean_actual_mw": 1331.0,
+      "d7_mae_mw": 168.7,
+      "abl188_constant_runs": {
+        "fit": [],
+        "gate": [],
+        "feature_lookback": []
+      },
+      "meets_registered_min_n_720_bands": true,
+      "cross_source": {
+        "compare_source": "energy_renewable",
+        "n_co_observed_hours": 720,
+        "n_bit_identical": 720,
+        "pct_bit_identical": 100.0,
+        "max_abs_diff_mw": 0.0
+      }
+    }
+  ]
+}

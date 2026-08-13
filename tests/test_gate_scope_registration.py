@@ -209,6 +209,13 @@ def solar_scopes():
 
 
 @pytest.fixture(scope="module")
+def solar_scope_outputs():
+    return {name: dict(outputs) for name, outputs
+            in _module_const(SOLAR_HARNESS.read_text(encoding="utf-8"),
+                             "SCOPE_OUTPUTS").items()}
+
+
+@pytest.fixture(scope="module")
 def solar_gate_basis():
     return {name: tuple(cols) for name, cols
             in _module_const(SOLAR_HARNESS.read_text(encoding="utf-8"), "GATE_BASIS").items()}
@@ -318,3 +325,88 @@ def test_scoring_calls_use_the_registered_basis_not_a_hardcoded_tuple(harness):
         assert not inlined, (
             f"{getattr(call.func, 'id', '?')} is called with a hardcoded comparator "
             "tuple; it must use the scope's registered GATE_BASIS")
+
+
+#: The solar countries carrying a model today. ABL-253 registered BE/DE/FR; AT is
+#: the fourth country with rows in `forecasts` and is deliberately included here,
+#: because the guard a solar tranche needs is "refits nothing that serves", which
+#: is a larger set than "reproduces ABL-253". Measured on the live replica
+#: (9,432,453,120 bytes) on 2026-08-13: `forecasts` holds solar rows for exactly
+#: BE (34,036), FR (32,664), AT (32,592) and DE (32,064), and none for any other
+#: country. The wind harness has carried `SERVING_PAIRS` since ABL-322; solar had
+#: no equivalent, so nothing stopped a solar scope from silently refitting a live
+#: pair on a different source table.
+SERVING_SOLAR_COUNTRIES = {"BE", "DE", "FR", "AT"}
+
+
+def test_solar_tranche1b_scope_is_bg_ch(solar_scopes):
+    """ABL-381 registers ABL-316's solar tranche 1b: BG and CH, 6 cells.
+
+    Pinned for the reason `abl380-tranche1a` is on the wind side: the country
+    list is what the cell bar is derived from, so an edit to it silently moves
+    the denominator a dispositioned gate read was measured against.
+    """
+    tranche = set(solar_scopes["abl316-t1b"])
+    assert tranche == {"BG", "CH"}
+    assert len(solar_scopes["abl316-t1b"]) * len(PRIMARY_BANDS) == 6
+
+
+def test_no_abl316_tranche_refits_a_serving_country(solar_scopes):
+    """No scope in the ABL-316 rollout may touch a country with a live solar model.
+
+    A tranche is meant to extend coverage to countries that have no model. If one
+    silently includes a serving pair it refits it on a different source table,
+    under a different registration, and the resulting artifact is the one a later
+    reader finds -- replacing the gate evidence a live model was promoted on with
+    a read nobody asked for.
+
+    Scoped to the ABL-316 tranches rather than to every scope. The first version
+    of this test asserted the latter and exempted `abl253` by name, which was the
+    wrong shape twice over: it read a deliberate re-read of the serving countries
+    as a fault, and it could only be kept correct by extending a hardcoded list
+    every time someone registered one. ABL-376 then did exactly that -- BE/DE/FR
+    with `exclude_impossible_night` on, a controlled A/B against `abl253` -- and
+    this test failed on a merge for a scope that is doing nothing wrong. What
+    protects `abl253`'s evidence from such a scope is that the two write to
+    different registered paths, which is
+    `test_no_two_solar_scopes_share_an_output_path` below, not a country list.
+    """
+    for name, countries in solar_scopes.items():
+        if not name.startswith("abl316-"):
+            continue
+        overlap = set(countries) & SERVING_SOLAR_COUNTRIES
+        assert not overlap, (
+            f"ABL-316 tranche {name!r} refits serving countries: {sorted(overlap)}")
+
+
+def test_no_two_solar_scopes_share_an_output_path(solar_scope_outputs):
+    """Two scopes may share countries, but never a place to write.
+
+    This is the property the serving-country guard above was really reaching for.
+    `abl253` and `abl376` deliberately fit the same three countries; what keeps
+    the second from destroying the first's dispositioned evidence is that every
+    registered path differs. ABL-387 made these paths part of the registration
+    precisely so this is checkable, and a scope added by copy-paste is exactly
+    how it would stop being true -- silently, since the run would succeed and
+    emit a full report over the top of another scope's.
+    """
+    for key in ("artifact_dir", "json_out", "report_out"):
+        seen = {}
+        for scope, outputs in solar_scope_outputs.items():
+            path = outputs[key]
+            assert path not in seen, (
+                f"solar scopes {seen[path]!r} and {scope!r} both write {key} to "
+                f"{path!r}; one would overwrite the other's evidence")
+            seen[path] = scope
+
+
+def test_solar_tranche1b_does_not_gate_on_the_incumbent(solar_gate_basis):
+    """BG and CH hold zero solar rows in `forecasts`, as do all 37 ABL-316 pairs.
+
+    With `incumbent` in the basis all 6 cells intersect to n=0. Since ABL-378
+    that renders UNREADABLE rather than FAIL, so it no longer *misreports* the
+    model — but it still yields no gate read at all, which is the same wasted
+    tranche. The two-way basis is what makes these cells scorable.
+    """
+    assert "incumbent" not in solar_gate_basis["abl316-t1b"]
+    assert solar_gate_basis["abl316-t1b"] == ("challenger", "seasonal_naive")
