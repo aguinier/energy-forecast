@@ -21,7 +21,9 @@ silently:
 """
 
 import math
+import os
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -228,3 +230,79 @@ class TestDriverReaderNaming:
         """The sweep directory is not guaranteed to hold only sweep output."""
         assert parse_filename(Path("abl_385_decision_margin.json")) is None
         assert parse_filename(Path("holdout_W1_lightgbm.json")) is None
+
+
+class TestRegistrationProvenance:
+    """Scope item 1 is "registration committed before the first fit, git
+    timestamp as the evidence". The pack states that in its header, so the
+    statement has to be computed from the two timestamps rather than typed.
+
+    The failure that matters is the silent one: a pack that prints "frozen
+    before the first registered fit" over a sweep that actually started first
+    would launder a protocol violation into evidence. So the ordering is
+    asserted in both directions.
+    """
+
+    COMMITTED_AT = "2026-08-13T13:14:40+02:00"
+
+    def _sweep(self, tmp_path, offset_minutes, monkeypatch, dirty=""):
+        """A one-file sweep whose fit sits `offset_minutes` from the commit."""
+        import scripts.abl385_read_margin as reader
+
+        monkeypatch.setattr(
+            reader, "_git",
+            lambda *a: (f"abc123def456\t{self.COMMITTED_AT}" if "log" in a else dirty),
+        )
+        fit = tmp_path / "holdout_W1_catboost_cleaned.json"
+        fit.write_text("{}", encoding="utf-8")
+        when = (datetime.fromisoformat(self.COMMITTED_AT)
+                + timedelta(minutes=offset_minutes)).timestamp()
+        os.utime(fit, (when, when))
+        return reader.registration_provenance(tmp_path)
+
+    def test_a_fit_after_the_commit_reads_as_ordered(self, tmp_path, monkeypatch):
+        prov = self._sweep(tmp_path, +6, monkeypatch)
+        assert prov["ordering"].startswith("ORDERED")
+        assert "6.0 min" in prov["ordering"]
+        assert prov["commit"] == "abc123def456"
+
+    def test_a_fit_before_the_commit_reads_as_violated(self, tmp_path, monkeypatch):
+        """The case the header must never launder into evidence."""
+        prov = self._sweep(tmp_path, -6, monkeypatch)
+        assert prov["ordering"].startswith("VIOLATED")
+        assert "ORDERED" not in prov["ordering"]
+
+    def test_a_modified_registration_is_reported_as_modified(self, tmp_path, monkeypatch):
+        """A dirty config.json means the numbers came from an unfrozen copy."""
+        prov = self._sweep(tmp_path, +6, monkeypatch,
+                           dirty=" M experiments/ABL385/config.json")
+        assert prov["registration_matches_commit"] is False
+        assert "MODIFIED" in prov["working_tree_note"]
+
+    def test_an_explicit_commit_overrides_but_the_ordering_still_stands(
+            self, tmp_path, monkeypatch):
+        import scripts.abl385_read_margin as reader
+
+        monkeypatch.setattr(
+            reader, "_git",
+            lambda *a: (f"abc123def456\t{self.COMMITTED_AT}" if "log" in a else ""),
+        )
+        fit = tmp_path / "holdout_W1_catboost_cleaned.json"
+        fit.write_text("{}", encoding="utf-8")
+        when = (datetime.fromisoformat(self.COMMITTED_AT)
+                + timedelta(minutes=3)).timestamp()
+        os.utime(fit, (when, when))
+        prov = reader.registration_provenance(tmp_path, override="deadbeef")
+        assert prov["commit"] == "deadbeef"
+        assert prov["ordering"].startswith("ORDERED")
+
+    def test_an_empty_sweep_is_unknown_rather_than_ordered(self, tmp_path, monkeypatch):
+        """No fits is not evidence of good ordering."""
+        import scripts.abl385_read_margin as reader
+
+        monkeypatch.setattr(
+            reader, "_git",
+            lambda *a: (f"abc123def456\t{self.COMMITTED_AT}" if "log" in a else ""),
+        )
+        prov = reader.registration_provenance(tmp_path)
+        assert prov["ordering"].startswith("UNKNOWN")

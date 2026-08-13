@@ -52,8 +52,9 @@ Usage
 import argparse
 import json
 import math
+import subprocess
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -626,12 +627,21 @@ def duplicate_check(stats):
 def render_markdown(payload):
     """The evidence pack. Every number carries its window, n and baseline."""
     reg = payload["registration"]
+    prov = payload["registration_provenance"]
     lines = [
         "# ABL-385 - seed variance across the served renewable pairs, and a registered decision margin",
         "",
-        f"Generated {payload['generated_at']}. Registration frozen at "
-        f"`{payload['registration_commit']}` **before the first registered fit**; "
-        f"every number below comes from the sweep that registration defines.",
+        f"Generated {payload['generated_at']}. Every number below comes from the "
+        f"sweep the frozen registration defines.",
+        "",
+        "**Pre-registration provenance** (scope item 1, checked rather than asserted):",
+        "",
+        f"- Registration commit `{prov['commit'][:12] if prov['commit'] else '?'}`, "
+        f"committed `{prov['committed_at']}`.",
+        f"- Earliest fit in this sweep: `{prov['earliest_sweep_output']}` at "
+        f"`{prov['earliest_sweep_output_at']}`.",
+        f"- **{prov['ordering']}**",
+        f"- Working tree: {prov['working_tree_note']}.",
         "",
         f"Replica `{payload['replica_db']}`, read-only. Interpreter: the rail "
         f"(`.venv`, Python 3.14.3, xgboost 3.3.0).",
@@ -642,7 +652,8 @@ def render_markdown(payload):
         f"fitted at the **{reg['scope']['n_seeds']} registered seeds** - "
         f"{payload['n_fits']} fits in total.",
         f"- **{payload['n_pairs']} served pairs** of the 14 on disk, over "
-        f"**6 contiguous non-overlapping 30-day rolling-origin windows** "
+        f"**{payload['n_windows_read']} of the {len(reg['scope']['windows'])} registered "
+        f"contiguous non-overlapping 30-day rolling-origin windows** "
         f"({reg['scope']['windows'][0]['start']} .. {reg['scope']['windows'][-1]['end']}). "
         "No holdout row is scored twice.",
         "- Solar is read on **daylight MAE**; every other type on **all-hours MAE**. "
@@ -848,12 +859,73 @@ def render_markdown(payload):
     return "\n".join(lines)
 
 
+def _git(*argv):
+    """A git read against the repo root. Returns None rather than raising."""
+    try:
+        done = subprocess.run(["git", "-C", str(REPO_ROOT), *argv],
+                              capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return done.stdout.strip() if done.returncode == 0 else None
+
+
+def registration_provenance(sweep_dir, override=None):
+    """Prove scope item 1 rather than asserting it in prose.
+
+    The registration's first scope item is "registration committed before the
+    first fit, git timestamp as the evidence". Prose cannot carry that claim -
+    a reader has to be able to check it. So this reads the commit that froze
+    `experiments/ABL385/config.json`, the mtime of the earliest sweep output,
+    and compares them, and it reports whether the committed blob still matches
+    what is on disk. A run that forgets to name the commit gets the real one
+    instead of the string "(uncommitted)", and a run whose ordering is actually
+    wrong says so in the pack rather than claiming the opposite.
+    """
+    rel = "experiments/ABL385/config.json"
+    head = _git("log", "-1", "--format=%H%x09%cI", "--", rel)
+    commit, committed_at = (head.split("\t", 1) if head and "\t" in head
+                            else (None, None))
+    dirty = _git("status", "--porcelain", "--", rel)
+
+    fits = sorted(Path(sweep_dir).glob("holdout_*.json"),
+                  key=lambda p: p.stat().st_mtime)
+    first_fit_at = (datetime.fromtimestamp(fits[0].stat().st_mtime, timezone.utc)
+                    if fits else None)
+
+    verdict = "UNKNOWN - no registration commit found"
+    if commit and first_fit_at is not None:
+        frozen = datetime.fromisoformat(committed_at)
+        if frozen < first_fit_at:
+            delta = (first_fit_at - frozen).total_seconds() / 60.0
+            verdict = (f"ORDERED - the registration was committed {delta:.1f} min "
+                       f"before the earliest fit in this sweep ({fits[0].name})")
+        else:
+            verdict = ("VIOLATED - the earliest sweep output predates the "
+                       "registration commit. This pack is not a pre-registered read.")
+    return {
+        "commit": override or commit or "(uncommitted)",
+        "committed_at": committed_at,
+        "registration_matches_commit": not dirty,
+        "working_tree_note": (
+            "clean - the config.json read here is byte-identical to the frozen commit"
+            if not dirty else
+            "MODIFIED since the freezing commit; the numbers below were computed "
+            "from the working-tree copy, not the frozen one"
+        ),
+        "earliest_sweep_output": fits[0].name if fits else None,
+        "earliest_sweep_output_at": (first_fit_at.isoformat() if first_fit_at else None),
+        "ordering": verdict,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sweep", default="reports/abl_385_sweep")
     parser.add_argument("--out", default="reports/abl_385_decision_margin")
-    parser.add_argument("--registration-commit", default="(uncommitted)",
-                        help="The commit that froze experiments/ABL385/config.json")
+    parser.add_argument("--registration-commit", default=None,
+                        help="Override the commit that froze "
+                             "experiments/ABL385/config.json. Read from git when "
+                             "omitted, which is the form that carries evidence.")
     args = parser.parse_args()
 
     registration = json.loads(REGISTRATION.read_text(encoding="utf-8"))
@@ -864,16 +936,24 @@ def main():
     stats = cell_stats(cells, context)
     pooled = pool_across_windows(stats, cells, windows)
 
+    provenance = registration_provenance(args.sweep, args.registration_commit)
+
     payload = {
         "issue": "ABL-385",
         "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "registration_commit": args.registration_commit,
+        "registration_commit": provenance["commit"],
+        "registration_provenance": provenance,
         "replica_db": str(registration["protocol"]["replica"]).split(",")[0],
         "sweep_dir": str(args.sweep),
         "sweep_files": files,
         "n_cells": len(cells),
         "n_fits": sum(len(v) for v in cells.values()),
         "n_pairs": len({(c, t) for c, t, _, _, _ in cells}),
+        # Measured, not assumed: a partial sweep must not describe itself as a
+        # complete one, and an incomplete pack is still worth reading.
+        "n_windows_read": len({tag for *_, tag in cells if tag in windows}),
+        "windows_read": sorted({tag for *_, tag in cells if tag in windows}),
+        "windows_registered": windows,
         "registration": registration,
         "cell_stats": {"/".join(k): v for k, v in sorted(stats.items())},
         "pooled": {"/".join(k): v for k, v in sorted(pooled.items())},
