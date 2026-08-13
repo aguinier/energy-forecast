@@ -95,16 +95,31 @@ run. Nine of 34 scripts were affected; five of them were the `test_*.py` probes
 in `scripts/` that also broke bare `pytest` collection (ABL-336).
 
 `tests/test_script_imports.py` holds the line — it executes the module-level
-import block of every entry point in `scripts/` and the repo root, and rejects
-any flat sibling import inside `src/`. A new script that copies an old
-`sys.path.insert(..., 'src')` preamble fails there rather than seven months
-later.
+import block of every entry point in `scripts/` and the repo root, rejects any
+flat sibling import inside `src/`, and (ABL-354) launches every
+`config.MODEL_RUNNERS` entry with `--help` to prove it starts. A new script that
+copies an old `sys.path.insert(..., 'src')` preamble fails there rather than
+seven months later.
 
 Two consequences worth knowing:
 
-- A `__main__` demo inside `src/` (e.g. `src/features.py`) needs a parent
-  package for its relative imports, so run it as `python -m src.features`, not
-  `python src/features.py`.
+- Anything inside `src/` with a `__main__` — a demo like `src/features.py`, or a
+  real entry point like `src/tso_correction_forecaster.py` — needs a parent
+  package for its relative imports, so it runs as `python -m src.features`,
+  never `python src/features.py`.
+
+  **`config.MODEL_RUNNERS` launches two entry points that live inside `src/`,
+  as subprocesses.** `scripts/forecast_daily.py:189` (`build_runner_command`) is
+  the one place that builds that argv: a `script` under `src/` becomes
+  `-m src.<module>` with `cwd` at the repo root; anything else stays a path.
+  Before ABL-354 it was always a path, so `src/tso_correction_forecaster.py` —
+  moved to relative imports by ABL-340, as the rule above requires — died at its
+  import line on every run, and every BE solar / wind_onshore / wind_offshore
+  forecast from the `tso-correction` runner was lost. **The job still exited
+  `[DONE]`**: `run_external_model` records a dead subprocess as one failed
+  *result*, and the summary line (`Total: 10, Success: 8, Failed: 2`) is the
+  only trace. A runner that cannot start reads like a run that went fine, which
+  is why the guard now launches them instead of trusting the summary.
 - `src/evaluation.py` is dead code. `src/evaluation/` is a package and shadows
   it — `src.evaluation` always resolves to the directory. `src/__init__.py:44`
   already has its re-export commented out.
@@ -422,6 +437,18 @@ that `.env` is gitignored, so a **git worktree has no `.env`** and
 `config.DATABASE_PATH` degrades to a bare `\data\energy_dashboard.db`. Pass
 `ENERGY_DB_PATH` explicitly from a worktree.
 
+One configured exception, measured rather than assumed (ABL-354): the
+`tso-correction` runner is pinned to the conda interpreter at `config.py:490`,
+not the rail. Its artifacts are **LightGBM**, not xgboost, and LightGBM
+round-trips a booster as text. The three BE models
+(`models/tso_correction/BE/*/model.joblib`, trained 2026-04-01) load with no
+warning and predict identically to 6 dp under lightgbm 4.6.0 (conda) and 4.7.0
+(`.venv`), and a full `-m src.tso_correction_forecaster --country BE --horizon 2`
+gives the same `tso_raw` (1191.096365 MW mean) and `tso_corrected` (1254.571424)
+under both. The ABL-69 failure does not reach this runner. That is a fact about
+the artifact format, not a general licence — anything holding an xgboost pickle
+still belongs on `.venv`.
+
 ## Model Storage
 
 Models are stored in a filesystem-based structure with embedded metadata:
@@ -608,15 +635,16 @@ defect rather than by the threshold.
 The clamp sits in `save_forecasts()`, so it covers every serving writer that
 goes through it, by construction rather than by each caller remembering to
 clamp. Two writers import it: `scripts/forecast_daily.py` and
-`src/tso_correction_forecaster.py:37`.
+`src/tso_correction_forecaster.py:39`.
 
-The second one does not currently run at all. `forecast_daily.py:226` launches
+The second one could not run at all until ABL-354. `forecast_daily.py` launched
 it as a subprocess **by file path**, and ABL-340 moved it to relative imports,
-so it dies at import with `attempted relative import with no known parent
-package` — every BE solar / wind row from the `tso-correction` runner has failed
-since, while the run summary still reports `[DONE]`. ABL-354. That path
-inherits the clamp the moment it can start; nothing about the clamp needs to
-change for it.
+so it died at import with `attempted relative import with no known parent
+package` — every BE solar / wind row from the `tso-correction` runner failed
+that way, while the run summary still reported `[DONE]`. It now launches as
+`-m src.tso_correction_forecaster` (`build_runner_command`,
+`scripts/forecast_daily.py:189`), so it reaches `save_forecasts()` and inherits
+the clamp by construction; nothing about the clamp had to change for it.
 
 ### Tests
 

@@ -31,6 +31,7 @@ Date: 2026-02-22 (updated 2026-02-24: aligned D+N horizon with XGBoost, UTC docs
 """
 
 import logging
+import os  # DATABASE_PATH below reads ENERGY_DB_PATH (ABL-354)
 import sqlite3
 from datetime import datetime, date, timedelta
 from pathlib import Path
