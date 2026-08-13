@@ -18,6 +18,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 from src import db
 from src.data_quality import find_suspect_constant_runs
+from src.evaluation.constant_reference import (
+    CONSTANT_COMPARATORS, attach_constant_references, comparator_wape,
+    levels_table, lost_to_the_oracle_constant, reference_prose,
+)
 from src.evaluation.gate_artifacts import save_gate_artifact
 from src.evaluation.scorecard import (
     ScorecardConfig, _load_forecasts, _load_tso, _ro_connect,
@@ -26,8 +30,8 @@ from src.evaluation.scorecard import (
 )
 from src.evaluation.solar_retrain import (
     ALGORITHM, FEATURE_COLUMNS, INTENDED_N, PRIMARY_BANDS, SCHEDULE_N,
-    attach_baselines, build_vintage_frame, common_scores, finite_training_rows,
-    gate_cell, select_latest_challenger_per_band,
+    attach_baselines, build_vintage_frame, finite_training_rows, gate_cell,
+    scored_with_comparators, select_latest_challenger_per_band,
 )
 from src.wind_features import RenewableFeatureBuilder
 
@@ -74,7 +78,17 @@ GATE_BASIS = {
 }
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.
-REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistence")
+#:
+#: ABL-389 adds the two constant predictors, identically to the wind harness and
+#: from the same module, so the two gates cannot drift into computing the same
+#: named reference differently.  They are *reported references and not gate
+#: criteria*: deliberately absent from every `GATE_BASIS` entry above, pinned by
+#: `test_gate_constant_reference.py`.  A pair that clears its D-7 bar while
+#: losing to a constant still reads PASS — beside the number that qualifies it.
+#: See `src/evaluation/constant_reference.py` for the ABL-380 measurement that
+#: motivated this, and for why moving the bar instead would have been wrong.
+REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistence",
+                        *CONSTANT_COMPARATORS)
 
 
 def _model():
@@ -194,8 +208,13 @@ def render_markdown(result: dict) -> str:
         "does not exist for a country reads Not measured instead of emptying the cell.",
         f"Strict full PASS requires challenger WAPE < D-7 in all {meta['registered_cells']} country × primary D+2-band cells and ≥95% of intended pairs. Result: **{passed}/{meta['registered_cells']} cells pass**.",
         "",
-        "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | incumbent WAPE | MAE | bias | slope | corr | gate |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|",
+        # ABL-389.  References, not criteria: in `REPORTED_COMPARATORS` and in
+        # no `GATE_BASIS` entry, so the PASS rule, the bands, the bars and the
+        # windows are exactly what they were.
+        *reference_prose(),
+        "",
+        "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant oracle WAPE | incumbent WAPE | MAE | bias | slope | corr | gate |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|",
     ]
     for row in cells:
         scores = row["scores"]
@@ -206,10 +225,13 @@ def render_markdown(result: dict) -> str:
         lines.append(
             f"| {row['country']} | {row['horizon_band']} | {row['gate']['n']:,} | "
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
-            f"{skill} | {_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(scores['challenger']['mae'])} MW | "
+            f"{skill} | {_fmt(comparator_wape(scores, 'constant_causal'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'constant_oracle'), '%')} | "
+            f"{_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(scores['challenger']['mae'])} MW | "
             f"{_fmt(scores['challenger']['bias_pct'], '%')} | {_fmt(scores['challenger']['slope'])} | "
             f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} |"
         )
+    lines.extend(levels_table(result["training"]))
     # The protocol-count sentence below is a measured ABL-253 fact about that
     # scope's eight registered run instants. Rendering it for every scope would
     # state another scope's row counts as if they had been measured; the per-cell
@@ -225,14 +247,15 @@ def render_markdown(result: dict) -> str:
         f"Gate-basis values (actual, {basis_names}) share one finite intersection; each comparator outside the basis is "
         "scored on its own intersection with it, and its n is given in `comparator_n` in the JSON. A comparator showing "
         "`Not measured` had no finite rows at all.", "",
-        "| country | n | challenger WAPE | D-7 WAPE | persistence WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| country | n | challenger WAPE | D-7 WAPE | persistence WAPE | constant causal WAPE | constant oracle WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ])
     for row in result["country_d2"]:
         scores, tso = row["scores"], row["tso"]
         lines.append(
             f"| {row['country']} | {row['n']:,} | {_fmt(scores['challenger']['wape_pct'], '%')} | "
             f"{_fmt(scores['seasonal_naive']['wape_pct'], '%')} | {_fmt(scores['persistence']['wape_pct'], '%')} | "
+            f"{_fmt(comparator_wape(scores, 'constant_causal'), '%')} | {_fmt(comparator_wape(scores, 'constant_oracle'), '%')} | "
             f"{_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(tso['wape_pct'], '%')} (n={tso['n']:,}) |"
         )
     lines.extend([
@@ -268,6 +291,12 @@ def render_markdown(result: dict) -> str:
         "- Weather rows were admitted only where `forecast_run_time <= generated_at`; missing vintages were excluded, never filled with future reanalysis.",
         "- TSO values come from an `INSERT OR REPLACE` table without first-seen vintages. They may include revisions and cannot support promotion.",
         "- This is one 30-day summer holdout. It is out-of-sample by target timestamp, but not year-round evidence.",
+    ])
+    # ABL-389: a reader who sees PASS will not otherwise compare two numbers in
+    # a fourteen-column table. Reporting only; changes no verdict above.
+    lines.extend(lost_to_the_oracle_constant(
+        cells, lambda row: f"{row['country']} solar {row['horizon_band']}"))
+    lines.extend([
         "", "## Recommendation to the CEO", "", result["recommendation"], "",
         "No production deploy, serving-registry change, model promotion, ingest change, dashboard change, replica write, or sidecar write was performed.", "",
     ])
@@ -349,6 +378,11 @@ def main() -> int:
         gate_finite, gate_audit = finite_training_rows(gate_raw, FEATURE_COLUMNS)
         gate_finite["challenger"] = model.predict(gate_finite[list(FEATURE_COLUMNS)])
         selected = attach_baselines(select_latest_challenger_per_band(gate_finite), builder._actuals)
+        # ABL-389: from the same ABL-188-filtered series the baselines and the
+        # gate actuals come from, so the reference is arithmetic on data already
+        # loaded -- no refit, no second read, no additional upstream fetch.
+        selected, constant_levels = attach_constant_references(
+            selected, builder._actuals, fit_start, gate_start, gate_end)
         inc = incumbent[incumbent["country_code"] == country][
             ["target_ts", "horizon_band", "forecast_value"]
         ].rename(columns={"forecast_value": "incumbent"})
@@ -359,6 +393,7 @@ def main() -> int:
         scored_frames.append(selected)
         training.append({"country": country, "algorithm": ALGORITHM, "params": params,
                          "audit": audit, "gate_build_audit": gate_audit,
+                         "constant_reference_mw": constant_levels,
                          "constant_runs": _constant_runs(str(replica), country,
                                                           fit_start - pd.Timedelta(days=14), gate_end,
                                                           source),
@@ -367,21 +402,7 @@ def main() -> int:
     gate_basis = GATE_BASIS[args.scope]
 
     def scored(group):
-        """Score on the scope's registered gate basis; report the rest beside it.
-
-        Each comparator outside the basis is scored on its own intersection
-        *with* the basis, so a comparator that is absent for this country costs
-        its own row and nothing else. Returns the basis scores, the basis
-        intersection, and each comparator's own n.
-        """
-        scores, common = common_scores(group, gate_basis)
-        comparator_n = {name: len(common) for name in gate_basis}
-        for name in REPORTED_COMPARATORS:
-            if name in scores:
-                continue
-            sub_scores, sub_common = common_scores(group, (*gate_basis, name))
-            scores[name], comparator_n[name] = sub_scores[name], len(sub_common)
-        return scores, common, comparator_n
+        return scored_with_comparators(group, gate_basis, REPORTED_COMPARATORS)
 
     all_scored = pd.concat(scored_frames, ignore_index=True)
     gate_cells, country_d2 = [], []
@@ -414,6 +435,10 @@ def main() -> int:
                        "training_source": source,
                        "scope": args.scope, "registered_countries": list(registered_countries),
                        "registered_cells": registered_cells, "gate_basis": list(gate_basis),
+                       # ABL-389: the basis is what gates; this is what is
+                       # merely reported beside it. Recorded so the two are
+                       # distinguishable in the record and not only in the prose.
+                       "reported_comparators": list(REPORTED_COMPARATORS),
                        "fit_window": {"start": str(fit_start), "end_exclusive": str(gate_start)},
                        "gate_window": {"start": str(gate_start), "end_exclusive": str(gate_end)},
                        "registered_intended_n": INTENDED_N, "schedule_implied_n": SCHEDULE_N,
