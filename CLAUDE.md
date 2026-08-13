@@ -479,6 +479,40 @@ of its own (`evaluate_solar_retrain.py:60`), registers a `GATE_BASIS` per scope
 only registered solar scope today, so an unflagged run still reproduces ABL-253;
 ABL-381's tranche registers the second.
 
+**Every read reports a constant-predictor reference** (ABL-389). `constant_causal`
+is a flat line at the **fit-window mean** — the honest "no model" floor, using
+only what was knowable before the gate window opened. `constant_oracle` is a flat
+line at the **gate-window median** — the hindsight upper bound on what *any*
+constant could achieve. Both are in `REPORTED_COMPARATORS`
+(`evaluate_wind_retrain.py:197`, `evaluate_solar_retrain.py:125`) and defined once
+in `src/evaluation/constant_reference.py`, so the two harnesses cannot compute the
+same named reference differently.
+
+They exist because **the registered D-7 bar certifies close to nothing on a
+low-capacity-factor pair**. ABL-380 passed 6/6 and reported, against its own pass,
+that CH `wind_onshore` cleared all three cells at 47.42% WAPE while a constant at
+the gate-window median scored 40.29% — the fitted model was 7.1pp *worse than a
+flat line* — and that BG's registered D-7 bar of 93.75% is cleared outright by a
+causal constant at 82.77%, with no model at all. Both numbers reached the evidence
+pack only because a human went looking. `lost_to_the_oracle_constant`
+(`constant_reference.py:157`) now names such cells in the report unprompted.
+
+**These are reported references and never gate criteria.** They are in no
+`GATE_BASIS` entry, and a pair that clears D-7 while losing to a constant still
+reads `PASS` — beside the number that qualifies it. Moving a bar after seeing a
+result is what the pre-registration apparatus exists to prevent, and a
+conservative direction does not exempt it;
+`tests/test_gate_constant_reference.py` pins both halves, reading `GATE_BASIS`
+from the *source literal* via `ast` rather than through the imported module.
+
+Each constant is attached as a **column** (`attach_constant_references`) and
+scored by the same path `seasonal_naive` and `persistence` take, not special-cased
+inside the scorer — which is what preserves the ABL-322/ABL-378 property above. A
+window holding no finite observation yields no level, an all-NaN column and `n=0`,
+and reads *Not measured*; it never becomes a flat line at zero. The `scored`
+closure both harnesses duplicated is now `scored_with_comparators`
+(`src/evaluation/wind_retrain.py:113`).
+
 **A scope also registers where it writes** (ABL-387). `--artifact-dir`,
 `--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
 which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
