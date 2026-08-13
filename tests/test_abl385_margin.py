@@ -39,6 +39,7 @@ from scripts.abl385_read_margin import (  # noqa: E402
     _variance_split,
     cv_interval,
     delta_min,
+    fleet_margin,
     parse_filename,
     range_to_cv,
     seeds_needed,
@@ -358,3 +359,50 @@ class TestMarginPrecision:
     def test_a_degenerate_dof_is_not_an_interval(self):
         low, high = cv_interval(0.03, 0)
         assert math.isnan(low) and math.isnan(high)
+
+
+class TestFleetPercentileReading:
+    """The frozen registration admits two readings of the fleet percentile.
+
+    `pooling_across_windows` pools per (pair, algorithm, arm); `fleet_value`
+    takes percentiles of "the per-(pair, algorithm) pooled CV distribution".
+    Solar is the only type with two arms, so the two readings differ for solar
+    and coincide everywhere else. The pack reports both; these tests hold that
+    property so a later edit cannot quietly collapse it to one number.
+    """
+
+    @staticmethod
+    def _pooled(entries):
+        return {k: {"cv_rms": v, "cv_max": v} for k, v in entries.items()}
+
+    def test_single_arm_streams_are_unchanged_by_collapsing(self):
+        """Wind carries `control` alone, so collapsing must be a no-op."""
+        pooled = self._pooled({
+            ("AT", "wind_onshore", "xgboost", "control"): 0.02,
+            ("BE", "wind_onshore", "catboost", "control"): 0.08,
+            ("DE", "wind_onshore", "catboost", "control"): 0.03,
+        })
+        per_arm = fleet_margin(pooled)["wind"]
+        collapsed = fleet_margin(pooled, collapse_arms=True)["wind"]
+        assert per_arm["n_units"] == collapsed["n_units"] == 3
+        assert per_arm["cv_rms_p90"] == pytest.approx(collapsed["cv_rms_p90"])
+
+    def test_collapsing_halves_the_solar_unit_count(self):
+        pooled = self._pooled({
+            ("DE", "solar", "catboost", "control"): 0.02,
+            ("DE", "solar", "catboost", "geometry"): 0.04,
+            ("FR", "solar", "xgboost", "control"): 0.01,
+            ("FR", "solar", "xgboost", "geometry"): 0.03,
+        })
+        assert fleet_margin(pooled)["solar"]["n_units"] == 4
+        assert fleet_margin(pooled, collapse_arms=True)["solar"]["n_units"] == 2
+
+    def test_collapsing_keeps_the_worse_arm(self):
+        """Conservative by construction: the margin must not shrink because a
+        quieter arm of the same pair was averaged in."""
+        pooled = self._pooled({
+            ("DE", "solar", "catboost", "control"): 0.02,
+            ("DE", "solar", "catboost", "geometry"): 0.04,
+        })
+        collapsed = fleet_margin(pooled, collapse_arms=True)["solar"]
+        assert collapsed["cv_rms_max"] == pytest.approx(0.04)

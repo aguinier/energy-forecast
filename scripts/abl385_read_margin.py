@@ -413,16 +413,39 @@ def arm_correlation(cells, windows):
     }
 
 
-def fleet_margin(pooled):
-    """Per-stream CV percentiles and the margin table they imply."""
+def fleet_margin(pooled, collapse_arms=False):
+    """Per-stream CV percentiles and the margin table they imply.
+
+    `collapse_arms` selects between two readings of the frozen registration,
+    which are not the same number and which the pack reports side by side.
+    `estimator.pooling_across_windows` pools "per (pair, algorithm, arm)", while
+    `estimator.fleet_value` takes percentiles of "the per-(pair, algorithm)
+    pooled CV distribution". Solar is the only type carrying two arms, so under
+    the per-arm reading every solar pair enters the percentile twice, from two
+    correlated fits of the same pair. Registered text admits both; the pack
+    says so rather than picking one silently.
+    """
+    if collapse_arms:
+        # The strict reading of the registration's `fleet_value`. Solar is the
+        # only type with two arms, and they are two measurements of one pair
+        # rather than two independent units - so a per-arm percentile counts
+        # every solar pair twice, from a pair of correlated draws. The max is
+        # the conservative collapse.
+        best = {}
+        for (country, ftype, algorithm, arm), p in pooled.items():
+            key = (country, ftype, algorithm)
+            if key not in best or p["cv_rms"] > best[key]["cv_rms"]:
+                best[key] = {"unit": f"{country}/{ftype}/{algorithm}",
+                             "cv_rms": p["cv_rms"], "cv_max": p["cv_max"]}
+        items = [(k, v) for k, v in best.items()]
+    else:
+        items = [((c, t, a), {"unit": f"{c}/{t}/{a}/{m}",
+                              "cv_rms": p["cv_rms"], "cv_max": p["cv_max"]})
+                 for (c, t, a, m), p in pooled.items()]
+
     streams = defaultdict(list)
-    for (country, ftype, algorithm, arm), p in pooled.items():
-        stream = STREAM[ftype]
-        streams[stream].append({
-            "unit": f"{country}/{ftype}/{algorithm}/{arm}",
-            "cv_rms": p["cv_rms"],
-            "cv_max": p["cv_max"],
-        })
+    for key, unit in items:
+        streams[STREAM[key[1]]].append(unit)
     out = {}
     for stream, units in streams.items():
         rms = [u["cv_rms"] for u in units]
@@ -792,6 +815,40 @@ def render_markdown(payload):
             "",
         ]
 
+    lines += ["### Sensitivity: the registration admits two readings of this percentile", ""]
+    lines += [
+        "`estimator.pooling_across_windows` pools **per (pair, algorithm, arm)**; "
+        "`estimator.fleet_value` then takes percentiles of **the per-(pair, "
+        "algorithm)** pooled CV distribution. Solar is the only type with two "
+        "arms, so under the per-arm reading every solar pair enters the "
+        "percentile twice, from two correlated fits of the same pair. The frozen "
+        "text supports both and this pack does not pick one silently:",
+        "",
+        "| stream | p90 CV, per (pair, algorithm, arm) | p90 CV, arms collapsed (max) | "
+        "delta_min(k=3), per-arm | delta_min(k=3), collapsed |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    for stream in ("solar", "wind", "other"):
+        a = payload["fleet_margin"].get(stream)
+        b = payload["fleet_margin_arms_collapsed"].get(stream)
+        if not a or not b:
+            continue
+        lines.append(
+            f"| {stream} ({a['n_units']} vs {b['n_units']} units) | "
+            f"{100 * a['cv_rms_p90']:.2f}% | {100 * b['cv_rms_p90']:.2f}% | "
+            f"{a['delta_min_pct_at_p90']['3']:.2f}% | "
+            f"{b['delta_min_pct_at_p90']['3']:.2f}% |"
+        )
+    lines += [
+        "",
+        "Wind and the never-gated pairs carry one arm each, so the two readings "
+        "coincide there by construction and only solar moves. **Cite the larger "
+        "of the two** where they differ: this issue exists because a margin was "
+        "quoted too small, and the arms-collapsed figure rests on the smaller "
+        "unit count.",
+        "",
+    ]
+
     lines += ["## 2. Per-pair spread", "",
               "The pair-specific CV is the one to cite when it exists; the fleet "
               "percentile above is for a pair this sweep did not measure.",
@@ -1031,6 +1088,7 @@ def main():
         "cell_stats": {"/".join(k): v for k, v in sorted(stats.items())},
         "pooled": {"/".join(k): v for k, v in sorted(pooled.items())},
         "fleet_margin": fleet_margin(pooled),
+        "fleet_margin_arms_collapsed": fleet_margin(pooled, collapse_arms=True),
         "pair_margins": pair_margins(pooled),
         "arm_correlation": arm_correlation(cells, windows),
         "predictions": evaluate_predictions(stats, pooled, registration, windows),
