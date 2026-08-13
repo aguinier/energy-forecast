@@ -161,6 +161,43 @@ SCOPES = {
     # for AT/BE/DE/FR only and **zero** for each of ES, GR, HR, IT and PT.  So this
     # scope refits no live pair, the property `abl253` protects.
     "abl316-t2c": ("ES", "GR", "HR", "IT", "PT"),
+    # ABL-421 -- ABL-316 tranche 2d, the **final solar tranche**: the six northern
+    # solar countries, under the same frozen registration at
+    # `experiments/ABL348/config.json`.  6 countries x 3 bands = 18 country-band
+    # cells, of which **14 are evaluable** -- see `SCOPE_NOT_EVALUABLE` below,
+    # which is the whole reason this scope needed a new table.
+    #
+    # All six are new coverage and none shares a country with any dispositioned
+    # solar read, so this scope re-reads nothing and its outputs collide with no
+    # published evidence by construction as well as by `check_scope_outputs`.
+    #
+    # Grouped by the pre-committed D-7 bar and not by the alphabet, which is the
+    # rule `abl316-t2a` states above: SE 23.92%, LT 30.84%, EE 36.67%, FI 37.88%,
+    # NL 46.53%, LV 47.85% (`experiments/ABL348/config.json`,
+    # `per_pair_bar_measured_before_any_challenger_exists.bars`, measured before a
+    # challenger existed for any of these pairs).  These are the **loosest** solar
+    # bars in the programme -- 2c's ran 7.11-16.43% and 2a's 12.67-26.11% -- on the
+    # lowest levels: NL's gate-window mean is 66.7 MW.  ABL-418 registered the
+    # ladder precisely because a loose bar on a low level is what produced 2b's
+    # spurious wind passes, so a high pass rate here carries less than 2c's low one.
+    # **This tranche's pass rate must not be averaged against 2a's or 2c's.**
+    #
+    # Unlike every earlier tranche this scope **does** contain ABL-348's two
+    # declared NOT-EVALUABLE pairs, EE/solar and FI/solar.  That is deliberate and
+    # is what the tranche is for: they are two of the six northern countries, the
+    # rollout has to give them an auditable answer, and ABL-348's own
+    # `not_evaluable.note_48_64h` says their 48-64h band may still be readable and
+    # "should be reported if it does".  Scoring their two 684-bands anyway is what
+    # the registration forbids; omitting the countries entirely would leave the
+    # rollout with no record of why.  `SCOPE_NOT_EVALUABLE` is how both are
+    # satisfied at once.
+    #
+    # No country here serves a solar model: measured on the live replica
+    # (9,432,453,120 bytes, mode=ro) on 2026-08-14, `forecasts` holds solar rows
+    # for AT/BE/DE/FR only (34,228 BE / 32,856 FR / 32,784 AT / 32,256 DE) and
+    # **zero** for each of EE, FI, LT, LV, NL and SE.  So this scope refits no live
+    # pair, the property `abl253` protects.
+    "abl316-t2d": ("EE", "FI", "LT", "LV", "NL", "SE"),
     # ABL-376: ABL-253's countries, window and basis with exactly one thing
     # changed -- the fit drops night rows the sun says cannot exist (`FIT_RULES`
     # below).  Registered as its own scope rather than as a flag on `abl253`
@@ -295,6 +332,30 @@ SCOPE_OUTPUTS = {
     "abl316-t2c": {"artifact_dir": "experiments/ABL419/artifacts",
                    "json_out": "experiments/ABL348/results_abl419_tranche2c.json",
                    "report_out": "reports/abl_419_solar_tranche2c.md"},
+    # ABL-421.  Same three-way shape as `abl316-t2c` above and for the same
+    # reasons, so only what differs is argued here.
+    #
+    # `artifact_dir` is `experiments/ABL421/artifacts` -- its own directory, one
+    # level deep so `.gitignore:56` (`experiments/*/artifacts/`, which matches on
+    # the *directory name*) still takes it and no binary CatBoost bundle becomes
+    # committable.  This scope names no country any other scope names, so there is
+    # no `experiments/.../<CC>/solar/model.joblib` this run could overwrite even if
+    # the directory were shared; the per-tranche directory is what
+    # `check_scope_outputs` can then enforce, and it keeps an artifact whose
+    # SHA-256 a published machine record cites findable from that record.
+    #
+    # `json_out` takes the tracked form -- one level deep and deliberately **not**
+    # named `results.json`, which `.gitignore:53` matches by exact filename -- and
+    # sits under ABL348 for the reason `abl316-t1b` gives: the registration these
+    # fits are read under is `experiments/ABL348/config.json`.  It matters more than
+    # usual here: this is the only machine record that will carry the four
+    # NOT-EVALUABLE cells with their measured n beside them, and "we declined to
+    # score EE and FI on two bands" is a claim a reviewer must be able to diff
+    # rather than take from prose.  An ignored `results.json` is the one gate record
+    # they could not.
+    "abl316-t2d": {"artifact_dir": "experiments/ABL421/artifacts",
+                   "json_out": "experiments/ABL348/results_abl421_tranche2d.json",
+                   "report_out": "reports/abl_421_solar_tranche2d.md"},
     # ABL-376 takes the tracked form the section above recommends, and for the
     # reason given there: this read is meant to be dispositioned against
     # `abl253`, and a `results.json` is the one gate record `git checkout --`
@@ -352,6 +413,17 @@ GATE_BASIS = {
     # The incumbent is still reported on its own intersection, where it reads
     # "Not measured" by construction rather than by omission.
     "abl316-t2c": ("challenger", "seasonal_naive"),
+    # ABL-421: identical to the three above, and for the identical reason -- all six
+    # countries hold **zero** solar rows in `forecasts` (verified on the live
+    # replica, not assumed; see this scope's `SCOPES` entry), so under the four-way
+    # basis every one of the 18 cells would intersect to n=0 and the run would
+    # render UNREADABLE, having compared nothing.  Keeping it identical to 2a's and
+    # 2c's is also what lets the three solar tranches be read side by side on the
+    # bar alone, which is the comparison ABL-348's bar caveats ask for -- and this
+    # tranche sits at the loose end of that spread, where the comparison matters
+    # most.  The incumbent is still reported on its own intersection, where it reads
+    # "Not measured" by construction rather than by omission.
+    "abl316-t2d": ("challenger", "seasonal_naive"),
     # Deliberately identical to `abl253`'s.  The A/B is on the fit rule; moving
     # the basis at the same time would confound the two.
     "abl376": ("challenger", "incumbent", "seasonal_naive", "persistence"),
@@ -495,6 +567,36 @@ FIT_RULES = {
     # GR, HR, IT and PT screen at <= 0.009% night floor (ABL-396 section 3), so the
     # rule would remove essentially nothing for them either way.
     "abl316-t2c": {"exclude_impossible_night": False},
+    # ABL-421 registers the rule **off**, which is also what `DEFAULT_FIT_RULES`
+    # would have given it -- stated rather than inherited, for `abl316-t2a`'s
+    # reason: this table is one of the four `check_registration_tables` does *not*
+    # check, so an absence here is indistinguishable from an oversight and defaults
+    # silently.
+    #
+    # Off is right here for three reasons, and the third is specific to this
+    # tranche:
+    #
+    # - ABL-348's registration does not contain the rule, and this tranche is read
+    #   under it unchanged.  Turning it on would be a fit-frame change after the
+    #   bars were published, which `voids_this_registration` names.
+    # - ABL-403 measured the geometry x night-exclusion 2x2 and left the rule off,
+    #   on the general ground that a fit-side exclusion is only defensible when the
+    #   excluded rows are both genuinely contaminated *and* a small enough minority
+    #   that the score is not dominated by them.
+    # - **On this tranche the rule would remove almost nothing, and on EE it would
+    #   remove the wrong thing.**  Five of the six screen at or under 0.041% of
+    #   gate-window energy at night (ABL-396 section 3: FI 0.002%, LT 0.018%, SE
+    #   0.033%, LV 0.042%, NL 0.040% in absolute value), so the rule is a no-op for
+    #   them either way.  **EE is the exception** and carries the third-largest
+    #   solar night floor in the fleet at `f` = 0.718% of gate-window energy, 68 of
+    #   its 86 gate night hours above the 1 MW threshold at a 12.64 MW mean.  But EE
+    #   is exactly the pair whose two 684-bands ABL-348 declares NOT-EVALUABLE for
+    #   an *unrelated* reason (an ABL-188 zero run), so turning the rule on would
+    #   change the fit for a pair whose gate we are largely declining to read --
+    #   moving a challenger nobody scores, and confounding the one band we do read.
+    #   EE's floor is bounded exactly and for free by `f` instead, which is what
+    #   this tranche's evidence pack prints on the face of its table.
+    "abl316-t2d": {"exclude_impossible_night": False},
 }
 
 # ABL-395: and so is the feature *vector*, for exactly the reason stated above
@@ -632,6 +734,87 @@ SCOPE_TITLES = {
     # have to reach `meta.training_source` to know which table the challenger was
     # fitted and scored on.
     "abl316-t2c": "ABL-419 — Serve-faithful solar retrain gate, ABL-316 tranche 2c: 5 Mediterranean countries on energy_generation at 27 features",
+    # ABL-421, registered for the same reason the three above are: `title_for`'s
+    # fallback would head this tranche's evidence pack "abl316-t2d", and a scope
+    # slug is a key, not a title.  The heading names the evaluable cell count
+    # because that is the one thing about this read a reader must not have to
+    # discover: 6 countries x 3 bands is 18, and this scope reads 14 of them.
+    "abl316-t2d": "ABL-421 — Serve-faithful solar retrain gate, ABL-316 tranche 2d: 6 northern countries on energy_generation at 27 features, 14 evaluable cells of 18",
+}
+
+# ABL-421.  Which country-band cells the frozen registration declares
+# **NOT-EVALUABLE**, and therefore refuses to have scored.
+#
+# This is a registration table like `FIT_RULES` and `SCOPE_TITLES` -- a scope that
+# registers nothing gets `{}` through `not_evaluable_for` and behaves exactly as
+# every scope did before this table existed.  It is deliberately **not** in
+# `check_registration_tables` for `SCOPE_FEATURES`' reason: an empty entry is the
+# correct and overwhelmingly common case, so requiring one would raise `KeyError`
+# at import for every scope whose absence is right, taking `--help` and the whole
+# suite with it.
+#
+# It exists because ABL-348 `not_evaluable` states a rule this harness had no way
+# to obey:
+#
+#     "A pair listed here is reported NOT-EVALUABLE on the named bands. It is not
+#      a FAIL and must not be counted as one; a gate read that scores it has
+#      misread this registration."
+#
+# `gate_cell` builds a cell for every country-band the run produces rows for and
+# marks it `pass: False` when `n` falls under the registered minimum, so on the
+# pre-ABL-421 harness EE's and FI's four declared cells would each have arrived as
+# an ordinary failed cell and been counted into `passed/18` -- which is precisely
+# the misreading quoted above, rendered as a model-quality verdict on a comparison
+# the registration forbids. Nothing in the run's exit status would show it. Every
+# earlier tranche dodged this by excluding the two pairs (`abl316-t2c` says so in
+# as many words); 2d is the tranche they belong to and cannot.
+#
+# The two pairs are declared for different causes and only one is our doing --
+# recorded here because the disposition differs:
+#
+# - **EE/solar**: 630 of 720 D-7-scorable gate hours. ABL-188 excludes a 44.8h
+#   bit-identical zero run, 2026-07-21 00:00 -> 2026-07-22 20:45, present
+#   identically in **both** source tables, so it is not caused by the source
+#   change and switching back would not recover it. `source_dependent: false`.
+# - **FI/solar**: 650 of 720. `energy_generation` holds 663 of the 720 gate hours
+#   against `energy_renewable`'s 717 -- the ABL-322 section 3.3 phenomenon on a
+#   second pair. `source_dependent: **true**`: this one *is* a cost of the
+#   ABL-348 source change, and is a finding for whoever owns that decision rather
+#   than a fact about FI's solar model.
+#
+# Both are declared only on the two bands whose registered minimum n is 684
+# (`registered_minimum_n`), because `n_d7_scorable` bounds those two directly.
+# **48-64h is deliberately absent for both**, and that is ABL-348's instruction
+# rather than an omission -- `not_evaluable.note_48_64h`: that band selects a
+# 480-510 row subset, so its n scales proportionally rather than being hard
+# bounded, and "a pair declared here may still clear 456 in that band and should
+# be reported if it does". So those two cells are read, on the bar, like any
+# other. Whether they clear 456 is a measurement this run makes, not an
+# assumption it encodes: proportionally EE projects to ~420 and FI to ~433,
+# both under 456, and if a cell lands there it is a **coverage shortfall**
+# (`enough_pairs: False`) and not a loss to D-7 -- the cell dict carries the two
+# flags separately and the report prints both, so the distinction survives into
+# the evidence pack.
+SCOPE_NOT_EVALUABLE = {
+    "abl316-t2d": {
+        ("EE", "24-36h"), ("EE", "36-48h"),
+        ("FI", "24-36h"), ("FI", "36-48h"),
+    },
+}
+
+#: One short line per declared country, for the report's NOT-EVALUABLE table.
+#: These are a **restatement** of `not_evaluable.pairs[*].cause` in
+#: `experiments/ABL348/config.json`, and a restatement is exactly the thing that
+#: drifts from its source -- so
+#: `tests/test_abl421_not_evaluable.py::test_the_causes_match_the_frozen_registration`
+#: reads the frozen config and holds these to it, including the
+#: `source_dependent` flag, which is the half that decides whose problem each one
+#: is. Do not edit one without the other; the config is the original.
+NOT_EVALUABLE_CAUSES = {
+    "EE": ("ABL-188 excludes a 44.8h bit-identical zero run (2026-07-21 -> 2026-07-22), "
+           "present identically in **both** source tables; not source-dependent"),
+    "FI": ("`energy_generation` holds 663 of 720 gate hours against `energy_renewable`'s 717 "
+           "(the ABL-322 s3.3 phenomenon); **source-dependent**"),
 }
 
 
@@ -648,6 +831,16 @@ def features_for(scope: str) -> tuple:
 def title_for(scope: str) -> str:
     """The scope's report heading, or a derived one."""
     return SCOPE_TITLES.get(scope, f"{scope} — Serve-faithful solar retrain gate")
+
+
+def not_evaluable_for(scope: str) -> frozenset:
+    """The (country, band) cells the registration declares NOT-EVALUABLE (ABL-421).
+
+    Empty for every scope that registers nothing, which is the pre-ABL-421
+    behaviour and the common case. Returned as a frozenset so a caller cannot
+    mutate the registration table it was read from.
+    """
+    return frozenset(SCOPE_NOT_EVALUABLE.get(scope, ()))
 
 
 # ABL-387: the three tables above are one registration in three views.  Checked
@@ -672,13 +865,22 @@ def title_for(scope: str) -> str:
 # GitHub to warn either author.  Adding a required table is not free; it is a
 # tax on every branch already in flight.
 #
-# **The call below names three tables, and this file carries six.**  ABL-419
-# counted them rather than assuming, because the count is the thing a reviewer
-# cannot see from the call site: `FIT_RULES`, `SCOPE_TITLES` and `SCOPE_FEATURES`
-# are *not* arguments here, so a scope added to `SCOPES` and omitted from any of
-# those three imports cleanly, runs cleanly, exits 0 and defaults silently.  A
-# tranche registration is therefore a six-table edit checked three ways, and the
-# other three are checked by hand at review.
+# **The call below names three tables, and this file carries seven.**  ABL-419
+# counted them rather than assuming, and ABL-421 re-counted rather than inheriting
+# the sentence -- the count is the thing a reviewer cannot see from the call site,
+# and it moved.  `FIT_RULES`, `SCOPE_TITLES`, `SCOPE_FEATURES` and now
+# `SCOPE_NOT_EVALUABLE` are *not* arguments here, so a scope added to `SCOPES` and
+# omitted from any of those four imports cleanly, runs cleanly, exits 0 and
+# defaults silently.  A tranche registration is therefore a seven-table edit
+# checked three ways, and the other four are checked by hand at review.
+#
+# `SCOPE_NOT_EVALUABLE`'s silent default is the most consequential of the four and
+# is the one to check hardest, because it defaults *toward scoring*: a scope that
+# forgets it scores every cell it can build, which for a pair ABL-348 declares
+# NOT-EVALUABLE is exactly the misread that registration forbids, reported as a
+# FAIL. The other three degrade self-documentingly; this one degrades into a
+# wrong verdict.  `tests/test_abl421_not_evaluable.py` holds the line for the one
+# scope that registers it.
 #
 # `SCOPE_FEATURES` in particular **cannot** join this call, and that is a
 # statement about the table rather than about the effort: `abl316-t2a` is
@@ -796,6 +998,53 @@ def disposition(gate_cells: list[dict], registered_cells: int,
         "losing country/bands as the finding and pursue country-specific diagnosis/model work on a fresh pre-registered split.")
 
 
+def not_evaluable_table(result: dict) -> list[str]:
+    """The cells the registration declared unscorable, with what they measured.
+
+    Renders nothing at all for a scope that declares none, so every report
+    already published is byte-unchanged by this function existing (ABL-421).
+
+    The numbers are printed deliberately. A declaration the reader cannot check
+    is indistinguishable from a challenger quietly dropped for scoring badly, and
+    the whole value of declaring before the fit is that the check is available
+    afterwards. What the numbers may **not** do is carry a verdict: there is no
+    gate column and no grade here, because ABL-348 forbids counting these cells
+    either way, and a PASS/FAIL in this table would be that count in all but
+    name.
+    """
+    cells = result.get("not_evaluable_cells") or []
+    if not cells:
+        return []
+    declared = result["meta"].get("not_evaluable_declared_by", "the registration")
+    lines = [
+        "", "## Cells the registration declares NOT-EVALUABLE", "",
+        f"Declared by `{declared}` **before any fit existed**, and excluded from the "
+        f"{result['meta']['registered_cells']}-cell bar above. ABL-348's rule: *\"A pair listed here is "
+        "reported NOT-EVALUABLE on the named bands. It is not a FAIL and must not be counted as one; a "
+        "gate read that scores it has misread this registration.\"* These rows are therefore measured and "
+        "shown, but carry no gate outcome and no grade, and are counted neither as passes nor as failures.",
+        "",
+        "The cause is per pair and only one of the two is ours: EE's shortfall is an ABL-188 "
+        "bit-identical zero run present in **both** source tables (`source_dependent: false`), so it "
+        "would not be recovered by reverting the source; FI's is `energy_generation` holding fewer gate "
+        "hours than `energy_renewable` (`source_dependent: **true**`), which is a cost of ABL-348's "
+        "source change and a finding for whoever owns that decision rather than a fact about FI's model.",
+        "",
+        "| country | horizon | n | registered min n | challenger WAPE | D-7 WAPE | skill vs D-7 | declared cause |",
+        "|---|---|---:|---:|---:|---:|---:|---|",
+    ]
+    causes = result["meta"].get("not_evaluable_causes", {})
+    for row in sorted(cells, key=lambda r: (r["country"], r["horizon_band"])):
+        scores = row["scores"]
+        chal, naive = scores["challenger"]["wape_pct"], scores["seasonal_naive"]["wape_pct"]
+        skill = "Not measured" if chal is None or naive is None else f"{100 * (1 - chal / naive):+.1f}%"
+        lines.append(
+            f"| {row['country']} | {row['horizon_band']} | {row['gate']['n']:,} | "
+            f"{row['gate']['minimum_n']:,} | {_fmt(chal, '%')} | {_fmt(naive, '%')} | {skill} | "
+            f"{causes.get(row['country'], 'see the registration')} |")
+    return lines
+
+
 def render_markdown(result: dict) -> str:
     meta, cells = result["meta"], result["gate_cells"]
     passed = sum(cell["gate"]["pass"] for cell in cells)
@@ -865,6 +1114,7 @@ def render_markdown(result: dict) -> str:
             f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} | {grade} |"
         )
     lines.extend(grade_summary_table(cells, GRADE_STREAM, lambda row: row["country"]))
+    lines.extend(not_evaluable_table(result))
     lines.extend(levels_table(result["training"]))
     # The protocol-count sentence below is a measured ABL-253 fact about that
     # scope's eight registered run instants. Rendering it for every scope would
@@ -881,6 +1131,16 @@ def render_markdown(result: dict) -> str:
         f"Gate-basis values (actual, {basis_names}) share one finite intersection; each comparator outside the basis is "
         "scored on its own intersection with it, and its n is given in `comparator_n` in the JSON. A comparator showing "
         "`Not measured` had no finite rows at all.", "",
+        # ABL-421. This table pools every primary band, so for a country with a
+        # declared cell it pools rows the gate above deliberately did not score.
+        # That is tolerable for a reported aggregate and intolerable unsaid: a
+        # reader comparing this row to the gate table would otherwise find an n
+        # that reconciles with neither the bar nor the declaration.
+        *([f"**Pooling caveat.** This is a reported aggregate over *all* primary bands and is not a gate read. "
+           f"For {', '.join(sorted({d['country'] for d in meta['not_evaluable_cells_declared']}))} it therefore "
+           "pools the band(s) the registration declares NOT-EVALUABLE, so the row is not the pooled form of that "
+           "country's gate cells and must not be quoted as one.", ""]
+          if meta.get("not_evaluable_cells_declared") else []),
         "| country | n | challenger WAPE | D-7 WAPE | persistence WAPE | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ])
@@ -1034,7 +1294,15 @@ def main() -> int:
     # ABL-395: the scope's registered feature vector, not the module constant.
     # `abl253`/`abl376` pin the 25 they were read on; anything new gets 27.
     features = features_for(args.scope)
-    registered_cells = len(registered_countries) * len(PRIMARY_BANDS)
+    # ABL-421: the bar is the scope's *evaluable* cells.  Still derived from the
+    # registration tables and never a literal (`test_solar_bar_is_derived_...`);
+    # what changed is that the grid is no longer necessarily complete, because
+    # ABL-348 can declare a country-band unscorable before any fit exists.
+    # Empty for every scope that registers nothing, so this is an identity for all
+    # six scopes that predate it.
+    not_evaluable = not_evaluable_for(args.scope)
+    registered_cells = (len(registered_countries) * len(PRIMARY_BANDS)
+                        - len(not_evaluable))
     training, scored_frames = [], []
     for country in registered_countries:
         # ABL-342 records provenance from the builder rather than from a source
@@ -1106,15 +1374,29 @@ def main() -> int:
         return scored_with_comparators(group, gate_basis, REPORTED_COMPARATORS)
 
     all_scored = pd.concat(scored_frames, ignore_index=True)
-    gate_cells, country_d2 = [], []
+    gate_cells, not_evaluable_cells, country_d2 = [], [], []
     for (country, band), group in all_scored.groupby(["country", "horizon_band"]):
         scores, common, comparator_n = scored(group)
         if band in PRIMARY_BANDS:
-            gate_cells.append({"country": country, "horizon_band": band, "scores": scores,
-                               "comparator_n": comparator_n,
-                               "gate": gate_cell(scores["challenger"]["wape_pct"],
-                                                 scores["seasonal_naive"]["wape_pct"],
-                                                 len(common), INTENDED_N[band])})
+            cell = {"country": country, "horizon_band": band, "scores": scores,
+                    "comparator_n": comparator_n,
+                    "gate": gate_cell(scores["challenger"]["wape_pct"],
+                                      scores["seasonal_naive"]["wape_pct"],
+                                      len(common), INTENDED_N[band])}
+            # ABL-421.  A declared cell is *measured and reported* -- its WAPEs,
+            # its n and every comparator are computed exactly as any other cell's
+            # -- but it is kept out of `gate_cells`, which is the list `passed`,
+            # `disposition` and `attach_grades` all read.  So it cannot be counted
+            # as a FAIL (ABL-348's rule), cannot be counted as a PASS, and cannot
+            # be graded: a grade on a cell the registration refuses to score would
+            # be a disposition by the back door.  Reporting the numbers anyway is
+            # what makes the declaration auditable rather than a hole in the pack
+            # -- a reader can see what EE and FI *would* have scored and check the
+            # n against the cause ABL-348 gives.
+            if (country, band) in not_evaluable:
+                not_evaluable_cells.append(cell)
+            else:
+                gate_cells.append(cell)
     for country, group in all_scored[all_scored["horizon_band"].isin(PRIMARY_BANDS)].groupby("country"):
         scores, common, comparator_n = scored(group)
         tso_valid = np.isfinite(common[["actual", "tso"]].to_numpy(dtype=float)).all(axis=1)
@@ -1142,7 +1424,22 @@ def main() -> int:
                        "databases": opened_databases(cfg, str(replica), config.DATABASE_PATH),
                        "training_source": source,
                        "scope": args.scope, "registered_countries": list(registered_countries),
-                       "registered_cells": registered_cells, "gate_basis": list(gate_basis),
+                       # ABL-421: the *evaluable* cell count, which is the grid
+                       # minus whatever the registration declared unscorable. The
+                       # grid size is recorded beside it rather than left to be
+                       # re-derived, because "14 of 18" is the sentence this read
+                       # has to survive being quoted as, and a reader who
+                       # multiplies 6 x 3 and finds 18 must be able to see where
+                       # the other four went without opening the harness.
+                       "registered_cells": registered_cells,
+                       "registered_grid_cells": len(registered_countries) * len(PRIMARY_BANDS),
+                       "not_evaluable_cells_declared": [
+                           {"country": c, "horizon_band": b}
+                           for c, b in sorted(not_evaluable)],
+                       "not_evaluable_declared_by":
+                           "experiments/ABL348/config.json -> not_evaluable.pairs",
+                       "not_evaluable_causes": NOT_EVALUABLE_CAUSES,
+                       "gate_basis": list(gate_basis),
                        # ABL-376: what the fit was allowed to see, recorded beside
                        # what it was scored on. Two reads of this gate are not
                        # comparable unless both state it.
@@ -1171,6 +1468,11 @@ def main() -> int:
                        "selection": "latest vintage per country + target + model + horizon band"},
               "verdict": verdict, "recommendation": recommendation, "training": training,
               "gate_cells": sorted(gate_cells, key=lambda row: (row["country"], row["horizon_band"])),
+              # ABL-421: measured, recorded, and kept out of every count. An empty
+              # list for the six scopes that predate this table, so their records
+              # gain one empty key and nothing else.
+              "not_evaluable_cells": sorted(not_evaluable_cells,
+                                            key=lambda row: (row["country"], row["horizon_band"])),
               "country_d2": sorted(country_d2, key=lambda row: row["country"])}
     json_path = Path(args.json_out or outputs["json_out"])
     report_path = Path(args.report_out or outputs["report_out"])
