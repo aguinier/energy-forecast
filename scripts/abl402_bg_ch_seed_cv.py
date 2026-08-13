@@ -44,8 +44,12 @@ neighbouring quantity.  A CV anchored on the arm that produced the headline is
 not a spread, which is why the 20 that *are* averaged are disjoint from it.
 
 `SEEDS` is frozen in this file and committed before the first fit, so the
-ABL-322 property ABL-381 §1 holds here too and is checkable in git rather than
-asserted.
+ABL-322 property ABL-381 section 1 holds here too and is checkable in git
+rather than asserted.
+
+(ASCII throughout this docstring on purpose: it is passed as
+`description=__doc__`, which ABL-364's sweep reads as help text.  The comments
+below keep their typography, as `abl376_night_seed_spread.py` does.)
 
 What this is not
 ----------------
@@ -95,8 +99,15 @@ from src.wind_features import RenewableFeatureBuilder  # noqa: E402
 # drift, and this issue exists because a margin was quoted from a remembered
 # number; `tests/test_abl385_margin.py` pins the chi-square approximation these
 # use against scipy.
-sys.path.insert(0, str(Path(__file__).parent))
-from abl385_read_margin import cv_interval, delta_min  # noqa: E402
+#
+# `scripts.` and not a second `sys.path` entry pointing at `scripts/`: that would
+# make `abl385_read_margin` reachable as both `abl385_read_margin` and
+# `scripts.abl385_read_margin`, which is the one-module-two-names bug class
+# `tests/test_script_imports.py` (ABL-340/ABL-354) exists to forbid.  The repo
+# root is already on the path from the line above, and this is the form
+# `attest_net_position_serve_faithfulness.py` and `backtest_gate_challengers.py`
+# already use to import a sibling script.
+from scripts.abl385_read_margin import cv_interval, delta_min  # noqa: E402
 
 logger = logging.getLogger("abl402.seed_cv")
 
@@ -118,9 +129,17 @@ CONTROL_SEED = 42
 COUNTRIES = ("BG", "CH")
 
 #: ABL-348's registration, unchanged and deliberately not re-derived here.
-FIT_START = pd.Timestamp("2026-01-14", tz="UTC")
-GATE_START = pd.Timestamp("2026-07-11", tz="UTC")
-GATE_END = pd.Timestamp("2026-08-10", tz="UTC")
+#:
+#: **tz-naive on purpose.**  `experiments/ABL348/config.json` writes these as
+#: `...Z`, but the gate reaches the builder through
+#: `map(pd.Timestamp, (args.fit_start, ...))` on bare `YYYY-MM-DD` strings, and
+#: `RenewableFeatureBuilder` works in naive UTC throughout -- an aware Timestamp
+#: raises inside `_min_admissible_lag_days`.  These are the same instants the
+#: gate used; matching its *representation* is what makes the seed-42 control a
+#: reproduction rather than a near-miss.
+FIT_START = pd.Timestamp("2026-01-14")
+GATE_START = pd.Timestamp("2026-07-11")
+GATE_END = pd.Timestamp("2026-08-10")
 SOURCE = "energy_generation"
 
 #: `GATE_BASIS["abl316-t1b"]`.  BG and CH hold zero solar rows in `forecasts`,
@@ -339,8 +358,9 @@ def main() -> int:
     seeds = SEEDS[:args.seeds]
     provenance = _git_provenance()
     logger.info("replica=%s  seeds=%s  control=%d", replica, seeds, CONTROL_SEED)
-    logger.info("seed list committed at: %s (dirty=%s)",
-                provenance["seed_commit"], provenance["working_tree_dirty"])
+    logger.info("seed tuple committed at: %s (seed line dirty=%s, file dirty=%s)",
+                provenance["seed_tuple_commit"], provenance["seed_line_dirty"],
+                provenance["working_tree_dirty"])
 
     results = []
     for country in COUNTRIES:
