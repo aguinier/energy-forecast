@@ -1,0 +1,197 @@
+{
+  "replica": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 9432453120,
+  "source": "energy_generation",
+  "fit_window": [
+    "2026-01-14",
+    "2026-07-11"
+  ],
+  "gate_window": [
+    "2026-07-11",
+    "2026-08-10"
+  ],
+  "countries": {
+    "ES": {
+      "fit": {
+        "rows": 17087,
+        "hours": 4272,
+        "rows_per_hour": 3.9997659176029963,
+        "hour_weighted_mean_mw": 7222.725889513109,
+        "hour_weighted_max_mw": 27944.0
+      },
+      "gate": {
+        "rows": 2880,
+        "hours": 720,
+        "rows_per_hour": 4.0,
+        "hour_weighted_mean_mw": 11173.226388888888,
+        "hour_weighted_max_mw": 29334.0
+      },
+      "level_ratio_gate_over_fit": 1.5469542330426285,
+      "gate_hours_above_fit_max": 10,
+      "gate_hours_above_fit_max_pct": 1.3888888888888888,
+      "harness_constant_causal_mw": 7222.73,
+      "reproduces_harness_fit_mean": true
+    },
+    "GR": {
+      "fit": {
+        "rows": 9105,
+        "hours": 4272,
+        "rows_per_hour": 2.131320224719101,
+        "hour_weighted_mean_mw": 1439.9638927902622,
+        "hour_weighted_max_mw": 7874.5
+      },
+      "gate": {
+        "rows": 2880,
+        "hours": 720,
+        "rows_per_hour": 4.0,
+        "hour_weighted_mean_mw": 2673.4222222222224,
+        "hour_weighted_max_mw": 8619.75
+      },
+      "level_ratio_gate_over_fit": 1.8565897628459629,
+      "gate_hours_above_fit_max": 29,
+      "gate_hours_above_fit_max_pct": 4.027777777777778,
+      "harness_constant_causal_mw": 1439.96,
+      "reproduces_harness_fit_mean": true
+    },
+    "HR": {
+      "fit": {
+        "rows": 17088,
+        "hours": 4272,
+        "rows_per_hour": 4.0,
+        "hour_weighted_mean_mw": 97.7179073033708,
+        "hour_weighted_max_mw": 461.2
+      },
+      "gate": {
+        "rows": 2880,
+        "hours": 720,
+        "rows_per_hour": 4.0,
+        "hour_weighted_mean_mw": 158.4151388888889,
+        "hour_weighted_max_mw": 468.8
+      },
+      "level_ratio_gate_over_fit": 1.621147477064568,
+      "gate_hours_above_fit_max": 1,
+      "gate_hours_above_fit_max_pct": 0.1388888888888889,
+      "harness_constant_causal_mw": 97.72,
+      "reproduces_harness_fit_mean": true
+    },
+    "IT": {
+      "fit": {
+        "rows": 17088,
+        "hours": 4272,
+        "rows_per_hour": 4.0,
+        "hour_weighted_mean_mw": 4542.3726981897635,
+        "hour_weighted_max_mw": 19360.5
+      },
+      "gate": {
+        "rows": 2880,
+        "hours": 720,
+        "rows_per_hour": 4.0,
+        "hour_weighted_mean_mw": 6444.332291666667,
+        "hour_weighted_max_mw": 19425.0
+      },
+      "level_ratio_gate_over_fit": 1.4187150020153292,
+      "gate_hours_above_fit_max": 1,
+      "gate_hours_above_fit_max_pct": 0.1388888888888889,
+      "harness_constant_causal_mw": 4542.37,
+      "reproduces_harness_fit_mean": true
+    },
+    "PT": {
+      "fit": {
+        "rows": 4272,
+        "hours": 4272,
+        "rows_per_hour": 1.0,
+        "hour_weighted_mean_mw": 770.0286048689139,
+        "hour_weighted_max_mw": 3763.7
+      },
+      "gate": {
+        "rows": 720,
+        "hours": 720,
+        "rows_per_hour": 1.0,
+        "hour_weighted_mean_mw": 1191.4066666666668,
+        "hour_weighted_max_mw": 3770.6
+      },
+      "level_ratio_gate_over_fit": 1.5472239071813263,
+      "gate_hours_above_fit_max": 1,
+      "gate_hours_above_fit_max_pct": 0.1388888888888889,
+      "harness_constant_causal_mw": 770.03,
+      "reproduces_harness_fit_mean": true
+    }
+  },
+  "gr_cadence_by_month": {
+    "2025-12": {
+      "rows": 744,
+      "hours": 744,
+      "rows_per_hour": 1.0
+    },
+    "2026-01": {
+      "rows": 744,
+      "hours": 744,
+      "rows_per_hour": 1.0
+    },
+    "2026-02": {
+      "rows": 672,
+      "hours": 672,
+      "rows_per_hour": 1.0
+    },
+    "2026-03": {
+      "rows": 744,
+      "hours": 744,
+      "rows_per_hour": 1.0
+    },
+    "2026-04": {
+      "rows": 720,
+      "hours": 720,
+      "rows_per_hour": 1.0
+    },
+    "2026-05": {
+      "rows": 2697,
+      "hours": 744,
+      "rows_per_hour": 3.625
+    },
+    "2026-06": {
+      "rows": 2880,
+      "hours": 720,
+      "rows_per_hour": 4.0
+    },
+    "2026-07": {
+      "rows": 2976,
+      "hours": 744,
+      "rows_per_hour": 4.0
+    },
+    "2026-08": {
+      "rows": 864,
+      "hours": 216,
+      "rows_per_hour": 4.0
+    }
+  },
+  "gr_minute_distribution": {
+    "fit": {
+      "00": 4272,
+      "15": 1611,
+      "30": 1611,
+      "45": 1611
+    },
+    "gate": {
+      "00": 720,
+      "15": 720,
+      "30": 720,
+      "45": 720
+    }
+  },
+  "top_of_hour_bias": {
+    "fit": {
+      "n_four_sample_hours": 1611,
+      "mean_at_top_mw": 1969.195530726257,
+      "mean_hourly_mean_mw": 1968.7912787088765,
+      "bias_mw": 0.404252017380509,
+      "bias_pct_of_level": 0.020533005288687352
+    },
+    "gate": {
+      "n_four_sample_hours": 720,
+      "mean_at_top_mw": 2672.8569444444443,
+      "mean_hourly_mean_mw": 2673.4222222222224,
+      "bias_mw": -0.5652777777777778,
+      "bias_pct_of_level": -0.021144350977523606
+    }
+  }
+}

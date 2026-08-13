@@ -127,6 +127,40 @@ SCOPES = {
     # for BE/DE/FR/AT only and zero for all eight.  So this scope refits no live
     # pair, the property `abl253` protects.
     "abl316-t2a": ("BG", "CH", "CZ", "HU", "PL", "RO", "SI", "SK"),
+    # ABL-419 -- ABL-316 tranche 2c: the five Mediterranean solar countries, under
+    # the same frozen registration at `experiments/ABL348/config.json`.
+    # 5 countries x 3 bands = 15 cells.
+    #
+    # All five are new coverage.  Unlike `abl316-t2a` this scope shares no country
+    # with any dispositioned solar read, so it re-reads nothing and its outputs
+    # collide with no published evidence by construction as well as by
+    # `check_scope_outputs`.
+    #
+    # Grouped by the pre-committed D-7 bar and not by the alphabet, which is the
+    # rule `abl316-t2a` states above: IT 7.11%, GR 10.37%, ES 11.78%, PT 13.09%,
+    # HR 16.43% (`experiments/ABL348/config.json`,
+    # `per_pair_bar_measured_before_any_challenger_exists.bars`, measured before a
+    # challenger existed for any of these pairs).  These are the tightest solar
+    # bars in the programme -- 2a's ran 18.35-26.11% plus CH at 12.67% -- because
+    # Mediterranean July/August solar is nearly D-7 periodic.  ABL-348 registered
+    # that reading in advance under `reading_caveats_not_band_changes`: same band,
+    # materially harder task, and a lower pass rate here is not model quality.
+    # **This tranche's pass rate must not be averaged against 2a's.**
+    #
+    # Neither `EE/solar` nor `FI/solar` -- ABL-348's two declared NOT-EVALUABLE
+    # pairs -- is in this scope, so no cell here risks being scored against a
+    # registration that forbids scoring it.  All five carry `n_d7_scorable` 720 in
+    # that same table.
+    #
+    # Windows, bands, metric, baseline, minimum n and source table are ABL-348's
+    # and are deliberately not restated here -- twenty-eight remaining tranches
+    # must not become twenty-eight chances to shop a window.
+    #
+    # No country here serves a solar model: measured on the live replica
+    # (9,432,453,120 bytes, mode=ro) on 2026-08-14, `forecasts` holds solar rows
+    # for AT/BE/DE/FR only and **zero** for each of ES, GR, HR, IT and PT.  So this
+    # scope refits no live pair, the property `abl253` protects.
+    "abl316-t2c": ("ES", "GR", "HR", "IT", "PT"),
     # ABL-376: ABL-253's countries, window and basis with exactly one thing
     # changed -- the fit drops night rows the sun says cannot exist (`FIT_RULES`
     # below).  Registered as its own scope rather than as a flag on `abl253`
@@ -237,6 +271,30 @@ SCOPE_OUTPUTS = {
     "abl316-t2a": {"artifact_dir": "experiments/ABL405/artifacts",
                    "json_out": "experiments/ABL348/results_abl405_tranche2a.json",
                    "report_out": "reports/abl_405_solar_tranche2a.md"},
+    # ABL-419.  Same three-way shape as `abl316-t2a` above and for the same
+    # reasons, so only what differs is argued here.
+    #
+    # `artifact_dir` is `experiments/ABL419/artifacts` -- its own directory, one
+    # level deep so `.gitignore:56` (`experiments/*/artifacts/`, which matches on
+    # the *directory name*) still takes it and no binary CatBoost bundle becomes
+    # committable.  A per-tranche directory is not merely tidy here: it is what
+    # `check_scope_outputs` can then enforce.  This scope names no country any
+    # other scope names, so unlike the 2a/1b pair there is no
+    # `experiments/.../BG/solar/model.joblib` this run could overwrite even if the
+    # directory were shared -- but sharing would still put fifteen artifacts in a
+    # directory whose name says ABL405, and an artifact whose SHA-256 a published
+    # machine record cites must stay findable from that record.
+    #
+    # `json_out` takes the tracked form -- one level deep and deliberately **not**
+    # named `results.json`, which `.gitignore:53` matches by exact filename -- and
+    # sits under ABL348 for the reason `abl316-t1b` gives: the registration these
+    # fits are read under is `experiments/ABL348/config.json`.  This is the machine
+    # record behind a 15-cell read whose margins are the tightest in the
+    # programme, and an ignored `results.json` is the one gate record a reviewer
+    # cannot diff.
+    "abl316-t2c": {"artifact_dir": "experiments/ABL419/artifacts",
+                   "json_out": "experiments/ABL348/results_abl419_tranche2c.json",
+                   "report_out": "reports/abl_419_solar_tranche2c.md"},
     # ABL-376 takes the tracked form the section above recommends, and for the
     # reason given there: this read is meant to be dispositioned against
     # `abl253`, and a `results.json` is the one gate record `git checkout --`
@@ -284,6 +342,16 @@ GATE_BASIS = {
     # The incumbent is still reported on its own intersection, where it reads
     # "Not measured" by construction rather than by omission.
     "abl316-t2a": ("challenger", "seasonal_naive"),
+    # ABL-419: identical to the two above, and for the identical reason -- all five
+    # countries hold **zero** solar rows in `forecasts` (verified on the live
+    # replica, not assumed; see this scope's `SCOPES` entry), so under the four-way
+    # basis every one of the 15 cells would intersect to n=0 and the run would
+    # render UNREADABLE, having compared nothing.  Keeping it identical to 2a's is
+    # also what lets the two tranches be read side by side on the bar alone, which
+    # is the comparison ABL-348's `southern_solar_bar_is_tight` caveat asks for.
+    # The incumbent is still reported on its own intersection, where it reads
+    # "Not measured" by construction rather than by omission.
+    "abl316-t2c": ("challenger", "seasonal_naive"),
     # Deliberately identical to `abl253`'s.  The A/B is on the fit rule; moving
     # the basis at the same time would confound the two.
     "abl376": ("challenger", "incumbent", "seasonal_naive", "persistence"),
@@ -413,6 +481,48 @@ FIT_RULES = {
     # reason to edit this row.  Re-fitting any of these eight under the rule is a
     # real experiment and belongs in its own scope.
     "abl316-t2a": {"exclude_impossible_night": False},
+    # ABL-419 registers the rule **off**, which is also what `DEFAULT_FIT_RULES`
+    # would have given it -- stated rather than inherited, for `abl316-t2a`'s
+    # reason: this table is one of the three `check_registration_tables` does *not*
+    # check, so an absence here is indistinguishable from an oversight and defaults
+    # silently.
+    #
+    # Off is right here for three reasons, and the third is specific to this
+    # tranche:
+    #
+    # - ABL-348's registration does not contain the rule, and this tranche is read
+    #   under it unchanged.  Turning it on would be a source-and-fit-frame change
+    #   after the bars were published, which `voids_this_registration` names.
+    # - ABL-403 measured the geometry x night-exclusion 2x2 and left the rule off;
+    #   ABL-419 discharges that issue's soft hold on this read rather than waiting
+    #   on it, because the only cell the 2x2 could have moved here is ES, and ES's
+    #   night floor is bounded exactly and for free by ABL-396's `f` (see below).
+    # - **On ES the rule would be mostly wrong, and measurably so.**  ES is the one
+    #   country in this scope with a material night floor -- ABL-396 section 2 puts
+    #   `f` at 1.352% of gate-window energy -- and ABL-411 verified it against Red
+    #   Electrica's own PV/CSP split rather than inferring it: over 3,196 night
+    #   hours REE's `solFot + solTer` accounts for **98.55%** of the MW the replica
+    #   books for ES with the sun down, MAE 5.55 MW against a 263.5 MW mean night
+    #   level.  **80.1%** of that annual night energy is CSP, rising to **91.4% in
+    #   July** -- which is this gate window.  `exclude_impossible_night` refuses to
+    #   train on values *the sun* says are impossible; CSP discharges stored heat
+    #   after sunset, so on ES the predicate is true of real generation, and turning
+    #   the rule on would drop real megawatt-hours from the fit and teach the model
+    #   a night floor of zero it would then be scored against.
+    #
+    #   ABL-411's refinement is carried, not dropped: the floor is **not all** CSP.
+    #   REE's own *solar fotovoltaica* series reports 44-59 MW at sun elevations of
+    #   -40 to -49 deg, where PV cannot generate, and that is **18.5%** of ES's
+    #   annual night floor -- a TSO-side estimation artifact mirrored faithfully by
+    #   ENTSO-E and by our ingest.  So the honest statement is that most of the
+    #   floor is real and some of it is not, which is a reason to bound ES's read
+    #   (this issue does, with `f`) rather than to filter its fit.  This is the one
+    #   place in the programme where the rule and the physics disagree, and it is a
+    #   finding for ABL-403's design question rather than an edit to this row.
+    #
+    # GR, HR, IT and PT screen at <= 0.009% night floor (ABL-396 section 3), so the
+    # rule would remove essentially nothing for them either way.
+    "abl316-t2c": {"exclude_impossible_night": False},
 }
 
 # ABL-395: and so is the feature *vector*, for exactly the reason stated above
@@ -499,6 +609,26 @@ SCOPE_FEATURES = {
     # "every scope whose evidence is committed must still resolve to the list that
     # evidence was taken on", which this row satisfies by inheriting the default,
     # and which `abl316-t1b` above did not.
+    #
+    # ABL-419 (`abl316-t2c`) is **absent for the same reason and deliberately**,
+    # and this comment is the registration of that absence -- the issue asked for
+    # all three silent tables to be registered explicitly, and on this one the
+    # explicit registration is a stated absence rather than a row.  Writing
+    # `"abl316-t2c": FEATURE_COLUMNS` would look like a pin and would not be one:
+    # it binds to the same mutable constant `DEFAULT_SCOPE_FEATURES` already binds
+    # to, so it protects nothing that the default does not, while flipping
+    # `meta.feature_set_is_registered_for_scope` to True -- printing a claim about
+    # this registration that is not true of it.  ABL-404 made exactly that argument
+    # about this table and it is the reason the 2a row above does not exist either.
+    #
+    # What actually pins this read is the record the fit writes:
+    # `meta.feature_columns` in `experiments/ABL348/results_abl419_tranche2c.json`
+    # carries the 27 literal names, and
+    # `test_a_dispositioned_scope_still_resolves_to_the_list_it_was_read_on` derives
+    # its scope list from `SCOPE_OUTPUTS` and holds each published read to its own
+    # recorded names.  So this scope is covered on the commit that publishes it,
+    # with nothing hand-maintained here, and moving `FEATURE_COLUMNS` to 28 fails
+    # the suite rather than silently re-basing fifteen dispositioned cells.
 }
 
 # The report's H1.  This was the string literal "ABL-253 -- Serve-faithful solar
@@ -522,6 +652,14 @@ SCOPE_TITLES = {
     # of either report should not have to reach the `feature_set` field to know
     # which challenger it describes.
     "abl316-t2a": "ABL-405 — Serve-faithful solar retrain gate, ABL-316 tranche 2a: 8 continental countries on energy_generation at 27 features",
+    # ABL-419, registered for the same reason the two above are: `title_for`'s
+    # fallback would head a 15-cell evidence pack "abl316-t2c", and a scope slug is
+    # a key, not a title.  The heading names the source table and the feature set
+    # because those are the two things that distinguish one solar gate read from
+    # another once the windows are frozen, and a reader quoting the H1 should not
+    # have to reach `meta.training_source` to know which table the challenger was
+    # fitted and scored on.
+    "abl316-t2c": "ABL-419 — Serve-faithful solar retrain gate, ABL-316 tranche 2c: 5 Mediterranean countries on energy_generation at 27 features",
 }
 
 
@@ -561,6 +699,25 @@ def title_for(scope: str) -> str:
 # on `import` -- taking `--help` and the whole suite with it -- with nothing on
 # GitHub to warn either author.  Adding a required table is not free; it is a
 # tax on every branch already in flight.
+#
+# **The call below names three tables, and this file carries six.**  ABL-419
+# counted them rather than assuming, because the count is the thing a reviewer
+# cannot see from the call site: `FIT_RULES`, `SCOPE_TITLES` and `SCOPE_FEATURES`
+# are *not* arguments here, so a scope added to `SCOPES` and omitted from any of
+# those three imports cleanly, runs cleanly, exits 0 and defaults silently.  A
+# tranche registration is therefore a six-table edit checked three ways, and the
+# other three are checked by hand at review.
+#
+# `SCOPE_FEATURES` in particular **cannot** join this call, and that is a
+# statement about the table rather than about the effort: `abl316-t2a` is
+# deliberately absent from it (see that table's comment, and ABL-404), so adding
+# it here would raise `KeyError` at import for a scope whose absence is correct
+# and published -- taking `--help` and the whole suite with it.
+# `test_a_published_read_that_recorded_its_own_list_needs_no_scope_features_row`
+# pins that absence, so the two would fail against each other.  `FIT_RULES` and
+# `SCOPE_TITLES` are complete today and could join; they are left out for the
+# reason argued directly above -- adding a required table is a tax on every
+# branch already in flight, and there are eight live at this commit.
 check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
 check_scope_outputs(SCOPE_OUTPUTS)
 
