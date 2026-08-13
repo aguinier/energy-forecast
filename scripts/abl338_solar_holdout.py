@@ -38,6 +38,23 @@ Usage
     .venv\\Scripts\\python.exe scripts/abl338_solar_holdout.py \\
         --countries AT,BE,DE,FR --holdout 2026-04-14:2026-08-11 \\
         --out reports/abl_338_solar
+
+ABL-375 reuses this script for a narrower question - which algorithm fits solar
+better, with geometry on both sides - and added two flags for it. Both default to
+today's behaviour, so a run without them produces the same arm keys as before:
+
+``--arms``
+    Fit only the named arms. ABL-375 needs `control` and `geometry` and nothing
+    else: the log-link arms are a settled question (ABL-338 rejected them on DE,
+    where CatBoost's Poisson collapsed to a constant 1.0 MW), and fitting all
+    eight would spend four times the compute on arms no verdict reads.
+
+``--seeds``
+    Fit each arm once per seed, keyed ``arm@seed``. A cross-algorithm MAE gap is
+    only a result if it is larger than the spread one arm shows against its own
+    seed, and that spread is measurable rather than assumable - so ABL-375
+    registers a seed set in advance and derives its noise floor from the observed
+    spread instead of quoting a remembered percentage.
 """
 
 import argparse
@@ -117,7 +134,20 @@ ARMS = tuple(ARM_SPECS)
 
 
 def _legacy_feature_columns() -> list:
-    """The 25 names every live solar artifact carries (pre-ABL-338)."""
+    """`get_feature_columns('solar')` minus the ABL-338 geometry pair.
+
+    This used to be documented as "the 25 names every live solar artifact
+    carries". Measured under ABL-375: it returns **29**. The four holiday
+    features — `is_holiday`, `days_to_holiday`, `days_from_holiday`,
+    `is_bridge_day` — are in the solar list and absent from all four serving
+    artifacts, which were fitted before them.
+
+    So the `control` arm is *this repo's current non-geometry solar feature set*,
+    not the serving one, and no arm here is a stand-in for the live artifact's
+    feature list. That is fine for an A/B — every arm carries the same 29 — but
+    it means a result from this script cannot be phrased as "beats the serving
+    artifact". Every committed run, ABL-338's included, used 29/31.
+    """
     return [c for c in get_feature_columns("solar") if c not in SOLAR_GEOMETRY_FEATURES]
 
 
@@ -168,6 +198,10 @@ def _seasonal_naive(frame: pd.DataFrame) -> np.ndarray:
     return frame["target_value_lag_7d"].to_numpy(dtype=float)
 
 
+#: Per-algorithm name for the seed knob. `--seeds` varies this and nothing else.
+SEED_PARAM = {"xgboost": "random_state", "lightgbm": "random_state", "catboost": "random_seed"}
+
+
 def evaluate_country(
     country_code: str,
     start_date: str,
@@ -175,6 +209,8 @@ def evaluate_country(
     holdout_end: str,
     drop_impossible_night: bool,
     force_algorithm: str = None,
+    arms: tuple = ARMS,
+    seeds: tuple = (None,),
 ) -> dict:
     live_path = LIVE_MODELS_DIR / country_code / "solar" / "model.joblib"
     incumbent = Forecaster.load(country_code, "solar", path=str(live_path))
@@ -260,7 +296,11 @@ def evaluate_country(
     }
     results["baseline_seasonal_naive_d7"]["all"] = _band_metrics(actual, baseline_pred)
 
-    for arm, (use_geometry, nonneg, overrides, daylight_only) in ARM_SPECS.items():
+    for arm, seed in ((a, s) for a in arms for s in seeds):
+        use_geometry, nonneg, overrides, daylight_only = ARM_SPECS[arm]
+        # One key per fit. `arm` alone when no seed set was asked for, so a run
+        # without `--seeds` writes the same keys it always did.
+        arm_key = arm if seed is None else f"{arm}@{seed}"
         feature_columns = _legacy_feature_columns()
         if use_geometry:
             feature_columns = feature_columns + list(SOLAR_GEOMETRY_FEATURES)
@@ -273,6 +313,8 @@ def evaluate_country(
         for key, value in overrides.items():
             if key == tree_count_key:
                 arm_hyperparams[key] = value
+        if seed is not None:
+            arm_hyperparams[SEED_PARAM[algorithm]] = seed
 
         forecaster = Forecaster(
             country_code, "solar", algorithm=algorithm,
@@ -333,6 +375,8 @@ def evaluate_country(
         # "this loss is wrong for the data" from "this fit never got started".
         n_trees = getattr(model, "tree_count_", None) or getattr(model, "best_iteration", None)
         arm_result = {
+            "arm": arm,
+            "seed": seed,
             "n_features": len(feature_columns),
             "nonneg_objective": nonneg,
             "hyperparams_objective": forecaster.hyperparams.get("objective")
@@ -343,9 +387,9 @@ def evaluate_country(
             in_band = (holdout_frame["band"] == b).to_numpy()
             arm_result[b] = _band_metrics(actual[in_band], predicted[in_band])
         arm_result["all"] = _band_metrics(actual, predicted)
-        results["arms"][arm] = arm_result
+        results["arms"][arm_key] = arm_result
         logger.info(
-            f"{country_code}/{arm}: daylight MAE {arm_result['daylight']['mae_mw']:.1f} MW, "
+            f"{country_code}/{arm_key}: daylight MAE {arm_result['daylight']['mae_mw']:.1f} MW, "
             f"night mean pred {arm_result['night']['mean_pred_mw']:.2f} MW, "
             f"{arm_result['all']['n_negative_pred']} negative predictions"
         )
@@ -388,7 +432,9 @@ def _render_markdown(payload: dict) -> str:
             f"{base['night']['mean_pred_mw']:,.2f} | {base['night']['max_pred_mw']:,.1f} | "
             f"{base['all']['n_negative_pred']} |"
         )
-        for arm in ARMS:
+        # The arms this payload actually holds, in fit order — not the global
+        # ARMS, which `--arms` and `--seeds` both make wrong.
+        for arm in result["arms"]:
             a = result["arms"][arm]
             lines.append(
                 f"| {arm} | {a['daylight']['mae_mw']:,.1f} | "
@@ -421,12 +467,29 @@ def main() -> int:
     parser.add_argument("--force-algorithm", default=None,
                         choices=sorted(config.SUPPORTED_ALGORITHMS),
                         help="Refit every arm with this algorithm instead of the incumbent's")
+    parser.add_argument("--arms", default=None,
+                        help=f"Comma-separated subset of arms to fit (default: all). "
+                             f"Known arms: {','.join(ARMS)}")
+    parser.add_argument("--seeds", default=None,
+                        help="Comma-separated integer seeds. Fits every arm once per seed, "
+                             "keyed arm@seed, varying only random_state/random_seed. Omit for "
+                             "one fit per arm at the configured seed.")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format=config.LOG_FORMAT)
 
     holdout_start, holdout_end = args.holdout.split(":")
     countries = [c.strip().upper() for c in args.countries.split(",") if c.strip()]
+
+    arms = ARMS
+    if args.arms:
+        arms = tuple(a.strip() for a in args.arms.split(",") if a.strip())
+        unknown = [a for a in arms if a not in ARM_SPECS]
+        if unknown:
+            parser.error(f"unknown arm(s): {unknown}. Known: {sorted(ARM_SPECS)}")
+    seeds = (None,)
+    if args.seeds:
+        seeds = tuple(int(s) for s in args.seeds.split(",") if s.strip())
 
     payload = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
@@ -436,13 +499,15 @@ def main() -> int:
         "holdout_end": holdout_end,
         "drop_impossible_night": args.drop_impossible_night,
         "force_algorithm": args.force_algorithm,
+        "arms": list(arms),
+        "seeds": list(seeds),
         "night_threshold_deg": NIGHT_ELEVATION_THRESHOLD_DEG,
         "countries": {},
     }
     for country in countries:
         payload["countries"][country] = evaluate_country(
             country, args.start, holdout_start, holdout_end, args.drop_impossible_night,
-            force_algorithm=args.force_algorithm,
+            force_algorithm=args.force_algorithm, arms=arms, seeds=seeds,
         )
 
     out_dir = Path(args.out)
