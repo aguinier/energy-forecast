@@ -49,7 +49,7 @@ from src.deployment import auto_promote_if_better
 from src.validation import WalkForwardValidator, TimeSeriesValidator, format_validation_report
 from src.hyperopt import OptunaOptimizer, compare_algorithms as optuna_compare_algorithms
 from src.feature_selection import FeatureSelector
-from src.features import create_all_features, get_feature_columns
+from src.features import create_all_features, select_feature_columns
 from datetime import timedelta
 import pytz
 
@@ -548,7 +548,9 @@ def train_model(
                 df = _exclude_backtest_weeks(df, logger)
 
             df = create_all_features(df, forecast_type, country_code=country_code)
-            feature_cols = [c for c in get_feature_columns(forecast_type) if c in df.columns]
+            feature_cols = select_feature_columns(
+                forecast_type, df.columns, f"{country_code} renewable train"
+            )
 
             X = df[feature_cols].values
             y = df['target_value'].values

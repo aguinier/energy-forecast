@@ -30,7 +30,7 @@ from .db import (
     LEGACY_RENEWABLE_TRAINING_SOURCE,
     RENEWABLE_TYPE_SOURCE_TABLE,
 )
-from .features import create_all_features, get_feature_columns
+from .features import create_all_features, select_feature_columns
 from .metrics import calculate_all_metrics, format_metrics
 from .wind_features import (
     RenewableFeatureBuilder,
@@ -334,10 +334,12 @@ class Forecaster:
                 f"Only {len(df)} hours of data (min: {config.MIN_TRAINING_HOURS})"
             )
 
-        # Get feature columns that exist in the data
-        self.feature_columns = [
-            col for col in get_feature_columns(self.forecast_type) if col in df.columns
-        ]
+        # Get feature columns that exist in the data. ABL-394: a declared name the
+        # frame does not carry is dropped here, and `select_feature_columns` is
+        # what says so out loud instead of shrinking the list in silence.
+        self.feature_columns = select_feature_columns(
+            self.forecast_type, df.columns, f"{self.country_code} train"
+        )
 
         logger.info(f"Using {len(self.feature_columns)} features")
 
@@ -594,10 +596,10 @@ class Forecaster:
         if len(df) < config.MIN_TRAINING_HOURS:
             logger.warning(f"Only {len(df)} hours of data (min: {config.MIN_TRAINING_HOURS})")
 
-        # Get feature columns
-        self.feature_columns = [
-            col for col in get_feature_columns(self.forecast_type) if col in df.columns
-        ]
+        # Get feature columns (ABL-394: names the frame lacks are dropped loudly)
+        self.feature_columns = select_feature_columns(
+            self.forecast_type, df.columns, f"{self.country_code} walk-forward"
+        )
 
         logger.info(f"Using {len(self.feature_columns)} features")
 
@@ -1408,9 +1410,9 @@ class CascadeForecaster:
         cascade_df["cascade_residual_load"] = oof_load_pred - oof_renewable_pred
 
         # Get price feature columns + cascade features
-        price_feature_cols = [
-            col for col in get_feature_columns("price") if col in cascade_df.columns
-        ]
+        price_feature_cols = select_feature_columns(
+            "price", cascade_df.columns, f"{self.country_code} cascade stage 2"
+        )
         all_stage2_features = price_feature_cols + self.cascade_feature_columns
 
         # Verify all cascade features exist

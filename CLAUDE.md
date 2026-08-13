@@ -877,9 +877,21 @@ command will not find them otherwise.
 
 **Holiday Features:**
 - is_holiday - Binary flag for public holidays
-- days_to_holiday - Days until next holiday (capped at 14)
-- days_from_holiday - Days since last holiday (capped at 14)
+- days_to_holiday - Days until next holiday (capped at 7, `src/features.py:177`)
+- days_from_holiday - Days since last holiday (capped at 7, `src/features.py:185`)
 - is_bridge_day - Workday between holiday and weekend
+
+> **Declared, but in no serving artifact** (ABL-386/ABL-394, measured 2026-08-13).
+> All 66 artifacts that carry a `feature_columns` list at all were fitted before
+> ABL-338 (5cf2296) threaded `country_code` into `create_all_features`, so
+> `create_holiday_features` never ran on a training frame and the fit-site
+> narrowing dropped these four names in silence. Dropping exactly those four
+> reproduces the served list length on all eight types
+> (23/23/26/25/27/25/24/24), so this is one plumbing gap, not eight drifts. They
+> are live for the **next** fit of any country and have never been evaluated on
+> any target — ABL-386's read on solar is MIXED. The frozen lists and the
+> recorded gap are in `tests/feature_list_manifest.json`; the narrowing now warns
+> instead of dropping silently (`select_feature_columns`, `src/features.py:534`).
 
 **Weather Features:**
 - Load: temperature, heating/cooling degree days
