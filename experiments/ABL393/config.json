@@ -1,0 +1,243 @@
+{
+  "issue": "ABL-393",
+  "parent": "ABL-386",
+  "grandparent": "ABL-375",
+  "title": "Do the four holiday features help load and price? 48 serving artifacts lack them, and the prior is the opposite of solar's",
+  "status": "PRE-REGISTERED - frozen before any registered arm is fitted",
+  "registered_at": "2026-08-13T21:45:00+02:00",
+  "registered_by": "Forecasting Scientist",
+  "evidence_pack": "reports/abl_393_load_price_holiday_verdict.md",
+  "measurement": "reports/abl_393_holiday_density_{load,price}_{winter,spring}.json (scripts/abl386_holiday_density_probe.py), reports/abl_393_source_gaps.json, reports/abl_393_load_price/*.json (scripts/abl338_solar_holdout.py), reports/abl_393_holiday_verdict_tables.{json,md} (scripts/abl393_holiday_verdict.py)",
+
+  "the_question": {
+    "one_line": "get_feature_columns('load') returns 30 names and every serving load artifact carries 26; get_feature_columns('price') returns 29 and every serving price artifact carries 25. The gap is exactly the four holiday features in both cases. Do they help?",
+    "why_it_is_live": "Forecaster.load reads feature_columns off the artifact, so the 48 serving load/price models are safe and stay safe. The exposure is the NEXT fit of any of them: whatever get_feature_columns() returns on the day a country is retrained is what that country starts serving. Same footgun as ABL-386, on the two targets where it might actually matter.",
+    "prior": "HELP, and this is the whole reason the issue exists. A public holiday genuinely changes electricity demand, and price is set by demand against supply, so both targets have a mechanism solar does not. src/features.py has documented these four as 'high impact for load forecasting' since before any of the artifacts were fitted. ABL-386 measured the opposite prior on solar (irradiance does not care what day it is) and got the null it expected: MIXED, nothing supporting keeping them on merit.",
+    "so_the_two_outcomes_are_both_worth_having": "if they help, 24 countries are serving load forecasts without a cheap accuracy gain. If they do not, a claim this repo's own source makes about its own features is false and should be deleted. A null is reported as plainly as an effect."
+  },
+
+  "scope": {
+    "types": ["load", "price"],
+    "why_not_the_other_seven": "renewable, solar, wind_onshore, wind_offshore, hydro_total and biomass are irradiance- and wind-driven and inherit solar's prior, which ABL-386 already read. Fitting them here to be thorough would spend compute on the prior we have already tested and would sprawl this issue over 66 artifacts. Named and excluded rather than quietly skipped. Price is in because it shares load's demand-side mechanism, not because it was convenient.",
+    "countries": ["AT", "BE", "DE", "FR"],
+    "why_these_four": "ABL-386's country set, kept deliberately. Holding the calendar fixed is what makes 'the solar read was MIXED and the load read is X' a statement about the TARGET rather than about which countries were picked. The four also do not share holiday dates in either window, so a per-country read can still separate 'no effect on load' from 'no effect on DE'.",
+    "what_this_is_not": "no promotion, no serving change, no retrain of a serving artifact, no edit to get_feature_columns(). The output is an evidence pack and a recommendation. If the verdict is HELP that is a finding, and any registry change is a separate decision by the CEO."
+  },
+
+  "instrument": {
+    "harness": "scripts/abl338_solar_holdout.py - ABL-386's own arms, extended to accept --type load and --type price. Deliberately not a second harness: two instruments measuring the same four features would be two answers.",
+    "what_ABL393_added_to_it": [
+      "--type load / --type price. Both go through the same load_training_data -> create_all_features path as the renewable types, take source=None (each reads one fixed table), and land on the bands == () branch ABL-385 added for wind.",
+      "--holiday-subsets: each arm also scored over `holiday`, `holiday_affected` and `ordinary` rows. Off by default, so no existing invocation changes shape.",
+      "the four src/evaluation/model_free_reference predictors, scored through the same _band_metrics the arms use."
+    ],
+    "the_predicate_lives_in_src": "HOLIDAY_SUBSETS and holiday_subset_masks are in src/features.py beside the four names they are defined over, so the pre-fit density probe reports the same rows the A/B then scores. A window measured under one definition and scored under another is not the window that was registered.",
+    "does_this_move_any_ABL386_number": "no. The solar branch of the report renders identically; the change adds JSON keys and, on unbanded types only, table rows. Checked by re-running ABL-386's committed catboost invocation and diffing the arm blocks - see reproducibility_check below."
+  },
+
+  "measured_before_any_registered_fit": {
+    "serving_list_is_exactly_reconstructible_on_both_types": {
+      "claim": "get_feature_columns(type, include_holidays=False) == the feature_columns of every serving load and price artifact, name for name and in order",
+      "verified": true,
+      "n_artifacts": 48,
+      "load": {"n_serving": 26, "n_current": 30, "missing": ["is_holiday", "days_to_holiday", "days_from_holiday", "is_bridge_day"], "extra_in_artifact": 0},
+      "price": {"n_serving": 25, "n_current": 29, "missing": ["is_holiday", "days_to_holiday", "days_from_holiday", "is_bridge_day"], "extra_in_artifact": 0},
+      "source": "reports/abl_386_feature_drift.json, re-checked 2026-08-13",
+      "consequence": "there is no geometry confound on these two types, so `control_noholiday` IS the serving feature list and `control` IS what the next retrain produces. This contrast is the decision as it would really be taken, with nothing else moving.",
+      "serving_algorithms": {"load": {"catboost": 20, "xgboost": 4}, "price": {"catboost": 19, "xgboost": 5}, "note": "both algorithms are live in both fleets, which is why both are fitted here."}
+    },
+
+    "window_selection": {
+      "rule_stated_before_choosing": "a window is admissible on two model-free criteria only - calendar holiday density, and source coverage. Neither can be a score. No arm was fitted on any candidate window before this table was written.",
+      "candidates": ["winter 2025-12-06..2026-01-18 (44 days, the December cluster scope item 3 asks for)", "spring 2026-04-30..2026-06-12 (44 days, inherited verbatim from ABL-375/ABL-386)"],
+      "holiday_density_measured": {
+        "source": "reports/abl_393_holiday_density_{load,price}_{winter,spring}.json",
+        "finding_that_contradicts_the_issue_text": "December is NOT the densest holiday window of the year by is_holiday count for three of these four countries. Measured: winter holds AT 5, BE 2, DE 3, FR 1 holiday days against spring's AT 4, BE 4, DE 3, FR 4. Late April to mid June carries Labour Day, Ascension, Whit Monday, FR's 8 May and AT's Corpus Christi; December carries Christmas and New Year and, outside AT, little else.",
+        "why_winter_is_still_worth_reading": "a count of red days understates it. The signal in December is a contiguous low-demand fortnight, which is what days_to_holiday and days_from_holiday mark. On the holiday_affected share (holiday, bridge day, or within one day of one) winter reads AT 29.5%, BE 13.6%, DE 15.9%, FR 11.5% against spring's AT 27.3%, BE 22.7%, DE 20.5%, FR 27.3% - so winter is denser only in AT, and materially thinner in FR.",
+        "spring_holiday_affected_share_pct": {"load": {"AT": 27.273, "BE": 22.727, "DE": 20.455, "FR": 27.273}, "price": {"AT": 27.273, "BE": 22.727, "DE": 20.455, "FR": 27.273}},
+        "winter_holiday_affected_share_pct": {"load": {"AT": 29.545, "BE": 13.636, "DE": 15.909, "FR": 11.542}, "price": {"AT": 22.222, "BE": 13.82, "DE": 12.096, "FR": 13.82}},
+        "no_holiday_feature_is_constant": "in any country, in either window, on either type - all four remain splittable throughout."
+      },
+      "source_coverage_measured": {
+        "source": "reports/abl_393_source_gaps.json, hourly coverage against a calendar spine",
+        "spring_coverage_pct": {"load": {"AT": 100.0, "BE": 100.0, "DE": 100.0, "FR": 100.0}, "price": {"AT": 100.0, "BE": 100.0, "DE": 100.0, "FR": 100.0}},
+        "winter_coverage_pct": {"load": {"AT": 100.0, "BE": 100.0, "DE": 100.0, "FR": 97.6}, "price": {"AT": 67.3, "BE": 98.7, "DE": 67.3, "FR": 98.7}},
+        "why_this_disqualifies_price_in_winter": "AT and DE price are 67.3% covered there, behind ingest holes of 1,651 h (AT, from 2025-09-09) and 1,309 h (DE, from 2025-09-25) plus a 91 h hole from 2025-12-23 that removes Christmas from both. That is not merely thin: create_lag_features shifts by days * 24 ROWS, which is a day only on a gapless hourly frame, so every row for a fortnight after a hole carries lag features reaching across it. On AT price the hole ends 2025-12-16, sixteen days into the window - the corrupted fortnight is inside the holdout being scored.",
+        "why_it_does_not_disqualify_load_in_winter": "load is clean: AT/BE/DE 100%, and FR 97.6% behind a single 26 h hole that removes 2026-01-01. FR's winter holdout therefore contains one holiday (Christmas) and is the weakest cell in the winter read; that is stated rather than corrected for.",
+        "holes_in_the_fit_windows_are_carried_identically_by_both_arms": "AT price is missing 2,236 h and DE price 2,483 h in total, almost all of it 2025-09 to 2025-12, which lies inside the FIT window for the spring read. The row-shifted lag problem therefore also touches spring price training rows. It is identical in both arms, so the CONTRAST is unaffected; it makes the absolute price MAE worse than a clean series would give, and it is reported rather than repaired here."
+      },
+      "registered_outcome": {
+        "primary_window": "spring 2026-04-30 .. 2026-06-12, for BOTH types",
+        "why_spring_is_primary": "100% coverage on all eight pairs, the denser holiday_affected share in three of four countries, and it is INHERITED not selected - ABL-375 chose it before any of its own arms were fitted, on a non-overlap criterion that has nothing to do with holidays. Using ABL-386's window means the solar null and this read differ in the target and in nothing else.",
+        "registered_replication": "winter 2025-12-06 .. 2026-01-18, LOAD ONLY",
+        "price_in_winter": "NOT REGISTERED, on the coverage criterion above. Recorded here rather than dropped silently.",
+        "the_replication_can_only_weaken_the_verdict": "winter-load is scored by the identical rule and reported in full, but a HELP there cannot create a HELP for load; only spring can. A direction disagreement between the two downgrades load to MIXED. This is ABL-386's replicate-downgrade mechanism, and it is deliberately asymmetric because of the disclosure below: a number was seen on the winter window before this file was written, and the registration must not be able to profit from it."
+      }
+    },
+
+    "contamination": {
+      "ABL-109_ABL-111_zero_as_missing_actual_load": {
+        "why_it_matters_here_and_did_not_on_solar": "these are load-only, so ABL-386 could dismiss them. db.load_energy_data applies NO `> 0` guard on the training path - unlike the scorecard's ABL-35 read - so a zero-as-missing row would enter the fit as a genuine target of 0 MW.",
+        "measured": "ZERO such rows. energy_load with data_quality='actual' holds 0 zero-valued and 0 null rows for AT, BE, DE and FR over the ENTIRE history (AT 92,684 rows from 2024-01-01; BE 197,810 and DE 197,798 from 2021-01-01; FR 87,542 from 2021-01-01). Both registered windows are therefore untouched.",
+        "handling": "nothing to handle. The screen is reported because it was run, not because it found something. It bounds the claim to these four countries: it says nothing about the other 20 load artifacts, and a later tranche must re-run it."
+      },
+      "ABL-71_prod_ingest_stale_fixes_undeployed": {
+        "why_it_matters_here": "its known wrong-write modes are load and net position, so on this issue it is a live concern rather than the provenance caveat it was on solar.",
+        "handling": "not separable from the read with the instruments available - ABL-71 is about what prod wrote, and this A/B reads the replica's stored actuals for both arms. Both arms are scored on identical rows, so a contaminated actual moves both MAEs together and cancels out of the paired difference. It does NOT cancel out of the absolute MAE, so every absolute number here carries this caveat.",
+        "what_was_measured_instead": "the source-gap inventory above, which is the observable part: load has one 27-29 h outage on 2026-02-15 common to all four countries, plus FR's 26 h over New Year 2026. Neither is in the spring window."
+      },
+      "ABL-67_fabricated_net_position_rows": "net_position only. Does not intersect load or price.",
+      "ABL-188_constant_run_screen": "applies to load_renewable_type_data only. Neither load nor price goes through it, so it is inert here.",
+      "price_zeros_and_negatives_are_not_contamination": "energy_price carries 297-1,355 exact zeros and 1,724-3,256 negative hours per country over its full history. Those are real market outcomes and are retained. They are the reason MAE and not WAPE is the primary statistic on price: a relative error whose denominator crosses zero is not a stable quantity."
+    },
+
+    "disclosure_a_number_was_seen_before_this_file_was_written": {
+      "what": "two smoke-test invocations, run to prove the load and price code paths worked at all before anything was registered.",
+      "runs": [
+        "DE / load / xgboost / winter / seed 42: control (30 names) MAE 1,303.4 MW, control_noholiday (26 names) MAE 1,435.1 MW; on holiday rows 1,238.7 vs 1,767.3 MW.",
+        "DE / price / catboost / winter / seeds 42 and 1337: control 20.5 and 21.9 EUR/MWh, control_noholiday 21.7 and 20.6 - opposite directions at two seeds."
+      ],
+      "why_it_does_not_contaminate_the_registered_read": "seeds 42 and 1337 are NOT in the registered seed set (101, 103, 107, 109, 113, 127, 131, 137), so not one of these fits is inside the read. They are one draw each, and ABL-376 measured this family of harness moving up to 5.4% between two seeds with nothing else changed - a single-seed gap of any size is not a measurement.",
+      "why_it_is_recorded_anyway": "because it is the honest state of knowledge at registration time, and because the winter window was kept for load AFTER seeing a favourable winter number on DE load. The mitigations are structural rather than assertions of good faith: winter is a replication that cannot create a HELP, the primary window is the one inherited from ABL-386, and both windows were admitted or rejected on coverage and calendar density alone - criteria fixed and published above before any registered arm was fitted.",
+      "what_would_void_this": "moving the window, the arms, the seeds, the metric or the verdict rule after a REGISTERED score is seen."
+    }
+  },
+
+  "arms": {
+    "design": "one factor, two levels. There is no geometry on these types, so ABL-386's 2x2 collapses to the single contrast that matters.",
+    "cells": {
+      "control_noholiday": {"holidays": false, "n_features": {"load": 26, "price": 25}, "note": "EXACTLY the serving feature list on both types"},
+      "control": {"holidays": true, "n_features": {"load": 30, "price": 29}, "note": "what a retrain on origin/main produces today"}
+    },
+    "the_only_thing_that_varies": "the presence of is_holiday, days_to_holiday, days_from_holiday, is_bridge_day in the feature list. Same rows, same fit truncation, same hyperparameters, same early-stopping split, same seed.",
+    "algorithms": ["catboost", "xgboost"],
+    "why_both": "both are live in both serving fleets (load 20/4, price 19/5), so a one-algorithm answer would not transfer. Each runs at its own config.get_default_params() under --force-algorithm; neither inherits the incumbent's tuned dict, and neither inherits the other's.",
+    "seeds": [101, 103, 107, 109, 113, 127, 131, 137],
+    "why_eight_and_why_these": "this repo's standing eight-seed set, used verbatim by ABL-376 and ABL-395, so the seeds are inherited rather than chosen. Eight is the smallest set at which a two-sided sign test can reach p = 0.0078, which is what the primary statistic below needs.",
+    "seed_knob": "random_state for xgboost, random_seed for catboost; nothing else varies between seeds",
+    "fit_window": "every featured row strictly before the holdout start, per country. --start 2021-01-01, which is simply 'all of it' - AT load begins 2024-01-01 and both price series begin 2021-12-31.",
+    "validation_split": "config.VALIDATION_DAYS = 30, chronological, off the end of the fit window, never touching the holdout. Both algorithms early-stop on it at 50 rounds, so early stopping is symmetric across arms.",
+    "control_is_a_refit_not_the_live_artifact": "the live load/price artifacts were fitted through roughly today, so scoring them on either holdout would score them in-sample. Every arm here is a refit on the identically truncated window. control_noholiday carries the serving FEATURE LIST; it is not the serving MODEL, and no number here may be phrased as beating one.",
+    "total_fits": 384,
+    "arithmetic": "3 registered (type, window) groups x 4 countries x 2 algorithms x 8 seeds x 2 arms"
+  },
+
+  "primary_bar": {
+    "contrast": "control (holidays) vs control_noholiday (serving list)",
+    "unit": "one (type, window, country, algorithm) cell - 24 cells, 8 per group",
+    "statistic": "the PAIRED-BY-SEED relative difference, over all holdout hours: delta_s = 100 * (MAE_holidays,s - MAE_no_holidays,s) / MAE_no_holidays,s, for each of the 8 registered seeds.",
+    "effect_sign": "NEGATIVE means the holiday features make it BETTER. (ABL-386 used the opposite convention on an unpaired statistic; the sign is stated on every table here rather than inherited.)",
+    "why_paired_and_not_ABL386s_range_test": "ABL-386 registered unpaired seed-range disjointness and then recorded, in its own corrections block, that this was the weaker instrument and the first thing a follow-up should fix: the two arms in a contrast share their seed, so the across-seed variance cancels inside the difference and throwing that away costs most of the power. Scope item 2 of this issue asks for the fix. Pairing is why this design can resolve effects ABL-386 could not.",
+    "what_pairing_does_and_does_not_remove": "it removes the component of the seed effect the two arms share. It does not make the arms deterministic functions of one another - the feature counts differ, so column subsampling draws differ - which is exactly why the test is over the DISTRIBUTION of delta_s and not over one of them.",
+    "per_cell_verdict": {
+      "k": "the number of the 8 seeds at which delta_s < 0, i.e. at which holidays are better",
+      "d = +1": "k >= 7. Two-sided sign test p <= 0.0703; at k = 8, p = 0.0078.",
+      "d = -1": "k <= 1, the same test in the other direction",
+      "d = 0": "2 <= k <= 6",
+      "no_fixed_percentage_threshold": "for ABL-386's reason: it registered 3.0% and then measured a single arm moving 13.79% of its own mean across three seeds. Significance decides the verdict; magnitude is reported beside it and decides nothing."
+    },
+    "per_group_verdict": {
+      "unit": "the 8 cells of one (type, window) group",
+      "HELP": "sum(d) >= +4",
+      "HARM": "sum(d) <= -4",
+      "NO_EFFECT": "at most 2 of the 8 cells are material in either direction",
+      "MIXED": "anything else",
+      "note": "same thresholds and same cell count as ABL-386, deliberately, so the two reads are comparable."
+    },
+    "per_type_verdict": {
+      "price": "its single registered group, spring.",
+      "load": "spring is primary. If winter-load disagrees in DIRECTION with spring-load (one HELP, the other HARM) the load verdict is downgraded to MIXED. Winter agreeing, or reading NO_EFFECT, leaves spring's verdict standing. Winter cannot upgrade a spring NO_EFFECT to HELP.",
+      "there_is_no_pooled_all_types_verdict": "load and price are reported separately. They have different fleets, different units and different mechanisms, and a pooled number would hide exactly the case worth knowing about - one of them helping and the other not."
+    }
+  },
+
+  "registered_secondary_reported_never_gating": {
+    "holiday_row_subsets": {
+      "what": "the identical paired statistic computed over `holiday` rows (is_holiday == 1) and over `holiday_affected` rows (holiday, bridge day, or within one day of one), alongside `ordinary` rows.",
+      "why_registered_in_advance": "a public holiday is 2-5 days in a 44-day window, so an effect that is real on holiday rows is diluted roughly twentyfold in an all-hours mean. Without this registered up front, a subset read produced after seeing a null all-hours result would be indistinguishable from rescuing the hypothesis.",
+      "interpretation_rule_registered_in_advance": {
+        "all_hours HELP": "they help. The subset read then says where.",
+        "all_hours NO_EFFECT or MIXED, subsets HELP": "reported as 'they help on the rows the mechanism reaches, and the fleet-wide MAE effect is X%'. Both numbers are quoted together and the all-hours number leads. This is NOT promoted to HELP.",
+        "all_hours HELP, subsets not": "reported as an anomaly - the mechanism does not explain the gain, and the gain should be treated as unexplained rather than banked."
+      }
+    },
+    "model_free_references": {
+      "what": "constant_causal, constant_oracle, climatology_causal and climatology_oracle from src/evaluation/model_free_reference.py, scored on the holdout beside the literal D-7 seasonal naive.",
+      "why": "ABL-381's standing ask, restated by the CEO on this issue: a flat line scores badly on anything with a diurnal cycle, so a margin quoted only against D-7 or only against a constant flatters the model. Load and price are both strongly diurnal. The hour-of-day climatology is the tighter reference and is the one the write-up must quote.",
+      "canonical_module_reused_not_reimplemented": "the levels come from constant_reference_levels and climatology_reference_levels via attach_model_free_references. This script writes no reference of its own.",
+      "read_the_n": "a climatology is 24 levels and can be partially measurable, so each reference carries its own n in the table. Two WAPEs scored on different rows are not the same measurement.",
+      "these_are_not_bars": "this script has no gate in it. Nothing here can pass or fail."
+    },
+    "also_reported": [
+      "each arm's own UNPAIRED seed spread as a share of its mean, so a sign-consistent 0.2% effect is not read as if it were the 9% a single seed can produce",
+      "mean delta and its standard deviation across the 8 seeds, per cell",
+      "MAE, WAPE, RMSE, bias and negative-prediction counts per arm",
+      "n_trees surviving early stopping per arm, as a check that no arm failed to converge",
+      "the serving 26/25-name lists' own MAE - the first time this lineage can quote what the served feature set scores on load and price"
+    ]
+  },
+
+  "recommendation_mapping_registered_in_advance": {
+    "why_registered": "so the recommendation is a lookup rather than a judgement made after seeing the table.",
+    "HELP": "recommend that get_feature_columns() keep the four names for that type, and report the size of the gain per country. THIS IS A FINDING AND NOT A PROMOTION: no serving-registry change and no retrain follows from this issue. Flag that 24 countries of that type are serving without them, and that scheduling a retrain is the CEO's decision, not this issue's.",
+    "HARM": "recommend EXCLUDE for that type, and report the size of the harm.",
+    "NO_EFFECT": "recommend EXCLUDE on parsimony, AND record that src/features.py's 'high impact for load forecasting' comment is contradicted by measurement and should be corrected - a false claim in our own source is the second half of what this issue was opened to settle.",
+    "MIXED": "report the disagreement and name what a further read must measure. Recommend exclusion on parsimony only if no cell shows a material HELP.",
+    "if_load_and_price_disagree": "they get different recommendations. There is no rule forcing one answer for both."
+  },
+
+  "known_limits_of_this_protocol": {
+    "not_serve_faithful": "features come from the training-time pipeline, whose lags and rolling windows are anchored at the target hour; at serving they are anchored at the generation instant (ABL-183). Every arm carries that identically, so the CONTRAST is sound and the absolute MW are optimistic against the rail. The four holiday features are exempt by construction - all are calendar functions of the target timestamp, not lagged actuals, so they are identical in both paths.",
+    "row_shifted_lags": "create_lag_features shifts by days * 24 rows, so a source gap corrupts the lag features of the fortnight after it. Load is essentially free of this; AT and DE price are not, and their holes sit in the spring read's fit window. Identical in both arms; it degrades the absolute price numbers and is reported.",
+    "no_horizon_bands": "no 24-36h / 36-48h / 48-64h decomposition. This answers 'do these four features change the fit', not 'does load clear a promotion gate' - there is no promotion gate for load or price to clear.",
+    "four_countries": "AT, BE, DE, FR of 24. A result here is a result on four calendars, and the remaining 20 load and 20 price artifacts are not covered. The ABL-109/ABL-111 zero screen is likewise clean only for these four.",
+    "two_windows_one_of_them_load_only": "spring is 44 days of late spring; winter is 44 days across the Christmas cluster and covers load alone. Neither is a claim about the rest of the year.",
+    "price_relative_error": "energy_price crosses zero, so WAPE on price is reported but is not the statistic anything is decided on."
+  },
+
+  "replica": {
+    "path": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "access": "read-only, file:...?mode=ro",
+    "verified_at_registration": "9432453120 bytes, 2026-08-13 - the live replica, NOT the 3.0 GB energy-data-gathering partial snapshot",
+    "writes": "none. This issue writes reports and experiment JSON only; no sidecar row, no model artifact, no replica write."
+  },
+  "interpreter": {
+    "path": "C:\\Code\\able\\energy-forecast\\.venv\\Scripts\\python.exe",
+    "python": "3.14.3",
+    "xgboost": "3.3.0",
+    "why_it_is_part_of_the_registration": "an xgboost-3.3.0 pickle loaded under 2.1.4 keeps its trees and silently resets the fitted intercept to 0.5, producing shape with no level. Every artifact read here - the 8 incumbents this harness loads for their algorithm and version - is read under .venv."
+  },
+
+  "corrections_after_the_fit": {
+    "rule": "A registration is amended visibly or not at all. The text above is left standing so the diff shows what was believed before the fit, and each entry says whether it changes any arm that was fitted or any registered verdict.",
+    "entries": [
+      {
+        "field": "recommendation_mapping_registered_in_advance.NO_EFFECT, second clause",
+        "registered": "'recommend EXCLUDE on parsimony, AND record that src/features.py's high impact for load forecasting comment is contradicted by measurement and should be corrected'",
+        "what_happened": "that clause was written expecting NO_EFFECT to be the LOAD outcome. It fired on PRICE. Load read HELP, so the comment - which names load specifically - is vindicated rather than refuted, and applying the clause to price would have published a false statement about our own source.",
+        "handling": "the mapping string is left in place and the verdict script carries a `NO_EFFECT@price` override for the RATIONALE only, flagged in the source at the mapping. The registered ACTION is untouched: NO_EFFECT recommends EXCLUDE either way, and that is what price gets.",
+        "changes_a_fitted_arm": false,
+        "changes_a_verdict": false,
+        "changes_a_recommendation": false
+      },
+      {
+        "field": "gain decomposition rendering (not a registered statistic)",
+        "what_happened": "the holiday-affected share of the all-hours gain is meaningless where the total gain is negative - four cells (DE price x2, FR winter load x2) have the holiday arm worse overall, and a share of a negative total reads as 'most of the gain landed elsewhere' rather than 'there was no gain'.",
+        "handling": "those cells render `net loss` and the share is null in the JSON. The decomposition was always arithmetic on the registered subsets rather than a test, so nothing gating is affected.",
+        "changes_a_fitted_arm": false,
+        "changes_a_verdict": false
+      }
+    ]
+  },
+  "outcome": {
+    "load": {"spring": "HELP", "winter_replication": "HELP", "downgraded": false, "verdict": "HELP", "recommendation": "KEEP"},
+    "price": {"spring": "NO_EFFECT", "verdict": "NO_EFFECT", "recommendation": "EXCLUDE"},
+    "load_spring_cells": "8 of 8 material, 8 of 8 favouring the holiday features, every cell at 8/8 seeds (sign test p = 0.0078)",
+    "price_spring_cells": "2 of 8 material, both favouring the holiday features; DE moves the other way at both algorithms and is not material at either",
+    "reproducibility_check": "PASSED - ABL-386's committed DE catboost invocation re-run under this issue's code reproduces all 12 arm-fits field for field; only new JSON keys are added",
+    "read_the_evidence_pack_for_the_caveats": "reports/abl_393_load_price_holiday_verdict.md"
+  },
+  "voids_this_registration": "any change to either window, the fit truncation rule, the arm set, the seeds, the metric, the primary paired statistic, the sign-test thresholds, the group or type verdict rules, the subset definitions or the recommendation mapping, after any registered challenger score has been seen. Seeing a null and re-reading on a third window to find an effect voids it outright.",
+  "promotion": "NONE. No model produced here goes near models/ or the serving registry. No serving artifact is retrained. The output is an evidence pack and a recommendation about a feature list.",
+  "artifact_location": "reports/abl_393_load_price (experiment output only; not a serving registry)"
+}

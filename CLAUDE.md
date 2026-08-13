@@ -1099,6 +1099,46 @@ command will not find them otherwise.
 > harness came to sit two names short of an ABL-338-current fit until ABL-395 —
 > see "Neither harness fits the list `get_feature_columns()` builds" above. Both
 > harness lists are frozen in the same manifest, under `gate_harness`.
+>
+> **The solar null does not transfer to load** (ABL-393).
+> `scripts/abl338_solar_holdout.py --type load|price` fits the same arms on the two
+> aggregate targets, paired by seed over the standing eight seeds — the instrument
+> ABL-386 named as its own weakest. Registration `experiments/ABL393/config.json`,
+> verdict and numbers `reports/abl_393_load_price_holiday_verdict.md`. **Do not
+> read ABL-386's MIXED as covering the other seven types**: it was registered on a
+> target whose prior was "no effect" — solar output is set by irradiance — and it
+> says so. On load the prior is the opposite, and `control_noholiday` there is
+> *exactly* the serving list (26 names on load, 25 on price, all 48 artifacts, name
+> for name and in order), so the contrast is what is served against what the next
+> retrain builds, with nothing else moving.
+
+Three things about that read are reusable and would otherwise be re-derived:
+
+- **`create_lag_features` shifts by rows, so a source gap poisons the fortnight
+  after it.** `days * 24` is a day only on a gapless hourly frame, and
+  `energy_price` is not gapless: measured 2026-08-13, AT is missing **2,236 h** and
+  DE **2,483 h**, almost all of it 2025-09 to 2025-12 (AT's largest single hole is
+  1,651 h, DE's 1,309 h), while `energy_load` over the same span misses one 27–29 h
+  outage on 2026-02-15 common to all four majors plus 26 h of FR over New Year
+  2026. A holdout placed within 14 days of a hole scores rows whose D-1/D-7/D-14
+  lags reach across it. This is what disqualified December for price in ABL-393 —
+  AT and DE are 67.3% covered there — and `reports/abl_393_source_gaps.json` is the
+  regenerable inventory. **Check it before choosing a window**, on either table.
+- **December is not the densest holiday window of the year**, for three of the four
+  majors. Measured on the `holidays` calendar: 2025-12-06..2026-01-18 holds AT 5,
+  BE 2, DE 3, FR 1 holiday days against 2026-04-30..2026-06-12's AT 4, BE 4, DE 3,
+  FR 4 — Labour Day, Ascension, Whit Monday, FR's 8 May and AT's Corpus Christi all
+  fall in the second. What December has instead is a contiguous low-demand
+  fortnight, which `days_to_holiday`/`days_from_holiday` mark and a count of red
+  days does not.
+- **A holiday is 2–5 days in a 44-day window, so an all-hours mean dilutes a
+  holiday effect roughly twentyfold.** `--holiday-subsets` scores each arm over
+  `holiday`, `holiday_affected` (holiday, bridge day, or within a day of one) and
+  `ordinary`, from `src/features.holiday_subset_masks` — one predicate, shared with
+  the pre-fit density probe, so a window cannot be registered under one definition
+  and read under another. The two subsets partition the holdout and MAE × n is a
+  sum of absolute errors, so their gains add to the total exactly: **which subset
+  the gain lands in is the internal check on any headline here.**
 
 **Weather Features:**
 - Load: temperature, heating/cooling degree days
