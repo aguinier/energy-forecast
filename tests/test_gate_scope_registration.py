@@ -252,6 +252,71 @@ def test_tranche2b_does_not_gate_on_the_incumbent(gate_basis):
     assert gate_basis["abl406-tranche2b"] == ("challenger", "seasonal_naive")
 
 
+#: ABL-417 tranche 2e: the eight `wind_onshore` pairs tranche 2b left out.
+#: Written out for the same reason `TRANCHE2B_PAIRS` is -- the pair list *is* the
+#: registration, and deriving it from a fleet-size threshold would let an edit to
+#: `experiments/ABL348/config.json` move the denominator of a 24-cell read.
+#:
+#: This set is exactly the one `test_tranche2b_excludes_the_deferred_small_fleet_pairs`
+#: names as deferred, which is the property the two tests share: the same eight
+#: countries must stay *out* of 2b and *in* 2e, and a drift in either direction
+#: now fails twice with two different messages.
+TRANCHE2E_PAIRS = {("wind_onshore", c) for c in
+                   ("CZ", "EE", "HR", "HU", "LT", "LV", "NL", "RO")}
+
+
+def test_tranche2e_is_the_eight_small_fleet_onshore_pairs(scopes):
+    """ABL-417 registers ABL-316's wind tranche 2e: 8 pairs, 24 cells.
+
+    Report-only, and the scope table is where that begins: these are the pairs
+    whose registered D-7 bars run 86.78% (EE) to 125.38% (HU), which is why they
+    are not in 2b's denominator. ABL-406 measured that a bar that weak fully
+    predicts its own gate outcome -- five weak bars, five passes; three strong
+    bars, three failures or ties -- so what the cells are read on here is
+    ABL-418's ladder, not the pass count.
+    """
+    tranche = scopes["abl417-tranche2e"]
+    assert tranche == TRANCHE2E_PAIRS
+    assert len(tranche) * len(PRIMARY_BANDS) == 24
+    assert not tranche & SERVING_PAIRS, (
+        f"tranche 2e refits serving pairs: {sorted(tranche & SERVING_PAIRS)}")
+
+
+def test_tranche2e_is_disjoint_from_the_earlier_wind_tranches(scopes):
+    """2e must add coverage, not re-fit a pair another tranche dispositioned.
+
+    Tranches 1a and 2b are `done` and published. A pair appearing in two scopes
+    would be fitted twice under one registration and reported under two
+    verdicts, and -- since each scope writes to its own registered paths -- with
+    no collision to make that visible.
+
+    The union is also the completeness claim this tranche closes ABL-316's wind
+    half on: 2 + 8 + 8 = the 18 `wind_onshore` countries ABL-348 registers.
+    """
+    earlier = scopes["abl380-tranche1a"] | scopes["abl406-tranche2b"]
+    assert not scopes["abl417-tranche2e"] & earlier, (
+        f"tranche 2e re-fits already-dispositioned pairs: "
+        f"{sorted(scopes['abl417-tranche2e'] & earlier)}")
+    onshore = {pair for pair in earlier | scopes["abl417-tranche2e"]
+               if pair[0] == "wind_onshore"}
+    assert len(onshore) == 18
+
+
+def test_tranche2e_does_not_gate_on_the_incumbent(gate_basis):
+    """None of these eight holds a `wind_onshore` row in `forecasts` either.
+
+    Re-measured on the live replica (9,432,453,120 bytes) on 2026-08-14 rather
+    than inherited from tranche 2b's docstring: exactly BE (32,068) and AT/DE/FR
+    (31,056 each) carry `renewable_type='wind_onshore'` rows across the whole
+    table, and all eight of CZ/EE/HR/HU/LT/LV/NL/RO carry zero while holding
+    65,088-65,232 forecast rows each of *other* types. So "the country is absent
+    from the table" is not the explanation here either, and a four-way basis
+    would look plausible right up to the n=0 intersection.
+    """
+    assert "incumbent" not in gate_basis["abl417-tranche2e"]
+    assert gate_basis["abl417-tranche2e"] == ("challenger", "seasonal_naive")
+
+
 # --------------------------------------------------------------------------
 # ABL-378: the same two properties for the solar harness.
 #
