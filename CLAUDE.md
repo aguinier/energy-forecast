@@ -125,6 +125,51 @@ Two consequences worth knowing:
   it — `src.evaluation` always resolves to the directory. `src/__init__.py:44`
   already has its re-export commented out.
 
+### Help text is ASCII; report bodies are not
+
+`--help` output must be plain ASCII. `scripts/train.py:262` held a literal `→`,
+and `python scripts/train.py --help > /dev/null` exited **1** with
+`UnicodeEncodeError` — CPython takes stdout's encoding from what stdout *is*, so
+a console writes through `WriteConsoleW` and survives, while a pipe or a file
+falls back to the locale codepage (cp1252 here) and `argparse` raises inside the
+`--help` action itself (ABL-364). Interactively it looked fine; every harness,
+CI step and agent that captures stdout saw a traceback instead of usage.
+
+**A module docstring is help text.** 18 of the 38 entry points pass
+`description=__doc__`, so an em dash in a docstring is the same defect one
+codepage over (cp1252 encodes `—`, cp850 does not). Nine scripts beyond
+`train.py` were carrying one.
+
+`tests/test_help_text_encoding.py` holds the line: it reads every entry point's
+parser out of the AST — `help=`, `description=`, `epilog=`, and `__doc__` where
+it is passed as one — and rejects any character above U+007F. Write `->` and
+`--`. It is a static sweep because `--help` on an arbitrary script means
+executing that script to module scope, and it runs `scripts/train.py --help`
+under `PYTHONIOENCODING=ascii` as the one end-to-end case, so the assertion does
+not depend on the codepage of the box.
+
+"Entry point" there means the same set as `test_script_imports.py`: every
+`scripts/*.py`, the repo-root runners, **and every `config.MODEL_RUNNERS`
+script**. That last group is not decoration — `test_model_runner_launches`
+starts each runner with `--help` through a pipe, and two of them
+(`src/chronos_forecaster.py`, `src/tso_correction_forecaster.py`) live under
+`src/`, outside the `scripts/` glob. Both are ASCII-clean today. Note that
+neither passes `description=__doc__` — they use short literals
+(`tso_correction_forecaster.py:375`) — so unlike the `scripts/` entry points
+above, **their module docstrings are not help text** and an em dash in one is
+harmless. What is swept, and what matters, is their `help=`/`description=`
+literals: a non-ASCII character there stops the runner from starting, and per
+the bullet above `forecast_daily` books a runner that cannot start as a failed
+*result* and still prints `[DONE]`.
+
+Report bodies are the deliberate exception and keep `Δ`, `→`, `·`. They are
+printed from one known place, so they re-encode the stream there
+(`evaluate_net_position.py:125-132`, `compare_challenger.py:127-133`) — which is
+not available to `--help`, since argparse prints before any line of `main()`
+runs. Do not "fix" this the other way by forcing UTF-8 on stdout at import time:
+that is a runtime change in 38 scripts, forgettable in the 39th, and it
+re-encodes the log files the `scripts/workstation/*.ps1` jobs capture.
+
 ## What a runner reports (ABL-370)
 
 The exit code says whether a runner crashed. It does not say whether it
@@ -370,7 +415,7 @@ the rule above, and is read back by `CascadeForecaster.load_model`.
 ABL-342 made that provenance faithful but gave neither harness a way to read
 anything else. The **solar** harness now has one (ABL-345):
 `scripts/evaluate_solar_retrain.py --renewable-source energy_generation`. It
-resolves the source once (`evaluate_solar_retrain.py:208`) and hands the same
+resolves the source once (`evaluate_solar_retrain.py:351`) and hands the same
 string to both read sites — the `RenewableFeatureBuilder`, which supplies the
 fitted series, every lag and rolling feature, the D-7/persistence baselines and
 the gate actuals; and `_constant_runs`, whose result drives `verdict`, so
@@ -425,10 +470,57 @@ Relatedly, a run in which any cell scores zero rows now returns verdict
 `FAIL` invites exactly the wrong next move (feature work on a model that was
 never measured).
 
-The **solar** harness still hardcodes `len(gate_cells) == 9` against its
-`COUNTRIES` and has no scope argument. That is correct while every solar run is
-the full ABL-253 scope; the ABL-348 tranche will need the same `SCOPES`
-treatment before it can gate a subset.
+ABL-378 ported all of the above to the **solar** harness, so it is no longer the
+exception this section used to describe. It takes `--scope` over a `SCOPES` table
+of its own (`evaluate_solar_retrain.py:60`), registers a `GATE_BASIS` per scope
+(`:98`), and derives its bar rather than hardcoding `== 9`:
+`registered_cells = len(registered_countries) * len(PRIMARY_BANDS)`
+(`:361`), compared in `disposition` (`:181`). `abl253` is the default and the
+only registered solar scope today, so an unflagged run still reproduces ABL-253;
+ABL-381's tranche registers the second.
+
+**A scope also registers where it writes** (ABL-387). `--artifact-dir`,
+`--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
+which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
+omitted three flags overwrote a dispositioned gate read in place, succeeded, and
+emitted a full report. Each harness now has a `SCOPE_OUTPUTS` table beside
+`SCOPES`/`GATE_BASIS` (`evaluate_wind_retrain.py:112`,
+`evaluate_solar_retrain.py:86`); the three flags default to `None` and resolve
+against it after parsing, so an explicit path still overrides. `abl195` and
+`abl253` keep their historical paths byte-for-byte. The three tables are one
+registration in three views and are cross-checked at **import** by
+`check_registration_tables` (`src/evaluation/gate_registration.py:39`, called at
+`evaluate_wind_retrain.py:184` and `evaluate_solar_retrain.py:118`), so a scope
+added to one and not the others fails before any fit rather than mid-run — it
+raises on `import`, so even `--help` exits non-zero. That is deliberately louder
+than a failing test: the tables disagreeing is **not** a textual conflict, so
+GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
+platform will show it. **Registering a new scope means editing three tables.**
+
+**Which way the two `.gitignore` globs cut — they do not cut the same way.**
+Entries stay exactly one directory deep under `experiments/`, and below that the
+resemblance ends. `.gitignore:56` (`experiments/*/artifacts/`) matches on the
+**directory name**, so any one-level path ending `artifacts` is ignored and no
+`artifact_dir` is committable. `.gitignore:53` (`experiments/*/results.json`)
+matches on the **exact filename**, so a one-level `json_out` named anything else
+is **tracked**. Depth alone therefore does not decide tracking, and both
+conventions are live:
+
+| scope | `json_out` | tracked? |
+|---|---|---|
+| `abl195`, `abl253`, `abl322-pilot` | `experiments/<ID>/results.json` | no — ignored at `.gitignore:53` |
+| `abl380-tranche1a` | `experiments/ABL348/results_abl380_tranche1a.json` | **yes** |
+
+**Prefer the tracked form for any new scope whose read will be dispositioned.**
+An ignored `results.json` is the one gate record `git checkout --` cannot recover
+and a reviewer cannot diff, which is the same blind spot that made this issue's
+failure mode unobservable: an overwritten gate read shows nothing in
+`git status`, no conflict, no reviewer signal. `abl195`/`abl253` keep the ignored
+form only because relocating them would break the path every already-published
+report cites. Do not rename `abl380-tranche1a`'s `json_out` to `results.json` for
+consistency — that silently untracks the machine record
+`reports/abl_380_tranche1a_findings.md:9` cites for a PASS the Board was asked to
+review, and `tests/test_gate_scope_outputs.py` pins against it.
 
 Why the source matters for the 37 unmodelled solar / wind_onshore pairs, measured
 on the replica 2026-08-12: **33 of the 37 have under 365 days in
@@ -446,8 +538,8 @@ under `Replica:` as if it were the source of everything. `get_connection` now
 takes a read-only `db_path` (`src/db.py:33`) threaded through
 `load_renewable_type_data` (`src/db.py:527`) and `RenewableFeatureBuilder`
 (`src/wind_features.py:516`), and both harnesses hand it the resolved
-`--replica-db` (`scripts/evaluate_solar_retrain.py:232`,
-`scripts/evaluate_wind_retrain.py:332`). A write connection **refuses** a
+`--replica-db` (`scripts/evaluate_solar_retrain.py:374`,
+`scripts/evaluate_wind_retrain.py:378`). A write connection **refuses** a
 `db_path` rather than honour or ignore it, so the sidecar guard keeps its single
 rule. `meta['databases']` records every file the run opened
 (`src/evaluation/scorecard.py:193`) and the report names them, including an

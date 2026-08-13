@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Fit and read the pre-registered ABL-253 serve-faithful solar gate."""
+"""Fit and read a pre-registered serve-faithful solar gate (see SCOPES).
+
+The default scope is `abl253`, so an unflagged run reproduces that gate exactly;
+`--scope` selects any other registered country set, and carries its own output
+paths with it.
+"""
 
 from __future__ import annotations
 
@@ -19,6 +24,9 @@ import config
 from src import db
 from src.data_quality import find_suspect_constant_runs
 from src.evaluation.gate_artifacts import save_gate_artifact
+from src.evaluation.gate_registration import (
+    check_registration_tables, check_scope_outputs,
+)
 from src.evaluation.scorecard import (
     ScorecardConfig, _load_forecasts, _load_tso, _ro_connect,
     describe_opened_databases, opened_databases,
@@ -74,6 +82,33 @@ SCOPES = {
     "abl316-t1b": ("BG", "CH"),
 }
 
+# ABL-387: where a scope writes is part of its registration, not a flag default.
+# These three paths used to be fixed strings on the arguments themselves --
+# ABL-253's -- resolved before `--scope` was ever consulted, so a scoped run that
+# omitted three flags overwrote a *dispositioned* gate read in place.  That run
+# succeeds and emits a full report; the damage is to evidence.
+#
+# Entries stay exactly one directory deep under `experiments/`, because
+# `.gitignore:53-56` globs `experiments/*/results.json` and
+# `experiments/*/artifacts/`.  A nested path slips past both globs and would
+# commit a binary model artifact.
+#
+# Depth is necessary but not sufficient, and the two globs do not key on the
+# same thing: `experiments/*/artifacts/` matches on the *directory name*, so any
+# entry ending `artifacts` one level deep is ignored, while
+# `experiments/*/results.json` matches on the *exact filename*.  A `json_out`
+# named anything else is therefore tracked.  ABL-380 took that second option on
+# the wind twin deliberately, and a solar tranche registering here should decide
+# the same question rather than inherit `results.json` by imitation: an ignored
+# machine record is one no reviewer can diff.
+SCOPE_OUTPUTS = {
+    # Byte-for-byte the paths ABL-253 was read at, so an unflagged run still
+    # reproduces the dispositioned read rather than relocating it.
+    "abl253": {"artifact_dir": "experiments/ABL253/artifacts",
+               "json_out": "experiments/ABL253/results.json",
+               "report_out": "reports/abl_253_solar_retrain.md"},
+}
+
 # The columns that must be *simultaneously finite* for a row to enter a gate
 # cell.  This is a registered property of the scope, not a detail.
 # `common_scores` keeps only rows where every named column is finite, and the
@@ -102,6 +137,13 @@ GATE_BASIS = {
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.
 REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistence")
+
+# ABL-387: the three tables above are one registration in three views.  Checked
+# at import, so a scope registered in one and not the others fails before any fit
+# -- and identically under `--help` and in the test suite -- rather than raising
+# `KeyError` partway through a gate run, or writing over another scope's evidence.
+check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
+check_scope_outputs(SCOPE_OUTPUTS)
 
 
 def _model():
@@ -308,9 +350,15 @@ def main() -> int:
     parser.add_argument("--fit-start", default="2026-01-14")
     parser.add_argument("--gate-start", default="2026-07-11")
     parser.add_argument("--gate-end", default="2026-08-10")
-    parser.add_argument("--artifact-dir", default="experiments/ABL253/artifacts")
-    parser.add_argument("--json-out", default="experiments/ABL253/results.json")
-    parser.add_argument("--report-out", default="reports/abl_253_solar_retrain.md")
+    # ABL-387: default to the *scope's* registered paths, resolved after parsing.
+    # A fixed default here is resolved before `--scope` is read, which is how a
+    # scoped run came to overwrite ABL-253's dispositioned artifacts in place.
+    parser.add_argument("--artifact-dir", default=None,
+                        help="Override the scope's registered artifact directory")
+    parser.add_argument("--json-out", default=None,
+                        help="Override the scope's registered results.json path")
+    parser.add_argument("--report-out", default=None,
+                        help="Override the scope's registered report path")
     parser.add_argument("--scope", default="abl253", choices=sorted(SCOPES),
                         help="Registered country scope. Each scope fixes its countries "
                              "and its gate basis in the file; the cell count is derived "
@@ -343,7 +391,8 @@ def main() -> int:
     incumbent_raw, vintage_counts = _load_forecasts(cfg)
     incumbent = select_latest_per_band(incumbent_raw)
     tso = _load_tso(cfg, "solar")
-    artifact_dir = Path(args.artifact_dir)
+    outputs = SCOPE_OUTPUTS[args.scope]
+    artifact_dir = Path(args.artifact_dir or outputs["artifact_dir"])
     registered_countries = SCOPES[args.scope]
     registered_cells = len(registered_countries) * len(PRIMARY_BANDS)
     training, scored_frames = [], []
@@ -449,7 +498,8 @@ def main() -> int:
               "verdict": verdict, "recommendation": recommendation, "training": training,
               "gate_cells": sorted(gate_cells, key=lambda row: (row["country"], row["horizon_band"])),
               "country_d2": sorted(country_d2, key=lambda row: row["country"])}
-    json_path, report_path = Path(args.json_out), Path(args.report_out)
+    json_path = Path(args.json_out or outputs["json_out"])
+    report_path = Path(args.report_out or outputs["report_out"])
     json_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")

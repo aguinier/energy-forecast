@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Evaluate the net-position forecast against actuals (ABL-30, Phase B).
 
-Repeatable — every future net-position model claim goes through this script.
+Repeatable -- every future net-position model claim goes through this script.
 Joins the sidecar's as-served vintages (plus prod-pushed copies in the replica)
 to `net_position` actuals; scores per country x horizon x hour-of-day x weekday
 with the amplitude checks (slope, sd-ratio), pinball/coverage, serve-faithful
@@ -48,7 +48,7 @@ def main() -> int:
     p.add_argument("--model", nargs="+", default=["chronos-2-V010"],
                    help="one model to evaluate, or two or more to compare over an "
                         "identical vintage window (the C2c deliverable). This script "
-                        "does NOT discover model versions — it scores exactly the "
+                        "does NOT discover model versions -- it scores exactly the "
                         "names given here.")
     p.add_argument("--start", help="target window start, UTC (default: all vintages)")
     p.add_argument("--end", help="target window end, UTC")

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Fit and read the pre-registered ABL-195 serve-faithful wind gate."""
+"""Fit and read a pre-registered serve-faithful wind gate (see SCOPES).
+
+The default scope is `abl195`, so an unflagged run reproduces that gate exactly;
+`--scope` selects any other registered pair set, and carries its own output paths
+with it.
+"""
 
 from __future__ import annotations
 
@@ -22,6 +27,9 @@ import config
 from src import db
 from src.data_quality import find_suspect_constant_runs
 from src.evaluation.gate_artifacts import save_gate_artifact
+from src.evaluation.gate_registration import (
+    check_registration_tables, check_scope_outputs,
+)
 from src.evaluation.scorecard import (
     ScorecardConfig, _load_forecasts, _load_tso, _ro_connect,
     describe_opened_databases, opened_databases,
@@ -82,6 +90,60 @@ SCOPES = {
     # evidence pack rather than in this table.
     "abl380-tranche1a": (("wind_onshore", "BG"), ("wind_onshore", "CH")),
 }
+
+# ABL-387: where a scope writes is part of its registration, not a flag default.
+# These three paths used to be fixed strings on the arguments themselves --
+# ABL-195's -- resolved before `--scope` was ever consulted, so a scoped run that
+# omitted three flags overwrote a *dispositioned* gate read in place.  That run
+# succeeds and emits a full report; the damage is to evidence.
+#
+# Entries stay exactly one directory deep under `experiments/`, because
+# `.gitignore:53-56` globs `experiments/*/results.json` and
+# `experiments/*/artifacts/`.  A nested path slips past both globs and would
+# commit a binary model artifact.
+#
+# Depth is necessary but not sufficient, and the two globs do not key on the
+# same thing: `experiments/*/artifacts/` matches on the *directory name*, so any
+# entry ending `artifacts` one level deep is ignored, while
+# `experiments/*/results.json` matches on the *exact filename*.  A `json_out`
+# named anything else is therefore tracked -- which is deliberate for
+# `abl380-tranche1a` below, and is the one channel in which the overwrite this
+# table prevents would have been visible to review at all.
+SCOPE_OUTPUTS = {
+    # Byte-for-byte the paths ABL-195 was read at, so an unflagged run still
+    # reproduces the dispositioned read rather than relocating it.
+    "abl195": {"artifact_dir": "experiments/ABL195/artifacts",
+               "json_out": "experiments/ABL195/results.json",
+               "report_out": "reports/abl_195_wind_retrain.md"},
+    # The paths the pilot was actually read at: `experiments/ABL322/config.json`
+    # registers `experiments/ABL322/artifacts` as its artifact location, and
+    # `reports/abl_322_pilot_gate.md` is that run's committed report.
+    "abl322-pilot": {"artifact_dir": "experiments/ABL322/artifacts",
+                     "json_out": "experiments/ABL322/results.json",
+                     "report_out": "reports/abl_322_pilot_gate.md"},
+    # ABL-380, registered while this fix sat in review -- which is the check
+    # above working rather than a merge accident: `abl380-tranche1a` landed in
+    # `SCOPES` and `GATE_BASIS` at 69f8cd5, and merging it here raised
+    # `SCOPE_OUTPUTS is missing 'abl380-tranche1a'` at import.  GitHub reported
+    # the same merge MERGEABLE/CLEAN; the tables disagreeing is not a textual
+    # conflict, so this is the only thing that could have caught it.
+    #
+    # These are the paths that run *actually wrote*, measured rather than
+    # assigned: the two `model.joblib` files under `experiments/ABL348/artifacts`
+    # hash to eb0f63d8...43ea (BG) and 5d2ec407...0840 (CH), the two SHA-256
+    # values published in the gate report's fit-audit table.  The tranche writes
+    # under ABL348 rather than a directory of its own because the registration it
+    # is fitted under is `experiments/ABL348/config.json`, frozen at ABL-348.
+    #
+    # The `json_out` is deliberately not named `results.json`: at that name the
+    # `.gitignore` glob would swallow it, and it is the machine record
+    # `reports/abl_380_tranche1a_findings.md:9` cites for a PASS the Board has
+    # been asked to review.  It is committed, and must stay reachable at the
+    # path that report names.
+    "abl380-tranche1a": {"artifact_dir": "experiments/ABL348/artifacts",
+                         "json_out": "experiments/ABL348/results_abl380_tranche1a.json",
+                         "report_out": "reports/abl_380_wind_onshore_tranche1a.md"},
+}
 COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw"}
 
 # The columns that must be *simultaneously finite* for a row to enter a gate
@@ -114,6 +176,13 @@ GATE_BASIS = {
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.
 REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistence")
+
+# ABL-387: the three tables above are one registration in three views.  Checked
+# at import, so a scope registered in one and not the others fails before any fit
+# -- and identically under `--help` and in the test suite -- rather than raising
+# `KeyError` partway through a gate run, or writing over another scope's evidence.
+check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
+check_scope_outputs(SCOPE_OUTPUTS)
 
 
 def _model(algorithm: str):
@@ -307,9 +376,15 @@ def main() -> int:
     parser.add_argument("--fit-start", default="2026-01-14")
     parser.add_argument("--gate-start", default="2026-07-11")
     parser.add_argument("--gate-end", default="2026-08-10")
-    parser.add_argument("--artifact-dir", default="experiments/ABL195/artifacts")
-    parser.add_argument("--json-out", default="experiments/ABL195/results.json")
-    parser.add_argument("--report-out", default="reports/abl_195_wind_retrain.md")
+    # ABL-387: default to the *scope's* registered paths, resolved after parsing.
+    # A fixed default here is resolved before `--scope` is read, which is how a
+    # scoped run came to overwrite ABL-195's dispositioned artifacts in place.
+    parser.add_argument("--artifact-dir", default=None,
+                        help="Override the scope's registered artifact directory")
+    parser.add_argument("--json-out", default=None,
+                        help="Override the scope's registered results.json path")
+    parser.add_argument("--report-out", default=None,
+                        help="Override the scope's registered report path")
     # ABL-322: the pilot gates DE/NL wind_offshore off `energy_generation`.
     # Both stay opt-in so an unflagged run reproduces ABL-195 exactly.
     parser.add_argument("--scope", default="abl195", choices=sorted(SCOPES),
@@ -321,6 +396,7 @@ def main() -> int:
                              f"contamination audit (default: {db.RENEWABLE_TYPE_SOURCE_TABLE})")
     args = parser.parse_args()
     registered_pairs = SCOPES[args.scope]
+    outputs = SCOPE_OUTPUTS[args.scope]
     registered_cells = len(registered_pairs) * len(PRIMARY_BANDS)
     fit_start, gate_start, gate_end = map(pd.Timestamp, (args.fit_start, args.gate_start, args.gate_end))
     if not fit_start < gate_start < gate_end:
@@ -333,7 +409,7 @@ def main() -> int:
                           models={"wind_offshore": "xgboost", "wind_onshore": "catboost"})
     incumbent_raw, vintage_counts = _load_forecasts(cfg)
     incumbent = select_latest_per_band(incumbent_raw)
-    artifact_dir = Path(args.artifact_dir)
+    artifact_dir = Path(args.artifact_dir or outputs["artifact_dir"])
     training, scored_frames, tso_by_type = [], [], {}
     for forecast_type, country in registered_pairs:
         if forecast_type not in tso_by_type:
@@ -496,7 +572,8 @@ def main() -> int:
               "verdict": verdict, "recommendation": recommendation,
               "training": training, "gate_cells": sorted(gate_cells, key=lambda r: (r["forecast_type"], r["country"], r["horizon_band"])),
               "country_d2": sorted(country_d2, key=lambda r: (r["forecast_type"], r["country"]))}
-    json_path, report_path = Path(args.json_out), Path(args.report_out)
+    json_path = Path(args.json_out or outputs["json_out"])
+    report_path = Path(args.report_out or outputs["report_out"])
     json_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
