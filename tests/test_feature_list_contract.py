@@ -8,19 +8,31 @@ silently, whenever that happens to be. That is how the four holiday names
 be absent from all 66 serving artifacts that carry a list at all, and how
 ABL-375 and ABL-386 both ended up spending an evidence pack rediscovering it.
 
-**The mechanism, measured rather than assumed** (`_effective_columns` below is
-the same intersection `Forecaster.train` computes):
+**What these tests prove is a conditional** (`_effective_columns` below is the
+same intersection `Forecaster.train` computes):
 
-    before ABL-338 (5cf2296), the training sites called
-    `create_all_features(df, forecast_type)` with no `country_code`, so
-    `create_holiday_features` never ran, so the four holiday names were declared
-    but never produced — and the `if col in df.columns` narrowing dropped them
-    without a word.
+    call `create_all_features(df, forecast_type)` with no `country_code` and
+    `create_holiday_features` does not run, so the four holiday names are
+    declared but never produced — and the `if col in df.columns` narrowing drops
+    them without a word.
 
 Dropping exactly those four reproduces the served list length for every one of
 the eight forecast types with an artifact: 23/23/26/25/27/25/24/24. Nothing else
 is needed to explain the 66-artifact gap. It is one plumbing gap, not eight
 independent drifts.
+
+**The conditional is not a history.** An earlier version of this docstring
+asserted the antecedent too — that "before ABL-338 (5cf2296), the training sites
+called `create_all_features(df, forecast_type)` with no `country_code`". ABL-407
+refuted that and it is removed: `git show 5cf2296 --stat -- scripts/train.py` is
+empty, and at `5cf2296^` the training site already read
+`create_all_features(df, forecast_type, country_code=country_code)`. The
+pre-ABL-338 site that *did* omit it built the validation frame in
+`evaluate_against_baselines`, which never writes an artifact's `feature_columns`
+— that is **ABL-397**, and keeping the two apart is what this paragraph is for.
+Where the 66 artifacts actually came from is measured in
+`reports/abl_407_holiday_gap_provenance.md`. The tests below are unaffected:
+they assert the conditional and never the antecedent.
 
 So there are two properties worth holding, and they are different:
 
@@ -28,8 +40,10 @@ So there are two properties worth holding, and they are different:
    copy; changing `get_feature_columns()` without changing it goes red, which
    puts the diff in front of a reviewer. This is the "something decides" part.
 2. **A declared name is actually produced.** A name the feature builder cannot
-   produce is not a feature — it is a silent no-op that shrinks the fit. This is
-   the test that was red for the entire pre-ABL-338 era and that nobody had.
+   produce is not a feature — it is a silent no-op that shrinks the fit. Nobody
+   had this test until ABL-394. Note it would have passed on the training path
+   at `5cf2296^` too (ABL-407 ran it there): what it guards is the *next* fit,
+   not a historical regression.
 
 What these tests deliberately do *not* assert is that the declared list equals
 what serving artifacts carry. It does not, on all 8 types, and cannot be made to
