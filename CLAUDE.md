@@ -479,6 +479,45 @@ of its own (`evaluate_solar_retrain.py:60`), registers a `GATE_BASIS` per scope
 only registered solar scope today, so an unflagged run still reproduces ABL-253;
 ABL-381's tranche registers the second.
 
+**Neither harness fits the list `get_feature_columns()` builds.** Each declares
+its own `FEATURE_COLUMNS` and hands it to `RenewableFeatureBuilder` through
+`to_vector`, so ABL-394's guard — which covers the `scripts/train.py` path — did
+not reach them, and nothing reviewed the harness lists. Measured on the ABL-381
+read: a solar gate fit ran at **25 features where an ABL-338-current fit is 27**.
+`RenewableFeatureBuilder` had emitted `sun_elevation_deg` and `is_night` for
+solar since ABL-338 (`wind_features._solar_geometry_features`); only the list
+never asked for them, so every read from ABL-253 through ABL-381 built artifacts
+two features short while declaring nothing was missing — and CH predicted
+negative in **80.5%** of night hours, the defect ABL-335/ABL-338 exist for.
+ABL-395 splats `solar_features.SOLAR_GEOMETRY_FEATURES` onto the end of the list
+(`solar_retrain.py:53`), so the list and the builder cannot name different
+columns.
+
+Three things follow, and the third is the one that bites:
+
+- **This is the half of ABL-338 that was adopted.** The non-negativity
+  constraint was measured and *rejected* there (+15.8% Tweedie, +36.8% Poisson
+  daylight MAE), and `nonneg_objective=None` on every gate artifact correctly
+  records that. Do not read ABL-395 as bringing it back.
+- **The two harness lists are frozen** in `tests/feature_list_manifest.json`
+  under `gate_harness`, checked by `tests/test_gate_feature_list_contract.py`,
+  which also asserts the builder *produces* every declared name and that every
+  `config.SUPPORTED_COUNTRIES` entry has a `solar_geometry` representative point
+  — without one, `to_vector` raises and a tranche dies at its first fit row.
+  Note the two paths fail in opposite directions: `select_feature_columns`
+  **drops** an unproducible declared name and warns, `to_vector` **raises**.
+- **A re-run of `abl253` or `abl316-t1b` no longer reproduces its published
+  read.** Those artifacts were fitted at 25 and carry 25 in their own
+  `feature_columns`, so they serve unchanged; a fit from ABL-395 forward is a
+  different challenger and its cells are not comparable to the published ones.
+  Whether either is refit is ABL-401. Nothing else about either registration
+  moved.
+
+Measured A/B on the two ABL-381 pairs, one vintage frame, both arms fitted from
+the same retained rows (`scripts/abl395_geometry_feature_probe.py`,
+`reports/abl_395_geometry_features.md`): the geometry pair is what takes CH's
+night-negative rate to near zero, at no cost to the registered bands.
+
 **Every read reports four model-free references** (ABL-389). `constant_causal` and
 `constant_oracle` are a flat line at the **fit-window mean** — the honest "no
 model" floor, using only what was knowable before the gate window opened — and at
@@ -959,6 +998,12 @@ command will not find them otherwise.
 > any target — ABL-386's read on solar is MIXED. The frozen lists and the
 > recorded gap are in `tests/feature_list_manifest.json`; the narrowing now warns
 > instead of dropping silently (`select_feature_columns`, `src/features.py:534`).
+>
+> **This list is not what the two gate harnesses fit.** They declare their own
+> `FEATURE_COLUMNS` and never call `get_feature_columns()`, which is how the solar
+> harness came to sit two names short of an ABL-338-current fit until ABL-395 —
+> see "Neither harness fits the list `get_feature_columns()` builds" above. Both
+> harness lists are frozen in the same manifest, under `gate_harness`.
 
 **Weather Features:**
 - Load: temperature, heating/cooling degree days

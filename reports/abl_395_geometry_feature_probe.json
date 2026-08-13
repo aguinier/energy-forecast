@@ -1,0 +1,464 @@
+{
+  "generated_at": "2026-08-13 12:42 UTC",
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 9432453120,
+  "renewable_source": "energy_generation",
+  "algorithm": "catboost",
+  "hyperparams": {
+    "iterations": 500,
+    "depth": 8,
+    "learning_rate": 0.05,
+    "l2_leaf_reg": 3,
+    "random_seed": 42,
+    "verbose": 0,
+    "thread_count": -1
+  },
+  "windows": {
+    "fit": [
+      "2026-01-14 00:00:00",
+      "2026-07-11 00:00:00"
+    ],
+    "gate": [
+      "2026-07-11 00:00:00",
+      "2026-08-10 00:00:00"
+    ]
+  },
+  "arms": {
+    "f25": {
+      "n_features": 25,
+      "columns": [
+        "hour",
+        "day_of_week",
+        "month",
+        "is_weekend",
+        "hour_sin",
+        "hour_cos",
+        "day_sin",
+        "day_cos",
+        "month_sin",
+        "month_cos",
+        "target_value_lag_1d",
+        "target_value_lag_7d",
+        "target_value_lag_14d",
+        "target_value_roll_24h_mean",
+        "target_value_roll_24h_std",
+        "target_value_roll_24h_min",
+        "target_value_roll_24h_max",
+        "target_value_roll_168h_mean",
+        "target_value_roll_168h_std",
+        "target_value_roll_168h_min",
+        "target_value_roll_168h_max",
+        "shortwave_radiation_wm2",
+        "direct_radiation_wm2",
+        "diffuse_radiation_wm2",
+        "temperature_c"
+      ]
+    },
+    "f27": {
+      "n_features": 27,
+      "columns": [
+        "hour",
+        "day_of_week",
+        "month",
+        "is_weekend",
+        "hour_sin",
+        "hour_cos",
+        "day_sin",
+        "day_cos",
+        "month_sin",
+        "month_cos",
+        "target_value_lag_1d",
+        "target_value_lag_7d",
+        "target_value_lag_14d",
+        "target_value_roll_24h_mean",
+        "target_value_roll_24h_std",
+        "target_value_roll_24h_min",
+        "target_value_roll_24h_max",
+        "target_value_roll_168h_mean",
+        "target_value_roll_168h_std",
+        "target_value_roll_168h_min",
+        "target_value_roll_168h_max",
+        "shortwave_radiation_wm2",
+        "direct_radiation_wm2",
+        "diffuse_radiation_wm2",
+        "temperature_c",
+        "sun_elevation_deg",
+        "is_night"
+      ]
+    }
+  },
+  "countries": [
+    {
+      "country": "BG",
+      "n_features_produced_by_builder": 27,
+      "geometry_produced_by_builder": {
+        "sun_elevation_deg": -19.0382,
+        "is_night": 1.0
+      },
+      "rows_identical_across_arms": true,
+      "arms": {
+        "f25": {
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_intended_rows": 34176,
+          "degraded_lag_1d_rows": 23674,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 141,
+            "pct_negative": 5.165,
+            "min_prediction_mw": -33.36,
+            "sum_negative_mwh": 1429.7,
+            "n_night_rows": 690,
+            "n_negative_at_night": 113,
+            "pct_of_night_rows_negative": 16.38,
+            "mean_prediction_at_night_mw": 224.78,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 18.89,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 18.9,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 18.6,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 18.59,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 20.03,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 20.17,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": {
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts\\f25\\BG\\solar\\model.joblib",
+            "sha256": "f6193b1196a9cf8f491cea0a7529f66d09755ac8b87f44388397e8978a72e27c",
+            "declared_feature_columns": [
+              "hour",
+              "day_of_week",
+              "month",
+              "is_weekend",
+              "hour_sin",
+              "hour_cos",
+              "day_sin",
+              "day_cos",
+              "month_sin",
+              "month_cos",
+              "target_value_lag_1d",
+              "target_value_lag_7d",
+              "target_value_lag_14d",
+              "target_value_roll_24h_mean",
+              "target_value_roll_24h_std",
+              "target_value_roll_24h_min",
+              "target_value_roll_24h_max",
+              "target_value_roll_168h_mean",
+              "target_value_roll_168h_std",
+              "target_value_roll_168h_min",
+              "target_value_roll_168h_max",
+              "shortwave_radiation_wm2",
+              "direct_radiation_wm2",
+              "diffuse_radiation_wm2",
+              "temperature_c"
+            ],
+            "n_declared": 25,
+            "training_source": "energy_generation",
+            "nonneg_objective": null
+          }
+        },
+        "f27": {
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_intended_rows": 34176,
+          "degraded_lag_1d_rows": 23674,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 223,
+            "pct_negative": 8.168,
+            "min_prediction_mw": -23.12,
+            "sum_negative_mwh": 1577.8,
+            "n_night_rows": 690,
+            "n_negative_at_night": 159,
+            "pct_of_night_rows_negative": 23.04,
+            "mean_prediction_at_night_mw": 218.8,
+            "mean_actual_at_night_mw": 225.13
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 19.95,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.96,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 19.75,
+              "d7_wape_pct": 24.4,
+              "clears_d7": true,
+              "daylight_n": 510,
+              "daylight_challenger_wape_pct": 19.72,
+              "daylight_d7_wape_pct": 24.35
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 21.4,
+              "d7_wape_pct": 24.99,
+              "clears_d7": true,
+              "daylight_n": 360,
+              "daylight_challenger_wape_pct": 21.54,
+              "daylight_d7_wape_pct": 25.05
+            }
+          ],
+          "artifact": {
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts\\f27\\BG\\solar\\model.joblib",
+            "sha256": "1bea4de9164aba14fe3f23fdadf1c7e5809636fb58a1d53c47de3b22f2fb6997",
+            "declared_feature_columns": [
+              "hour",
+              "day_of_week",
+              "month",
+              "is_weekend",
+              "hour_sin",
+              "hour_cos",
+              "day_sin",
+              "day_cos",
+              "month_sin",
+              "month_cos",
+              "target_value_lag_1d",
+              "target_value_lag_7d",
+              "target_value_lag_14d",
+              "target_value_roll_24h_mean",
+              "target_value_roll_24h_std",
+              "target_value_roll_24h_min",
+              "target_value_roll_24h_max",
+              "target_value_roll_168h_mean",
+              "target_value_roll_168h_std",
+              "target_value_roll_168h_min",
+              "target_value_roll_168h_max",
+              "shortwave_radiation_wm2",
+              "direct_radiation_wm2",
+              "diffuse_radiation_wm2",
+              "temperature_c",
+              "sun_elevation_deg",
+              "is_night"
+            ],
+            "n_declared": 27,
+            "training_source": "energy_generation",
+            "nonneg_objective": null
+          }
+        }
+      }
+    },
+    {
+      "country": "CH",
+      "n_features_produced_by_builder": 27,
+      "geometry_produced_by_builder": {
+        "sun_elevation_deg": -19.7645,
+        "is_night": 1.0
+      },
+      "rows_identical_across_arms": true,
+      "arms": {
+        "f25": {
+          "n_features_fitted": 25,
+          "geometry_features_in_fit": [],
+          "fit_rows": 34176,
+          "fit_intended_rows": 34176,
+          "degraded_lag_1d_rows": 23674,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 701,
+            "pct_negative": 25.678,
+            "min_prediction_mw": -31.97,
+            "sum_negative_mwh": 5765.9,
+            "n_night_rows": 640,
+            "n_negative_at_night": 515,
+            "pct_of_night_rows_negative": 80.47,
+            "mean_prediction_at_night_mw": -5.48,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 8.16,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.99,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 8.01,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.85,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.39,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.29,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": {
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts\\f25\\CH\\solar\\model.joblib",
+            "sha256": "60a7ef2e009bb7d533fa27987273874e0d714b02a574706480dac1976ad1d28e",
+            "declared_feature_columns": [
+              "hour",
+              "day_of_week",
+              "month",
+              "is_weekend",
+              "hour_sin",
+              "hour_cos",
+              "day_sin",
+              "day_cos",
+              "month_sin",
+              "month_cos",
+              "target_value_lag_1d",
+              "target_value_lag_7d",
+              "target_value_lag_14d",
+              "target_value_roll_24h_mean",
+              "target_value_roll_24h_std",
+              "target_value_roll_24h_min",
+              "target_value_roll_24h_max",
+              "target_value_roll_168h_mean",
+              "target_value_roll_168h_std",
+              "target_value_roll_168h_min",
+              "target_value_roll_168h_max",
+              "shortwave_radiation_wm2",
+              "direct_radiation_wm2",
+              "diffuse_radiation_wm2",
+              "temperature_c"
+            ],
+            "n_declared": 25,
+            "training_source": "energy_generation",
+            "nonneg_objective": null
+          }
+        },
+        "f27": {
+          "n_features_fitted": 27,
+          "geometry_features_in_fit": [
+            "sun_elevation_deg",
+            "is_night"
+          ],
+          "fit_rows": 34176,
+          "fit_intended_rows": 34176,
+          "degraded_lag_1d_rows": 23674,
+          "night": {
+            "n_selected_rows": 2730,
+            "n_negative": 522,
+            "pct_negative": 19.121,
+            "min_prediction_mw": -21.7,
+            "sum_negative_mwh": 2708.8,
+            "n_night_rows": 640,
+            "n_negative_at_night": 410,
+            "pct_of_night_rows_negative": 64.06,
+            "mean_prediction_at_night_mw": -1.91,
+            "mean_actual_at_night_mw": 0.0
+          },
+          "cells": [
+            {
+              "horizon_band": "24-36h",
+              "n": 720,
+              "challenger_wape_pct": 7.78,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.69,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "36-48h",
+              "n": 720,
+              "challenger_wape_pct": 7.75,
+              "d7_wape_pct": 12.67,
+              "clears_d7": true,
+              "daylight_n": 534,
+              "daylight_challenger_wape_pct": 7.66,
+              "daylight_d7_wape_pct": 12.67
+            },
+            {
+              "horizon_band": "48-64h",
+              "n": 510,
+              "challenger_wape_pct": 8.32,
+              "d7_wape_pct": 12.53,
+              "clears_d7": true,
+              "daylight_n": 406,
+              "daylight_challenger_wape_pct": 8.26,
+              "daylight_d7_wape_pct": 12.53
+            }
+          ],
+          "artifact": {
+            "path": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-395-aedf7841-3fe-FR2fCl\\abl395\\artifacts\\f27\\CH\\solar\\model.joblib",
+            "sha256": "5d4e44c3b46cd873b23ae3d8daa07dd9a25fadf55b1ed8e6b3d991d7f0b125a1",
+            "declared_feature_columns": [
+              "hour",
+              "day_of_week",
+              "month",
+              "is_weekend",
+              "hour_sin",
+              "hour_cos",
+              "day_sin",
+              "day_cos",
+              "month_sin",
+              "month_cos",
+              "target_value_lag_1d",
+              "target_value_lag_7d",
+              "target_value_lag_14d",
+              "target_value_roll_24h_mean",
+              "target_value_roll_24h_std",
+              "target_value_roll_24h_min",
+              "target_value_roll_24h_max",
+              "target_value_roll_168h_mean",
+              "target_value_roll_168h_std",
+              "target_value_roll_168h_min",
+              "target_value_roll_168h_max",
+              "shortwave_radiation_wm2",
+              "direct_radiation_wm2",
+              "diffuse_radiation_wm2",
+              "temperature_c",
+              "sun_elevation_deg",
+              "is_night"
+            ],
+            "n_declared": 27,
+            "training_source": "energy_generation",
+            "nonneg_objective": null
+          }
+        }
+      }
+    }
+  ]
+}

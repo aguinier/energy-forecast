@@ -379,5 +379,94 @@
       ],
       "served_but_not_declared": []
     }
+  },
+  "gate_harness": {
+    "_": [
+      "ABL-395. The two pre-registered gate harnesses do not go through",
+      "get_feature_columns(): they declare their own list and hand it to",
+      "RenewableFeatureBuilder via to_vector. So the declared list above is not",
+      "the list a gate fit trains on, and until ABL-395 nothing reviewed this",
+      "one. It sat two names short of an ABL-338-current solar fit for every",
+      "gate read from ABL-253 to ABL-381 while declaring nothing was missing.",
+      "Frozen here for the same reason 'declared' is: changing either constant",
+      "means changing this file in the same commit, where a reviewer sees it."
+    ],
+    "solar": {
+      "module": "src/evaluation/solar_retrain.py",
+      "constant": "FEATURE_COLUMNS",
+      "n": 27,
+      "columns": [
+        "hour",
+        "day_of_week",
+        "month",
+        "is_weekend",
+        "hour_sin",
+        "hour_cos",
+        "day_sin",
+        "day_cos",
+        "month_sin",
+        "month_cos",
+        "target_value_lag_1d",
+        "target_value_lag_7d",
+        "target_value_lag_14d",
+        "target_value_roll_24h_mean",
+        "target_value_roll_24h_std",
+        "target_value_roll_24h_min",
+        "target_value_roll_24h_max",
+        "target_value_roll_168h_mean",
+        "target_value_roll_168h_std",
+        "target_value_roll_168h_min",
+        "target_value_roll_168h_max",
+        "shortwave_radiation_wm2",
+        "direct_radiation_wm2",
+        "diffuse_radiation_wm2",
+        "temperature_c",
+        "sun_elevation_deg",
+        "is_night"
+      ],
+      "published_reads_fitted_at_25": {
+        "scopes": [
+          "abl253",
+          "abl316-t1b"
+        ],
+        "missing_from_those_artifacts": [
+          "sun_elevation_deg",
+          "is_night"
+        ],
+        "note": "Artifacts written before ABL-395 carry 25 names in their own feature_columns and are served from that list, so they are unaffected by this change and are not comparable cell-by-cell to a fit from ABL-395 forward. Refit is ABL-401."
+      }
+    },
+    "wind": {
+      "module": "src/evaluation/wind_retrain.py",
+      "constant": "FEATURE_COLUMNS",
+      "n": 24,
+      "columns": [
+        "hour",
+        "day_of_week",
+        "month",
+        "is_weekend",
+        "hour_sin",
+        "hour_cos",
+        "day_sin",
+        "day_cos",
+        "month_sin",
+        "month_cos",
+        "target_value_lag_1d",
+        "target_value_lag_7d",
+        "target_value_lag_14d",
+        "target_value_roll_24h_mean",
+        "target_value_roll_24h_std",
+        "target_value_roll_24h_min",
+        "target_value_roll_24h_max",
+        "target_value_roll_168h_mean",
+        "target_value_roll_168h_std",
+        "target_value_roll_168h_min",
+        "target_value_roll_168h_max",
+        "wind_speed_100m_ms",
+        "wind_speed_10m_ms",
+        "temperature_c"
+      ],
+      "note": "Unchanged by ABL-395 and deliberately so: the ABL-338 geometry features are solar-only (_solar_geometry_features returns {} for any other forecast_type), so naming one here would raise in to_vector on the first row. Frozen to close the same door."
+    }
   }
 }
