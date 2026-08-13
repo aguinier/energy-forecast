@@ -1,0 +1,202 @@
+{
+  "issue": "ABL-386",
+  "parent": "ABL-375",
+  "grandparent": "ABL-338",
+  "title": "Do the four holiday features help, hurt or do nothing on a solar target?",
+  "status": "PRE-REGISTERED - frozen before any arm is fitted on the registered holdout",
+  "registered_at": "2026-08-13T12:50:00+02:00",
+  "registered_by": "Forecasting Scientist",
+  "evidence_pack": "reports/abl_386_solar_holiday_verdict.md",
+  "measurement": "reports/abl_386_feature_drift.json (scripts/abl386_feature_drift_probe.py), reports/abl_386_holiday_density.json (scripts/abl386_holiday_density_probe.py), reports/abl_386_solar/*.json (scripts/abl338_solar_holdout.py)",
+
+  "the_question": {
+    "one_line": "get_feature_columns('solar') returns 31 names; every serving solar artifact carries 25. Four of the six extras are holiday features that nobody has ever evaluated on a solar target. Keep them in the solar list, or exclude them?",
+    "why_it_is_live": "Forecaster.load reads feature_columns off the artifact, so the four serving solar models are safe and stay safe. The exposure is the NEXT fit: whatever get_feature_columns() returns on the day a country is retrained is what that country starts serving. This is the same footgun ABL-375 was filed to defuse for geometry, on a different set of features.",
+    "prior": "NO EFFECT. Solar output is driven by irradiance; a public holiday does not change the sun. Load is a different story and these features presumably entered for it (src/features.py comments them 'high impact for load forecasting'). A null result is the expected outcome and is reported as plainly as an effect.",
+    "a_null_is_a_result": "and is the registered basis for a recommendation, not a reason to re-run on another window."
+  },
+
+  "measured_before_any_fit": {
+    "scope_item_4_the_drift_is_not_solar_only": {
+      "source": "reports/abl_386_feature_drift.json, generated 2026-08-13 before any arm was fitted",
+      "n_artifacts_scanned": 67,
+      "n_with_a_feature_list": 66,
+      "n_missing_all_four_holiday_features": 66,
+      "finding": "EVERY serving artifact of EVERY forecast type is missing all four holiday features - not just solar. 24 load, 24 price, 4 renewable, 4 solar, 4 wind_onshore, 2 wind_offshore, 2 biomass, 2 hydro_total.",
+      "solar_is_the_only_type_with_a_SECOND_gap": "solar's artifacts additionally lack sun_elevation_deg and is_night (ABL-338's geometry, deliberate and documented). Every other type's gap is exactly the four holiday names and nothing else.",
+      "the_sharpest_version": "the four features are documented in src/features.py as 'high impact for load forecasting', and they are in none of the 24 serving load artifacts. Whatever they are worth, no served forecast of any type has ever used them.",
+      "not_drift": "BE price_cascade (lightgbm 20260221_201435) carries an EMPTY feature_columns list - a different model class, not holiday drift. Excluded from the drift groups and reported separately.",
+      "this_issue_measures_solar_only": "the load and price question is larger, has the opposite prior, and is a separate issue. Named in the evidence pack as a follow-up rather than answered here."
+    },
+    "solar_serving_list_is_exactly_reconstructible": {
+      "claim": "get_feature_columns('solar', include_holidays=False) minus SOLAR_GEOMETRY_FEATURES == the feature_columns of all four serving solar artifacts, name for name and in order",
+      "verified": true,
+      "n": 25,
+      "artifacts": ["AT:xgboost:20260112_165237", "BE:catboost:20260201_222022", "DE:catboost:20260223_193822", "FR:catboost:20260201_222014"],
+      "consequence": "the control_noholiday arm below is the FIRST arm in the ABL-338/375/386 lineage that is genuinely the serving feature set. ABL-375's evidence pack could only say 'beats the serving configuration on the current list'; this registration can put a number on the serving list itself (as a refit, never as the live artifact)."
+    },
+    "holiday_density_in_the_registered_windows": {
+      "source": "reports/abl_386_holiday_density.json",
+      "why_it_is_measured_first": "an A/B on is_holiday is only informative if the window contains holidays. A null on a window with two holiday days would mean 'this window could not have shown an effect', not 'these features do nothing'. Settled before the fit rather than argued after it.",
+      "holdout_2026_04_30_to_06_12": {
+        "AT": {"holiday_days": 4, "holiday_share_pct": 9.091, "daylight_holiday_share_pct": 9.104, "dates": ["2026-05-01", "2026-05-14", "2026-05-25", "2026-06-04"]},
+        "BE": {"holiday_days": 4, "holiday_share_pct": 9.091, "daylight_holiday_share_pct": 9.104, "dates": ["2026-05-01", "2026-05-14", "2026-05-24", "2026-05-25"]},
+        "DE": {"holiday_days": 3, "holiday_share_pct": 6.818, "daylight_holiday_share_pct": 6.706, "dates": ["2026-05-01", "2026-05-14", "2026-05-25"]},
+        "FR": {"holiday_days": 4, "holiday_share_pct": 9.091, "daylight_holiday_share_pct": 8.841, "dates": ["2026-05-01", "2026-05-08", "2026-05-14", "2026-05-25"]}
+      },
+      "fit_window_holiday_share_pct": {"AT": 3.948, "BE": 3.077, "DE": 3.196, "FR": 2.722},
+      "verdict_on_power": "FAVOURABLE. This window is 2-3x holiday-denser than the fit window that precedes it - Labour Day, Ascension, Whit Monday, plus FR's 8 May and AT's Corpus Christi. The holiday share of DAYLIGHT rows (where the primary metric lives) tracks the overall share, so the holidays are not hiding in the night band. No holiday feature is constant in either window in any country, and days_to_holiday takes all 7 distinct values everywhere, so all four features are splittable throughout.",
+      "registered_consequence": "a null result on THIS window cannot be explained away as 'no holidays in it'. That is the point of measuring it here."
+    }
+  },
+
+  "reuse_of_ABL375s_registration": {
+    "scope_item_1_asks_whether_it_applies": "yes for the window, the fit rule, the seeds, the bands, the metric and the contamination handling. Reused verbatim rather than re-derived.",
+    "window": "2026-04-30 .. 2026-06-12 inclusive, 1,056 hours per country",
+    "seeds": [42, 1337, 2718],
+    "what_is_already_read_on_this_window_and_what_is_not": {
+      "already_read": "the `control` (29 names) and `geometry` (31 names) arms, both algorithms, all four countries, these exact three seeds - fitted and scored by ABL-375 and committed at d990fcf.",
+      "unread": "the two new arms, `control_noholiday` (25) and `geometry_noholiday` (27). Neither has ever been fitted on any window by anything.",
+      "so_this_is_a_half_read_window_and_that_is_stated_not_hidden": "the INCUMBENT side of this issue's contrast is known to me; the CHALLENGER side is not. That is the ordinary situation of an A/B against a known baseline, and it is only a threat to the registration if the window was CHOSEN because of what the incumbent scored on it.",
+      "why_the_window_is_still_defensible": "it is inherited, not selected. ABL-375 chose it before any of its own arms were fitted, on a non-overlap criterion (the gap between ABL-338's two committed holdouts) that has nothing to do with holidays. Choosing a DIFFERENT window now would be the suspicious act, since I have already seen ABL-375's numbers on this one. Reuse also buys direct comparability: the 27- and 31-name arms are scored on identical rows under an identical fit truncation.",
+      "what_would_have_changed_this": "if the holiday-density probe had come back weak on this window, a fresh window would have been registered and the reason recorded here. It came back favourable, so it was not."
+    },
+    "all_four_arms_are_refitted_here_rather_than_quoted": {
+      "rule": "ABL-375's committed numbers for `control` and `geometry` are NOT copied into this issue's tables. All four arms are fitted in one run, under one code version, in one process.",
+      "why": "the two shared arms come from a script that this issue then modified (the ARM_HOLIDAYS lookup and the _legacy_feature_columns signature). Quoting across a code change would put a code delta inside the contrast.",
+      "built_in_reproducibility_check": "the refitted `control` and `geometry` numbers SHOULD land on ABL-375's committed values - same window, same seeds, same rows, and the code change is designed not to touch them. Any divergence is itself a finding and is reported. This is registered as a check, not as a metric: a divergence does not change the primary verdict, it invalidates the run."
+    }
+  },
+
+  "arms": {
+    "design": "a 2x2 factorial of {holiday features} x {ABL-338 geometry}, at 2 algorithms x 3 seeds x 4 countries = 96 fits",
+    "cells": {
+      "control_noholiday": {"holidays": false, "geometry": false, "n_features": 25, "note": "EXACTLY the serving solar feature set"},
+      "geometry_noholiday": {"holidays": false, "geometry": true, "n_features": 27, "note": "what a retrain would produce if holidays were excluded - the proposal"},
+      "control": {"holidays": true, "geometry": false, "n_features": 29, "note": "ABL-338/375's `control`"},
+      "geometry": {"holidays": true, "geometry": true, "n_features": 31, "note": "what a retrain produces on origin/main TODAY - the incumbent"}
+    },
+    "the_only_thing_that_varies_between_the_paired_arms": "the presence of is_holiday, days_to_holiday, days_from_holiday, is_bridge_day in the feature list. Same rows, same fit truncation, same hyperparameters, same early-stopping split, same seed.",
+    "algorithms": ["catboost", "xgboost"],
+    "why_both": "the question is about the feature LIST, which both algorithms would inherit at their next fit. ABL-375 measured CatBoost and XGBoost behaving very differently on DE solar (13.79% vs 4.73% seed spread), so a one-algorithm answer would not transfer. Each algorithm runs at its own config.get_default_params(); neither inherits the other's dict.",
+    "seeds": [42, 1337, 2718],
+    "seed_knob": "random_state for xgboost, random_seed for catboost; nothing else varies between seeds",
+    "countries": ["AT", "BE", "DE", "FR"],
+    "why_all_four": "holiday calendars differ per country - measured above, the four countries do not even share the same holiday dates in this window. A per-country read is the only one that can distinguish 'no effect on solar' from 'no effect on DE'."
+  },
+
+  "fit_window": {
+    "rule": "every featured row strictly before the holdout start, per country. Identical for every arm - the script's own truncation.",
+    "measured_before_any_fit": {
+      "AT": {"n_train": 3647, "n_days": 154},
+      "BE": {"n_train": 20277, "n_days": 836},
+      "DE": {"n_train": 3755, "n_days": 155},
+      "FR": {"n_train": 29100, "n_days": 1200}
+    },
+    "matches_ABL375": "these four counts are field-identical to ABL-375's registered fit_window block, which is the check that the protocol really is the same one.",
+    "de_history_caveat": "DE solar in energy_renewable begins 2025-09-08; ABL-188's constant-run screen then excludes 2025-09-08 .. 2025-11-14 (6,408 rows held at exactly 0), so DE's featured frame starts 2025-11-26 and spans ~156 days under one seasonal cycle. DE sees 5 holidays in its fit window. That bounds how far a DE conclusion generalises, and it is a property of the data, not of this registration."
+  },
+  "control_is_a_refit_not_the_live_artifact": "restated from ABL-375 because it is the single easiest thing to get wrong: the live solar artifacts are fitted through roughly today, so scoring them on this holdout would score them in-sample. Every arm here is a refit on the identically truncated window. `control_noholiday` carries the serving FEATURE LIST; it is not the serving MODEL.",
+  "validation_split": "config.VALIDATION_DAYS = 30, chronological, off the end of the fit window, inside it and never touching the holdout. Both algorithms early-stop on it at 50 rounds, so early stopping is symmetric across arms.",
+
+  "bands": {
+    "definition": "src/solar_features - night = sun below NIGHT_ELEVATION_THRESHOLD_DEG for the whole hour (the serving clamp's own predicate); shoulder = not night but sun elevation <= 0 at the hour midpoint; daylight = the rest.",
+    "measured_holdout_split": {
+      "AT": {"daylight": 670, "shoulder": 119, "night": 267},
+      "BE": {"daylight": 681, "shoulder": 143, "night": 232},
+      "DE": {"daylight": 686, "shoulder": 142, "night": 228},
+      "FR": {"daylight": 656, "shoulder": 123, "night": 277}
+    },
+    "night_is_reported_in_mw_only": "its denominator is ~0; a percentage there reports the denominator, not the model. Scope item 3."
+  },
+  "metric": "MAE in MW per band. Daylight also carries WAPE. Night and shoulder in MW only.",
+  "baseline": {
+    "free_baseline": "literal seasonal-naive D-7 same-hour actual, on exactly the holdout rows the arms are scored on. Sanity floor only.",
+    "decision_baseline": "the PAIRED arm - the same algorithm, country, geometry setting and seed, differing only in the four holiday names. A feature-list question is a within-model question and D-7 cannot answer it."
+  },
+
+  "primary_bar": {
+    "contrast": "geometry (31, holidays) vs geometry_noholiday (27, no holidays)",
+    "why_this_pair_and_not_the_25_29_pair": "geometry is unconditional in src/features.py on origin/main, so the arm a routine retrain actually produces is the 31-name one and the arm an exclusion would produce is the 27-name one. That is the decision as it would really be taken.",
+    "unit": "one (country, algorithm) cell - 8 cells",
+    "statistic": "seed-mean daylight MAE over seeds 42/1337/2718, per arm, per cell",
+    "effect_sign": "effect_pct = 100 * (holidays - no_holidays) / no_holidays. POSITIVE means the holiday features make it WORSE.",
+    "materiality_is_derived_not_assumed": {
+      "rule": "a cell counts as showing an effect ONLY if the two arms' seed ranges are DISJOINT - max(better) < min(worse).",
+      "why_not_a_fixed_percentage": "ABL-375's central finding is that a fixed threshold does not survive contact with a reseeded fit: it registered 3.0% and then measured DE CatBoost moving 13.79% of its own mean across three seeds on THIS window. A percentage bar would be re-reading that mistake. Seed non-overlap is the condition that actually did the work in ABL-375 and it is the only materiality test registered here.",
+      "cost_of_this_choice": "with 3 seeds, non-overlap is a coarse instrument and this design is better at ruling an effect OUT than at sizing a small one. Registered as a limit, not discovered as one."
+    },
+    "verdict_rule": {
+      "per_cell_score": "d = +1 if ranges disjoint and the HOLIDAY arm is better; -1 if disjoint and the NO-HOLIDAY arm is better; 0 if the ranges overlap",
+      "HELP": "sum(d) over the 8 cells >= +4",
+      "HARM": "sum(d) <= -4",
+      "NO_EFFECT": "at most 2 of the 8 cells are disjoint in either direction",
+      "MIXED": "anything else",
+      "replicate_downgrade": "the 29-vs-25 contrast is scored by the identical rule as a replicate. If it disagrees in DIRECTION with the primary (one HELP, the other HARM), the verdict is downgraded to MIXED regardless of the primary's own score."
+    },
+    "night_guardrail_written_correctly_this_time": {
+      "rule": "excluding the holiday features must not increase ABS(night mean prediction) in any cell by more than that cell's own seed spread of the same quantity.",
+      "why_abs": "ABL-375 registered a one-sided 'night mean <= night mean' and reported, as a defect in its own registration (its section 5), that a large NEGATIVE night mean satisfies it - its DE xgboost+geometry arm passed the guardrail at -44.5 MW with 267 negative predictions. This registration uses the absolute value so a negative excursion fails the way an overshoot does. That correction is made BEFORE seeing any number, which is the only time it is legitimate to make it.",
+      "reported_in_mw": "always, per scope item 3. Never as a percentage."
+    }
+  },
+
+  "recommendation_mapping_registered_in_advance": {
+    "why_registered": "so the recommendation is a lookup rather than a judgement made after seeing the table.",
+    "NO_EFFECT": "recommend EXCLUDE from the solar list. Four features that demonstrably do nothing on this target are four extra split candidates, a live dependency on the `holidays` package inside the solar path, and - most of all - four names that entered the serving list by accident rather than by decision. Excluding makes the list deliberate. This is the expected outcome.",
+    "HARM": "recommend EXCLUDE, and report the size of the harm.",
+    "HELP": "recommend KEEP, and additionally flag that they then need evaluating on the other seven types, since no serving artifact of any type carries them.",
+    "MIXED": "report the disagreement, recommend EXCLUDE on parsimony ONLY if no cell shows disjoint HELP; otherwise recommend a further read and name what it would have to measure.",
+    "what_this_issue_does_NOT_do": "it does not change get_feature_columns() and the serving registry in the same change - scope item 5. A feature-list change is a separate, reviewed diff, and any retrain that follows is a CEO/Board decision. This issue produces an evidence pack and a recommendation."
+  },
+
+  "secondary_reported_not_gating": [
+    "shoulder MAE in MW, all four arms",
+    "night mean / max prediction in MW and negative-prediction counts, all four arms",
+    "daylight WAPE and skill against literal D-7",
+    "the within-algorithm geometry delta, which this design measures for free at both holiday settings",
+    "the serving 25-name list's own daylight MAE (control_noholiday) - the first time this lineage can quote it",
+    "n_trees surviving early stopping per arm, as a check that no arm failed to converge"
+  ],
+
+  "contamination": {
+    "ABL-337_impossible_night_actuals": {
+      "handling": "--drop-impossible-night: night rows whose actual exceeds 1 MW are dropped from the FIT and never from the SCORE. Identical on every arm, so the contrast is unaffected either way.",
+      "measured_by_ABL375_on_these_exact_windows": {
+        "AT": {"fit_rows": 0, "holdout_rows": 0},
+        "BE": {"fit_rows": 0, "holdout_rows": 0},
+        "DE": {"fit_rows": 4, "fit_max_mw": 1.7, "holdout_rows": 0},
+        "FR": {"fit_rows": 464, "fit_max_mw": 439.3, "holdout_rows": 24, "holdout_max_mw": 251.0}
+      },
+      "consequence": "DE night MW is measured against a true zero on this holdout. FR's is not - 24 holdout night hours read up to 251 MW, which no arm can or should predict, so FR night MW carries a contamination floor rather than model error. Stated wherever FR night appears."
+    },
+    "ABL-188_constant_run_screen": "applied by src/db.load_renewable_type_data to whatever table is read, identically on every arm. On DE it excludes 6,408 rows (2025-09-08 .. 2025-11-14) held at exactly 0. Source is energy_renewable for all four countries, read off the artifacts.",
+    "ABL-67": "net_position only - does not intersect a solar target.",
+    "ABL-109_ABL-111": "load only - does not intersect a solar target. They WOULD intersect the load follow-up this issue proposes, and that is flagged there.",
+    "ABL-71": "prod ingest staleness, fixes undeployed. Known wrong-write modes are load and net position, so this is a provenance caveat rather than proof solar ingest is clean."
+  },
+
+  "known_limits_of_this_protocol": {
+    "not_serve_faithful": "features come from the training-time pipeline, whose lags and rolling windows are anchored at the target hour; at serving they are anchored at the generation instant (ABL-183). Every arm carries that identically, so the CONTRAST is sound and the absolute MW are optimistic against the rail. The geometry pair and the four holiday features are exempt by construction - all are calendar/astronomical functions of the target timestamp, not lagged actuals, so they are identical in both paths.",
+    "no_horizon_bands": "no 24-36h / 36-48h / 48-64h decomposition, so this cannot substitute for a gate-harness read. It answers 'do these four features change the fit', not 'does solar clear its promotion gate'.",
+    "one_window": "a single 44-day holdout, holiday-dense but seasonally narrow. A null here is a null on late spring; it is not a claim about December, whose holiday cluster is the densest of the year and whose solar output is smallest. Stated in the verdict rather than generalised past.",
+    "three_seeds": "non-overlap on 3 seeds is coarse. This design can rule an effect out more confidently than it can size a small one.",
+    "solar_only": "says nothing about load or price, where the prior is the opposite. That is the follow-up issue, not this one."
+  },
+
+  "replica": {
+    "path": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "access": "read-only, file:...?mode=ro",
+    "must_be_verified_at_run_time": "byte count is asserted against 9432453120 in the evidence pack - NOT the 3.0 GB energy-data-gathering partial snapshot"
+  },
+  "interpreter": {
+    "path": "C:\\Code\\able\\energy-forecast\\.venv\\Scripts\\python.exe",
+    "python": "3.14.3",
+    "xgboost": "3.3.0",
+    "why_it_is_part_of_the_registration": "an xgboost-3.3.0 pickle loaded under 2.1.4 keeps its trees and silently resets the fitted intercept to 0.5, producing shape with no level. Every artifact read here is under .venv."
+  },
+
+  "voids_this_registration": "any change to the holdout window, the fit truncation rule, the arm set, the seeds, the bands, the metric, the primary contrast, the non-overlap materiality rule, the verdict thresholds, the night guardrail or the recommendation mapping, after any challenger score has been seen on the registered holdout. Seeing a null and re-reading on a denser window to find an effect voids it outright.",
+  "promotion": "NONE. No model produced here goes near models/ or the serving registry. No serving artifact is retrained. The output is an evidence pack and a recommendation about a feature list.",
+  "artifact_location": "reports/abl_386_solar (experiment output only; not a serving registry)"
+}

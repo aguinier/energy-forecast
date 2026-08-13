@@ -71,7 +71,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import config  # noqa: E402
 from src.db import load_training_data  # noqa: E402
-from src.features import create_all_features, get_feature_columns  # noqa: E402
+from src.features import (  # noqa: E402
+    HOLIDAY_FEATURES,
+    create_all_features,
+    get_feature_columns,
+)
 from src.forecaster import Forecaster  # noqa: E402
 from src.solar_features import (  # noqa: E402
     NIGHT_ELEVATION_THRESHOLD_DEG,
@@ -113,6 +117,8 @@ ARM_SPECS = {
     # name: (geometry features, nonneg objective, hyperparam overrides, fit daylight only)
     "control": (False, None, {}, False),
     "geometry": (True, None, {}, False),
+    "control_noholiday": (False, None, {}, False),
+    "geometry_noholiday": (True, None, {}, False),
     "geometry_tweedie": (True, "tweedie", {}, False),
     "geometry_poisson": (True, "poisson", {}, False),
     "geometry_tweedie_deep": (True, "tweedie", {"n_estimators": 1500, "iterations": 1500}, False),
@@ -130,10 +136,23 @@ ARM_SPECS = {
 #: cannot re-weight the daylight hours against each other.
 ARM_NIGHT_WEIGHT = {"geometry_nightw100": 100.0}
 
+#: Arms that drop the four holiday features. Every other arm keeps whatever
+#: `get_feature_columns('solar')` returns, which is what a routine retrain would
+#: pick up (ABL-386). Kept as a lookup beside `ARM_NIGHT_WEIGHT` rather than as a
+#: fifth `ARM_SPECS` field so the existing arm tuples keep their arity.
+#:
+#: With geometry, this is the whole 2x2 ABL-386 needs:
+#:
+#:   control_noholiday   25 names  <- exactly the serving solar feature set
+#:   control             29 names     serving + holidays (ABL-338/375's control)
+#:   geometry_noholiday  27 names     serving + geometry = the exclusion proposal
+#:   geometry            31 names     what a retrain produces on origin/main today
+ARM_HOLIDAYS = {"control_noholiday": False, "geometry_noholiday": False}
+
 ARMS = tuple(ARM_SPECS)
 
 
-def _legacy_feature_columns() -> list:
+def _legacy_feature_columns(include_holidays: bool = True) -> list:
     """`get_feature_columns('solar')` minus the ABL-338 geometry pair.
 
     This used to be documented as "the 25 names every live solar artifact
@@ -147,8 +166,20 @@ def _legacy_feature_columns() -> list:
     feature list. That is fine for an A/B — every arm carries the same 29 — but
     it means a result from this script cannot be phrased as "beats the serving
     artifact". Every committed run, ABL-338's included, used 29/31.
+
+    ABL-386 adds `include_holidays=False`, which *does* reproduce the serving
+    list: measured over all four solar artifacts, `get_feature_columns('solar',
+    include_holidays=False)` minus the geometry pair equals their
+    `feature_columns` exactly, name for name and in order
+    (`reports/abl_386_feature_drift.json:solar_reconstruction_check`). So
+    `control_noholiday` is the first arm in this lineage that is genuinely the
+    serving feature set.
     """
-    return [c for c in get_feature_columns("solar") if c not in SOLAR_GEOMETRY_FEATURES]
+    return [
+        c
+        for c in get_feature_columns("solar", include_holidays=include_holidays)
+        if c not in SOLAR_GEOMETRY_FEATURES
+    ]
 
 
 def _bands(country_code: str, timestamps: pd.Series) -> pd.Series:
@@ -301,7 +332,8 @@ def evaluate_country(
         # One key per fit. `arm` alone when no seed set was asked for, so a run
         # without `--seeds` writes the same keys it always did.
         arm_key = arm if seed is None else f"{arm}@{seed}"
-        feature_columns = _legacy_feature_columns()
+        include_holidays = ARM_HOLIDAYS.get(arm, True)
+        feature_columns = _legacy_feature_columns(include_holidays=include_holidays)
         if use_geometry:
             feature_columns = feature_columns + list(SOLAR_GEOMETRY_FEATURES)
         feature_columns = [c for c in feature_columns if c in train_frame.columns]
@@ -378,6 +410,8 @@ def evaluate_country(
             "arm": arm,
             "seed": seed,
             "n_features": len(feature_columns),
+            "include_holidays": include_holidays,
+            "holiday_features_used": [c for c in HOLIDAY_FEATURES if c in feature_columns],
             "nonneg_objective": nonneg,
             "hyperparams_objective": forecaster.hyperparams.get("objective")
             or forecaster.hyperparams.get("loss_function"),
