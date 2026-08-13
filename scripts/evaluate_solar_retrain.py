@@ -37,6 +37,10 @@ from src.evaluation.solar_retrain import (
     attach_baselines, build_vintage_frame, common_scores, finite_training_rows,
     gate_cell, select_latest_challenger_per_band,
 )
+from src.solar_features import (
+    IMPOSSIBLE_NIGHT_THRESHOLD_MW, NIGHT_ELEVATION_THRESHOLD_DEG,
+    exclude_impossible_night_rows,
+)
 from src.wind_features import RenewableFeatureBuilder
 
 
@@ -62,6 +66,14 @@ SCOPES = {
     # cells.  Unchanged, and the default, so an unflagged run still reproduces
     # ABL-253 exactly.
     "abl253": ("BE", "DE", "FR"),
+    # ABL-376: ABL-253's countries, window and basis with exactly one thing
+    # changed -- the fit drops night rows the sun says cannot exist (`FIT_RULES`
+    # below).  Registered as its own scope rather than as a flag on `abl253`
+    # because it is not the same protocol: re-reading `abl253` under a different
+    # fit rule would move numbers already dispositioned and leave no record of
+    # which rule produced which read.  Same countries, same basis, same windows,
+    # so the pair is a controlled A/B on the rule alone.
+    "abl376": ("BE", "DE", "FR"),
 }
 
 # ABL-387: where a scope writes is part of its registration, not a flag default.
@@ -89,6 +101,17 @@ SCOPE_OUTPUTS = {
     "abl253": {"artifact_dir": "experiments/ABL253/artifacts",
                "json_out": "experiments/ABL253/results.json",
                "report_out": "reports/abl_253_solar_retrain.md"},
+    # ABL-376 takes the tracked form the section above recommends, and for the
+    # reason given there: this read is meant to be dispositioned against
+    # `abl253`, and a `results.json` is the one gate record `git checkout --`
+    # cannot recover and a reviewer cannot diff.  `results_abl376_night_fit.json`
+    # is one level deep but is not named `results.json`, so `.gitignore:53` --
+    # which matches on the exact filename -- does not take it; `artifacts` one
+    # level deep still is taken, by `.gitignore:56`, which matches on the
+    # directory name.
+    "abl376": {"artifact_dir": "experiments/ABL376/artifacts",
+               "json_out": "experiments/ABL376/results_abl376_night_fit.json",
+               "report_out": "reports/abl_376_solar_night_fit.md"},
 }
 
 # The columns that must be *simultaneously finite* for a row to enter a gate
@@ -106,16 +129,58 @@ SCOPE_OUTPUTS = {
 # the basis its own pre-registration names.
 GATE_BASIS = {
     "abl253": ("challenger", "incumbent", "seasonal_naive", "persistence"),
+    # Deliberately identical to `abl253`'s.  The A/B is on the fit rule; moving
+    # the basis at the same time would confound the two.
+    "abl376": ("challenger", "incumbent", "seasonal_naive", "persistence"),
 }
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.
 REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistence")
 
-# ABL-387: the three tables above are one registration in three views.  Checked
-# at import, so a scope registered in one and not the others fails before any fit
+# ABL-376: what the fit is allowed to *see* is a registered property of the scope
+# too, and for the same reason as the basis -- two gate reads are not comparable
+# unless both say what they trained on.  `energy_renewable` carries solar for FR
+# at sun elevations down to -65 deg; a model fitted through that learns a night
+# floor faithfully, which is why the defect is in the training target rather than
+# in the model.
+#
+# The rule is stated over countries, not for FR: the predicate is the sun's, so a
+# country whose data is clean loses nothing.  Measured on the replica 2026-08-13
+# over the registered fit window, it removes nothing at all for AT and BE.
+#
+# `exclude_impossible_night` is **fit-side only** wherever it is True.  The gate
+# frame is never filtered, and that asymmetry is the point: we refuse to train on
+# values the sun says are impossible, and we still score against whatever the
+# source reports.  A scope that filtered its own gate would be marking its own
+# homework.
+FIT_RULES = {
+    # ABL-253 was read without this rule.  Keeping it False is what makes an
+    # unflagged run still reproduce the dispositioned read.
+    "abl253": {"exclude_impossible_night": False},
+    "abl376": {"exclude_impossible_night": True},
+}
+
+# The report's H1.  This was the string literal "ABL-253 -- Serve-faithful solar
+# retrain gate", which put ABL-253's name on the top line of every other scope's
+# report -- a mislabel that survives being copied into an evidence pack, since
+# the heading is the first thing quoted and the `scope` field is not.  `abl253`
+# keeps its heading character-for-character so the dispositioned read still
+# renders identically.
+SCOPE_TITLES = {
+    "abl253": "ABL-253 — Serve-faithful solar retrain gate",
+    "abl376": "ABL-376 — Serve-faithful solar retrain gate, impossible night rows excluded from the fit",
+}
+
+# ABL-387: the tables above are one registration in several views.  Checked at
+# import, so a scope registered in one and not the others fails before any fit
 # -- and identically under `--help` and in the test suite -- rather than raising
 # `KeyError` partway through a gate run, or writing over another scope's evidence.
-check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
+# ABL-376 adds `FIT_RULES` to the same check for the same reason: a scope that
+# registers countries and outputs but no fit rule would otherwise `KeyError`
+# after its first fit, having already written an artifact.
+check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS,
+                          SCOPE_OUTPUTS=SCOPE_OUTPUTS, FIT_RULES=FIT_RULES,
+                          SCOPE_TITLES=SCOPE_TITLES)
 check_scope_outputs(SCOPE_OUTPUTS)
 
 
@@ -213,8 +278,11 @@ def disposition(gate_cells: list[dict], registered_cells: int,
 def render_markdown(result: dict) -> str:
     meta, cells = result["meta"], result["gate_cells"]
     passed = sum(cell["gate"]["pass"] for cell in cells)
+    # ABL-376: the title used to be the ABL-253 literal, which put that issue's
+    # name on every other scope's report. `abl253` keeps its exact heading, so
+    # the dispositioned read still renders byte-for-byte.
     lines = [
-        "# ABL-253 — Serve-faithful solar retrain gate", "",
+        f"# {SCOPE_TITLES[meta['scope']]}", "",
         f"**Disposition: {result['verdict']}**", "",
         f"Generated: {meta['generated_at']}",
         f"Fit targets: {meta['fit_window']['start']} → {meta['fit_window']['end_exclusive']} (exclusive).",
@@ -290,6 +358,47 @@ def render_markdown(result: dict) -> str:
             f"{audit['unique_targets']:,} | {audit['excluded_missing_actual_or_feature']:,} | "
             f"{audit['degraded_lag_1d_rows']:,} | `{row['artifact_sha256']}` |"
         )
+    # ABL-376. Rendered whether the rule is on or off, and saying which: a
+    # section that appears only when rows were removed cannot distinguish "the
+    # rule is not registered here" from "the rule ran and the data was clean",
+    # and telling a data fix from a rule change is the whole reason this is
+    # reported per country rather than summarised.
+    rules = meta.get("fit_rules", {})
+    lines.extend(["", "### Physically impossible night rows (ABL-376)", ""])
+    if not rules.get("exclude_impossible_night"):
+        lines.append(
+            f"Not registered for scope `{meta['scope']}`. The fit saw every night row, "
+            "including any whose actual the sun says is impossible."
+        )
+    else:
+        lines.extend([
+            f"Night is `solar_geometry.is_night_hour` — the serving clamp's own predicate, sun below "
+            f"{meta['night_threshold_deg']:g} deg geometric for the whole hour. A night row whose actual "
+            f"exceeds **{meta['impossible_night_threshold_mw']:g} MW** is physically impossible and was dropped "
+            "**from the fit only**. The gate frame below was not filtered: a contaminated actual still scores "
+            "against the challenger, which is why the daylight numbers above are not marking their own homework.",
+            "",
+            "Rows are per (target, vintage); `hours` is the distinct contaminated target hours behind them — "
+            "the row count is what the fit lost, the hour count is what the source got wrong.",
+            "",
+            "| country | night fit rows | excluded rows | excluded hours | max excluded actual | mean night actual (before) |",
+            "|---|---:|---:|---:|---:|---:|",
+        ])
+        for row in result["training"]:
+            night = row.get("night_fit_audit")
+            if not night:
+                continue
+            lines.append(
+                f"| {row['country']} | {night['night_rows']:,} | {night['excluded_rows']:,} | "
+                f"{night['excluded_targets']:,} | {_fmt(night['max_excluded_mw'])} MW | "
+                f"{_fmt(night['mean_night_actual_mw'])} MW |"
+            )
+        lines.extend([
+            "",
+            "A country reading 0 excluded is the rule finding clean data, not the rule being off — "
+            "the predicate is the sun's, so it is stated over countries rather than for the one that "
+            "prompted it.",
+        ])
     lines.extend(["", "## Data quality and limits", ""])
     source = meta["training_source"]
     contaminated = [row for row in result["training"] if row["constant_runs"]]
@@ -367,6 +476,7 @@ def main() -> int:
     outputs = SCOPE_OUTPUTS[args.scope]
     artifact_dir = Path(args.artifact_dir or outputs["artifact_dir"])
     registered_countries = SCOPES[args.scope]
+    fit_rules = FIT_RULES[args.scope]
     registered_cells = len(registered_countries) * len(PRIMARY_BANDS)
     training, scored_frames = [], []
     for country in registered_countries:
@@ -383,6 +493,15 @@ def main() -> int:
                                           db_path=str(replica))
         fit_raw = build_vintage_frame(builder, fit_start, gate_start, FEATURE_COLUMNS)
         fit, audit = finite_training_rows(fit_raw, FEATURE_COLUMNS)
+        # ABL-376, and only where the scope registered it.  Fit frame only: the
+        # gate frame below is built from the same builder and is deliberately
+        # *not* filtered, so a contaminated actual still scores against us.
+        # Applied after `finite_training_rows` so the two audits partition the
+        # dropped rows instead of double-counting a missing actual as impossible.
+        if fit_rules["exclude_impossible_night"]:
+            fit, night_audit = exclude_impossible_night_rows(fit, country)
+        else:
+            night_audit = None
         model, params = _model()
         model.fit(fit[list(FEATURE_COLUMNS)], fit["actual"])
 
@@ -408,6 +527,11 @@ def main() -> int:
         scored_frames.append(selected)
         training.append({"country": country, "algorithm": ALGORITHM, "params": params,
                          "audit": audit, "gate_build_audit": gate_audit,
+                         # None when the scope did not register the rule, so the
+                         # record distinguishes "rule off" from "rule on, removed
+                         # nothing" -- which is exactly the distinction a later
+                         # run needs to tell a data fix from a rule change.
+                         "night_fit_audit": night_audit,
                          "constant_runs": _constant_runs(str(replica), country,
                                                           fit_start - pd.Timedelta(days=14), gate_end,
                                                           source),
@@ -463,6 +587,12 @@ def main() -> int:
                        "training_source": source,
                        "scope": args.scope, "registered_countries": list(registered_countries),
                        "registered_cells": registered_cells, "gate_basis": list(gate_basis),
+                       # ABL-376: what the fit was allowed to see, recorded beside
+                       # what it was scored on. Two reads of this gate are not
+                       # comparable unless both state it.
+                       "fit_rules": dict(fit_rules),
+                       "night_threshold_deg": NIGHT_ELEVATION_THRESHOLD_DEG,
+                       "impossible_night_threshold_mw": IMPOSSIBLE_NIGHT_THRESHOLD_MW,
                        "fit_window": {"start": str(fit_start), "end_exclusive": str(gate_start)},
                        "gate_window": {"start": str(gate_start), "end_exclusive": str(gate_end)},
                        "registered_intended_n": INTENDED_N, "schedule_implied_n": SCHEDULE_N,
