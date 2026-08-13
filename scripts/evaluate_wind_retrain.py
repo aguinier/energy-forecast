@@ -60,6 +60,27 @@ SCOPES = {
     # `energy_generation`.  2 pairs x 3 bands = 6 cells.  No onshore pair -- no
     # currently-serving model is refitted by this scope.
     "abl322-pilot": (("wind_offshore", "DE"), ("wind_offshore", "NL")),
+    # ABL-380 -- ABL-316 tranche 1a: BG and CH wind_onshore, fitted on
+    # `energy_generation` under the frozen registration at
+    # `experiments/ABL348/config.json`.  2 pairs x 3 bands = 6 cells.
+    #
+    # This entry *is* the tranche's pre-registration, in exactly the sense the
+    # comment above describes: the pair list is fixed here, in the file, and
+    # committed before the first fit, so the cell bar cannot follow what the run
+    # turned out to score.  Windows, metric, baseline, minimum n and source
+    # table are ABL-348's and are deliberately not restated here -- thirty-seven
+    # tranches must not become thirty-seven chances to shop a window.
+    #
+    # Onshore, but nothing here is a migration: BG and CH serve no wind model,
+    # so this scope refits no live pair -- the same property `abl322-pilot`
+    # holds, reached differently.
+    #
+    # CH is registered build-and-report by the CEO's decision on ABL-348: a
+    # 12.9 MW gate-window mean cannot carry a promotion decision either way.
+    # That is a *reading* rule and not a scoring one -- CH is fitted and scored
+    # identically to BG, and the small-denominator caveat belongs in the
+    # evidence pack rather than in this table.
+    "abl380-tranche1a": (("wind_onshore", "BG"), ("wind_onshore", "CH")),
 }
 COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw"}
 
@@ -81,6 +102,14 @@ COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw
 GATE_BASIS = {
     "abl195": ("challenger", "incumbent", "seasonal_naive", "persistence"),
     "abl322-pilot": ("challenger", "seasonal_naive"),
+    # ABL-380: BG and CH wind_onshore hold zero rows in `forecasts`, which is
+    # the normal condition of all 37 remaining ABL-316 pairs rather than a fault
+    # of these two.  Under the four-way basis every one of the 6 cells would
+    # intersect to n=0 and the run would render FAIL -- the ABL-322 failure
+    # verbatim, on the first tranche it was found in time to prevent.  Gates on
+    # the two columns the registered bar names; the incumbent is still reported
+    # on its own intersection, where it reads "Not measured".
+    "abl380-tranche1a": ("challenger", "seasonal_naive"),
 }
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.
