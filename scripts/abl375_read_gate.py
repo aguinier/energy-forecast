@@ -68,16 +68,27 @@ CONFIRMATORY = {
 #: `incumbent` means "the artifact's own algorithm", which is xgboost for AT and
 #: catboost for BE/DE/FR — so the per-country algorithm is read off each payload
 #: rather than inferred from the filename.
+#: `seeded` is a POST-HOC noise characterisation of the same two windows, DE
+#: only, run *after* the primary verdict above was read and committed (d990fcf).
+#: It exists because the registered read found DE CatBoost moving 13.79% of its
+#: mean across seeds, which makes every single-seed number in ABL-338 - including
+#: the 10.7% this issue was filed on - unreadable until its own spread is known.
+#: It cannot and does not change the registered verdict; the git order is the
+#: evidence that it was not used to.
 EXPLORATORY = {
     "summer": {
         "window": ["2026-06-13", "2026-08-11"],
         "files": ["reports/abl_338_solar/holdout_summer_incumbent_cleaned.json",
                   "reports/abl_338_solar/holdout_summer_xgboost_cleaned.json"],
+        "seeded": ["reports/abl_375_solar/holdout_noisefloor_summer_catboost_cleaned.json",
+                   "reports/abl_375_solar/holdout_noisefloor_summer_xgboost_cleaned.json"],
     },
     "spring": {
         "window": ["2026-03-01", "2026-04-29"],
         "files": ["reports/abl_338_solar/holdout_spring_incumbent_cleaned.json",
                   "reports/abl_338_solar/holdout_spring_xgboost_cleaned.json"],
+        "seeded": ["reports/abl_375_solar/holdout_noisefloor_spring_catboost_cleaned.json",
+                   "reports/abl_375_solar/holdout_noisefloor_spring_xgboost_cleaned.json"],
     },
 }
 
@@ -318,6 +329,34 @@ def _render(payload: dict) -> str:
                 f"| {cat['night_mean_pred_mw']['mean']:,.2f} "
                 f"| {xgb['night_mean_pred_mw']['mean']:,.2f} |"
             )
+        seeded = window["seeded_de"]
+        de = seeded["countries"].get("DE")
+        if de:
+            v = seeded["bar_read_for_reference_only"]["DE"]
+            lines += [
+                "",
+                f"**DE re-fitted at the registered seeds on this already-observed window "
+                f"(POST-HOC, {seeded['status'].split(' - ')[0]}).** Read for reference only: "
+                f"the registered verdict is the confirmatory window's and is not revised here.",
+                "",
+                "| arm | daylight MAE (mean, min–max) | seed spread | shoulder MAE | night mean pred |",
+                "|---|---:|---:|---:|---:|",
+            ]
+            for name in sorted(de["arms"]):
+                a = de["arms"][name]
+                lines.append(
+                    f"| {name} | {_fmt(a['daylight_mae_mw'])} "
+                    f"| {a['daylight_mae_mw']['spread_pct_of_mean']:.2f}% "
+                    f"| {_fmt(a['shoulder_mae_mw'])} | {_fmt(a['night_mean_pred_mw'], 2)} |"
+                )
+            lines += [
+                "",
+                f"Geometry-arm gap {v['daylight_gap_pct_catboost_minus_xgboost_over_catboost']:+.1f}% "
+                f"favouring {v['favours']}; seed ranges "
+                f"{'disjoint' if v['conditions']['seed_ranges_disjoint'] else 'OVERLAPPING'}. "
+                f"Would read {v['verdict']} had this been the registered window - it was not.",
+                "",
+            ]
         lines.append("")
     return "\n".join(lines)
 
@@ -342,8 +381,14 @@ def main() -> int:
             p = _load(path)
             payloads[p.get("force_algorithm") or "incumbent"] = p
         window = summarise_window(label, payloads,
-                                  "EXPLORATORY - already observed under ABL-338")
+                                  "EXPLORATORY - already observed under ABL-338, single seed")
         window["window"] = spec["window"]
+        seeded = {algo: _load(path) for algo, path in
+                  zip(("catboost", "xgboost"), spec["seeded"])}
+        window["seeded_de"] = summarise_window(
+            f"{label} seeded", seeded,
+            "POST-HOC - DE seed characterisation, run after the primary verdict was committed")
+        window["seeded_de"]["bar_read_for_reference_only"] = read_bar(window["seeded_de"])
         exploratory[label] = window
 
     payload = {

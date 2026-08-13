@@ -1,6 +1,6 @@
 {
   "issue": "ABL-375",
-  "generated_at": "2026-08-13T10:29:25",
+  "generated_at": "2026-08-13T10:32:59",
   "registration": "experiments/ABL375/config.json",
   "seeds": [
     42,
@@ -759,7 +759,7 @@
   "exploratory": {
     "summer": {
       "label": "summer",
-      "status": "EXPLORATORY - already observed under ABL-338",
+      "status": "EXPLORATORY - already observed under ABL-338, single seed",
       "countries": {
         "AT": {
           "arms": {
@@ -3061,11 +3061,238 @@
       "window": [
         "2026-06-13",
         "2026-08-11"
-      ]
+      ],
+      "seeded_de": {
+        "label": "summer seeded",
+        "status": "POST-HOC - DE seed characterisation, run after the primary verdict was committed",
+        "countries": {
+          "DE": {
+            "arms": {
+              "catboost+control": {
+                "daylight_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 3633.0,
+                  "min": 3504.5,
+                  "max": 3852.2,
+                  "spread_pct_of_mean": 9.57
+                },
+                "shoulder_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 215.2,
+                  "min": 157.4,
+                  "max": 284.9,
+                  "spread_pct_of_mean": 59.26
+                },
+                "night_mean_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 90.2,
+                  "min": 23.6,
+                  "max": 220.1,
+                  "spread_pct_of_mean": 217.79
+                },
+                "night_max_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 427.8,
+                  "min": 293.6,
+                  "max": 669.6,
+                  "spread_pct_of_mean": 87.9
+                },
+                "n_negative_pred_max": 138,
+                "daylight_wape_pct": {
+                  "n_seeds": 3,
+                  "mean": 14.2,
+                  "min": 13.7,
+                  "max": 15.1,
+                  "spread_pct_of_mean": 9.57
+                },
+                "n_features": 29
+              },
+              "catboost+geometry": {
+                "daylight_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 3602.1,
+                  "min": 3443.5,
+                  "max": 3694.8,
+                  "spread_pct_of_mean": 6.98
+                },
+                "shoulder_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 379.9,
+                  "min": 300.8,
+                  "max": 501.4,
+                  "spread_pct_of_mean": 52.79
+                },
+                "night_mean_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 306.2,
+                  "min": 200.5,
+                  "max": 453.8,
+                  "spread_pct_of_mean": 82.7
+                },
+                "night_max_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 579.0,
+                  "min": 352.9,
+                  "max": 815.3,
+                  "spread_pct_of_mean": 79.86
+                },
+                "n_negative_pred_max": 20,
+                "daylight_wape_pct": {
+                  "n_seeds": 3,
+                  "mean": 14.1,
+                  "min": 13.5,
+                  "max": 14.5,
+                  "spread_pct_of_mean": 6.98
+                },
+                "n_features": 31
+              },
+              "xgboost+control": {
+                "daylight_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 3199.0,
+                  "min": 3173.3,
+                  "max": 3238.6,
+                  "spread_pct_of_mean": 2.04
+                },
+                "shoulder_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 182.5,
+                  "min": 143.3,
+                  "max": 215.1,
+                  "spread_pct_of_mean": 39.36
+                },
+                "night_mean_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 57.0,
+                  "min": 32.9,
+                  "max": 94.4,
+                  "spread_pct_of_mean": 107.8
+                },
+                "night_max_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 62.2,
+                  "min": 35.5,
+                  "max": 99.4,
+                  "spread_pct_of_mean": 102.63
+                },
+                "n_negative_pred_max": 0,
+                "daylight_wape_pct": {
+                  "n_seeds": 3,
+                  "mean": 12.5,
+                  "min": 12.4,
+                  "max": 12.7,
+                  "spread_pct_of_mean": 2.04
+                },
+                "n_features": 29
+              },
+              "xgboost+geometry": {
+                "daylight_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 3120.9,
+                  "min": 3076.3,
+                  "max": 3202.2,
+                  "spread_pct_of_mean": 4.03
+                },
+                "shoulder_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 77.3,
+                  "min": 25.4,
+                  "max": 127.2,
+                  "spread_pct_of_mean": 131.68
+                },
+                "night_mean_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 19.1,
+                  "min": 10.8,
+                  "max": 34.4,
+                  "spread_pct_of_mean": 123.24
+                },
+                "night_max_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 32.4,
+                  "min": 17.8,
+                  "max": 42.6,
+                  "spread_pct_of_mean": 76.4
+                },
+                "n_negative_pred_max": 40,
+                "daylight_wape_pct": {
+                  "n_seeds": 3,
+                  "mean": 12.2,
+                  "min": 12.0,
+                  "max": 12.5,
+                  "spread_pct_of_mean": 4.03
+                },
+                "n_features": 31
+              }
+            },
+            "n_holdout": 1440,
+            "bands": {
+              "daylight": 937,
+              "shoulder": 209,
+              "night": 294
+            },
+            "baseline_seasonal_naive_d7": {
+              "daylight": {
+                "mae_mw": 5933.4
+              },
+              "shoulder": {
+                "mae_mw": 26.4
+              },
+              "night": {
+                "mae_mw": 0.0
+              }
+            },
+            "contamination": {
+              "train_night_rows": 1957,
+              "train_night_rows_above_1mw": 4,
+              "train_night_max_mw": 1.74725,
+              "dropped_from_fit": true
+            },
+            "n_train": 4807
+          }
+        },
+        "bar_read_for_reference_only": {
+          "DE": {
+            "verdict": "PASS",
+            "favours": "xgboost",
+            "daylight_gap_pct_catboost_minus_xgboost_over_catboost": 13.36,
+            "material_gap_threshold_pct": 3.0,
+            "measured_noise_floor_pct": {
+              "catboost+geometry": 6.98,
+              "xgboost+geometry": 4.03
+            },
+            "conditions": {
+              "mean_favours_xgboost": true,
+              "seed_ranges_disjoint": true,
+              "gap_at_least_material": true,
+              "night_guardrail_xgboost_not_worse": true
+            },
+            "catboost_geometry_daylight_mae_mw": {
+              "n_seeds": 3,
+              "mean": 3602.1,
+              "min": 3443.5,
+              "max": 3694.8,
+              "spread_pct_of_mean": 6.98
+            },
+            "xgboost_geometry_daylight_mae_mw": {
+              "n_seeds": 3,
+              "mean": 3120.9,
+              "min": 3076.3,
+              "max": 3202.2,
+              "spread_pct_of_mean": 4.03
+            },
+            "night_mean_pred_mw": {
+              "catboost+geometry": 306.2,
+              "xgboost+geometry": 19.1
+            },
+            "is_the_registered_primary": true
+          }
+        }
+      }
     },
     "spring": {
       "label": "spring",
-      "status": "EXPLORATORY - already observed under ABL-338",
+      "status": "EXPLORATORY - already observed under ABL-338, single seed",
       "countries": {
         "AT": {
           "arms": {
@@ -5367,7 +5594,234 @@
       "window": [
         "2026-03-01",
         "2026-04-29"
-      ]
+      ],
+      "seeded_de": {
+        "label": "spring seeded",
+        "status": "POST-HOC - DE seed characterisation, run after the primary verdict was committed",
+        "countries": {
+          "DE": {
+            "arms": {
+              "catboost+control": {
+                "daylight_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 10367.8,
+                  "min": 10160.2,
+                  "max": 10541.9,
+                  "spread_pct_of_mean": 3.68
+                },
+                "shoulder_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 345.8,
+                  "min": 307.0,
+                  "max": 390.8,
+                  "spread_pct_of_mean": 24.23
+                },
+                "night_mean_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 213.3,
+                  "min": 161.7,
+                  "max": 247.7,
+                  "spread_pct_of_mean": 40.33
+                },
+                "night_max_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 579.7,
+                  "min": 513.6,
+                  "max": 664.3,
+                  "spread_pct_of_mean": 25.99
+                },
+                "n_negative_pred_max": 6,
+                "daylight_wape_pct": {
+                  "n_seeds": 3,
+                  "mean": 47.2,
+                  "min": 46.2,
+                  "max": 48.0,
+                  "spread_pct_of_mean": 3.68
+                },
+                "n_features": 29
+              },
+              "catboost+geometry": {
+                "daylight_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 9069.0,
+                  "min": 8866.6,
+                  "max": 9285.2,
+                  "spread_pct_of_mean": 4.62
+                },
+                "shoulder_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 341.9,
+                  "min": 233.3,
+                  "max": 416.3,
+                  "spread_pct_of_mean": 53.52
+                },
+                "night_mean_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 212.7,
+                  "min": 154.6,
+                  "max": 293.3,
+                  "spread_pct_of_mean": 65.19
+                },
+                "night_max_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 589.0,
+                  "min": 525.2,
+                  "max": 633.4,
+                  "spread_pct_of_mean": 18.37
+                },
+                "n_negative_pred_max": 12,
+                "daylight_wape_pct": {
+                  "n_seeds": 3,
+                  "mean": 41.3,
+                  "min": 40.4,
+                  "max": 42.3,
+                  "spread_pct_of_mean": 4.62
+                },
+                "n_features": 31
+              },
+              "xgboost+control": {
+                "daylight_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 7903.9,
+                  "min": 7766.9,
+                  "max": 8109.7,
+                  "spread_pct_of_mean": 4.34
+                },
+                "shoulder_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 185.6,
+                  "min": 140.6,
+                  "max": 208.3,
+                  "spread_pct_of_mean": 36.48
+                },
+                "night_mean_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 63.8,
+                  "min": 14.7,
+                  "max": 98.4,
+                  "spread_pct_of_mean": 131.17
+                },
+                "night_max_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 103.5,
+                  "min": 88.1,
+                  "max": 130.7,
+                  "spread_pct_of_mean": 41.2
+                },
+                "n_negative_pred_max": 31,
+                "daylight_wape_pct": {
+                  "n_seeds": 3,
+                  "mean": 36.0,
+                  "min": 35.3,
+                  "max": 36.9,
+                  "spread_pct_of_mean": 4.34
+                },
+                "n_features": 29
+              },
+              "xgboost+geometry": {
+                "daylight_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 7770.6,
+                  "min": 7634.9,
+                  "max": 7954.9,
+                  "spread_pct_of_mean": 4.12
+                },
+                "shoulder_mae_mw": {
+                  "n_seeds": 3,
+                  "mean": 158.2,
+                  "min": 99.0,
+                  "max": 243.4,
+                  "spread_pct_of_mean": 91.31
+                },
+                "night_mean_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 104.9,
+                  "min": 52.7,
+                  "max": 197.9,
+                  "spread_pct_of_mean": 138.45
+                },
+                "night_max_pred_mw": {
+                  "n_seeds": 3,
+                  "mean": 156.4,
+                  "min": 111.3,
+                  "max": 244.7,
+                  "spread_pct_of_mean": 85.34
+                },
+                "n_negative_pred_max": 18,
+                "daylight_wape_pct": {
+                  "n_seeds": 3,
+                  "mean": 35.4,
+                  "min": 34.7,
+                  "max": 36.2,
+                  "spread_pct_of_mean": 4.12
+                },
+                "n_features": 31
+              }
+            },
+            "n_holdout": 1440,
+            "bands": {
+              "daylight": 755,
+              "shoulder": 168,
+              "night": 517
+            },
+            "baseline_seasonal_naive_d7": {
+              "daylight": {
+                "mae_mw": 8420.3
+              },
+              "shoulder": {
+                "mae_mw": 40.6
+              },
+              "night": {
+                "mae_mw": 0.1
+              }
+            },
+            "contamination": {
+              "train_night_rows": 1212,
+              "train_night_rows_above_1mw": 1,
+              "train_night_max_mw": 1.74725,
+              "dropped_from_fit": true
+            },
+            "n_train": 2314
+          }
+        },
+        "bar_read_for_reference_only": {
+          "DE": {
+            "verdict": "PASS",
+            "favours": "xgboost",
+            "daylight_gap_pct_catboost_minus_xgboost_over_catboost": 14.32,
+            "material_gap_threshold_pct": 3.0,
+            "measured_noise_floor_pct": {
+              "catboost+geometry": 4.62,
+              "xgboost+geometry": 4.12
+            },
+            "conditions": {
+              "mean_favours_xgboost": true,
+              "seed_ranges_disjoint": true,
+              "gap_at_least_material": true,
+              "night_guardrail_xgboost_not_worse": true
+            },
+            "catboost_geometry_daylight_mae_mw": {
+              "n_seeds": 3,
+              "mean": 9069.0,
+              "min": 8866.6,
+              "max": 9285.2,
+              "spread_pct_of_mean": 4.62
+            },
+            "xgboost_geometry_daylight_mae_mw": {
+              "n_seeds": 3,
+              "mean": 7770.6,
+              "min": 7634.9,
+              "max": 7954.9,
+              "spread_pct_of_mean": 4.12
+            },
+            "night_mean_pred_mw": {
+              "catboost+geometry": 212.7,
+              "xgboost+geometry": 104.9
+            },
+            "is_the_registered_primary": true
+          }
+        }
+      }
     }
   },
   "bar": {

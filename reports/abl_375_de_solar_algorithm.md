@@ -1,6 +1,6 @@
 # ABL-375 — DE solar: XGBoost vs the serving CatBoost configuration
 
-Generated 2026-08-13T10:29:25. Registration: `experiments/ABL375/config.json`, committed before the first fit.
+Generated 2026-08-13T10:32:59. Registration: `experiments/ABL375/config.json`, committed before the first fit.
 
 Both arms are **refits on the identically truncated window** — never the live
 artifacts, which are fitted through roughly today and would score in-sample.
@@ -88,6 +88,18 @@ is what created the hypothesis, so they cannot confirm it. Single seed each.
 | DE | 3,694.8 | 3,076.3 | +16.7% | 453.80 | 12.10 |
 | FR | 1,285.1 | 1,468.6 | -14.3% | -2.60 | 7.80 |
 
+**DE re-fitted at the registered seeds on this already-observed window (POST-HOC, POST-HOC).** Read for reference only: the registered verdict is the confirmatory window's and is not revised here.
+
+| arm | daylight MAE (mean, min–max) | seed spread | shoulder MAE | night mean pred |
+|---|---:|---:|---:|---:|
+| catboost+control | 3,633.0 (3,504.5–3,852.2) | 9.57% | 215.2 (157.4–284.9) | 90.20 (23.60–220.10) |
+| catboost+geometry | 3,602.1 (3,443.5–3,694.8) | 6.98% | 379.9 (300.8–501.4) | 306.20 (200.50–453.80) |
+| xgboost+control | 3,199.0 (3,173.3–3,238.6) | 2.04% | 182.5 (143.3–215.1) | 57.00 (32.90–94.40) |
+| xgboost+geometry | 3,120.9 (3,076.3–3,202.2) | 4.03% | 77.3 (25.4–127.2) | 19.10 (10.80–34.40) |
+
+Geometry-arm gap +13.4% favouring xgboost; seed ranges disjoint. Would read PASS had this been the registered window - it was not.
+
+
 ### spring — 2026-03-01 .. 2026-04-29 (EXPLORATORY)
 
 | country | CatBoost+geom daylight | XGBoost+geom daylight | gap | CatBoost+geom night | XGBoost+geom night |
@@ -96,3 +108,15 @@ is what created the hypothesis, so they cannot confirm it. Single seed each.
 | BE | 684.7 | 675.9 | +1.3% | 9.20 | -0.20 |
 | DE | 8,866.6 | 7,634.9 | +13.9% | 190.20 | 52.70 |
 | FR | 1,051.1 | 1,054.7 | -0.3% | 5.60 | 13.90 |
+
+**DE re-fitted at the registered seeds on this already-observed window (POST-HOC, POST-HOC).** Read for reference only: the registered verdict is the confirmatory window's and is not revised here.
+
+| arm | daylight MAE (mean, min–max) | seed spread | shoulder MAE | night mean pred |
+|---|---:|---:|---:|---:|
+| catboost+control | 10,367.8 (10,160.2–10,541.9) | 3.68% | 345.8 (307.0–390.8) | 213.30 (161.70–247.70) |
+| catboost+geometry | 9,069.0 (8,866.6–9,285.2) | 4.62% | 341.9 (233.3–416.3) | 212.70 (154.60–293.30) |
+| xgboost+control | 7,903.9 (7,766.9–8,109.7) | 4.34% | 185.6 (140.6–208.3) | 63.80 (14.70–98.40) |
+| xgboost+geometry | 7,770.6 (7,634.9–7,954.9) | 4.12% | 158.2 (99.0–243.4) | 104.90 (52.70–197.90) |
+
+Geometry-arm gap +14.3% favouring xgboost; seed ranges disjoint. Would read PASS had this been the registered window - it was not.
+

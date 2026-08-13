@@ -5,7 +5,7 @@
   "status": "PRE-REGISTERED - frozen before any arm is fitted on the registered holdout",
   "registered_at": "2026-08-13T00:00:00Z",
   "registered_by": "Forecasting Scientist",
-  "evidence_pack": "reports/abl_375_de_solar_algorithm.md",
+  "evidence_pack": "reports/abl_375_de_solar_verdict.md (verdict and caveats), reports/abl_375_de_solar_algorithm.md (generated tables)",
   "measurement": "reports/abl_375_probe.json (scripts/abl375_preregistration_probe.py), reports/abl_375_solar/*.json (scripts/abl338_solar_holdout.py)",
 
   "why_a_new_registration": [
@@ -157,6 +157,35 @@
     "why_it_is_part_of_the_registration": "an xgboost-3.3.0 pickle loaded under 2.1.4 keeps its trees and silently resets the fitted intercept to 0.5, producing shape with no level. Every artifact read here is under .venv."
   },
 
+  "corrections_after_the_fit": {
+    "rule": "A registration is amended visibly or not at all. These fields were wrong when frozen; the original text above is left standing so the diff shows what was believed, and each entry says whether it changes any arm that was fitted.",
+    "entries": [
+      {
+        "field": "arms.feature_sets",
+        "registered": "control = 'the 25 names every live solar artifact carries (pre-ABL-338)', geometry = 'control + 2 = 27 names'",
+        "measured": "control = 29 names, geometry = 31.",
+        "cause": "`_legacy_feature_columns()` returns `get_feature_columns('solar')` minus the geometry pair, and that list has grown since the serving artifacts were fitted: is_holiday, days_to_holiday, days_from_holiday, is_bridge_day are in it and are absent from all four serving artifacts. ABL-338's own script docstring makes the same 25-name claim and is wrong for the same reason; its committed runs used 29/31 too, so the ABL-375 numbers stay directly comparable to ABL-338's.",
+        "changes_a_fitted_arm": false,
+        "why_not": "the registered arm was defined by construction ('the non-geometry list, plus the geometry pair'), and that is exactly what was fitted, identically on both algorithms. Only the head-count in the prose was wrong.",
+        "consequence_that_does_matter": "neither arm is the SERVING feature set. So this read compares algorithms and hyperparameters at the serving configuration, on origin/main's current solar feature list - not against the feature list the live artifacts carry. Any statement of the form 'XGBoost beats the serving DE artifact' is out of scope for this protocol and is not made."
+      },
+      {
+        "field": "primary_bar.co_primary_night_guardrail",
+        "registered": "DE night mean prediction under xgboost+geometry must be <= under catboost+geometry",
+        "defect": "written as a one-sided <=, which a large NEGATIVE night mean satisfies. DE xgboost+geometry reads -44.5 MW on the registered window with up to 267 negative predictions, so it passes a guardrail it should not obviously pass.",
+        "handling": "the condition is reported exactly as registered - it passes - and the negative night level is reported beside it rather than folded into the verdict. Rewriting the guardrail after seeing the number would void the registration. A future registration should use |night mean| or the serving clamp's own counters.",
+        "changes_a_fitted_arm": false
+      }
+    ]
+  },
+  "post_hoc_additions": {
+    "seeded_de_on_the_already_observed_windows": {
+      "what": "DE refitted at the registered seeds on ABL-338's summer and spring holdouts, 12 fits, reports/abl_375_solar/holdout_noisefloor_*.json",
+      "when": "after the registered verdict was read and committed (d990fcf). The git order is the evidence that it was not used to move the verdict.",
+      "why": "the registered read found DE catboost+geometry moving 13.79% of its mean across three seeds. That makes every single-seed number in ABL-338 - including the 10.7% this issue was filed on - unreadable until its own spread is known, and the only way to know it is to measure it on those windows.",
+      "status": "POST-HOC. It characterises already-observed numbers; it is not a second gate and does not revise the AMBIGUOUS verdict on the registered window."
+    }
+  },
   "voids_this_registration": "any change to the holdout window, the fit truncation rule, the arm set, the seeds, the bands, the metric, the primary bar or the 3.0% threshold after a challenger score has been seen on the registered holdout. Fitting the registered window, seeing a FAIL, and re-reading on a different window voids it outright.",
   "promotion": "NONE. This issue reads the gate and reports. Moving DE solar to XGBoost is a separate change requiring CEO approval, and no artifact produced here goes near the serving registry.",
   "artifact_location": "reports/abl_375_solar (experiment output only; not a serving registry). No model is written to models/."

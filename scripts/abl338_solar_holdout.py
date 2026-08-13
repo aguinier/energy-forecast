@@ -134,7 +134,20 @@ ARMS = tuple(ARM_SPECS)
 
 
 def _legacy_feature_columns() -> list:
-    """The 25 names every live solar artifact carries (pre-ABL-338)."""
+    """`get_feature_columns('solar')` minus the ABL-338 geometry pair.
+
+    This used to be documented as "the 25 names every live solar artifact
+    carries". Measured under ABL-375: it returns **29**. The four holiday
+    features — `is_holiday`, `days_to_holiday`, `days_from_holiday`,
+    `is_bridge_day` — are in the solar list and absent from all four serving
+    artifacts, which were fitted before them.
+
+    So the `control` arm is *this repo's current non-geometry solar feature set*,
+    not the serving one, and no arm here is a stand-in for the live artifact's
+    feature list. That is fine for an A/B — every arm carries the same 29 — but
+    it means a result from this script cannot be phrased as "beats the serving
+    artifact". Every committed run, ABL-338's included, used 29/31.
+    """
     return [c for c in get_feature_columns("solar") if c not in SOLAR_GEOMETRY_FEATURES]
 
 
