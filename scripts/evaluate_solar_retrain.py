@@ -242,6 +242,17 @@ def _fmt(value, suffix=""):
     return "Not measured" if value is None else f"{value:.1f}{suffix}"
 
 
+def _mw(value):
+    """Megawatts, or `n/a` for a quantity that has no value rather than no measurement.
+
+    `_fmt` renders `None` as "Not measured", which is right for a comparator that
+    does not exist and wrong for ABL-376's per-country night table: a country
+    whose data is clean has no largest excluded actual because there was nothing
+    to exclude, not because nobody looked.
+    """
+    return "n/a" if value is None else f"{value:,.1f} MW"
+
+
 def disposition(gate_cells: list[dict], registered_cells: int,
                 contaminated: bool) -> tuple[str, str]:
     """Map the scored cells onto a verdict and its recommendation.
@@ -390,8 +401,8 @@ def render_markdown(result: dict) -> str:
                 continue
             lines.append(
                 f"| {row['country']} | {night['night_rows']:,} | {night['excluded_rows']:,} | "
-                f"{night['excluded_targets']:,} | {_fmt(night['max_excluded_mw'])} MW | "
-                f"{_fmt(night['mean_night_actual_mw'])} MW |"
+                f"{night['excluded_targets']:,} | {_mw(night['max_excluded_mw'])} | "
+                f"{_mw(night['mean_night_actual_mw'])} |"
             )
         lines.extend([
             "",
