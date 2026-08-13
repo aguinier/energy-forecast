@@ -250,6 +250,54 @@ One artifact — BE `price_cascade` lightgbm `20260221_201435` — carries an *e
 `feature_columns` list. That is a different model class, not holiday drift; it is
 excluded from the counts above and reported separately in the probe JSON.
 
+### Why the gap exists: a provenance gap, not a regression
+
+Added after review. ABL-394 proposed a mechanism — that the fit-time intersection
+`[c for c in get_feature_columns(t) if c in df.columns]` dropped the four names
+because `create_holiday_features` never ran on a training frame, and that
+ABL-338 (`5cf2296`) made them live by threading `country_code` into
+`create_all_features`. **That does not reproduce.** Measured three ways:
+
+1. `git show 5cf2296 --stat -- scripts/train.py` is **empty**. ABL-338 did not
+   touch the training script.
+2. At `5cf2296^`, `create_all_features` already carried
+   `country_code: Optional[str] = None` and already called
+   `create_holiday_features(df, country_code)`; `scripts/train.py:488` already
+   passed `country_code=country_code`.
+3. Executing the pre-ABL-338 tree directly (detached worktree at `5cf2296^`,
+   `.venv` Python 3.14.3) produces **all four** holiday columns on both `solar`
+   and `load`, and the fit-time intersection **keeps** all four.
+
+Both the four holiday names and the `country_code` threading trace to `996c45a`
+*Initial commit (migrated from energy-dashboard monorepo)*, dated **2026-03-05**.
+Every serving solar artifact is stamped `20260112`–`20260223` — **all four
+predate the migration**. So the honest reading is that no serving artifact was
+produced by this repo's training path, and the declared/served divergence has
+been latent since migration rather than introduced by any commit in it.
+
+This does not weaken the issue's claim; it strengthens the basis for it. "The
+next retrain picks up four never-evaluated features" is here confirmed by
+*execution* rather than inferred from list arithmetic: a fit today produces the
+four columns and keeps them, on both solar and load.
+
+### A live consequence found while checking that: skill scores silently go to zero
+
+`scripts/train.py:715`, inside `evaluate_against_baselines`, builds the
+validation frame with `create_all_features(val_df, forecast_type)` — **without
+`country_code`, which is already a parameter of that same function**. It then
+indexes `val_df[forecaster.feature_columns]`.
+
+For a model fitted today the fitted list contains the four holiday names and the
+validation frame does not, so that indexing raises `KeyError`. The whole body is
+wrapped in `except Exception as e: logger.warning(...)`, and `skill_scores` is
+pre-initialised to `{'skill_vs_persistence': 0.0, 'skill_vs_seasonal_naive':
+0.0}` — so the failure is swallowed and **zero skill is recorded as if measured**.
+
+Confirmed on `load`, `price`, `renewable`, `wind_onshore` (all four missing
+columns are exactly the holiday names). `solar` is protected: ABL-338 added a
+loud `ValueError` for a missing `country_code` on solar. Reported separately;
+this issue is evidence-only and does not carry the fix.
+
 ### The 25-name claim is now a checkable predicate
 
 `get_feature_columns('solar', include_holidays=False)` minus
