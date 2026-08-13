@@ -21,6 +21,7 @@ from src.data_quality import find_suspect_constant_runs
 from src.evaluation.gate_artifacts import save_gate_artifact
 from src.evaluation.scorecard import (
     ScorecardConfig, _load_forecasts, _load_tso, _ro_connect,
+    describe_opened_databases, opened_databases,
     score_predictions, select_latest_per_band,
 )
 from src.evaluation.solar_retrain import (
@@ -177,7 +178,10 @@ def render_markdown(result: dict) -> str:
         f"Fit targets: {meta['fit_window']['start']} → {meta['fit_window']['end_exclusive']} (exclusive).",
         f"Out-of-sample gate targets: {meta['gate_window']['start']} → {meta['gate_window']['end_exclusive']} (exclusive).",
         "Baseline: literal seasonal-naive D-7. TSO is revision-contaminated context only and is not a gate criterion.",
-        f"Replica: `{meta['replica_db']}` ({meta['replica_bytes']:,} bytes), opened with SQLite `mode=ro`, `uri=True`.",
+        # ABL-355: which *files* the run opened. `--replica-db` used to cover
+        # the incumbent, TSO and screen only; the fitted series and weather came
+        # from `ENERGY_DB_PATH`, and this heading named one path for two files.
+        *describe_opened_databases(meta["databases"], meta["replica_bytes"]),
         # ABL-345: the two tables disagree — 9 months against 5.6 years of
         # history, and `energy_renewable` zero-fills what `energy_generation`
         # leaves NULL. Two runs of this report are not comparable unless both
@@ -320,8 +324,14 @@ def main() -> int:
         # ABL-342 records provenance from the builder rather than from a source
         # string, so passing the source here is also what makes the artifact's
         # `training_source` truthful.
+        # ABL-355: `db_path` for the same reason `actuals_source` is here. The
+        # builder resolved neither on its own — it read `config.DATABASE_PATH`,
+        # so `--replica-db` bought the incumbent and the screen while the fitted
+        # series came from wherever `ENERGY_DB_PATH` pointed. Passing the
+        # resolved replica is what makes `--replica-db` mean the whole run.
         builder = RenewableFeatureBuilder(country, "solar", fit_start - pd.Timedelta(days=14),
-                                          gate_end, actuals_source=source)
+                                          gate_end, actuals_source=source,
+                                          db_path=str(replica))
         fit_raw = build_vintage_frame(builder, fit_start, gate_start, FEATURE_COLUMNS)
         fit, audit = finite_training_rows(fit_raw, FEATURE_COLUMNS)
         model, params = _model()
@@ -396,6 +406,11 @@ def main() -> int:
 
     result = {"meta": {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
                        "replica_db": str(replica), "replica_bytes": replica.stat().st_size,
+                       # ABL-355: the run's files, not just its tables. The
+                       # builder is handed `replica`, so `features` equals
+                       # `replica` by construction — recorded anyway, because
+                       # what this issue cost was the *absence* of the record.
+                       "databases": opened_databases(cfg, str(replica), config.DATABASE_PATH),
                        "training_source": source,
                        "scope": args.scope, "registered_countries": list(registered_countries),
                        "registered_cells": registered_cells, "gate_basis": list(gate_basis),

@@ -30,22 +30,42 @@ logger = logging.getLogger('energy_forecast')
 # ============================================================================
 
 @contextmanager
-def get_connection(readonly: bool = True):
+def get_connection(readonly: bool = True, db_path=None):
     """
     Context manager for database connections
 
     Args:
         readonly: If True, open in read-only mode (safer for queries)
+        db_path: read this file instead of `config.DATABASE_PATH`. Read
+            connections only -- see the refusal below.
+
+            ABL-355: a caller that has already resolved a database has to be
+            able to say so. A gate harness holds `--replica-db` and reports it
+            as the source of the run, but every read reaching this function
+            went to the ambient `ENERGY_DB_PATH` instead, so one run could fit
+            a challenger on one file and score it against an incumbent from
+            another with nothing to show for it.
 
     Yields:
         sqlite3.Connection: Database connection
     """
+    # Writes keep the single rule `FORECAST_OUTPUT_DB or DATABASE_PATH`.
+    # Honouring an argument here would give any caller a way around the
+    # replica-purity guard (tests/test_train_sidecar_guard.py), and ignoring it
+    # would be this issue's defect again with the sign flipped -- a caller
+    # naming a target that is not the one written. So it is refused.
+    if db_path is not None and not readonly:
+        raise ValueError(
+            "db_path is a read-only override; write connections resolve through "
+            "FORECAST_OUTPUT_DB or DATABASE_PATH"
+        )
     conn = None
     try:
         # Replica reads are enforced by SQLite itself.  A Python-level promise
         # not to execute DML is not enough for the read-only replica boundary.
         if readonly:
-            target = Path(config.DATABASE_PATH).resolve().as_posix()
+            source = config.DATABASE_PATH if db_path is None else db_path
+            target = Path(source).resolve().as_posix()
             conn = sqlite3.connect(f"file:{target}?mode=ro", uri=True, timeout=30.0)
         else:
             # Replica-purity: when FORECAST_OUTPUT_DB is set (workstation), all
@@ -510,6 +530,7 @@ def load_renewable_type_data(
     start_date: str,
     end_date: str,
     source: str = None,
+    db_path=None,
 ) -> pd.DataFrame:
     """
     Load specific renewable type data as training target
@@ -521,6 +542,9 @@ def load_renewable_type_data(
         end_date: End date YYYY-MM-DD
         source: source table, defaults to `RENEWABLE_TYPE_SOURCE_TABLE`. Pass
             'energy_renewable' only to reproduce the pre-ABL-321 behaviour.
+        db_path: database file, defaults to `config.DATABASE_PATH`. `source`
+            names the table and this names the file; ABL-355 is what happens
+            when only the first of the two is answerable by the caller.
 
     Returns:
         DataFrame with timestamp_utc and target_value columns. A country/stream
@@ -557,7 +581,7 @@ def load_renewable_type_data(
         ORDER BY timestamp_utc
     """
 
-    with get_connection() as conn:
+    with get_connection(db_path=db_path) as conn:
         df = pd.read_sql_query(
             query,
             conn,
