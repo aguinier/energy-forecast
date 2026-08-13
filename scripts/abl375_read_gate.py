@@ -10,8 +10,8 @@ The comparison
 --------------
 Both algorithms are refitted on the identically truncated window, with ABL-338's
 solar geometry on both, at three registered seeds. The decision baseline is the
-other algorithm's geometry arm — an algorithm choice is a within-challenger
-question — with literal seasonal-naive D-7 as the sanity floor.
+other algorithm's geometry arm -- an algorithm choice is a within-challenger
+question -- with literal seasonal-naive D-7 as the sanity floor.
 
 The registered bar (DE, daylight), all four required
 ----------------------------------------------------
