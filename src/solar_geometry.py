@@ -101,6 +101,264 @@ SOLAR_REPRESENTATIVE_POINTS = {
 # Rerun the measurement with `scripts/abl335_solar_night_probe.py --check-actuals`.
 NIGHT_ELEVATION_THRESHOLD_DEG = -8.0
 
+
+class UndeclaredNightGenerationError(RuntimeError):
+    """A country reached a night-sensitive mechanism with no registered fact.
+
+    Deliberately **not** a `KeyError`, and not a `LookupError` either.
+    `solar_clamp` catches `KeyError` around the geometry lookup and degrades to
+    the non-negativity floor alone; this abort must not be degradable by that
+    handler or by any other, because the default it refuses to supply is the
+    destructive one.
+    """
+
+
+# Can this country's solar fleet physically generate while the sun is below
+# `NIGHT_ELEVATION_THRESHOLD_DEG`?
+#
+# This registers a **physical fact about the fleet**, not a policy about what to
+# do with it. Two mechanisms read this one fact and apply their own policy on
+# top, which is what stops them disagreeing about which hours are dark-but-real:
+#
+#   - `solar_clamp.clamp_solar_forecasts` exempts a True country from the hard
+#     night zero. The `max(0, prediction)` floor still applies everywhere, and
+#     that half of the clamp is not per-country — but *not* because negative
+#     solar is impossible. It is not: see "Why the non-negativity floor is
+#     fleet-wide" below the table. The floor rests on a measured bound instead.
+#   - `solar_features.exclude_impossible_night_rows` refuses to run at all for a
+#     True country: that rule's warrant is "the sun says this row cannot exist",
+#     which is not a claim anyone can make about a fleet that dispatches after
+#     dark.
+#
+# One fact and two policies rather than one shared value, and BG is the reason.
+# BG's overnight floor is genuine contamination, so the clamp must fire for it
+# (False here, and it does) — yet ABL-403 measured the fit-side exclusion rule
+# costing BG 1.4-1.9pp of gate WAPE, so that rule stays off for it. A single
+# value cannot express both settings; a single *fact* can.
+#
+# **There is no default and there must not be one.** A country reaching either
+# mechanism without an entry raises `UndeclaredNightGenerationError`. The silent
+# direction here is the destructive one: an unregistered ES-like country would
+# inherit "cannot generate at night", have real MW deleted on the serving path,
+# and `forecast_clamp_log` would record the deletion as a successful correction.
+# `DEFAULT_FIT_RULES` (`scripts/evaluate_solar_retrain.py:342`) is the same shape
+# of table *with* a default, and its own comment records what an absence there
+# costs: a merge that misses an entry is textually clean and stays green.
+#
+# Completeness against `SOLAR_REPRESENTATIVE_POINTS` and
+# `config.SUPPORTED_COUNTRIES` is asserted by
+# `tests/test_night_generation_registration.py` rather than at import. The
+# `check_registration_tables` comment in `scripts/evaluate_solar_retrain.py`
+# records what an import-time abort costs every branch already in flight — it
+# takes `--help` and the whole suite down on a textually clean merge — and a test
+# failure gives the same "a merge that misses an entry does not stay green"
+# property without that tax.
+#
+# Evidence: ABL-396 screened all 24 against `energy_generation` over ABL-348's
+# registered fit and gate windows (`reports/abl_396_solar_night_floor_screen.md`);
+# ABL-411 verified ES against Red Eléctrica's own published split
+# (`reports/abl_411_es_csp_verification.md`).
+NIGHT_GENERATION_POSSIBLE = {
+    # The only True in the table, and it is measured rather than reasoned.
+    # Spain operates ~2.3 GW of concentrated solar power with molten-salt
+    # storage — the only large such fleet in Europe — which charges by day and
+    # dispatches after sunset. ENTSO-E folds CSP and PV into one production type
+    # (B16), so that output lands in `solar_mw` with nothing to distinguish it.
+    #
+    # ABL-411 fetched Red Eléctrica's own `solar fotovoltaica` / `solar térmica`
+    # split and compared it to the replica over 3,196 night hours: the two
+    # together account for **98.55%** of the MW booked for ES when the sun is
+    # down, at an hourly MAE of **5.55 MW** against a **263.5 MW** mean night
+    # level, and **80.1%** of the annual night energy is `solar térmica`. So the
+    # night mask would delete roughly 263.5 MW of real ES generation every night.
+    #
+    # ABL-411's one refinement, recorded here because it is deliberately *not*
+    # modelled: the remaining 18.5% is a TSO-side estimation artifact in REE's
+    # *PV* series (44-59 MW at sun elevations of -40 to -49 deg), mirrored
+    # faithfully by ENTSO-E and by our ingest. Not physical, but not our defect
+    # either. This entry is one bit about the fleet, not a per-hour attribution.
+    'ES': True,
+
+    # Everything below is False on ABL-396's screen. The four that are not
+    # trivially zero are called out; the rest sit at or under 0.28pp of gate
+    # energy at night, most of them at 0.000.
+    'AT': False,
+    'BE': False,
+    # BG carries the largest night floor in the fleet — 4.98pp of gate energy,
+    # 85.2% of night hours above 1 MW, up to 1,087.9 MW — and it is still False,
+    # because size is not the predicate. ABL-396 §3 ran ES's own discriminator on
+    # it: the within-month detrended correlation between a day's daylight energy
+    # and that same night's energy is **+0.084** for BG against **+0.515** for
+    # ES. Storage dispatch tracks the charge; contamination has no reason to know
+    # how sunny that particular day was. BG also operates no CSP fleet.
+    'BG': False,
+    'CH': False,
+    'CZ': False,
+    'DE': False,
+    # EE is the third-largest floor (0.72pp, 79.1% of night hours above 1 MW,
+    # max 76.0 MW) and fails the same discriminator at +0.084. Real, small,
+    # persistent — and not generation.
+    'EE': False,
+    'FI': False,
+    # FR is the ABL-337 threshold comment's own example of an actuals defect:
+    # 137-440 MW at sun elevations down to -65 deg on 337 distinct days, which no
+    # physical threshold can honour. France operates no CSP fleet.
+    'FR': False,
+    'GR': False,
+    'HR': False,
+    'HU': False,
+    'IT': False,
+    'LT': False,
+    'LV': False,
+    # NL's night series is uniformly *negative* — 1,544 of 1,544 night hours
+    # across both ABL-348 windows, -1.47 to -0.12 MW. Not generation at all, and
+    # the non-negativity floor rather than the night mask is what answers it.
+    # That negative is admissible under A75's net-of-consumption semantics
+    # rather than demonstrably a defect, and it is why the floor is justified by
+    # a measured bound rather than by physics — see "Why the non-negativity
+    # floor is fleet-wide" below the table.
+    'NL': False,
+    'NO': False,
+    'PL': False,
+    'PT': False,
+    'RO': False,
+    'SE': False,
+    'SI': False,
+    'SK': False,
+}
+
+
+# --- Why the non-negativity floor is fleet-wide -----------------------------
+#
+# `solar_clamp`'s `max(0, prediction)` half is not per-country. The reason is a
+# measured bound, **not** the physical claim that negative solar is impossible.
+# That claim is false, and this file used to make it ninety lines above the NL
+# entry that disproves it.
+#
+# `energy_generation` is the A75 document, **net of consumption**. Overnight
+# auxiliary and inverter draw nets against zero output, so a fleet can book a
+# small negative and be correctly reported. NL does, structurally:
+#
+#   window                      cc  instants    neg     %    min MW  mean level
+#   ABL-348 fit+gate            NL    20,064  8,757  43.6%    -1.62      65.4
+#   ABL-348 gate only           NL     2,976  1,045  35.1%    -1.05      65.9
+#   calendar 2025               NL    35,040 17,373  49.6%    -1.59      56.2
+#   calendar 2025               IT    35,040    383   1.1%    -1.00   3,877.5
+#
+# NL is the only country booking *any* negative instant over the registered
+# fit+gate window; IT is the only other one over calendar 2025. It is a flat
+# overnight floor rather than scatter — NL is negative at 100% of instants from
+# 20Z through 02Z at a -1.0 to -1.1 MW mean, 80.7% at 03Z, tapering across dawn
+# and dusk (04Z 46.2%, 19Z 71.5%) and clean 09Z-14Z.
+#
+# **`energy_renewable` cannot corroborate that, and an earlier revision of this
+# block wrongly said it could.** It is not the pre-netting side of the fetch.
+# Over the ABL-348 gate window `energy_renewable.solar_mw` is the *zero-clipped
+# copy* of `energy_generation.solar_mw` — `ren == max(0, gen)` to 1e-9 at 100.0%
+# of instants in 28 of 32 countries and 99.0% for NL (2,946/2,976), with NL
+# flipping into that regime on a single day: 41.7% on 2026-07-01, 99.0% on
+# 2026-07-02. `db.py`'s ABL-321 note reaches the same place from the other side
+# ("the gate truth is byte-identical between the two tables for 9 of 10 pairs").
+# So `ren - gen` over that window *is* `max(0, -gen)` — the floor's own
+# correction — and asking whether it is non-negative is asking the floor about
+# itself. On the 1,045 gate-window NL instants with `gen < 0`, `ren` is exactly
+# 0.0 on 1,036 of them, so the subtraction returns `-gen` and nothing else.
+#
+# Outside that window the two series are not related that way and the difference
+# is not a consumption series either: over the fit+gate window `ren - gen` goes
+# negative at 8,668 of 19,948 NL instants, to -185.84 MW at midday, which no
+# pre-netting series can do. Only 305 of those carry ABL-188's zero-fill, so it
+# is a level difference — NL daytime `ren/gen` runs 0.42-0.64 across 2026-01..06
+# against 0.98 in July and 1.00 in August — not a fill artifact. Fleet-wide the
+# same subtraction goes negative 645 times *inside* the gate window (HU 480,
+# PT 150, GR 15, min -239.0 MW).
+#
+# What survives is weaker than a measurement and is stated here as such: A75's
+# net-of-consumption semantics make a small negative **admissible**, and NL's is
+# structurally stable rather than sporadic, so metered overnight draw is the
+# reasonable reading of it. The replica holds no independent series that isolates
+# the cause. Do not reach for `energy_renewable` to close that gap — its ABL-188
+# zero-fill and its own FR night defect (137-440 MW at sun elevations to -65 deg
+# on 337 distinct days, CLAUDE.md) are two further reasons it cannot arbitrate a
+# sign.
+#
+# So the floor does erase reported MW. It is justified by how little:
+#
+#   1. **Bounded where it matters.** Over the ABL-348 registered window the
+#      deepest excursion anywhere in the fleet is -1.62 MW, below any level a
+#      forecast resolves. That is a direct read of `energy_generation` — it never
+#      went through the join above, so the correction to `energy_renewable` does
+#      not move it. NL's per-year minimum is -1.30/-1.43/-1.74/-1.59/-1.62
+#      MW for 2021/22/24/25/26 — the structural floor is stable and ~1 MW deep
+#      across five years. 2023 is the one exception and it is the outlier
+#      discussed below, not a different floor.
+#   2. **The floor barely runs on these rows.** `solar_clamp` applies
+#      `np.where(night, 0.0, np.maximum(original, 0.0))`, so the floor is the
+#      *non-night* branch, and NL's negatives concentrate 19Z-04Z where the
+#      night mask already zeroes them. The residue the floor actually sees is
+#      ~700 instants at 15Z-18Z, at a -0.5 to -1.1 MW mean.
+#   3. **Nothing is exposed today.** NL is in no registered solar scope and
+#      `forecasts` holds solar rows for AT/BE/DE/FR only. IT is in tranche 2c at
+#      0.03% of its own level.
+#
+# One honest exception to (1), because "everywhere measured" would be the same
+# shape of absolute this table exists to retire. Screening *all* history
+# (2021-01-01 on, 2,834,612 non-null instants across the fleet) still finds
+# negatives in NL and IT alone — 288,582 instants between them — but five of
+# those go deeper than -2 MW: NL -57.36 MW at 2023-02-14 12:15, midday, an
+# isolated spike at ~100% of NL's own level; NL -2.01/-2.02/-2.03 across three
+# consecutive quarter-hours on 2023-08-11 evening; and IT -6.00 MW at
+# 2021-11-19 18:00. All five are outside every registered window and none
+# recurs — the deepest is a lone 2023 instant against a stable ~1 MW floor.
+# The bound in (1) is a statement about the structural floor over the registered
+# window, not about every row ever ingested.
+#
+# **Tripwire.** If NL ever enters an ABL-316 tranche, re-read this before
+# assuming the floor is free: at NL's 65 MW mean level a 1.1 MW floor is 1.7% of
+# level, which is no longer obviously nothing.
+#
+# Evidence: ABL-411 follow-up by the Forecasting Scientist, reproduced against
+# the replica `C:\Code\able\data\energy_dashboard.db` (`mode=ro`, source
+# `energy_generation`, direct read of actuals — nothing fitted). The full-history
+# tail in the paragraph above is this repo's own read on the same replica. The
+# `energy_renewable` correction is too: the Scientist's ABL-425 addendum offered
+# the gate-window join as the measured cause and a 1.049 MW bound on the floor's
+# cost. Every figure in it reproduces exactly, and the reproduction is what shows
+# the comparator is the clipped copy — 1.049 MW is `-min(gen)` over that window,
+# i.e. this block's own -1.05 with the sign flipped, not a second observation.
+
+
+def night_generation_possible(country_code: str) -> bool:
+    """
+    Whether this country's solar fleet can generate below the night threshold.
+
+    Args:
+        country_code: ISO 2-letter code with an entry in
+            `NIGHT_GENERATION_POSSIBLE`.
+
+    Returns:
+        The registered physical fact. True means the fleet demonstrably produces
+        after dark (ES, on ABL-411's measurement) and must not be night-zeroed.
+
+    Raises:
+        UndeclaredNightGenerationError: if the country has no entry. There is no
+            default — see the comment over the table for why the absence has to
+            be fatal rather than resolvable.
+    """
+    try:
+        return NIGHT_GENERATION_POSSIBLE[country_code]
+    except KeyError:
+        raise UndeclaredNightGenerationError(
+            f"{country_code!r} has no entry in "
+            f"solar_geometry.NIGHT_GENERATION_POSSIBLE, and there is no default. "
+            f"Register whether its solar fleet can physically generate below "
+            f"{NIGHT_ELEVATION_THRESHOLD_DEG:g} deg before it is served or "
+            f"fitted; defaulting to 'cannot' would delete real generation for a "
+            f"country like ES and log the deletion as a correction (ABL-425). "
+            f"Declared: {sorted(NIGHT_GENERATION_POSSIBLE)}"
+        ) from None
+
+
 # Hourly forecast rows are labelled with the start of the hour they cover, so an
 # hour is only dark if the sun is below the threshold for all of it. Sampled
 # every 5 minutes: near the horizon the sun moves <=0.25 deg/min, so the sampling
@@ -248,7 +506,17 @@ def is_night_hour(
 ) -> Union[bool, np.ndarray]:
     """
     True when the sun stays below threshold_deg for the whole hour starting at
-    hour_start_utc — i.e. when the country's solar fleet cannot have produced.
+    hour_start_utc.
+
+    That is a statement about the sun and nothing else. It is **not** the claim
+    that the fleet cannot have produced (ABL-425): ES dispatches ~263.5 MW of
+    stored CSP through hours this returns True for. Whether a dark hour's output
+    is impossible is the separate registered fact `NIGHT_GENERATION_POSSIBLE`,
+    which the two night-sensitive mechanisms consult on top of this predicate —
+    `solar_clamp.clamp_solar_forecasts` and
+    `solar_features.exclude_impossible_night_rows`. Every other caller (band
+    splits, night/daylight reporting) wants the geometry alone and should keep
+    calling this unconditionally.
     """
     peak = max_sun_elevation_over_hour(country_code, hour_start_utc)
     if isinstance(peak, float):

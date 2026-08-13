@@ -59,8 +59,20 @@ import pandas as pd
 from .solar_geometry import (
     NIGHT_ELEVATION_THRESHOLD_DEG,
     is_night_hour,
+    night_generation_possible,
     sun_elevation_deg,
 )
+
+
+class IncoherentNightExclusionError(RuntimeError):
+    """`exclude_impossible_night` was asked to run for a night-capable fleet.
+
+    The rule's warrant is "the sun says this row cannot exist". For a country
+    registered `True` in `solar_geometry.NIGHT_GENERATION_POSSIBLE` that claim is
+    false by measurement, so the combination is refused rather than resolved —
+    no evidence can justify it, and there is no value of the rule that would
+    make it coherent (ABL-425).
+    """
 
 #: Feature names this module contributes, in the order they are appended to a
 #: solar artifact's `feature_columns`. Anything reading or writing solar feature
@@ -115,6 +127,13 @@ def night_mask(country_code: str, hour_starts: Sequence) -> np.ndarray:
     Shared by the training-row filter and by every evaluation that reports
     daylight and night hours separately, so a single definition of "night"
     covers the fit, the score and the serving clamp.
+
+    "Dark" is not the same as "cannot have produced" (ABL-425). This answers only
+    the first: whether the sun stayed below the threshold. Whether a dark hour's
+    output is therefore impossible is a separate registered fact,
+    `solar_geometry.NIGHT_GENERATION_POSSIBLE`, and it is the clamp and
+    `exclude_impossible_night_rows` that consult it — not this predicate, which
+    every band split and night/daylight report still needs unconditionally.
     """
     index = pd.DatetimeIndex(pd.to_datetime(pd.Series(list(hour_starts)))).floor("h")
     if len(index) == 0:
@@ -258,7 +277,34 @@ def exclude_impossible_night_rows(
         denominator and what was removed, so a later run can tell a data fix
         (fewer impossible rows on the same rule) from a rule change (a different
         threshold or predicate) rather than having to infer it from a row count.
+
+    Raises:
+        IncoherentNightExclusionError: if the country is registered as able to
+            generate below the night threshold. Nothing about the rule's value
+            changes — this is a consistency assertion at the one choke point
+            that actually drops rows, so no caller can reach the combination.
     """
+    # ABL-425. This is a guard, not a merge: the two mechanisms read one
+    # registered fact and keep their own policies. It is here rather than in the
+    # gate harness because this function is where rows are dropped, and three
+    # callers reach it (`scripts/evaluate_solar_retrain.py`,
+    # `scripts/abl376_night_seed_spread.py`,
+    # `scripts/abl403_night_rule_interaction_probe.py`). `impossible_night_mask`
+    # is deliberately left unguarded: measuring a night floor is legitimate for
+    # any country, and ABL-403's probe does exactly that. Dropping the rows is
+    # what cannot be justified.
+    if night_generation_possible(country_code):
+        raise IncoherentNightExclusionError(
+            f"exclude_impossible_night is on for {country_code!r}, which is "
+            f"registered in solar_geometry.NIGHT_GENERATION_POSSIBLE as able to "
+            f"generate below {NIGHT_ELEVATION_THRESHOLD_DEG:g} deg. The rule "
+            f"drops rows on the claim that the sun says they cannot exist, and "
+            f"for this fleet that claim is false by measurement — so this would "
+            f"train away real generation. Turn the rule off for the scope that "
+            f"contains {country_code}, or correct the registration; do not "
+            f"reconcile the two here."
+        )
+
     if len(frame) == 0:
         return frame.reset_index(drop=True), {
             "threshold_mw": float(threshold_mw),
@@ -293,6 +339,7 @@ __all__ = [
     "SOLAR_BANDS",
     "NIGHT_ELEVATION_THRESHOLD_DEG",
     "IMPOSSIBLE_NIGHT_THRESHOLD_MW",
+    "IncoherentNightExclusionError",
     "solar_geometry_frame",
     "solar_bands",
     "night_mask",

@@ -19,11 +19,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.solar_features import (  # noqa: E402
     IMPOSSIBLE_NIGHT_THRESHOLD_MW,
+    IncoherentNightExclusionError,
     exclude_impossible_night_rows,
     impossible_night_mask,
     night_mask,
 )
-from src.solar_geometry import is_night_hour  # noqa: E402
+from src.solar_geometry import UndeclaredNightGenerationError, is_night_hour  # noqa: E402
 
 #: A midwinter day, so every country here has a wide unambiguous night band.
 WINTER_DAY = pd.date_range("2026-01-15", periods=24, freq="h")
@@ -50,6 +51,44 @@ def test_the_predicate_is_the_serving_clamps_not_a_second_copy():
         # A huge actual everywhere, so the mask is decided by geometry alone.
         mask = impossible_night_mask(country, WINTER_DAY, np.full(24, 9999.0))
         np.testing.assert_array_equal(mask, clamp_view)
+
+
+def test_the_rule_refuses_to_run_for_a_night_capable_fleet():
+    """ABL-425: the rule's warrant does not hold for ES, so it may not execute.
+
+    "The sun says this row cannot exist" is false for a fleet that dispatches
+    stored heat after sunset — ABL-411 measured 98.55% of ES's overnight MW
+    against Red Eléctrica's own PV + CSP split. Dropping those rows would train
+    away real generation, and no value of the rule makes that coherent, so the
+    combination raises rather than resolving to one side.
+    """
+    frame = _frame(WINTER_DAY, np.full(24, 400.0))
+    with pytest.raises(IncoherentNightExclusionError):
+        exclude_impossible_night_rows(frame, "ES")
+
+
+def test_the_rule_aborts_for_an_undeclared_country():
+    # Same reason the clamp does: the fit must not drop night rows for a country
+    # whose physics nobody has registered.
+    with pytest.raises(UndeclaredNightGenerationError):
+        exclude_impossible_night_rows(_frame(WINTER_DAY, np.zeros(24)), "XX")
+
+
+def test_the_guard_fires_before_the_empty_frame_shortcut():
+    # An empty fit frame returns early, and the guard must not sit behind that:
+    # a scope that happened to filter ES down to nothing would otherwise pass
+    # silently and reappear as an abort the first time the frame was non-empty.
+    with pytest.raises(IncoherentNightExclusionError):
+        exclude_impossible_night_rows(_frame([], []), "ES")
+
+
+def test_measuring_a_night_floor_stays_legal_for_a_night_capable_fleet():
+    # The guard is on the row-dropper only. ABL-403's probe measures night
+    # floors, and measuring ES's is exactly how ABL-396 found the CSP signature
+    # in the first place — it is dropping the rows that cannot be justified.
+    mask = impossible_night_mask("ES", WINTER_DAY, np.full(24, 400.0))
+    assert mask.any()
+    assert np.asarray(night_mask("ES", WINTER_DAY))[mask].all()
 
 
 def test_excluded_rows_are_exactly_night_and_above_threshold():
