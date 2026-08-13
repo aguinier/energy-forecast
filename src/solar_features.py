@@ -234,9 +234,17 @@ def exclude_impossible_night_rows(
     and we still hold the model to account against whatever the source reports.
 
     It is stated as a general rule over countries rather than as an FR special
-    case, and it is written to be a no-op where the data is clean: measured on
-    the replica 2026-08-13 over ABL-253's registered fit window, it removes
-    nothing at all for AT and BE, 7 hours for DE, and 114 for FR.
+    case, and it is written to be a no-op where the data is clean. Measured on
+    the replica 2026-08-13 over ABL-253's registered fit window (2026-01-14 to
+    2026-07-11), the source's hourly series carries **0 impossible hours for AT
+    and BE, 4 for DE** (max 1.7 MW) **and 114 for FR** (max 285.9 MW).
+
+    What this function removes from a fit frame is slightly less than that, and
+    the gap is not an error: it runs after `finite_training_rows`, so an hour
+    whose features were already missing was dropped as missing rather than as
+    impossible. On that same window the fit loses 4 DE hours (32 rows) and 113
+    FR hours (904 rows) — one contaminated FR hour never reached the fit at all.
+    Rows exceed hours because a fit row is per (target, vintage).
 
     Args:
         frame: Fit rows, one per (target, vintage). Not mutated.

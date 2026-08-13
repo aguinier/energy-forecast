@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ABL-376 §5: is the daylight move a rule effect, or a seed effect?
+"""ABL-376 section 5: is the daylight move a rule effect, or a seed effect?
 
 The gate A/B in `evaluate_solar_retrain.py --scope abl376` reads the fit rule at
 **one seed**, and a one-seed solar gap is not a measurement. ABL-375 put a number
@@ -38,8 +38,8 @@ what matters is that both arms see the same rows.
 Not comparable to ABL-338's headline numbers either. That holdout fits on the
 whole history with training-time features and scores a spring window; this fits
 the registered window with the serve-faithful builder and scores the registered
-summer gate window. Same two axes, different frames -- see §1 of the findings on
-how far that alone moves a night row count.
+summer gate window. Same two axes, different frames -- see section 1 of the
+findings on how far that alone moves a night row count.
 
 Usage
 -----
