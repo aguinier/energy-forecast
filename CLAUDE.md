@@ -305,12 +305,29 @@ on the replica 2026-08-12: **33 of the 37 have under 365 days in
 harness pinned to `energy_renewable` gates those pairs on a model that has never
 seen a full seasonal cycle.
 
-One wrinkle both harnesses share: `--replica-db` governs only the incumbent, TSO
-and contamination reads. The builder goes through `db.get_connection()` and so
-opens **`config.DATABASE_PATH`** (`ENERGY_DB_PATH`) — point them at different
-files and one run reads two databases. Pass `ENERGY_DB_PATH` explicitly; without
-it the builder raises `sqlite3.OperationalError: unable to open database file`
-before any fit, whatever `--replica-db` says.
+`--replica-db` governs the whole run in both harnesses — since ABL-355, and not
+before it. It used to cover only the incumbent, TSO and contamination reads: the
+builder went through `db.get_connection()` and so opened
+**`config.DATABASE_PATH`** (`ENERGY_DB_PATH`), so one run could fit a challenger
+on one file, score it against an incumbent from another, and print a single path
+under `Replica:` as if it were the source of everything. `get_connection` now
+takes a read-only `db_path` (`src/db.py:33`) threaded through
+`load_renewable_type_data` (`src/db.py:527`) and `RenewableFeatureBuilder`
+(`src/wind_features.py:474`), and both harnesses hand it the resolved
+`--replica-db` (`scripts/evaluate_solar_retrain.py:232`,
+`scripts/evaluate_wind_retrain.py:189`). A write connection **refuses** a
+`db_path` rather than honour or ignore it, so the sidecar guard keeps its single
+rule. `meta['databases']` records every file the run opened
+(`src/evaluation/scorecard.py:193`) and the report names them, including an
+`ENERGY_DB_PATH` that differs and was *not* read.
+
+So the gate harnesses no longer need `ENERGY_DB_PATH` at all when `--replica-db`
+is passed. Omit both from a worktree and the run refuses at argparse — the flag
+defaults to `str(config.DATABASE_PATH)`, which is the degraded bare
+`\data\energy_dashboard.db` that does not exist — rather than fitting against
+whatever the environment happened to name. Serving passes no `db_path` and still
+reads `config.DATABASE_PATH`; this is an override for callers that have already
+resolved a file, not a new default.
 
 The **training window** obeys the same rule. Both `train` entry points close an
 open-ended window (`end_date is None`) with `db.get_latest_data_timestamp`, which

@@ -21,6 +21,7 @@ from src.data_quality import find_suspect_constant_runs
 from src.evaluation.gate_artifacts import save_gate_artifact
 from src.evaluation.scorecard import (
     ScorecardConfig, _load_forecasts, _load_tso, _ro_connect,
+    describe_opened_databases, opened_databases,
     select_latest_per_band,
 )
 from src.evaluation.wind_retrain import (
@@ -89,7 +90,10 @@ def render_markdown(result: dict) -> str:
         f"Fit targets: {meta['fit_window']['start']} → {meta['fit_window']['end_exclusive']} (exclusive).",
         f"Out-of-sample gate targets: {meta['gate_window']['start']} → {meta['gate_window']['end_exclusive']} (exclusive).",
         "Baseline: literal seasonal-naive D-7. TSO is revision-contaminated context only and is not a gate criterion.",
-        f"Replica: `{meta['replica_db']}` ({meta['replica_bytes']:,} bytes), opened with SQLite `mode=ro`, `uri=True`.",
+        # ABL-355: which *files* the run opened. `--replica-db` used to cover
+        # the incumbent, TSO and screen only; the fitted series and weather came
+        # from `ENERGY_DB_PATH`, and this heading named one path for two files.
+        *describe_opened_databases(meta["databases"], meta["replica_bytes"]),
         "",
         "## Gate read",
         "",
@@ -176,8 +180,13 @@ def main() -> int:
     for forecast_type, spec in PAIRS.items():
         tso = _load_tso(cfg, forecast_type)
         for country in spec["countries"]:
+            # ABL-355: hand the builder the resolved replica, so `--replica-db`
+            # means the whole run. Without it the builder read
+            # `config.DATABASE_PATH` and the fitted series could come from a
+            # different file than the incumbent it is scored against.
             builder = RenewableFeatureBuilder(country, forecast_type,
-                                               fit_start - pd.Timedelta(days=14), gate_end)
+                                               fit_start - pd.Timedelta(days=14), gate_end,
+                                               db_path=str(replica))
             fit_raw = build_vintage_frame(builder, fit_start, gate_start)
             fit, audit = finite_training_rows(fit_raw)
             model, params = _model(spec["algorithm"])
@@ -257,6 +266,8 @@ def main() -> int:
         )
     result = {"meta": {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
                        "replica_db": str(replica), "replica_bytes": replica.stat().st_size,
+                       # ABL-355: the run's files, not just its tables.
+                       "databases": opened_databases(cfg, str(replica), config.DATABASE_PATH),
                        "fit_window": {"start": str(fit_start), "end_exclusive": str(gate_start)},
                        "gate_window": {"start": str(gate_start), "end_exclusive": str(gate_end)},
                        "registered_intended_n": INTENDED_N, "schedule_implied_n": SCHEDULE_N,

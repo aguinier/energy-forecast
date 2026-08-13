@@ -44,6 +44,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src import db  # noqa: E402
+from src.evaluation.scorecard import ScorecardConfig, opened_databases  # noqa: E402
 
 COUNTRY = "XX"
 START = pd.Timestamp("2026-01-01")
@@ -206,9 +207,14 @@ def test_an_unknown_source_is_rejected_before_anything_is_fitted(replica, monkey
 
 
 def _result(source, constant_runs=()):
+    # ABL-355: `meta['databases']` is built by the same function `main()` uses,
+    # so this fixture cannot drift from the record the report is handed.
+    databases = opened_databases(
+        ScorecardConfig("r.db", None, START, END), "r.db", "r.db")
     return {
         "meta": {"generated_at": "2026-08-12 00:00 UTC", "replica_db": "r.db",
                  "replica_bytes": 1, "training_source": source,
+                 "databases": databases,
                  "fit_window": {"start": "2026-01-14", "end_exclusive": "2026-07-11"},
                  "gate_window": {"start": "2026-07-11", "end_exclusive": "2026-08-10"}},
         "verdict": "PASS", "recommendation": "-",
