@@ -155,3 +155,29 @@ def test_scope_is_a_choice_not_a_country_filter():
     scope_arg = next(n for n in added if n.args[0].value == "--scope")
     kwargs = {kw.arg for kw in scope_arg.keywords}
     assert "choices" in kwargs, "--scope must be restricted to the registered scopes"
+
+
+def test_tranche1a_scope_is_bg_ch_onshore(scopes):
+    """ABL-380 registers ABL-316's first tranche: BG and CH wind_onshore, 6 cells.
+
+    Pinned for the same reason `abl322-pilot` is. The pair list is the thing the
+    cell bar is derived from, so an edit to it silently moves the denominator a
+    gate read is dispositioned against — and this scope is the template the
+    remaining 33 pairs will be tranched under.
+    """
+    tranche = scopes["abl380-tranche1a"]
+    assert tranche == {("wind_onshore", "BG"), ("wind_onshore", "CH")}
+    assert len(tranche) * len(PRIMARY_BANDS) == 6
+    assert not tranche & SERVING_PAIRS, (
+        f"tranche 1a refits serving pairs: {sorted(tranche & SERVING_PAIRS)}")
+
+
+def test_tranche1a_does_not_gate_on_the_incumbent(gate_basis):
+    """All 37 remaining ABL-316 pairs have zero rows in `forecasts`.
+
+    BG and CH are the first two to be gated, so this is where the ABL-322 defect
+    would have recurred: with `incumbent` in the basis all 6 cells intersect to
+    n=0 and the harness renders FAIL on a comparison that never ran.
+    """
+    assert "incumbent" not in gate_basis["abl380-tranche1a"]
+    assert gate_basis["abl380-tranche1a"] == ("challenger", "seasonal_naive")
