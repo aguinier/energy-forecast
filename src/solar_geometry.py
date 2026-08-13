@@ -506,7 +506,17 @@ def is_night_hour(
 ) -> Union[bool, np.ndarray]:
     """
     True when the sun stays below threshold_deg for the whole hour starting at
-    hour_start_utc — i.e. when the country's solar fleet cannot have produced.
+    hour_start_utc.
+
+    That is a statement about the sun and nothing else. It is **not** the claim
+    that the fleet cannot have produced (ABL-425): ES dispatches ~263.5 MW of
+    stored CSP through hours this returns True for. Whether a dark hour's output
+    is impossible is the separate registered fact `NIGHT_GENERATION_POSSIBLE`,
+    which the two night-sensitive mechanisms consult on top of this predicate —
+    `solar_clamp.clamp_solar_forecasts` and
+    `solar_features.exclude_impossible_night_rows`. Every other caller (band
+    splits, night/daylight reporting) wants the geometry alone and should keep
+    calling this unconditionally.
     """
     peak = max_sun_elevation_over_hour(country_code, hour_start_utc)
     if isinstance(peak, float):
