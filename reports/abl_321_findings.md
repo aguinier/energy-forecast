@@ -374,3 +374,90 @@ CLAUDE.md warns about. It fails loudly (`sqlite3.OperationalError`) rather than
 silently reading the decoy, so nothing here is contaminated, but every run must
 pass `ENERGY_DB_PATH` explicitly. `.env` is gitignored and machine-local, so
 this is a note, not a patch.
+
+## 10. Disposition — the CEO decision, and what it did to the question
+
+Recorded 2026-08-12 after the CEO's ruling on this issue. §1–§9 above are
+unrevised; this section says what happened to them.
+
+### The switch does not land as a global flip — and the reason is not §6
+
+The CEO rejected the global switch on a ground I had not made explicit, and it
+is the stronger one. `RENEWABLE_TYPE_SOURCE_TABLE` is read at **serve** time,
+not only at training time: `src/forecaster.py:771` builds a
+`RenewableFeatureBuilder` per forecast call, which reaches
+`src/wind_features.py:233` -> `_load_actuals_series` -> `load_renewable_type_data`
+-> `src/db.py:401`. So flipping the constant alone would feed
+`energy_generation` features to ten artifacts **fitted on `energy_renewable`** —
+a third state that neither arm of my backtest measured:
+
+| state | trained on | served features from | measured |
+|---|---|---|---|
+| today | `energy_renewable` | `energy_renewable` | yes — arm A |
+| arm B | `energy_generation` | `energy_generation` | yes |
+| flip the constant alone | `energy_renewable` | `energy_generation` | **no** |
+
+My backtest licenses neither the flip nor "accept the regression and land". It
+only ever spoke to rows 1 and 2. Train/serve skew is the correct objection and
+it supersedes the regression as the reason.
+
+### The source stops being global — ABL-331
+
+One constant forced one answer onto 49 pairs that do not have one answer. The
+CEO's resolution is to make the training source a **per-artifact property**:
+recorded in `model_data` at save, read back in `Forecaster.load`, threaded to
+the builder at serve, defaulting to `energy_renewable` when the key is absent so
+every existing artifact stays bit-identical. PR #12 already threads `source=`
+down through `_load_actuals_series`; the missing link is `Forecaster` -> builder.
+
+That is a serving-path and artifact-format change, so it is the Founding
+Engineer's, not mine — filed as **ABL-331**, which becomes the new gate for
+ABL-316. Consequences:
+
+- The **39 pairs with no model** train and serve on `energy_generation`
+  immediately. No incumbent exists to regress against; their gate is
+  seasonal-naive D-7, which is ABL-316's design already. The §2 census case for
+  them is unrefuted.
+- The **10 serving pairs** keep `energy_renewable` until each is individually
+  retrained and gate-read. §6's three regressions stay confined to the pairs
+  they were measured on.
+- **ABL-321 is released from gating duty.** ABL-316's scope question — 10 pairs
+  or 49 — is answered 49, without touching the ten that already work.
+
+### What landed
+
+PR #12 merged as `8c83d1a` with `RENEWABLE_TYPE_SOURCE_TABLE = 'energy_renewable'`
+**unchanged**, so serving behaviour is bit-identical to before. What shipped is
+the part that improves both sources whichever one a given pair uses: the
+`source=` parameter, the NULL-drop, the NULL-aware `hydro_total` sum, the
+duplicate-instant collapse (§7), the harness, and criterion 3's empty-frame
+test. 56 tests pass on `.venv` Python 3.14.3.
+
+Criterion 1 is therefore **not** met as written and deliberately so — the CEO's
+decision replaces "point the loader at `energy_generation`" with "make the
+source per-artifact". Criteria 2, 3 and 4 are met.
+
+### What is registered but not run
+
+`experiments/ABL321/protocol.md` **Amendment 2** — the "what would ship"
+comparison §6 proposed: fit each arm on the history its own source actually
+provides, score on window 1's registered rows, all ten pairs. Registered in full
+before any number, including a falsifiable primary prediction (Spearman's rho
+between B/A history ratio and arm B's relative WAPE change, predicted negative)
+and explicit fixes for Amendment 1's two self-reported design failures.
+
+It no longer gates anything. It decides one narrower thing: whether the ten
+incumbents should eventually migrate, pair by pair. Registered order:
+**ABL-322 -> ABL-332 -> Amendment 2.**
+
+### One confound checked and retired
+
+I suspected ABL-332 (the hourly feature builder discarding `:15/:30/:45`) might
+have handicapped arm B asymmetrically, which would have undermined §6 —
+DE wind_onshore is both 15-minute and one of the three regressions. Measured
+read-only on the replica over window 1's span, the resolution is **symmetric**:
+AT, DE and FR carry 15-minute rows in *both* tables and BE is hourly in both. So
+the defect costs both arms the same three-quarters of their samples, and §6's
+contrast is not contaminated by it. Both arms' absolute WAPEs are pessimistic
+for AT/DE/FR, and ABL-332's fix will move both — which is why Amendment 2 is
+sequenced after it.

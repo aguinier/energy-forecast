@@ -31,6 +31,7 @@ Date: 2026-02-22 (updated 2026-02-24: aligned D+N horizon with XGBoost, UTC docs
 """
 
 import logging
+import os  # DATABASE_PATH below reads ENERGY_DB_PATH (ABL-354)
 import sqlite3
 from datetime import datetime, date, timedelta
 from pathlib import Path
@@ -38,6 +39,8 @@ from typing import Optional, List, Dict
 
 import numpy as np
 import pandas as pd
+
+from .runner_report import emit_record_count
 
 logger = logging.getLogger("energy_forecast.chronos")
 
@@ -567,6 +570,7 @@ if __name__ == "__main__":
             horizon_days=args.horizon,
             save_to_db=args.save,
         )
+        emit_record_count(len(df))  # the machine-readable half (ABL-370)
         print(f"\nForecast ({len(df)} rows):")
         print(df[["target_timestamp_utc", "forecast_value", "horizon_hours"]].to_string(index=False))
         _sys.exit(0)

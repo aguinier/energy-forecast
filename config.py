@@ -116,22 +116,54 @@ SUPPORTED_COUNTRIES = [
     'SK',  # Slovakia
 ]
 
-# Country-specific renewable type exclusions (e.g., landlocked countries have no offshore wind)
+# Country-specific renewable type exclusions.
+#
+# ABL-318 validated this map against reported data for the first time
+# (scripts/audit_renewable_availability.py, replica read 2026-08-12; see
+# reports/abl_318_renewable_data_audit.md). It was previously a hand-written
+# geography assumption and it was wrong in one direction: six countries were
+# left IN the offshore programme that have no offshore series worth training.
+# Each entry below now carries what energy_generation actually reports.
+#
+# Not skipped, and verified to hold a real offshore fleet: BE, DE, FR, NL.
 SKIP_RENEWABLE_TYPES = {
-    'AT': ['wind_offshore'],  # Austria - Landlocked
-    'CH': ['wind_offshore'],  # Switzerland - Landlocked
-    'CZ': ['wind_offshore'],  # Czech Republic - Landlocked
-    'HU': ['wind_offshore'],  # Hungary - Landlocked
-    'SK': ['wind_offshore'],  # Slovakia - Landlocked
-    'BG': ['wind_offshore'],  # Bulgaria - Limited offshore
-    'RO': ['wind_offshore'],  # Romania - Limited offshore
-    'LT': ['wind_offshore'],  # Lithuania - Limited offshore
-    'LV': ['wind_offshore'],  # Latvia - Limited offshore
-    'EE': ['wind_offshore'],  # Estonia - Limited offshore
-    'SI': ['wind_offshore'],  # Slovenia - Limited offshore
-    'HR': ['wind_offshore'],  # Croatia - Limited offshore
-    'GR': ['wind_offshore'],  # Greece - Limited offshore
-    'PL': ['wind_offshore'],  # Poland - Limited offshore
+    # Confirmed by data: wind_offshore_mw is NULL in every row, 2021-01-01 to
+    # now. Not reported by the TSO, so there is nothing to train on.
+    'AT': ['wind_offshore'],  # Austria - not reported (landlocked)
+    'CH': ['wind_offshore'],  # Switzerland - not reported (landlocked)
+    'CZ': ['wind_offshore'],  # Czech Republic - not reported (landlocked)
+    'HU': ['wind_offshore'],  # Hungary - not reported (landlocked)
+    'SK': ['wind_offshore'],  # Slovakia - not reported (landlocked)
+    'BG': ['wind_offshore'],  # Bulgaria - not reported
+    'RO': ['wind_offshore'],  # Romania - not reported
+    'LT': ['wind_offshore'],  # Lithuania - not reported
+    'LV': ['wind_offshore'],  # Latvia - not reported
+    'EE': ['wind_offshore'],  # Estonia - not reported
+    'SI': ['wind_offshore'],  # Slovenia - not reported
+    'HR': ['wind_offshore'],  # Croatia - not reported
+    'GR': ['wind_offshore'],  # Greece - not reported
+    'FI': ['wind_offshore'],  # Finland - not reported (ABL-318: was NOT skipped)
+    'SE': ['wind_offshore'],  # Sweden - not reported (ABL-318: was NOT skipped)
+
+    # Reported, but the series is flat zero or a demonstrator below 50 MW --
+    # nothing a model can add value on. All three were NOT skipped before
+    # ABL-318.
+    'ES': ['wind_offshore'],  # Spain - reported and 100% exactly 0.0, n=160,101
+    'IT': ['wind_offshore'],  # Italy - peak 30.0 MW (Beleolico), 37% zeros
+    'PT': ['wind_offshore'],  # Portugal - peak 25.0 MW (WindFloat Atlantic)
+    'NO': ['wind_offshore'],  # Norway - peak 5.5 MW, only since 2025-08-25
+
+    # Poland stays skipped, but NOT for the stated reason: PL began reporting
+    # wind_offshore on 2026-07-05 and has already hit 189.2 MW (Baltic Power
+    # coming online). The data is real; there is just not yet enough of it
+    # (38 days at the 2026-08-12 audit, against a 365-day minimum).
+    # REVISIT ~2027-07 -- this is a "not yet", not a "never".
+    'PL': ['wind_offshore'],  # Poland - real fleet arriving, history too short
+
+    # NO solar and SI/SK wind_onshore also fail the 50 MW fleet test (peaks of
+    # 7.5, 4.8 and 3.1 MW respectively) but are deliberately NOT skipped here:
+    # this map is consumed by the offshore-exclusion path only, and changing
+    # its scope is a separate change. See the ABL-318 verdict table.
 }
 
 # ============================================================================

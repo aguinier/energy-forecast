@@ -95,19 +95,113 @@ run. Nine of 34 scripts were affected; five of them were the `test_*.py` probes
 in `scripts/` that also broke bare `pytest` collection (ABL-336).
 
 `tests/test_script_imports.py` holds the line — it executes the module-level
-import block of every entry point in `scripts/` and the repo root, and rejects
-any flat sibling import inside `src/`. A new script that copies an old
-`sys.path.insert(..., 'src')` preamble fails there rather than seven months
-later.
+import block of every entry point in `scripts/` and the repo root, rejects any
+flat sibling import inside `src/`, and (ABL-354) launches every
+`config.MODEL_RUNNERS` entry with `--help` to prove it starts. A new script that
+copies an old `sys.path.insert(..., 'src')` preamble fails there rather than
+seven months later.
 
 Two consequences worth knowing:
 
-- A `__main__` demo inside `src/` (e.g. `src/features.py`) needs a parent
-  package for its relative imports, so run it as `python -m src.features`, not
-  `python src/features.py`.
+- Anything inside `src/` with a `__main__` — a demo like `src/features.py`, or a
+  real entry point like `src/tso_correction_forecaster.py` — needs a parent
+  package for its relative imports, so it runs as `python -m src.features`,
+  never `python src/features.py`.
+
+  **`config.MODEL_RUNNERS` launches two entry points that live inside `src/`,
+  as subprocesses.** `scripts/forecast_daily.py:189` (`build_runner_command`) is
+  the one place that builds that argv: a `script` under `src/` becomes
+  `-m src.<module>` with `cwd` at the repo root; anything else stays a path.
+  Before ABL-354 it was always a path, so `src/tso_correction_forecaster.py` —
+  moved to relative imports by ABL-340, as the rule above requires — died at its
+  import line on every run, and every BE solar / wind_onshore / wind_offshore
+  forecast from the `tso-correction` runner was lost. **The job still exited
+  `[DONE]`**: `run_external_model` records a dead subprocess as one failed
+  *result*, and the summary line (`Total: 10, Success: 8, Failed: 2`) is the
+  only trace. A runner that cannot start reads like a run that went fine, which
+  is why the guard now launches them instead of trusting the summary. What the
+  summary itself can now say is in "What a runner reports" below (ABL-370).
 - `src/evaluation.py` is dead code. `src/evaluation/` is a package and shadows
   it — `src.evaluation` always resolves to the directory. `src/__init__.py:44`
   already has its re-export commented out.
+
+## What a runner reports (ABL-370)
+
+The exit code says whether a runner crashed. It does not say whether it
+*produced* anything, and `forecast_daily` used to read it as if it did: exit 0
+was logged `OK`, and a row count was recovered only if stdout happened to
+contain `Forecast (N rows)` or `Saved N forecast records`. A run that generated
+nothing prints neither, so `tso-correction` skipping all three renewable types
+on a day the upstream Elia forecast has not landed printed
+
+```
+[tso-correction] OK: BE solar D+2
+Total: 10, Success: 2, Skipped: 8, Failed: 0
+```
+
+— indistinguishable from a run that saved 96 rows, and its 0 vanished inside a
+`Total forecasts:` sum the in-process models push into the thousands. That is
+the same reporting shape that hid ABL-354.
+
+**Every external `MODEL_RUNNERS` entry emits one line on stdout, once per run,
+zero included:**
+
+```
+FORECAST_RECORDS=<n>
+```
+
+`src/runner_report.py` owns both ends — `emit_record_count()` writes it,
+`parse_record_count()` reads it — so the contract cannot drift. It imports
+nothing but `typing`, deliberately: `chronos-bolt-small` runs under its own venv
+and importing this must never be what breaks it.
+
+`forecast_daily` then distinguishes four outcomes, not two:
+
+| outcome | means |
+|---|---|
+| `success` | exit 0, reported ≥ 1 row |
+| `empty` | exit 0, reported exactly 0 rows — ran fine, produced nothing |
+| `unreported` | exit 0, no count line — what it did is **unknown**, and unknown is not 0 |
+| `failed` | non-zero exit, timeout, or exception |
+
+`records` is `None` for `unreported`, and contributes nothing to
+`Total forecasts:` — recording it as 0 would be a number nobody measured. The
+summary gains a per-runner block and an explicit
+`Runners that produced no forecasts:` callout, which is the line a silent runner
+now has to appear on.
+
+`empty` is not a failure and does not change the exit code: skipping when the
+upstream forecast is genuinely absent is correct behaviour, and today D+1/D+2
+for BE legitimately produce nothing (`energy_generation_forecast` for BE ends at
+the reference date). The defect was never the zero — it was that the zero was
+unsayable.
+
+Adding a runner: call `emit_record_count(len(df))` on every path that exits 0,
+*before* any `if not df.empty:` guard. `tests/test_runner_reporting.py` checks
+that statically for each configured runner and would otherwise report your
+runner as `unreported` forever.
+
+### Skipped is a flag, not a phrase
+
+`failed` is reported net of `skipped` — "there was no model to run" is not a
+failure — but the two used to be told apart by looking for `not found` in the
+error text. `chronos-bolt-small` points at a venv that does not exist on this
+box, so it fails with `Executable not found: [WinError 2]`, and a runner that
+could not run *at all* was counted as benign. `generate_forecast` now sets
+`result['skipped'] = True` at the one place that knows (the `FileNotFoundError`
+from `Forecaster.load`), and `is_skip` reads only that.
+
+Consequence worth knowing: a default run on this box now ends
+`Skipped: 1, Failed: 1` and exits 1 for BE/price, where it used to exit 0.
+`chronos-bolt-small` is genuinely unrunnable here; fix the path in
+`config.MODEL_RUNNERS` or set `enabled: False`, but do not read the exit 0 that
+preceded it as the job having been fine.
+
+That same handler used to log `python_exe`, a name local to
+`build_runner_command` since ABL-354 — a `NameError` raised *inside* an
+`except` clause, which the sibling `except Exception` does not catch. A missing
+runner interpreter killed the whole daily job before it printed any summary.
+`--countries BE --types price` reproduces it on the pre-fix file.
 
 ## Database
 
@@ -284,19 +378,57 @@ screening the wrong table moves the disposition and not just the prose. The
 resolved table is recorded in `meta.training_source` and printed in the report:
 two gate reads are not comparable unless both name the table they read.
 
-The **wind** harness (`scripts/evaluate_wind_retrain.py`) still has no source
-argument **on `main`** and therefore still fits on `energy_renewable`. The
-equivalent change exists on the unmerged `ABL-322-pilot` branch (`8662989`),
-which also widens `PAIRS["wind_offshore"]` to BE/DE/FR/NL — a pilot scoping
-decision, which is why ABL-345 left that file alone rather than conflict with it.
-If that branch is dropped or rebased, the wind harness has no source argument at
-all; do not assume `main` carries it.
+The **wind** harness (`scripts/evaluate_wind_retrain.py`) takes the same
+`--renewable-source` argument, resolves it to the same two read sites, and
+records it in `meta.training_source`.
 
 Neither harness takes a **country** argument, and neither should get one as a
-flag alone: `COUNTRIES`/`PAIRS` are the registered scope and `performance_pass`
-is `len(gate_cells) == 9` (solar) / `== 15` (wind) against it, so a run scoped to
-a subset reports `n/9` and FAILs on the count no matter how it scored. Extending
-either to a new country is a new pre-registration, not a filter.
+flag alone. `COUNTRIES`/`PAIRS` are the registered scope and `performance_pass`
+is `len(gate_cells) ==` that scope's size, so a filtered run FAILs on the count
+no matter how it scored — and a country filter cannot say "offshore only", so it
+also drags serving pairs of the *other* stream into the gate. Scoping a run is a
+new pre-registration, not a filter.
+
+The wind harness therefore takes `--scope`, not `--countries`. `SCOPES` maps a
+registered name to an explicit `(stream, country)` pair list, and the bar is that
+list's size × `PRIMARY_BANDS` — read from the table in the file, never from what
+the run turned out to score, so a pair that silently yields no gate rows still
+shortfalls the count and reads FAIL. `abl195` (the default, so an unflagged run
+reproduces ABL-195 exactly) is 5 pairs → 15 cells; `abl322-pilot` is DE/NL
+`wind_offshore` → 6 cells and refits no serving pair. Adding a scope is a
+pre-registration and belongs in review. `tests/test_gate_scope_registration.py`
+pins all of this, including that `--countries` is not reintroduced.
+
+A scope also registers its **gate basis** (`GATE_BASIS`): the columns that must
+be *simultaneously finite* for a row to enter a gate cell. This is not a detail.
+`common_scores` intersects on every column it is handed, and the harness handed
+it `challenger, incumbent, seasonal_naive, persistence` — so a pair with **no
+incumbent** has an empty intersection, and every cell scores `n=0` with every
+score `None`. ABL-322 hit exactly this: DE and NL `wind_offshore` have 0 rows in
+`forecasts`, so the first pilot run returned 0/6 cells and the harness rendered
+`FAIL` — a model-quality verdict on a comparison that never happened. **Every
+new country in the ABL-316 tranches is in that position**, so this would have
+mis-dispositioned all 37 remaining pairs. `abl322-pilot` therefore gates on
+`(challenger, seasonal_naive)` — the two columns its registered bar actually
+names — and reports the incumbent and persistence on their own intersection with
+that basis, each carrying its own n, so an absent comparator reads *Not measured*
+instead of emptying the cell.
+
+`abl195` deliberately **keeps** the four-way basis it was published under: its
+48-64h cells scored 480 rows against the 510 the same report records as selected,
+so the incumbent conjunct did drop rows there, and re-basing it would silently
+move numbers that have already been dispositioned. Re-reading ABL-195 under the
+narrower basis is a separate decision for whoever owns that gate.
+
+Relatedly, a run in which any cell scores zero rows now returns verdict
+`UNREADABLE`, not `FAIL`. A cell that scored nothing did not lose a race; saying
+`FAIL` invites exactly the wrong next move (feature work on a model that was
+never measured).
+
+The **solar** harness still hardcodes `len(gate_cells) == 9` against its
+`COUNTRIES` and has no scope argument. That is correct while every solar run is
+the full ABL-253 scope; the ABL-348 tranche will need the same `SCOPES`
+treatment before it can gate a subset.
 
 Why the source matters for the 37 unmodelled solar / wind_onshore pairs, measured
 on the replica 2026-08-12: **33 of the 37 have under 365 days in
@@ -313,9 +445,9 @@ on one file, score it against an incumbent from another, and print a single path
 under `Replica:` as if it were the source of everything. `get_connection` now
 takes a read-only `db_path` (`src/db.py:33`) threaded through
 `load_renewable_type_data` (`src/db.py:527`) and `RenewableFeatureBuilder`
-(`src/wind_features.py:474`), and both harnesses hand it the resolved
+(`src/wind_features.py:516`), and both harnesses hand it the resolved
 `--replica-db` (`scripts/evaluate_solar_retrain.py:232`,
-`scripts/evaluate_wind_retrain.py:189`). A write connection **refuses** a
+`scripts/evaluate_wind_retrain.py:332`). A write connection **refuses** a
 `db_path` rather than honour or ignore it, so the sidecar guard keeps its single
 rule. `meta['databases']` records every file the run opened
 (`src/evaluation/scorecard.py:193`) and the report names them, including an
@@ -407,6 +539,18 @@ Run anything that loads a model — `train_v014.py`, `backtest_v014.py`,
 that `.env` is gitignored, so a **git worktree has no `.env`** and
 `config.DATABASE_PATH` degrades to a bare `\data\energy_dashboard.db`. Pass
 `ENERGY_DB_PATH` explicitly from a worktree.
+
+One configured exception, measured rather than assumed (ABL-354): the
+`tso-correction` runner is pinned to the conda interpreter at `config.py:490`,
+not the rail. Its artifacts are **LightGBM**, not xgboost, and LightGBM
+round-trips a booster as text. The three BE models
+(`models/tso_correction/BE/*/model.joblib`, trained 2026-04-01) load with no
+warning and predict identically to 6 dp under lightgbm 4.6.0 (conda) and 4.7.0
+(`.venv`), and a full `-m src.tso_correction_forecaster --country BE --horizon 2`
+gives the same `tso_raw` (1191.096365 MW mean) and `tso_corrected` (1254.571424)
+under both. The ABL-69 failure does not reach this runner. That is a fact about
+the artifact format, not a general licence — anything holding an xgboost pickle
+still belongs on `.venv`.
 
 ## Model Storage
 
@@ -594,15 +738,16 @@ defect rather than by the threshold.
 The clamp sits in `save_forecasts()`, so it covers every serving writer that
 goes through it, by construction rather than by each caller remembering to
 clamp. Two writers import it: `scripts/forecast_daily.py` and
-`src/tso_correction_forecaster.py:37`.
+`src/tso_correction_forecaster.py:39`.
 
-The second one does not currently run at all. `forecast_daily.py:226` launches
+The second one could not run at all until ABL-354. `forecast_daily.py` launched
 it as a subprocess **by file path**, and ABL-340 moved it to relative imports,
-so it dies at import with `attempted relative import with no known parent
-package` — every BE solar / wind row from the `tso-correction` runner has failed
-since, while the run summary still reports `[DONE]`. ABL-354. That path
-inherits the clamp the moment it can start; nothing about the clamp needs to
-change for it.
+so it died at import with `attempted relative import with no known parent
+package` — every BE solar / wind row from the `tso-correction` runner failed
+that way, while the run summary still reported `[DONE]`. It now launches as
+`-m src.tso_correction_forecaster` (`build_runner_command`,
+`scripts/forecast_daily.py:189`), so it reaches `save_forecasts()` and inherits
+the clamp by construction; nothing about the clamp had to change for it.
 
 ### Tests
 

@@ -20,11 +20,25 @@ from pathlib import Path
 from typing import List
 
 # Add repo root to path (for the top-level `config` module and the `src` package)
-sys.path.insert(0, str(Path(__file__).parent.parent))
+REPO_ROOT = Path(__file__).parent.parent
+# Runners whose `script` lives here are modules of a package, not loose files.
+SRC_PACKAGE = 'src'
+sys.path.insert(0, str(REPO_ROOT))
 
 import config
 from src.db import save_forecasts, create_forecasts_table, start_forecast_run, complete_forecast_run
 from src.forecaster import Forecaster
+from src.runner_report import (
+    RECORD_COUNT_PREFIX,
+    STATUS_EMPTY,
+    STATUS_FAILED,
+    STATUS_SUCCESS,
+    STATUS_UNREPORTED,
+    format_runner_summary,
+    is_skip,
+    parse_record_count,
+    status_for_count,
+)
 
 
 def setup_logging():
@@ -148,7 +162,8 @@ def generate_forecast(
         'country_code': country_code,
         'forecast_type': forecast_type,
         'horizon_days': horizon_days,
-        'status': 'failed',
+        'runner': 'builtin',
+        'status': STATUS_FAILED,
         'records': 0,
         'error': None
     }
@@ -166,14 +181,22 @@ def generate_forecast(
         else:
             forecast_df['renewable_type'] = None
 
-        result['status'] = 'success'
+        # A model that returns no rows ran fine and produced nothing, which is
+        # not the same thing as success (ABL-370).
+        result['status'] = status_for_count(len(forecast_df))
         result['records'] = len(forecast_df)
         result['forecast_df'] = forecast_df
 
-        logger.info(f"[OK] {country_code} {forecast_type}: {len(forecast_df)} forecasts generated")
+        if result['status'] == STATUS_EMPTY:
+            logger.warning(f"[EMPTY] {country_code} {forecast_type}: ran, produced 0 forecasts")
+        else:
+            logger.info(f"[OK] {country_code} {forecast_type}: {len(forecast_df)} forecasts generated")
 
     except FileNotFoundError as e:
+        # The one place that knows a result is "no model to run" rather than a
+        # failure. Flagged, not inferred from the error text (ABL-370).
         result['error'] = f"Model not found: {e}"
+        result['skipped'] = True
         logger.warning(f"[SKIP] {country_code} {forecast_type}: Model not trained yet")
 
     except Exception as e:
@@ -181,6 +204,38 @@ def generate_forecast(
         logger.error(f"[FAIL] {country_code} {forecast_type}: {e}")
 
     return result
+
+
+def build_runner_command(
+    runner: dict,
+    args: List[str],
+    repo_root: Path = REPO_ROOT,
+) -> List[str]:
+    """Build the argv for an external runner, launched the way its imports need.
+
+    A runner hosted inside `src/` is a *module of the `src` package*: its
+    siblings are imported relatively (`from .db import ...`), which only
+    resolves when it has a parent package. Handing its path to the interpreter
+    gives it none, and it dies at the import line with "attempted relative
+    import with no known parent package" — which is exactly what happened to
+    `src/tso_correction_forecaster.py` from ABL-340 until ABL-354: every BE
+    solar / wind forecast from the `tso-correction` runner failed while the job
+    still exited `[DONE]`.
+
+    So a `src/`-hosted runner is launched as `python -m src.<module>`, with the
+    subprocess `cwd` at the repo root so `src` and `config` resolve. Runners
+    outside the package keep the by-path form; they have no parent package to
+    need. See CLAUDE.md, "Importing this repo".
+    """
+    script = Path(runner['script'])
+    python_exe = runner.get('python_executable') or 'python'
+
+    if script.parts[0] == SRC_PACKAGE:
+        launch = ['-m', '.'.join(script.with_suffix('').parts)]
+    else:
+        launch = [str(repo_root / script)]
+
+    return [python_exe, *launch, *args]
 
 
 def run_external_model(
@@ -196,7 +251,10 @@ def run_external_model(
     Run an external model as a subprocess.
 
     The external script is responsible for saving its own forecasts to the DB
-    (via its --save flag), so we don't append to all_forecasts.
+    (via its --save flag), so we don't append to all_forecasts. It reports how
+    many rows it produced with `src.runner_report.emit_record_count`, which is
+    the only channel we have into what it actually did — see that module for
+    why the exit code alone is not enough (ABL-370).
 
     Args:
         runner: Runner config dict from MODEL_RUNNERS
@@ -217,24 +275,22 @@ def run_external_model(
         'country_code': country_code,
         'forecast_type': forecast_type,
         'horizon_days': horizon_days,
-        'status': 'failed',
+        'runner': runner_name,
+        'status': STATUS_FAILED,
         'records': 0,
         'error': None
     }
 
-    python_exe = runner.get('python_executable', 'python')
-    script_path = str(Path(__file__).parent.parent / runner['script'])
-
-    cmd = [
-        python_exe,
-        script_path,
+    run_args = [
         '--country', country_code,
         '--horizon', str(horizon_days),
         '--date', reference_date.strftime('%Y-%m-%d'),
     ]
 
     if not dry_run:
-        cmd.append('--save')
+        run_args.append('--save')
+
+    cmd = build_runner_command(runner, run_args)
 
     logger.info(f"[{runner_name}] Running: {country_code} {forecast_type} D+{horizon_days}")
 
@@ -244,23 +300,28 @@ def run_external_model(
             capture_output=True,
             text=True,
             timeout=300,  # 5 minute timeout
+            cwd=str(REPO_ROOT),  # `-m src.x` resolves the package from here
         )
 
         if proc.returncode == 0:
-            result['status'] = 'success'
-            # Try to parse row count from output
-            for line in proc.stdout.splitlines():
-                if 'Forecast (' in line and 'rows)' in line:
-                    try:
-                        result['records'] = int(line.split('(')[1].split(' ')[0])
-                    except (IndexError, ValueError):
-                        pass
-                if 'Saved' in line and 'forecast records' in line:
-                    try:
-                        result['records'] = int(line.split('Saved ')[1].split(' ')[0])
-                    except (IndexError, ValueError):
-                        pass
-            logger.info(f"[{runner_name}] OK: {country_code} {forecast_type} D+{horizon_days}")
+            # Exit 0 says the runner did not crash. It does not say it produced
+            # anything — the count line does (ABL-370). Absent, the count is
+            # unknown, which is reported as unknown rather than as 0 or as OK.
+            records = parse_record_count(proc.stdout)
+            result['records'] = records
+            result['status'] = status_for_count(records)
+            where = f"{country_code} {forecast_type} D+{horizon_days}"
+
+            if result['status'] == STATUS_SUCCESS:
+                logger.info(f"[{runner_name}] OK: {where} ({records} rows)")
+            elif result['status'] == STATUS_EMPTY:
+                logger.warning(f"[{runner_name}] Ran, produced 0 forecasts: {where}")
+            else:
+                result['error'] = (
+                    f"exited 0 without printing a {RECORD_COUNT_PREFIX}<n> line, "
+                    "so what it produced is unknown"
+                )
+                logger.warning(f"[{runner_name}] No count reported: {where}")
         else:
             result['error'] = proc.stderr[-500:] if proc.stderr else f'Exit code {proc.returncode}'
             logger.warning(f"[{runner_name}] Failed ({proc.returncode}): {country_code} {forecast_type} D+{horizon_days}")
@@ -271,8 +332,12 @@ def run_external_model(
         result['error'] = 'Subprocess timed out after 300s'
         logger.warning(f"[{runner_name}] Timeout: {country_code} {forecast_type} D+{horizon_days}")
     except FileNotFoundError as e:
+        # `cmd[0]`, not `python_exe`: the interpreter name is local to
+        # build_runner_command, and naming it here raised NameError *inside the
+        # handler*, which no sibling `except` catches — a missing runner
+        # interpreter killed the whole daily job instead of failing one result.
         result['error'] = f'Executable not found: {e}'
-        logger.warning(f"[{runner_name}] Not found: {python_exe}")
+        logger.warning(f"[{runner_name}] Not found: {cmd[0]}")
     except Exception as e:
         result['error'] = str(e)
         logger.error(f"[{runner_name}] Error: {e}")
@@ -401,7 +466,7 @@ def main():
                 )
                 results.append(result)
 
-                if result['status'] == 'success' and 'forecast_df' in result:
+                if result['status'] == STATUS_SUCCESS and 'forecast_df' in result:
                     all_forecasts.append(result['forecast_df'])
 
     # ── External model runners (config-driven) ──
@@ -447,32 +512,44 @@ def main():
     logger.info("Forecast Generation Summary")
     logger.info("=" * 60)
 
-    success = sum(1 for r in results if r['status'] == 'success')
-    skipped = sum(1 for r in results if 'not found' in str(r.get('error', '')).lower() or 'not trained' in str(r.get('error', '')).lower())
-    failed = sum(1 for r in results if r['status'] == 'failed') - skipped
-    total_forecasts = sum(r['records'] for r in results)
+    success = sum(1 for r in results if r['status'] == STATUS_SUCCESS)
+    empty = sum(1 for r in results if r['status'] == STATUS_EMPTY)
+    unreported = sum(1 for r in results if r['status'] == STATUS_UNREPORTED)
+    skipped = sum(1 for r in results if is_skip(r))
+    failed = sum(1 for r in results if r['status'] == STATUS_FAILED) - skipped
+    # `records` is None for a run that never reported one — unknown, not zero.
+    total_forecasts = sum(r['records'] or 0 for r in results)
 
     logger.info(f"Reference date: {reference_date}")
-    logger.info(f"Total: {len(results)}, Success: {success}, Skipped: {skipped}, Failed: {failed}")
+    logger.info(
+        f"Total: {len(results)}, Success: {success}, Empty: {empty}, "
+        f"Unreported: {unreported}, Skipped: {skipped}, Failed: {failed}"
+    )
     logger.info(f"Total forecasts: {total_forecasts}")
+
+    # A zero inside that sum is invisible next to the in-process models'
+    # thousands of rows, so break it out per runner (ABL-370).
+    logger.info("")
+    for line in format_runner_summary(results):
+        logger.info(line)
 
     if failed > 0:
         logger.info("\nFailed models:")
         for r in results:
-            if r['status'] == 'failed' and 'not found' not in str(r.get('error', '')).lower():
+            if r['status'] == STATUS_FAILED and not is_skip(r):
                 logger.info(f"  - {r['country_code']} {r['forecast_type']}: {r['error']}")
 
     # Complete the run tracking
     execution_time = (datetime.now() - start_time).total_seconds()
-    successful_countries = list(set(r['country_code'] for r in results if r['status'] == 'success'))
-    successful_types = list(set(r['forecast_type'] for r in results if r['status'] == 'success'))
+    successful_countries = list(set(r['country_code'] for r in results if r['status'] == STATUS_SUCCESS))
+    successful_types = list(set(r['forecast_type'] for r in results if r['status'] == STATUS_SUCCESS))
 
     if run_id and not args.dry_run:
         try:
             error_message = None
             if failed > 0:
                 failed_items = [f"{r['country_code']}/{r['forecast_type']}" for r in results
-                               if r['status'] == 'failed' and 'not found' not in str(r.get('error', '')).lower()]
+                               if r['status'] == STATUS_FAILED and not is_skip(r)]
                 error_message = f"Failed: {', '.join(failed_items[:5])}" + ("..." if len(failed_items) > 5 else "")
 
             complete_forecast_run(
