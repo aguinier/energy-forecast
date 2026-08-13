@@ -495,7 +495,39 @@ added to one and not the others fails before any fit rather than mid-run — it
 raises on `import`, so even `--help` exits non-zero. That is deliberately louder
 than a failing test: the tables disagreeing is **not** a textual conflict, so
 GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
-platform will show it. **Registering a new scope means editing three tables.**
+platform will show it. **Registering a new scope means editing every one of these
+tables** — three on the wind harness, and **five on solar** since ABL-376 added
+`FIT_RULES` and `SCOPE_TITLES` to the same import-time check. Count them in the
+`check_registration_tables(...)` call in the harness you are editing rather than
+from this sentence; that call is the list.
+
+**What the fit was allowed to see is part of the registration too (ABL-376).**
+`FIT_RULES` (`evaluate_solar_retrain.py`) carries `exclude_impossible_night` per
+scope: a night row — night by `solar_geometry.is_night_hour`, the serving clamp's
+own predicate, reached through `solar_features.night_mask` — whose actual exceeds
+`IMPOSSIBLE_NIGHT_THRESHOLD_MW` (1 MW, ABL-338's threshold) is dropped **from the
+fit and never from the score**. `energy_renewable` carries solar for FR at sun
+elevations down to -65 deg, so a model fitted through it learns a night floor
+faithfully; the defect is in the training target, not the model.
+
+That asymmetry is the rule, not an implementation detail. We refuse to train on
+values the sun says are impossible and still score against whatever the source
+reports, so the challenger cannot delete the rows it is held to account on. A run
+that filtered its own gate frame would fit, score, render every number and pass
+every other test, so the call site is pinned by AST in
+`tests/test_solar_night_fit_exclusion.py` rather than by any output.
+
+The rule is stated over countries, not for FR — the predicate is the sun's, so a
+country whose data is clean loses nothing, and a `0` in the report's per-country
+table means the rule ran and found nothing rather than that it was off. It is
+conservative by construction: `is_night_hour` requires the sun below threshold
+for the *whole* hour, so shoulder contamination survives it. The threshold and
+the per-country row count are printed in the scorecard so a later run can tell a
+data fix from a rule change. `abl253` registers the rule **off** and keeps its
+report heading character-for-character, so the dispositioned read still
+reproduces; `abl376` is the same countries, basis and windows with the rule on —
+a controlled A/B on the rule alone. Do not re-read a dispositioned scope under a
+changed fit rule; register a new one.
 
 **Which way the two `.gitignore` globs cut — they do not cut the same way.**
 Entries stay exactly one directory deep under `experiments/`, and below that the
