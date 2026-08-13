@@ -43,6 +43,14 @@ from .solar_geometry import NIGHT_ELEVATION_THRESHOLD_DEG, is_night_hour
 
 logger = logging.getLogger('energy_forecast')
 
+# MW magnitude below which a night prediction is considered already-zero for the
+# purposes of hours_zeroed_night. Log-link models predict exp(margin), which is
+# never exactly 0.0 — a well-fitted model still emits ~0.006 MW/hour at night.
+# Without this tolerance the counter trips on every night hour regardless of
+# whether the model has learned to return essentially nothing at night, hiding
+# the success the instrument is meant to detect (ABL-377).
+ZEROED_NIGHT_MW_THRESHOLD = 1.0
+
 
 @dataclass
 class SolarClampStats:
@@ -56,8 +64,9 @@ class SolarClampStats:
     model_name: str
     renewable_type: str
     night_threshold_deg: float
+    zeroed_night_mw_threshold: float  # |prediction| must exceed this to count in hours_zeroed_night
     rows_total: int
-    hours_zeroed_night: int      # night rows whose prediction was not already 0
+    hours_zeroed_night: int      # night rows whose |prediction| exceeded zeroed_night_mw_threshold
     hours_raised_floor: int      # daylight rows whose prediction was negative
     mw_removed_night: float      # sum of predictions the night mask discarded
     mw_added_floor: float        # MW the non-negativity floor added back (>= 0)
@@ -102,6 +111,7 @@ def solar_row_mask(df: pd.DataFrame) -> pd.Series:
 def clamp_solar_forecasts(
     forecasts_df: pd.DataFrame,
     threshold_deg: float = NIGHT_ELEVATION_THRESHOLD_DEG,
+    zeroed_mw_threshold: float = ZEROED_NIGHT_MW_THRESHOLD,
 ) -> Tuple[pd.DataFrame, List[SolarClampStats]]:
     """
     Apply the night mask and the non-negativity floor to solar rows.
@@ -150,7 +160,11 @@ def clamp_solar_forecasts(
         original = group['forecast_value'].astype(float).to_numpy()
         clamped = np.where(night, 0.0, np.maximum(original, 0.0))
 
-        zeroed = night & (original != 0.0)
+        # hours_zeroed_night: only rows whose |prediction| exceeded the threshold.
+        # mw_removed_night: all night rows that were non-zero (threshold-free) —
+        # the load-bearing MW instrument stays comparable across re-runs.
+        zeroed = night & (np.abs(original) > zeroed_mw_threshold)
+        night_nonzero = night & (original != 0.0)
         raised = (~night) & (original < 0.0)
 
         generated_at = None
@@ -162,10 +176,11 @@ def clamp_solar_forecasts(
             model_name=str(model_name),
             renewable_type='solar',
             night_threshold_deg=float(threshold_deg),
+            zeroed_night_mw_threshold=float(zeroed_mw_threshold),
             rows_total=int(len(group)),
             hours_zeroed_night=int(zeroed.sum()),
             hours_raised_floor=int(raised.sum()),
-            mw_removed_night=float(original[zeroed].sum()) if zeroed.any() else 0.0,
+            mw_removed_night=float(original[night_nonzero].sum()) if night_nonzero.any() else 0.0,
             mw_added_floor=float(-original[raised].sum()) if raised.any() else 0.0,
             mw_removed_total=float((original - clamped).sum()),
             min_forecast_mw=float(original.min()) if len(original) else None,

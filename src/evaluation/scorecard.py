@@ -190,6 +190,111 @@ def _ro_connect(path: str) -> sqlite3.Connection:
     return sqlite3.connect(f"file:{Path(path).resolve().as_posix()}?mode=ro", uri=True)
 
 
+def opened_databases(cfg: ScorecardConfig, feature_db, ambient_db) -> dict:
+    """Every database file a gate run opens, as a record for `meta`.
+
+    ABL-355: `--replica-db` governed only the reads that go through this module
+    — the incumbent forecasts, the TSO series and the contamination screen. The
+    fitted series and the weather archive went through `db.get_connection()`
+    and so opened `config.DATABASE_PATH`, while the report printed the replica
+    alone, under `Replica:`, as if it were the source of everything. Every gate
+    number is a comparison between two series that were not required to have
+    come from the same file, and nothing said so.
+
+    Threading `db_path` into the builder is what fixes it; this is what makes
+    the fix legible in the record. `features_match_replica` is the property
+    that matters — the sidecar is a *different* file by design (locally
+    generated forecasts, replica purity), so its path is named but not compared.
+
+    `ambient_db` is `config.DATABASE_PATH`. It is recorded precisely because a
+    fixed run does *not* read it: a reader comparing this report to one written
+    before ABL-355 needs to see whether the two would have diverged.
+
+    The sidecar rule is `_load_forecasts`' own — same condition, so the record
+    cannot claim a file that run never opened.
+
+    Both comparisons are made on resolved paths and reported against the value
+    as configured. `--replica-db` defaults to `str(config.DATABASE_PATH)`, so
+    the two are usually the same file named two ways; comparing the strings
+    would let a relative or unnormalized `ENERGY_DB_PATH` print "not read by
+    this run" about the very file the run read.
+    """
+    sidecar = (str(Path(cfg.sidecar_db).resolve())
+               if cfg.sidecar_db and Path(cfg.sidecar_db).exists() else None)
+    replica = str(Path(cfg.replica_db).resolve())
+    features = str(Path(feature_db).resolve())
+    return {
+        "replica": replica,
+        "features": features,
+        "sidecar": sidecar,
+        "ambient_energy_db_path": str(ambient_db),
+        "features_match_replica": features == replica,
+        "ambient_matches_replica": str(Path(ambient_db).resolve()) == replica,
+    }
+
+
+def describe_opened_databases(record: dict, replica_bytes: int) -> list[str]:
+    """The report lines that name every file the run opened.
+
+    One line per file, and — only when it differs — one naming the ambient
+    `ENERGY_DB_PATH` the run did not read. Silence there would leave the
+    strongest evidence that the ABL-355 split is closed off the page.
+
+    The incumbent forecasts are the one read the replica does not hold alone:
+    `_load_forecasts` also opens the sidecar when it exists, and a sidecar row
+    wins an exact vintage match. So the single-file sentence is said only when
+    no sidecar was opened. Claiming it over one would be this issue's own
+    defect — a report naming one file for reads that came from two — reprinted
+    inside its fix.
+    """
+    replica_reads = (
+        "the TSO series, the contamination screen, and — since ABL-355 — the "
+        "fitted target series, its lag/rolling features, the D-7 and persistence "
+        "baselines, the gate actuals and the weather archive"
+    )
+    lines = [
+        f"Replica: `{record['replica']}` ({replica_bytes:,} bytes), opened with "
+        "SQLite `mode=ro`, `uri=True`.",
+    ]
+    if record["features_match_replica"] and not record["sidecar"]:
+        lines.append(
+            f"Every read in this run comes from that one file: the incumbent "
+            f"forecasts, {replica_reads}."
+        )
+    elif record["features_match_replica"]:
+        lines.append(
+            f"That one file is the source of {replica_reads}. The incumbent "
+            f"forecasts are the only read it does not hold alone; see the "
+            f"sidecar below."
+        )
+    else:
+        # Unreachable from either harness, which hands the builder the resolved
+        # replica. Kept because a wrong number here is worse than a missing one:
+        # if some future caller does split them, the report says so rather than
+        # printing one path for two files.
+        lines.append(
+            f"**Cross-sourced run.** The fitted target series, its features, the "
+            f"baselines, the gate actuals and the weather archive were read from "
+            f"`{record['features']}`, which is not the replica above. The gate "
+            f"numbers compare series from two different files; treat them as "
+            f"unpublishable until re-run against one."
+        )
+    if record["sidecar"]:
+        lines.append(
+            f"Sidecar: `{record['sidecar']}`, also opened `mode=ro`, and read "
+            "for locally generated incumbent forecasts only. Where a sidecar "
+            "row and a replica row carry the same vintage, the sidecar's is the "
+            "one scored."
+        )
+    if not record["ambient_matches_replica"]:
+        lines.append(
+            f"`ENERGY_DB_PATH` resolved to `{record['ambient_energy_db_path']}` "
+            "and was **not** read by this run. Before ABL-355 that path, not the "
+            "replica, is where the fitted series would have come from."
+        )
+    return lines
+
+
 def _load_forecasts(cfg: ScorecardConfig) -> tuple[pd.DataFrame, dict]:
     models = cfg.models or PRODUCTION_MODELS
     frames = []

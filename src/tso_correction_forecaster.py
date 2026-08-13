@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import config
 from .db import get_connection, save_forecasts
+from .runner_report import emit_record_count
 from .evaluation.tso_correction import (
     TSOCorrectionModel,
     load_tso_vs_actual,
@@ -401,6 +402,10 @@ if __name__ == "__main__":
             renewable_types=rtypes,
             save_to_db=args.save,
         )
+        # Before the human-readable block, and on the empty path too: a run
+        # that skipped every type because the TSO forecast has not landed yet
+        # is correct, and has to be legible as zero rather than as OK (ABL-370).
+        emit_record_count(len(df))
         if not df.empty:
             print(f"\nForecast ({len(df)} rows):")
             summary = df.groupby("model_name").agg(

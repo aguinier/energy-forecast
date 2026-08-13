@@ -31,6 +31,7 @@ import config
 from src.chronos2.engine import ChronosEngine
 from src.chronos2.input_builder import InputBuilder
 from src.db import get_connection, save_quantile_forecasts
+from src.runner_report import emit_record_count
 
 logging.basicConfig(
     level=logging.INFO,
@@ -277,6 +278,8 @@ def main():
         save_to_db=save,
         include_neighbors=args.include_neighbors,
     )
+
+    emit_record_count(len(results_df))  # ABL-370: on both branches below
 
     if not results_df.empty:
         # Print summary
