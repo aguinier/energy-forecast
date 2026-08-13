@@ -23,6 +23,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 from src import db
 from src.data_quality import find_suspect_constant_runs
+from src.evaluation.gate_grading import (
+    attach_grades, cell_grade, grade_summary_table, grading_prose,
+)
 from src.evaluation.model_free_reference import (
     MODEL_FREE_COMPARATORS, attach_model_free_references, comparator_wape,
     levels_table, lost_to_a_model_free_reference, reference_prose,
@@ -307,6 +310,16 @@ GATE_BASIS = {
 #: why moving the bar instead would have been wrong.
 REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistence",
                         *MODEL_FREE_COMPARATORS)
+
+# ABL-418: which of ABL-385's registered per-stream CVs the readability floor is
+# taken from.  A property of the harness, not of the scope -- every scope here
+# fits solar.  It is deliberately not the wind value: solar's fleet p90 per-fit
+# CV is the larger of the two, so its floor is the wider one, and reading a solar
+# cell against wind's narrower floor would call an unreadable margin readable.
+# ABL-381 quoted its margins against another stream's fits; that is the mistake.
+# The numbers themselves live in `src/evaluation/gate_grading.py` and nowhere
+# else, so this file cannot come to disagree with the registration it cites.
+GRADE_STREAM = "solar"
 
 # ABL-376: what the fit is allowed to *see* is a registered property of the scope
 # too, and for the same reason as the basis -- two gate reads are not comparable
@@ -669,8 +682,12 @@ def render_markdown(result: dict) -> str:
         # windows are exactly what they were.
         *reference_prose(),
         "",
-        "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | MAE | bias | slope | corr | gate |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|",
+        # ABL-418: what the PASS in the last column entitles the cell to. The
+        # gate column is unchanged and still says whether the cell cleared D-7.
+        *grading_prose(GRADE_STREAM),
+        "",
+        "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | MAE | bias | slope | corr | gate | grade |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|",
     ]
     for row in cells:
         scores = row["scores"]
@@ -678,6 +695,7 @@ def render_markdown(result: dict) -> str:
         # A cell that scored no rows has None on both sides. It renders as
         # "Not measured", never as a number and never as a crash.
         skill = "Not measured" if chal is None or naive is None else f"{100 * (1 - chal / naive):+.1f}%"
+        grade = cell_grade(row, GRADE_STREAM).detail
         lines.append(
             f"| {row['country']} | {row['horizon_band']} | {row['gate']['n']:,} | "
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
@@ -687,8 +705,9 @@ def render_markdown(result: dict) -> str:
             f"{_fmt(comparator_wape(scores, 'climatology_oracle'), '%')} | "
             f"{_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(scores['challenger']['mae'])} MW | "
             f"{_fmt(scores['challenger']['bias_pct'], '%')} | {_fmt(scores['challenger']['slope'])} | "
-            f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} |"
+            f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} | {grade} |"
         )
+    lines.extend(grade_summary_table(cells, GRADE_STREAM, lambda row: row["country"]))
     lines.extend(levels_table(result["training"]))
     # The protocol-count sentence below is a measured ABL-253 fact about that
     # scope's eight registered run instants. Rendering it for every scope would
@@ -946,6 +965,13 @@ def main() -> int:
                            "comparator_n": comparator_n,
                            "tso": score_predictions(common.loc[tso_valid, "actual"], common.loc[tso_valid, "tso"])})
 
+    # ABL-418.  One call, here, so the markdown table and `results.json` cannot
+    # disagree about a grade.  It reads only columns already in `scores` and
+    # changes no verdict: `passed` and `disposition` below are computed exactly
+    # as they were.  The stream selects ABL-385's registered CV, and passing the
+    # wrong one would silently apply wind's narrower floor --
+    # `tests/test_gate_grading.py` reads this literal out of the AST.
+    attach_grades(gate_cells, GRADE_STREAM)
     passed = sum(row["gate"]["pass"] for row in gate_cells)
     contaminated = any(row["constant_runs"] for row in training)
     verdict, recommendation = disposition(gate_cells, registered_cells, contaminated)
