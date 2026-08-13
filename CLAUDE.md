@@ -125,6 +125,51 @@ Two consequences worth knowing:
   it — `src.evaluation` always resolves to the directory. `src/__init__.py:44`
   already has its re-export commented out.
 
+### Help text is ASCII; report bodies are not
+
+`--help` output must be plain ASCII. `scripts/train.py:262` held a literal `→`,
+and `python scripts/train.py --help > /dev/null` exited **1** with
+`UnicodeEncodeError` — CPython takes stdout's encoding from what stdout *is*, so
+a console writes through `WriteConsoleW` and survives, while a pipe or a file
+falls back to the locale codepage (cp1252 here) and `argparse` raises inside the
+`--help` action itself (ABL-364). Interactively it looked fine; every harness,
+CI step and agent that captures stdout saw a traceback instead of usage.
+
+**A module docstring is help text.** 18 of the 38 entry points pass
+`description=__doc__`, so an em dash in a docstring is the same defect one
+codepage over (cp1252 encodes `—`, cp850 does not). Nine scripts beyond
+`train.py` were carrying one.
+
+`tests/test_help_text_encoding.py` holds the line: it reads every entry point's
+parser out of the AST — `help=`, `description=`, `epilog=`, and `__doc__` where
+it is passed as one — and rejects any character above U+007F. Write `->` and
+`--`. It is a static sweep because `--help` on an arbitrary script means
+executing that script to module scope, and it runs `scripts/train.py --help`
+under `PYTHONIOENCODING=ascii` as the one end-to-end case, so the assertion does
+not depend on the codepage of the box.
+
+"Entry point" there means the same set as `test_script_imports.py`: every
+`scripts/*.py`, the repo-root runners, **and every `config.MODEL_RUNNERS`
+script**. That last group is not decoration — `test_model_runner_launches`
+starts each runner with `--help` through a pipe, and two of them
+(`src/chronos_forecaster.py`, `src/tso_correction_forecaster.py`) live under
+`src/`, outside the `scripts/` glob. Both are ASCII-clean today. Note that
+neither passes `description=__doc__` — they use short literals
+(`tso_correction_forecaster.py:375`) — so unlike the `scripts/` entry points
+above, **their module docstrings are not help text** and an em dash in one is
+harmless. What is swept, and what matters, is their `help=`/`description=`
+literals: a non-ASCII character there stops the runner from starting, and per
+the bullet above `forecast_daily` books a runner that cannot start as a failed
+*result* and still prints `[DONE]`.
+
+Report bodies are the deliberate exception and keep `Δ`, `→`, `·`. They are
+printed from one known place, so they re-encode the stream there
+(`evaluate_net_position.py:125-132`, `compare_challenger.py:127-133`) — which is
+not available to `--help`, since argparse prints before any line of `main()`
+runs. Do not "fix" this the other way by forcing UTF-8 on stdout at import time:
+that is a runtime change in 38 scripts, forgettable in the 39th, and it
+re-encodes the log files the `scripts/workstation/*.ps1` jobs capture.
+
 ## What a runner reports (ABL-370)
 
 The exit code says whether a runner crashed. It does not say whether it
@@ -370,7 +415,7 @@ the rule above, and is read back by `CascadeForecaster.load_model`.
 ABL-342 made that provenance faithful but gave neither harness a way to read
 anything else. The **solar** harness now has one (ABL-345):
 `scripts/evaluate_solar_retrain.py --renewable-source energy_generation`. It
-resolves the source once (`evaluate_solar_retrain.py:208`) and hands the same
+resolves the source once (`evaluate_solar_retrain.py:351`) and hands the same
 string to both read sites — the `RenewableFeatureBuilder`, which supplies the
 fitted series, every lag and rolling feature, the D-7/persistence baselines and
 the gate actuals; and `_constant_runs`, whose result drives `verdict`, so
@@ -425,10 +470,124 @@ Relatedly, a run in which any cell scores zero rows now returns verdict
 `FAIL` invites exactly the wrong next move (feature work on a model that was
 never measured).
 
-The **solar** harness still hardcodes `len(gate_cells) == 9` against its
-`COUNTRIES` and has no scope argument. That is correct while every solar run is
-the full ABL-253 scope; the ABL-348 tranche will need the same `SCOPES`
-treatment before it can gate a subset.
+ABL-378 ported all of the above to the **solar** harness, so it is no longer the
+exception this section used to describe. It takes `--scope` over a `SCOPES` table
+of its own (`evaluate_solar_retrain.py:60`), registers a `GATE_BASIS` per scope
+(`:98`), and derives its bar rather than hardcoding `== 9`:
+`registered_cells = len(registered_countries) * len(PRIMARY_BANDS)`
+(`:361`), compared in `disposition` (`:181`). `abl253` is the default and the
+only registered solar scope today, so an unflagged run still reproduces ABL-253;
+ABL-381's tranche registers the second.
+
+**Every read reports four model-free references** (ABL-389). `constant_causal` and
+`constant_oracle` are a flat line at the **fit-window mean** — the honest "no
+model" floor, using only what was knowable before the gate window opened — and at
+the **gate-window median**, the hindsight upper bound on what *any* constant could
+achieve. `climatology_causal` and `climatology_oracle` are the same two forms taken
+**per hour of day**. All four are in `REPORTED_COMPARATORS`
+(`evaluate_wind_retrain.py:207`, `evaluate_solar_retrain.py:134`) and defined once
+in `src/evaluation/model_free_reference.py`, so the two harnesses cannot compute
+the same named reference differently.
+
+They exist because **the registered D-7 bar certifies close to nothing on a
+low-capacity-factor pair**. ABL-380 passed 6/6 and reported, against its own pass,
+that CH `wind_onshore` cleared all three cells at 47.42% WAPE while a constant at
+the gate-window median scored 40.29% — the fitted model was 7.1pp *worse than a
+flat line* — and that BG's registered D-7 bar of 93.75% is cleared outright by a
+causal constant at 82.77%, with no model at all. Both numbers reached the evidence
+pack only because a human went looking. `lost_to_a_model_free_reference`
+(`model_free_reference.py:289`) now names such cells in the report unprompted, per
+oracle, because losing to the level and losing to the average day are different
+statements about a model.
+
+**The climatology is there because the constant alone was measured and found
+insufficient.** On solar a flat line scores 63–95% WAPE on every cell — it cannot
+represent a diurnal cycle, and on solar the diurnal cycle is the signal — so it is
+a comparator the challenger cannot lose to, which is the ABL-380 defect one level
+up. An hour-of-day predictor is the tighter reference on **both** technologies,
+because a constant is a climatology with one bucket. Measured against the replica
+over ABL-348's windows on 2026-08-13, whole gate window per pair:
+
+| pair | const causal | const oracle | clim causal | clim oracle |
+|---|---:|---:|---:|---:|
+| BG solar | 75.30% | 73.49% | 41.98% | 19.15% |
+| CH solar | 95.08% | 94.65% | 37.53% | 9.02% |
+| BG `wind_onshore` | 82.77% | 63.78% | 81.03% | 62.50% |
+| CH `wind_onshore` | 79.07% | 40.29% | 77.82% | 38.20% |
+
+So CH wind's challenger loses to the oracle climatology by **9.2pp**, where the
+constant put the gap at 7.1pp. Keep both: the constant asks whether a model
+predicts the *level*, the climatology whether it predicts the level *and the daily
+shape*, and the gap between them is how much of the series is forced diurnal
+structure — ~1.5pp on CH wind, ~86pp on CH solar.
+
+**These are reported references and never gate criteria.** They are in no
+`GATE_BASIS` entry, and a pair that clears D-7 while losing to one still reads
+`PASS` — beside the number that qualifies it. Moving a bar after seeing a result is
+what the pre-registration apparatus exists to prevent, and a conservative direction
+does not exempt it; `tests/test_gate_model_free_reference.py` pins both halves,
+reading `GATE_BASIS` from the *source literal* via `ast` rather than through the
+imported module.
+
+Each reference is attached as a **column** (`attach_model_free_references`) and
+scored by the same path `seasonal_naive` and `persistence` take, not special-cased
+inside the scorer — which is what preserves the ABL-322/ABL-378 property above. A
+window holding no finite observation yields no level, an all-NaN column and `n=0`,
+and reads *Not measured*; it never becomes a flat line at zero. The `scored`
+closure both harnesses duplicated is now `scored_with_comparators`
+(`src/evaluation/wind_retrain.py:113`).
+
+**A climatology is 24 levels, so it is the first comparator that can be *partially*
+measured.** An hour of day absent from its source window leaves those rows NaN;
+they drop from that column's own intersection and lower only its `n`. Nothing is
+filled from a neighbouring hour — that would be interpolating to close a visual
+gap. **Read a climatology's `comparator_n` before comparing its WAPE to the
+challenger's**: scored on different rows, they are not the same measurement. The
+markdown levels table prints an `h` count per pair for exactly this, and anything
+below 24 means rows were dropped.
+
+**A scope also registers where it writes** (ABL-387). `--artifact-dir`,
+`--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
+which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
+omitted three flags overwrote a dispositioned gate read in place, succeeded, and
+emitted a full report. Each harness now has a `SCOPE_OUTPUTS` table beside
+`SCOPES`/`GATE_BASIS` (`evaluate_wind_retrain.py:112`,
+`evaluate_solar_retrain.py:86`); the three flags default to `None` and resolve
+against it after parsing, so an explicit path still overrides. `abl195` and
+`abl253` keep their historical paths byte-for-byte. The three tables are one
+registration in three views and are cross-checked at **import** by
+`check_registration_tables` (`src/evaluation/gate_registration.py:39`, called at
+`evaluate_wind_retrain.py:184` and `evaluate_solar_retrain.py:118`), so a scope
+added to one and not the others fails before any fit rather than mid-run — it
+raises on `import`, so even `--help` exits non-zero. That is deliberately louder
+than a failing test: the tables disagreeing is **not** a textual conflict, so
+GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
+platform will show it. **Registering a new scope means editing three tables.**
+
+**Which way the two `.gitignore` globs cut — they do not cut the same way.**
+Entries stay exactly one directory deep under `experiments/`, and below that the
+resemblance ends. `.gitignore:56` (`experiments/*/artifacts/`) matches on the
+**directory name**, so any one-level path ending `artifacts` is ignored and no
+`artifact_dir` is committable. `.gitignore:53` (`experiments/*/results.json`)
+matches on the **exact filename**, so a one-level `json_out` named anything else
+is **tracked**. Depth alone therefore does not decide tracking, and both
+conventions are live:
+
+| scope | `json_out` | tracked? |
+|---|---|---|
+| `abl195`, `abl253`, `abl322-pilot` | `experiments/<ID>/results.json` | no — ignored at `.gitignore:53` |
+| `abl380-tranche1a` | `experiments/ABL348/results_abl380_tranche1a.json` | **yes** |
+
+**Prefer the tracked form for any new scope whose read will be dispositioned.**
+An ignored `results.json` is the one gate record `git checkout --` cannot recover
+and a reviewer cannot diff, which is the same blind spot that made this issue's
+failure mode unobservable: an overwritten gate read shows nothing in
+`git status`, no conflict, no reviewer signal. `abl195`/`abl253` keep the ignored
+form only because relocating them would break the path every already-published
+report cites. Do not rename `abl380-tranche1a`'s `json_out` to `results.json` for
+consistency — that silently untracks the machine record
+`reports/abl_380_tranche1a_findings.md:9` cites for a PASS the Board was asked to
+review, and `tests/test_gate_scope_outputs.py` pins against it.
 
 Why the source matters for the 37 unmodelled solar / wind_onshore pairs, measured
 on the replica 2026-08-12: **33 of the 37 have under 365 days in
@@ -446,8 +605,8 @@ under `Replica:` as if it were the source of everything. `get_connection` now
 takes a read-only `db_path` (`src/db.py:33`) threaded through
 `load_renewable_type_data` (`src/db.py:527`) and `RenewableFeatureBuilder`
 (`src/wind_features.py:516`), and both harnesses hand it the resolved
-`--replica-db` (`scripts/evaluate_solar_retrain.py:232`,
-`scripts/evaluate_wind_retrain.py:332`). A write connection **refuses** a
+`--replica-db` (`scripts/evaluate_solar_retrain.py:374`,
+`scripts/evaluate_wind_retrain.py:378`). A write connection **refuses** a
 `db_path` rather than honour or ignore it, so the sidecar guard keeps its single
 rule. `meta['databases']` records every file the run opened
 (`src/evaluation/scorecard.py:193`) and the report names them, including an
@@ -785,9 +944,21 @@ command will not find them otherwise.
 
 **Holiday Features:**
 - is_holiday - Binary flag for public holidays
-- days_to_holiday - Days until next holiday (capped at 14)
-- days_from_holiday - Days since last holiday (capped at 14)
+- days_to_holiday - Days until next holiday (capped at 7, `src/features.py:177`)
+- days_from_holiday - Days since last holiday (capped at 7, `src/features.py:185`)
 - is_bridge_day - Workday between holiday and weekend
+
+> **Declared, but in no serving artifact** (ABL-386/ABL-394, measured 2026-08-13).
+> All 66 artifacts that carry a `feature_columns` list at all were fitted before
+> ABL-338 (5cf2296) threaded `country_code` into `create_all_features`, so
+> `create_holiday_features` never ran on a training frame and the fit-site
+> narrowing dropped these four names in silence. Dropping exactly those four
+> reproduces the served list length on all eight types
+> (23/23/26/25/27/25/24/24), so this is one plumbing gap, not eight drifts. They
+> are live for the **next** fit of any country and have never been evaluated on
+> any target — ABL-386's read on solar is MIXED. The frozen lists and the
+> recorded gap are in `tests/feature_list_manifest.json`; the narrowing now warns
+> instead of dropping silently (`select_feature_columns`, `src/features.py:534`).
 
 **Weather Features:**
 - Load: temperature, heating/cooling degree days

@@ -11,6 +11,7 @@ from src.evaluation.wind_retrain import (
     finite_training_rows,
     gate_cell,
     schedule_vintages,
+    scored_with_comparators,
     select_latest_challenger_per_band,
 )
 
@@ -30,9 +31,15 @@ FEATURE_COLUMNS = (
 COUNTRIES = ("BE", "DE", "FR")
 ALGORITHM = "catboost"
 
+# ABL-389's `attach_model_free_references` and the two level functions behind it
+# are deliberately *not* re-exported here. They live in
+# `src.evaluation.model_free_reference`, which both harnesses import directly, so
+# that the two gates cannot end up computing the same named reference by two
+# routes. This module re-exports the shared *protocol*; the model-free reference
+# is shared code, not a solar protocol constant.
 __all__ = (
     "ALGORITHM", "COUNTRIES", "FEATURE_COLUMNS", "INTENDED_N", "PRIMARY_BANDS",
     "RUN_TIMES", "SCHEDULE_N", "attach_baselines", "build_vintage_frame",
     "common_scores", "finite_training_rows", "gate_cell", "schedule_vintages",
-    "select_latest_challenger_per_band",
+    "scored_with_comparators", "select_latest_challenger_per_band",
 )

@@ -1,0 +1,87 @@
+{
+  "issue": "ABL-239",
+  "generated_at": "2026-08-11T20:11:59.242752Z",
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 5958455296,
+  "protocol": "one serve-faithful D-2 19:00 UTC vintage per target hour",
+  "window": {
+    "start": "2026-07-11 00:00:00",
+    "end_exclusive": "2026-08-10 00:00:00"
+  },
+  "outputs": [
+    {
+      "forecast_type": "wind_offshore",
+      "output_path": "C:\\Code\\able\\energy-forecast\\experiments\\ABL239\\wind_offshore_backfill.json",
+      "payload_sha256": "70ba902a5af495cd3e8b14134ec29cd73ce2c1a7c63bd295807c41247b672cb7",
+      "model_name": "xgboost-retrain-v1",
+      "model_version": "abl195-df71d0314426",
+      "countries": [
+        "BE",
+        "FR"
+      ],
+      "row_count": 1440,
+      "target_start": "2026-07-11 00:00:00",
+      "target_end": "2026-08-09 23:00:00",
+      "horizon_min": 29,
+      "horizon_max": 52,
+      "existing_replica_model_names": [
+        "tso_corrected",
+        "tso_raw",
+        "xgboost"
+      ],
+      "artifacts": [
+        {
+          "country_code": "BE",
+          "path": "C:\\Code\\able\\energy-forecast\\experiments\\ABL195\\artifacts\\BE\\wind_offshore\\model.joblib",
+          "sha256": "304460cc5345f1d51397066112fca9fa49c114f712458a13dd2e8a5262adb01e"
+        },
+        {
+          "country_code": "FR",
+          "path": "C:\\Code\\able\\energy-forecast\\experiments\\ABL195\\artifacts\\FR\\wind_offshore\\model.joblib",
+          "sha256": "ccb5cb51d761cca429592b9be0fecc76d92dee8c17a42b49ab113da32a42d95b"
+        }
+      ]
+    },
+    {
+      "forecast_type": "wind_onshore",
+      "output_path": "C:\\Code\\able\\energy-forecast\\experiments\\ABL239\\wind_onshore_backfill.json",
+      "payload_sha256": "7f5bacab54be02390d125592f3da1a1c7d0e510d371d418ae046cece4353217d",
+      "model_name": "catboost-retrain-v1",
+      "model_version": "abl195-c84911cc953d",
+      "countries": [
+        "BE",
+        "DE",
+        "FR"
+      ],
+      "row_count": 2160,
+      "target_start": "2026-07-11 00:00:00",
+      "target_end": "2026-08-09 23:00:00",
+      "horizon_min": 29,
+      "horizon_max": 52,
+      "existing_replica_model_names": [
+        "catboost",
+        "tso_corrected",
+        "tso_raw",
+        "xgboost"
+      ],
+      "artifacts": [
+        {
+          "country_code": "BE",
+          "path": "C:\\Code\\able\\energy-forecast\\experiments\\ABL195\\artifacts\\BE\\wind_onshore\\model.joblib",
+          "sha256": "0dab6910d9f35329178e96fe76b1621f7ea4c8e19874e1d67c89ac3ea0fd542d"
+        },
+        {
+          "country_code": "DE",
+          "path": "C:\\Code\\able\\energy-forecast\\experiments\\ABL195\\artifacts\\DE\\wind_onshore\\model.joblib",
+          "sha256": "195da7db5feff9da7ead952558cd28ff6d0122fc785f76c0978ba55a7d47b7ac"
+        },
+        {
+          "country_code": "FR",
+          "path": "C:\\Code\\able\\energy-forecast\\experiments\\ABL195\\artifacts\\FR\\wind_onshore\\model.joblib",
+          "sha256": "8b475ac2522a541b7f2764e04c15b699b581514f3c9b6834d74fc613b0b2f778"
+        }
+      ]
+    }
+  ],
+  "writes": "JSON files only; no database or HTTP writes"
+}

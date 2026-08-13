@@ -2,8 +2,8 @@
 """Bounded hyperparameter search for V014, per country (ABL-69, scope item 4).
 
 The default parameters lose to the champion on exactly the countries this
-program cares about — measured on the W01-W12 backtest, V014 is 13-22% worse
-than V010 on NL/BE/AT/FR — so `TUNING_ATTENTION` defaults to those four.
+program cares about -- measured on the W01-W12 backtest, V014 is 13-22% worse
+than V010 on NL/BE/AT/FR -- so `TUNING_ATTENTION` defaults to those four.
 
 **Nothing here touches the backtest weeks.** Candidates are scored on the same
 chronological validation split `train_country` uses (the last 12% of run days,
@@ -18,7 +18,7 @@ as a result: the validation split is ~3,300 rows, and picking the argmin over a
 dozen candidates on a split that small will always find *something* lower.
 
 It writes a report and, unless `--adopt` is passed, **saves no model**. Adopting
-is a deliberate act — the artifacts are what the daily shadow serves.
+is a deliberate act -- the artifacts are what the daily shadow serves.
 
 Usage:
     python scripts/tune_v014.py                      # the four majors, report only

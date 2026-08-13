@@ -40,6 +40,47 @@ pairs train from `energy_generation`; the constant-run screen was run against
 bit-identical run in either pair. 34,176 of 34,176 intended fit rows retained,
 0 excluded, for both countries.
 
+**Which database the fit actually read.** ABL-355 found that `--replica-db`
+governed only the incumbent, TSO and contamination screen, while the fitted
+series and the weather archive came from `config.DATABASE_PATH` (that is,
+`ENERGY_DB_PATH`). This gate read predates that fix and the generated report
+records only the one path, so these numbers are trustworthy only if the two
+resolved to the same data. They did. The check, rather than the assurance:
+
+- **The two values that would have made them differ are both dead paths.** With
+  `ENERGY_DB_PATH` unset, `config.DATABASE_PATH` falls back to
+  `/data/energy_dashboard.db` → `C:\data\energy_dashboard.db`, which does not
+  exist. The checked-in `.env` — absent from every worktree, since it is
+  gitignored — names `C:\Code\energy-data-gathering\energy_dashboard.db`, whose
+  *directory* does not exist. `db.get_connection` opens read-only with
+  `mode=ro`, which raises on a missing file rather than creating one, so a run
+  under either value would have died on its first read instead of retaining
+  34,176 of 34,176 rows.
+- **The 3.08 GB partial snapshot is ruled out outright.** The decoy at
+  `energy-data-gathering/energy_dashboard.db` — the nearest file to every wrong
+  path this module has been pointed at — has **no `energy_generation` table at
+  all**. It cannot be the source of a fit whose recorded `training_source` is
+  `energy_generation`.
+- **The two remaining candidates are identical over the window.** Exactly two
+  files on this workstation carry `energy_generation`: the live replica
+  `C:\Code\able\data\energy_dashboard.db` (9,432,453,120 bytes — the size the
+  report records for `--replica-db`) and `backups_ops/ops_backup_2026-08-12.db`.
+  Over the builder's full span, 2025-12-31 → 2026-08-10, they agree byte for
+  byte: DE target series n=21,312 sha256[:16] `7c9ebf8cd0e576ea` in both, NL
+  n=21,312 `776b3312038f5506` in both, and `weather_data` 1,925,928 rows with
+  max `forecast_run_time` 2026-08-09 23:00:00 in both. Whichever the environment
+  named, the fit saw the bytes the scoring saw.
+- **Every count in the report reproduces from the live replica's coverage.**
+  17,088 fifteen-minute DE offshore rows in the fit window ÷ 4 (ABL-332 hourly
+  mean) = 4,272 unique fit targets, × 8 vintages = 34,176 fit rows; 2,880
+  gate-window rows ÷ 4 = 720, the reported n for the 24-36h and 36-48h cells.
+  NL is identical. Nothing in the report requires a second source to explain it.
+
+So the ABL-355 defect is real and worth its fix, but it did not move this gate
+read: the numbers stand as reported and no re-run is needed. What is genuinely
+missing is the *record* — once ABL-355 lands, the harness prints both paths and
+a future run of this scope states them instead of needing this reconstruction.
+
 ## 2. A PASS here is not a good model — read this before promoting anything
 
 The registered bar is "beats seasonal-naive D-7". On offshore wind D-7 is close

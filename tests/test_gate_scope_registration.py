@@ -35,6 +35,7 @@ sys.path.insert(0, str(REPO))
 from src.evaluation.wind_retrain import PRIMARY_BANDS
 
 HARNESS = REPO / "scripts" / "evaluate_wind_retrain.py"
+SOLAR_HARNESS = REPO / "scripts" / "evaluate_solar_retrain.py"
 
 #: The five pairs serving today. ABL-195 registered exactly these; the offshore
 #: pilot must refit none of them, because a refit on a different source silently
@@ -68,13 +69,20 @@ def test_every_scope_is_reachable(scopes):
 
 
 def test_default_scope_reproduces_abl195(scopes):
-    """The unflagged run is still the ABL-195 gate: same pairs, same 15 cells."""
-    # Baseline is the literal ABL-195 registration, not a mutable git ref.
-    # Reading origin/main was guaranteed to break the moment ABL-322 merged (PAIRS
-    # was replaced by SCOPES), and any git-ref baseline is non-deterministic by
-    # definition. The expected pairs are inlined from the ABL-195 registration.
+    """The unflagged run is still the ABL-195 gate: same pairs, same 15 cells.
+
+    ABL-378: this used to read `PAIRS` out of `origin/main` and compare against
+    it. That made the test self-invalidating — the moment the ABL-322 PR merged,
+    `PAIRS` no longer existed on main and the assertion became `PAIRS not found`
+    rather than a statement about the scope. It was red on `origin/main` from the
+    merge until this fix.
+
+    The reference is now the registered pair set written out here. That is the
+    property actually worth pinning: ABL-195 registered these five pairs, and the
+    default scope must still be exactly them regardless of what main looks like.
+    """
     assert scopes["abl195"] == SERVING_PAIRS, (
-        "the default scope no longer reproduces main's registered pair set")
+        "the default scope no longer reproduces ABL-195's registered pair set")
     assert len(scopes["abl195"]) * len(PRIMARY_BANDS) == 15
 
 
@@ -152,3 +160,161 @@ def test_scope_is_a_choice_not_a_country_filter():
     scope_arg = next(n for n in added if n.args[0].value == "--scope")
     kwargs = {kw.arg for kw in scope_arg.keywords}
     assert "choices" in kwargs, "--scope must be restricted to the registered scopes"
+
+
+def test_tranche1a_scope_is_bg_ch_onshore(scopes):
+    """ABL-380 registers ABL-316's first tranche: BG and CH wind_onshore, 6 cells.
+
+    Pinned for the same reason `abl322-pilot` is. The pair list is the thing the
+    cell bar is derived from, so an edit to it silently moves the denominator a
+    gate read is dispositioned against — and this scope is the template the
+    remaining 33 pairs will be tranched under.
+    """
+    tranche = scopes["abl380-tranche1a"]
+    assert tranche == {("wind_onshore", "BG"), ("wind_onshore", "CH")}
+    assert len(tranche) * len(PRIMARY_BANDS) == 6
+    assert not tranche & SERVING_PAIRS, (
+        f"tranche 1a refits serving pairs: {sorted(tranche & SERVING_PAIRS)}")
+
+
+def test_tranche1a_does_not_gate_on_the_incumbent(gate_basis):
+    """All 37 remaining ABL-316 pairs have zero rows in `forecasts`.
+
+    BG and CH are the first two to be gated, so this is where the ABL-322 defect
+    would have recurred: with `incumbent` in the basis all 6 cells intersect to
+    n=0 and the harness renders FAIL on a comparison that never ran.
+    """
+    assert "incumbent" not in gate_basis["abl380-tranche1a"]
+    assert gate_basis["abl380-tranche1a"] == ("challenger", "seasonal_naive")
+
+
+# --------------------------------------------------------------------------
+# ABL-378: the same two properties for the solar harness.
+#
+# The wind harness was fixed by ABL-322; `evaluate_solar_retrain.py` was not,
+# and it is the harness the solar half of ABL-316 must be gated with. On
+# `origin/main` it hardcoded `len(gate_cells) == 9 and passed == 9`, had no
+# scoping flag at all, and named `incumbent` in both scoring calls. Measured
+# against the live replica on 2026-08-13, 28 of the 32 solar countries with
+# generation data have zero rows in `forecasts`, so the incumbent is NaN on
+# every row and `common_scores` empties the intersection -- 0 cells scored,
+# rendered as `FAIL`, and then a crash formatting `None / None` as a skill
+# percentage.
+# --------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def solar_scopes():
+    return {name: tuple(countries) for name, countries
+            in _module_const(SOLAR_HARNESS.read_text(encoding="utf-8"), "SCOPES").items()}
+
+
+@pytest.fixture(scope="module")
+def solar_gate_basis():
+    return {name: tuple(cols) for name, cols
+            in _module_const(SOLAR_HARNESS.read_text(encoding="utf-8"), "GATE_BASIS").items()}
+
+
+def test_solar_default_scope_reproduces_abl253(solar_scopes):
+    """The unflagged run is still the ABL-253 gate: BE/DE/FR, 9 cells."""
+    assert solar_scopes["abl253"] == ("BE", "DE", "FR")
+    assert len(solar_scopes["abl253"]) * len(PRIMARY_BANDS) == 9
+
+
+def test_solar_registered_scope_does_not_follow_the_shared_constant(solar_scopes):
+    """`abl253` is written out in the harness, and must still equal `COUNTRIES`.
+
+    Pinned as an equality rather than a reference: AT is the one other country
+    with a solar incumbent, and adding it to the shared `COUNTRIES` constant
+    must not silently re-scope a gate that has already been dispositioned.
+    Divergence is a review conversation, not a side effect.
+    """
+    from src.evaluation.solar_retrain import COUNTRIES
+    assert solar_scopes["abl253"] == tuple(COUNTRIES)
+
+
+def test_solar_every_scope_registers_a_gate_basis(solar_scopes, solar_gate_basis):
+    assert set(solar_gate_basis) == set(solar_scopes), (
+        "every registered solar scope needs a registered gate basis")
+
+
+def test_solar_gate_basis_contains_the_two_columns_the_bar_names(solar_gate_basis):
+    for name, basis in solar_gate_basis.items():
+        assert {"challenger", "seasonal_naive"} <= set(basis), (
+            f"solar scope {name!r} gates on a basis missing the columns its bar names")
+
+
+def test_solar_abl253_keeps_the_basis_it_was_published_under(solar_gate_basis):
+    """ABL-253 is dispositioned; porting the scope registry must not restate it."""
+    assert solar_gate_basis["abl253"] == (
+        "challenger", "incumbent", "seasonal_naive", "persistence")
+
+
+def test_solar_bar_is_derived_from_the_scope_not_a_literal():
+    """`performance_pass` must compare against `registered_cells`, never `9`.
+
+    This is the hardcoded-15 defect in its solar form. It is latent on
+    `origin/main` only because no scoping flag exists there yet; adding one
+    without this change reproduces the wind failure exactly -- a bar no scoped
+    invocation can clear.
+    """
+    source = SOLAR_HARNESS.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    assign = next(
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and getattr(node.targets[0], "id", "") == "performance_pass")
+    literals = [n.value for n in ast.walk(assign.value)
+                if isinstance(n, ast.Constant) and isinstance(n.value, int)]
+    assert not literals, (
+        f"the solar pass bar still compares against literal(s) {literals}; it must "
+        "derive from the registered scope table")
+    names = {n.id for n in ast.walk(assign.value) if isinstance(n, ast.Name)}
+    assert "registered_cells" in names
+
+
+def test_solar_harness_scope_flag_is_a_choice_not_a_country_filter():
+    source = SOLAR_HARNESS.read_text(encoding="utf-8")
+    added = [node for node in ast.walk(ast.parse(source))
+             if isinstance(node, ast.Call)
+             and getattr(node.func, "attr", "") == "add_argument"
+             and node.args and isinstance(node.args[0], ast.Constant)]
+    flags = {node.args[0].value for node in added}
+    assert "--scope" in flags
+    assert "--countries" not in flags, (
+        "--countries is a filter over the registered scope; scoping a run is a "
+        "new pre-registration (see SCOPES)")
+    scope_arg = next(n for n in added if n.args[0].value == "--scope")
+    assert "choices" in {kw.arg for kw in scope_arg.keywords}
+
+
+#: The scoring entry points a harness may call. ABL-389 moved the duplicated
+#: `scored` closure out of both harnesses into `scored_with_comparators`, so the
+#: basis now arrives one call further out; without naming it here this test would
+#: have found no `common_scores` call in the harness and passed vacuously,
+#: which is the failure mode `test_default_scope_reproduces_abl195` was written
+#: about. Any new scoring entry point belongs in this set.
+SCORING_CALLS = ("common_scores", "scored_with_comparators")
+
+
+@pytest.mark.parametrize("harness", [HARNESS, SOLAR_HARNESS], ids=["wind", "solar"])
+def test_scoring_calls_use_the_registered_basis_not_a_hardcoded_tuple(harness):
+    """Every scoring call site must pass the scope's basis, never a literal.
+
+    On `origin/main` the solar harness inlined `("challenger", "incumbent",
+    "seasonal_naive", "persistence")` at both call sites, which is what made an
+    absent incumbent empty the gate.
+    """
+    source = harness.read_text(encoding="utf-8")
+    calls = [call for call in ast.walk(ast.parse(source))
+             if isinstance(call, ast.Call)
+             and getattr(call.func, "id", "") in SCORING_CALLS]
+    assert calls, (
+        f"{harness.name} calls none of {SCORING_CALLS}; this test has stopped "
+        "pinning anything -- name the new scoring entry point in SCORING_CALLS")
+    for call in calls:
+        basis_arg = call.args[1]
+        inlined = (isinstance(basis_arg, ast.Tuple)
+                   and all(isinstance(e, ast.Constant) for e in basis_arg.elts))
+        assert not inlined, (
+            f"{getattr(call.func, 'id', '?')} is called with a hardcoded comparator "
+            "tuple; it must use the scope's registered GATE_BASIS")

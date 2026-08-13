@@ -3,7 +3,7 @@
 
 Turns a champion vintage set (normally the reconstruction) into the V016 series
 it would have produced, so `evaluate_net_position.py` can score V016 with the
-pre-registered metrics on the held-out window and on the backtest weeks —
+pre-registered metrics on the held-out window and on the backtest weeks --
 before V016 has accumulated any live shadow vintages of its own.
 
 The AR(1) term uses only residuals the run could have observed: for each
