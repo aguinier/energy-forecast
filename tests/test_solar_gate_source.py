@@ -215,6 +215,15 @@ def _result(source, constant_runs=()):
         "meta": {"generated_at": "2026-08-12 00:00 UTC", "replica_db": "r.db",
                  "replica_bytes": 1, "training_source": source,
                  "databases": databases,
+                 # ABL-378: the scope, its countries, its cell bar and its gate
+                 # basis are part of the record now, for the same reason the
+                 # source is -- two reads are not comparable unless both say what
+                 # they were scoped to. Taken from the harness's own registry, so
+                 # this fixture cannot drift from it either.
+                 "scope": "abl253",
+                 "registered_countries": list(harness.SCOPES["abl253"]),
+                 "registered_cells": len(harness.SCOPES["abl253"]) * len(harness.PRIMARY_BANDS),
+                 "gate_basis": list(harness.GATE_BASIS["abl253"]),
                  "fit_window": {"start": "2026-01-14", "end_exclusive": "2026-07-11"},
                  "gate_window": {"start": "2026-07-11", "end_exclusive": "2026-08-10"}},
         "verdict": "PASS", "recommendation": "-",
