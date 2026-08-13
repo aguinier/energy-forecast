@@ -188,6 +188,70 @@ def test_tranche1a_does_not_gate_on_the_incumbent(gate_basis):
     assert gate_basis["abl380-tranche1a"] == ("challenger", "seasonal_naive")
 
 
+#: ABL-406 tranche 2b: the eight remaining `wind_onshore` pairs whose ABL-348
+#: gate-window mean is at or above 700 MW. Written out here rather than derived
+#: from that threshold, because the threshold is not the registration -- the pair
+#: list is. Deriving it would let a later edit to `experiments/ABL348/config.json`
+#: silently move the denominator of a dispositioned 24-cell read.
+TRANCHE2B_PAIRS = {("wind_onshore", c) for c in
+                   ("ES", "FI", "GR", "IT", "NO", "PL", "PT", "SE")}
+
+
+def test_tranche2b_scope_is_the_eight_large_fleet_onshore_pairs(scopes):
+    """ABL-406 registers ABL-316's wind tranche 2b: 8 pairs, 24 cells.
+
+    Pinned for the reason `abl380-tranche1a` is: the pair list is what the cell
+    bar is derived from, so an edit to it moves the denominator a gate read was
+    dispositioned against, and does so without failing anything else.
+
+    The small-fleet pairs are what this must keep *out*. ABL-348's
+    `small_fleet_wind_bar_is_loose` caveat, and ABL-380's measurement of the
+    mechanism behind it -- BG's registered 93.75% D-7 bar cleared by a causal
+    constant at 82.77%, with no model at all -- are why the tranche is cut on
+    fleet size rather than alphabetically. A scope that quietly acquired CZ or HU
+    would report cells that cannot carry a decision inside the same `n/24 pass`
+    as cells that can.
+    """
+    tranche = scopes["abl406-tranche2b"]
+    assert tranche == TRANCHE2B_PAIRS
+    assert len(tranche) * len(PRIMARY_BANDS) == 24
+    assert not tranche & SERVING_PAIRS, (
+        f"tranche 2b refits serving pairs: {sorted(tranche & SERVING_PAIRS)}")
+
+
+def test_tranche2b_excludes_the_deferred_small_fleet_pairs(scopes):
+    """The eight deliberately deferred pairs must not drift into this scope.
+
+    Stated as an exclusion as well as an equality above, because the two fail
+    with different messages and this is the one a reviewer needs: these eight are
+    filed as a build-and-report set on the CH precedent, and their D-7 bars
+    (86.8-125.4% in ABL-348) make a pass there not model strength.
+    """
+    deferred = {("wind_onshore", c) for c in
+                ("CZ", "EE", "HR", "HU", "LT", "LV", "NL", "RO")}
+    overlap = scopes["abl406-tranche2b"] & deferred
+    assert not overlap, (
+        f"tranche 2b includes deferred small-fleet pairs: {sorted(overlap)}; "
+        "their bars cannot carry a decision and must not share this denominator")
+
+
+def test_tranche2b_does_not_gate_on_the_incumbent(gate_basis):
+    """None of the eight holds a `wind_onshore` row in `forecasts`.
+
+    Measured on the live replica (9,432,453,120 bytes) on 2026-08-13: exactly
+    BE (32,068) and AT/DE/FR (31,056 each) carry `renewable_type='wind_onshore'`
+    rows, and all eight tranche-2b countries carry zero -- while carrying 64-65k
+    forecast rows each of *other* types, so "the country is absent from the
+    table" is not the explanation, and an incumbent-bearing basis would look
+    plausible right up to the empty intersection. Under the four-way basis all 24
+    cells intersect to n=0; since ABL-378 that reads UNREADABLE rather than FAIL,
+    which is no longer a wrong verdict but is still eight pairs fitted for no
+    gate read at all.
+    """
+    assert "incumbent" not in gate_basis["abl406-tranche2b"]
+    assert gate_basis["abl406-tranche2b"] == ("challenger", "seasonal_naive")
+
+
 # --------------------------------------------------------------------------
 # ABL-378: the same two properties for the solar harness.
 #

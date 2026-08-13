@@ -93,6 +93,38 @@ SCOPES = {
     # identically to BG, and the small-denominator caveat belongs in the
     # evidence pack rather than in this table.
     "abl380-tranche1a": (("wind_onshore", "BG"), ("wind_onshore", "CH")),
+    # ABL-406 -- ABL-316 tranche 2b: the eight remaining `wind_onshore` pairs
+    # whose ABL-348 gate-window mean is at or above 700 MW, fitted on
+    # `energy_generation` under the same frozen registration at
+    # `experiments/ABL348/config.json`.  8 pairs x 3 bands = 24 cells.
+    #
+    # Grouped by fleet size rather than alphabetically, because on wind that is
+    # what decides whether a WAPE can carry a decision at all.  ABL-348's own
+    # reading caveat (`small_fleet_wind_bar_is_loose`) names HU 125.38%, RO
+    # 104.14%, LT 100.36%, HR 99.58% and LV 97.11% as bars where a pass is not
+    # model strength, and ABL-380 then measured the mechanism rather than
+    # asserting it: BG's registered 93.75% D-7 bar is cleared outright by a
+    # causal constant at 82.77%, with no model at all.  So the small-fleet pairs
+    # (CZ, EE, HR, HU, LT, LV, NL, RO) are deliberately *not* here -- they are a
+    # build-and-report set of their own, on the CH precedent, and mixing them in
+    # would put 24 decision-grade cells and 24 cells that cannot decide anything
+    # under one denominator and one verdict.
+    #
+    # Nothing here is a migration.  None of the eight serves a wind model, so
+    # this scope refits no live pair -- the property `abl322-pilot` and
+    # `abl380-tranche1a` both hold, reached the same way.
+    #
+    # Windows, bands, metric, baseline, minimum n and source table are ABL-348's
+    # and are deliberately not restated here.  PL's registered bar is 93.30%, in
+    # the band ABL-380 showed a constant can clear; it is still read as
+    # registered, because a bar is not re-opened after the fact merely because a
+    # later reference turns out to be tighter.  What answers that is ABL-389's
+    # four model-free references beside every cell, and the evidence pack saying
+    # plainly, per pair, when the D-7 bar is not what established the pass.
+    "abl406-tranche2b": (("wind_onshore", "ES"), ("wind_onshore", "FI"),
+                         ("wind_onshore", "GR"), ("wind_onshore", "IT"),
+                         ("wind_onshore", "NO"), ("wind_onshore", "PL"),
+                         ("wind_onshore", "PT"), ("wind_onshore", "SE")),
 }
 
 # ABL-387: where a scope writes is part of its registration, not a flag default.
@@ -147,6 +179,26 @@ SCOPE_OUTPUTS = {
     "abl380-tranche1a": {"artifact_dir": "experiments/ABL348/artifacts",
                          "json_out": "experiments/ABL348/results_abl380_tranche1a.json",
                          "report_out": "reports/abl_380_wind_onshore_tranche1a.md"},
+    # ABL-406.  The `json_out` sits beside tranche 1a's under `ABL348` for the
+    # same reason: the registration these fits are read under is
+    # `experiments/ABL348/config.json`, and the scope name keys this table while
+    # the issue number does not.  It is deliberately not named `results.json` --
+    # at that name `.gitignore:53` swallows it, and it is the machine record the
+    # tranche's evidence pack cites for 24 dispositioned cells.
+    #
+    # The artifacts get a directory of their own rather than joining tranche 1a
+    # under `experiments/ABL348/artifacts`.  `check_scope_outputs` requires that
+    # (two scopes may not register the same path), but it is also the right
+    # answer on the merits here: `save_gate_artifact` keys a file on
+    # (country, type), and the eight pairs in this scope are disjoint from
+    # tranche 1a's BG/CH, so a shared directory would not collide *today* and
+    # would quietly become a pile of 39 pairs' models with no record of which
+    # read wrote which.  `experiments/ABL406/artifacts` is one level deep and
+    # ends in `artifacts`, so `.gitignore:56` -- which matches on the directory
+    # name -- keeps eight CatBoost binaries out of the commit.
+    "abl406-tranche2b": {"artifact_dir": "experiments/ABL406/artifacts",
+                         "json_out": "experiments/ABL348/results_abl406_tranche2b.json",
+                         "report_out": "reports/abl_406_wind_onshore_tranche2b.md"},
 }
 COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw"}
 
@@ -176,6 +228,14 @@ GATE_BASIS = {
     # the two columns the registered bar names; the incumbent is still reported
     # on its own intersection, where it reads "Not measured".
     "abl380-tranche1a": ("challenger", "seasonal_naive"),
+    # ABL-406: same condition, eight more pairs.  None of ES/FI/GR/IT/NO/PL/PT/SE
+    # holds a `wind_onshore` row in `forecasts`, so under the four-way basis all
+    # 24 cells would intersect to n=0.  Since ABL-378 that renders UNREADABLE
+    # rather than FAIL, so it would no longer *misreport* the model -- but it is
+    # still eight pairs of fitting for no gate read, which is the same wasted
+    # tranche.  Gates on the two columns the registered bar names; the incumbent
+    # is reported on its own intersection, where it reads "Not measured".
+    "abl406-tranche2b": ("challenger", "seasonal_naive"),
 }
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.
