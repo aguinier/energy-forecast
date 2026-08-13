@@ -258,9 +258,12 @@ def test_an_exempt_country_is_visibly_exempt_in_the_telemetry():
 
 
 def test_an_exempt_country_still_gets_the_non_negativity_floor_at_night():
-    # The floor is not part of the exemption: negative solar is impossible in
-    # every country, CSP or not. A negative night row is raised to zero and
-    # counted as a raised hour rather than a zeroed night hour.
+    # The floor is not part of the exemption, and not because negative solar is
+    # impossible — NL books a real -1.1 MW overnight floor net of consumption
+    # (see solar_geometry, "Why the non-negativity floor is fleet-wide"). It is
+    # fleet-wide because that excursion is ~1 MW and a CSP country's is not
+    # different in kind. A negative night row is raised to zero and counted as a
+    # raised hour rather than a zeroed night hour.
     df = _frame([("ES", "solar", "solar", ES_NIGHT_HOUR, -42.0, "catboost")])
     out, stats = clamp_solar_forecasts(df)
 

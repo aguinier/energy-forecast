@@ -1141,8 +1141,18 @@ follow and all three are load-bearing:
   correction. Add a country to `config.SUPPORTED_COUNTRIES` and you add it to
   that table in the same commit; `tests/test_night_generation_registration.py`
   fails otherwise.
-- **The `max(0, prediction)` floor is not per-country.** Negative solar is
-  impossible everywhere, exemption or not.
+- **The `max(0, prediction)` floor is not per-country** — but not because
+  negative solar is impossible. It is not: `energy_generation` is the A75
+  document *net of consumption*, and NL books a structural overnight floor of
+  about −1.1 MW (100% of instants 20Z–02Z, min −1.62 MW — the deepest anywhere
+  in the fleet over ABL-348's registered window). That is real reported draw,
+  and the floor erases it. The floor is justified by the size of the excursion,
+  not by physics. `src/solar_geometry.py`'s "Why the non-negativity floor is
+  fleet-wide" carries the measurement, the window the bound holds over, the
+  five full-history instants that exceed it, and the tripwire if NL is ever
+  served. Two premises of the same class have now failed here: ES generates
+  when the code said it could not, NL consumes when the code said it could not.
+  Both were physical absolutes the A75 semantics never supported.
 - **The registered thing is the *fact*, not the policy.** The clamp and
   ABL-376's `exclude_impossible_night` fit rule both read this one table and
   apply their own policy on top, so they cannot come to disagree about which

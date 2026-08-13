@@ -3,10 +3,10 @@ Serving-path clamp for solar forecasts (ABL-337).
 
 ABL-335 measured what the models emit and nothing corrects: 21,582 of 124,468
 stored solar rows are negative (17.3%), and 16,574 of 31,084 stored night hours
-read above 1 MW (53%) — DE at a 155-231 MW floor through local midnight. A solar
-fleet cannot generate a negative number, and *most* fleets cannot generate at
-night. This module enforces both physical facts on the way to the `forecasts`
-table:
+read above 1 MW (53%) — DE at a 155-231 MW floor through local midnight. *Most*
+fleets cannot generate at night, and no fleet's reported output goes materially
+below zero. This module enforces both on the way to the `forecasts` table —
+the first as a registered per-country fact, the second as a measured bound:
 
   - sun below `solar_geometry.NIGHT_ELEVATION_THRESHOLD_DEG` for the whole hour
     -> hard zero, **unless the country is registered as able to generate after
@@ -18,9 +18,17 @@ measurably false for one country. ES runs ~2.3 GW of concentrated solar power
 with thermal storage; ABL-411 checked Red Eléctrica's own PV/CSP split against
 the replica over 3,196 night hours and it accounts for 98.55% of the MW booked
 for ES when the sun is down, at a 263.5 MW mean night level. Clamping ES would
-delete that every night and record it here as a successful correction. The
-non-negativity floor is **not** part of the exemption: it applies everywhere,
-because negative solar is impossible in every country.
+delete that every night and record it here as a successful correction.
+
+The non-negativity floor is **not** part of the exemption: it applies
+everywhere. Do not read that as "negative solar is impossible" — it is not.
+`energy_generation` is net of consumption, and NL books a structural overnight
+floor of about -1.1 MW (100% of instants 20Z-02Z, min -1.62 MW fleet-wide over
+the ABL-348 registered window). That is real reported draw, and the floor does
+erase it. The floor is justified by the size of that excursion rather than by
+physics: see "Why the non-negativity floor is fleet-wide" in
+`src/solar_geometry.py` for the measurement, the bound it holds over, and the
+tripwire if NL is ever served.
 
 There is no default in that table. A country reaching this clamp undeclared
 raises `UndeclaredNightGenerationError` rather than inheriting "cannot generate
