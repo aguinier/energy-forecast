@@ -1,0 +1,1014 @@
+{
+  "issue": "ABL-411",
+  "generated_at_utc": "2026-08-13T21:55:14+00:00",
+  "replica": {
+    "path": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "bytes": 9432453120,
+    "mode": "ro"
+  },
+  "ree_source": {
+    "hourly": "https://demanda.ree.es/WSvisionaMovilesPeninsulaRest/resources/demandaGeneracionPeninsula?curva=DEMANDAQH&fecha=YYYY-MM-DD",
+    "daily": "https://apidatos.ree.es/en/datos/generacion/estructura-generacion?start_date=YYYY-MM-DDT00:00&end_date=YYYY-MM-DDT23:59&time_trunc=day",
+    "timezone_of_ts": "Europe/Madrid",
+    "perimeter": "peninsular Spain"
+  },
+  "night_definition": {
+    "predicate": "src.solar_features.night_mask (the ABL-337 clamp's own predicate)",
+    "threshold_deg": -8.0,
+    "point": [
+      39.125,
+      -4.129
+    ]
+  },
+  "hourly_window_requested": [
+    "2025-01-01",
+    "2025-12-13"
+  ],
+  "ree_days_without_archive": [
+    "2025-12-11",
+    "2025-12-12",
+    "2025-12-13",
+    "2025-12-14"
+  ],
+  "results": [
+    {
+      "source_table": "energy_renewable",
+      "window_utc": [
+        "2025-11-08 23:00:00",
+        "2025-12-10 22:00:00"
+      ],
+      "n_hours": 768,
+      "n_night_hours": 384,
+      "alignment": {
+        "ree_sol_field_vs_components": {
+          "note": "REE's own `sol` field against solFot+solTer; unused, reported as a check",
+          "max_abs_gap_mw": 1.0,
+          "hours_gap_above_5mw": 0,
+          "worst_day": "2025-11-09"
+        },
+        "all_hours": {
+          "corr_replica_vs_ree_total": 0.8598727823111161,
+          "mae_mw": 845.7740885416665,
+          "mean_replica_mw": 3227.1393229166665,
+          "mean_ree_total_mw": 4013.269965277778,
+          "mean_signed_gap_mw": -786.130642361111
+        },
+        "lag_scan": {
+          "by_lag": {
+            "-3": {
+              "n": 765,
+              "corr": 0.43720498131646396,
+              "mae_mw": 3571.8545751633987
+            },
+            "-2": {
+              "n": 766,
+              "corr": 0.6305358613310154,
+              "mae_mw": 2658.8937119234115
+            },
+            "-1": {
+              "n": 767,
+              "corr": 0.7919945399715783,
+              "mae_mw": 1730.1485223815732
+            },
+            "0": {
+              "n": 768,
+              "corr": 0.8598727823111161,
+              "mae_mw": 845.7740885416665
+            },
+            "1": {
+              "n": 767,
+              "corr": 0.7910424739932933,
+              "mae_mw": 1728.9878313776617
+            },
+            "2": {
+              "n": 766,
+              "corr": 0.6293332656365068,
+              "mae_mw": 2656.692232375979
+            },
+            "3": {
+              "n": 765,
+              "corr": 0.4361805910216407,
+              "mae_mw": 3570.128431372549
+            }
+          },
+          "best_lag_hours": 0
+        }
+      },
+      "night": {
+        "n": 384,
+        "replica_solar_mw": {
+          "n": 384,
+          "mean": 53.989583333333336,
+          "median": 28.0,
+          "p05": 0.0,
+          "p95": 195.89999999999952,
+          "min": 0.0,
+          "max": 541.0,
+          "sum": 20732.0
+        },
+        "ree_csp_solTer_mw": {
+          "n": 384,
+          "mean": 31.789496527777782,
+          "median": 9.25,
+          "p05": 0.0,
+          "p95": 181.74999999999994,
+          "min": 0.0,
+          "max": 312.6666666666667,
+          "sum": 12207.166666666668
+        },
+        "ree_pv_solFot_mw": {
+          "n": 384,
+          "mean": 40.739583333333336,
+          "median": 25.0,
+          "p05": 6.0,
+          "p95": 100.11666666666655,
+          "min": 0.0,
+          "max": 317.0833333333333,
+          "sum": 15644.0
+        },
+        "share_of_replica_explained_by_csp": 0.5888079619268121,
+        "share_of_replica_explained_by_pv": 0.7545822882500482,
+        "corr_replica_vs_csp": 0.759480891943806,
+        "corr_replica_vs_pv": 0.4112384788961615,
+        "residual_replica_minus_ree_total_mw": {
+          "n": 384,
+          "mean": -18.539496527777775,
+          "median": -1.875,
+          "p05": -106.57083333333333,
+          "p95": 0.5708333333333264,
+          "min": -512.8333333333333,
+          "max": 16.333333333333336,
+          "sum": -7119.166666666666
+        },
+        "hours_above_threshold": {
+          "replica": 313,
+          "ree_csp": 247,
+          "ree_pv": 380
+        }
+      },
+      "not_night": {
+        "n": 384,
+        "replica_solar_mw": {
+          "n": 384,
+          "mean": 6400.2890625,
+          "median": 3916.5,
+          "p05": 0.0,
+          "p95": 18171.1,
+          "min": 0.0,
+          "max": 19991.0,
+          "sum": 2457711.0
+        },
+        "ree_csp_solTer_mw": {
+          "n": 384,
+          "mean": 210.6284722222222,
+          "median": 43.25,
+          "p05": 0.0,
+          "p95": 739.5999999999999,
+          "min": 0.0,
+          "max": 961.9166666666666,
+          "sum": 80881.33333333333
+        },
+        "ree_pv_solFot_mw": {
+          "n": 384,
+          "mean": 7743.382378472223,
+          "median": 7077.5,
+          "p05": 20.208333333333336,
+          "p95": 17660.5125,
+          "min": 3.0833333333333335,
+          "max": 19452.166666666668,
+          "sum": 2973458.8333333335
+        },
+        "share_of_replica_explained_by_csp": 0.03290921240672045,
+        "share_of_replica_explained_by_pv": 1.2098488525841051,
+        "corr_replica_vs_csp": 0.4769619368066406,
+        "corr_replica_vs_pv": 0.7882724011073654,
+        "residual_replica_minus_ree_total_mw": {
+          "n": 384,
+          "mean": -1553.7217881944446,
+          "median": -12.541666666666671,
+          "p05": -14771.279166666665,
+          "p95": 288.1541666666661,
+          "min": -18158.25,
+          "max": 1674.5833333333335,
+          "sum": -596629.1666666667
+        },
+        "hours_above_threshold": {
+          "replica": 314,
+          "ree_csp": 308,
+          "ree_pv": 384
+        }
+      },
+      "night_residual": {
+        "pct_of_replica_night_energy_explained_by_ree": 134.33902501768603,
+        "mae_mw": 18.82986111111111,
+        "median_abs_mw": 2.0,
+        "p95_abs_mw": 106.57083333333333,
+        "mean_replica_mw": 53.989583333333336
+      },
+      "flat_night_check": {
+        "note": "nights where the replica holds one value (range <= 4 MW, the ES quantum)",
+        "n_nights_total": 33,
+        "n_nights_flat": 6,
+        "on_flat_nights": {
+          "mean_replica_mw": 2.0,
+          "mean_ree_mw": 92.39351851851853,
+          "mean_ree_range_mw": 165.83333333333334
+        }
+      },
+      "energy": {
+        "pct_of_replica_energy_at_night": 0.8364929110736055,
+        "pct_of_ree_csp_energy_at_night": 13.113506680918338,
+        "pct_of_ree_pv_energy_at_night": 0.5233677418369179,
+        "night_replica_mwh": 20732.0,
+        "night_ree_csp_mwh": 12207.166666666668,
+        "night_ree_pv_mwh": 15644.0
+      },
+      "monthly_night_mean_mw": [
+        {
+          "month": "2025-11",
+          "n_hours": 265,
+          "replica_mw": 59.29811320754717,
+          "ree_csp_mw": 36.48490566037736,
+          "ree_pv_mw": 49.09559748427674,
+          "csp_share_pct": 61.527936871579485,
+          "pv_share_pct": 82.79453565822409,
+          "residual_mean_mw": -26.28238993710692,
+          "corr_replica_vs_csp": 0.7634388993527419
+        },
+        {
+          "month": "2025-12",
+          "n_hours": 119,
+          "replica_mw": 42.168067226890756,
+          "ree_csp_mw": 21.333333333333336,
+          "ree_pv_mw": 22.131652661064425,
+          "csp_share_pct": 50.591204995350076,
+          "pv_share_pct": 52.48438953102165,
+          "residual_mean_mw": -1.2969187675070029,
+          "corr_replica_vs_csp": 0.6922932074872368
+        }
+      ],
+      "night_hour_profile": [
+        {
+          "hour_utc": 0,
+          "replica_mw": 33.84375,
+          "ree_csp_mw": 10.75,
+          "ree_pv_mw": 35.182291666666664,
+          "mean_sun_elevation_deg": -70.42569043169931
+        },
+        {
+          "hour_utc": 1,
+          "replica_mw": 30.4375,
+          "ree_csp_mw": 9.484375,
+          "ree_pv_mw": 32.111979166666664,
+          "mean_sun_elevation_deg": -63.6493228581095
+        },
+        {
+          "hour_utc": 2,
+          "replica_mw": 29.75,
+          "ree_csp_mw": 9.377604166666666,
+          "ree_pv_mw": 31.859375,
+          "mean_sun_elevation_deg": -53.50583484121418
+        },
+        {
+          "hour_utc": 3,
+          "replica_mw": 28.40625,
+          "ree_csp_mw": 8.666666666666666,
+          "ree_pv_mw": 31.692708333333332,
+          "mean_sun_elevation_deg": -42.2231879181932
+        },
+        {
+          "hour_utc": 4,
+          "replica_mw": 27.53125,
+          "ree_csp_mw": 7.877604166666666,
+          "ree_pv_mw": 31.604166666666668,
+          "mean_sun_elevation_deg": -30.622028017038218
+        },
+        {
+          "hour_utc": 5,
+          "replica_mw": 27.34375,
+          "ree_csp_mw": 7.794270833333333,
+          "ree_pv_mw": 31.380208333333332,
+          "mean_sun_elevation_deg": -19.08938695624269
+        },
+        {
+          "hour_utc": 18,
+          "replica_mw": 127.0,
+          "ree_csp_mw": 101.41927083333333,
+          "ree_pv_mw": 64.01041666666667,
+          "mean_sun_elevation_deg": -17.662499327932114
+        },
+        {
+          "hour_utc": 19,
+          "replica_mw": 105.09375,
+          "ree_csp_mw": 86.75260416666667,
+          "ree_pv_mw": 53.354166666666664,
+          "mean_sun_elevation_deg": -29.167658887368354
+        },
+        {
+          "hour_utc": 20,
+          "replica_mw": 83.96875,
+          "ree_csp_mw": 63.9375,
+          "ree_pv_mw": 49.341145833333336,
+          "mean_sun_elevation_deg": -40.78186168074167
+        },
+        {
+          "hour_utc": 21,
+          "replica_mw": 64.59375,
+          "ree_csp_mw": 38.395833333333336,
+          "ree_pv_mw": 47.083333333333336,
+          "mean_sun_elevation_deg": -52.145774715682506
+        },
+        {
+          "hour_utc": 22,
+          "replica_mw": 50.53125,
+          "ree_csp_mw": 22.1640625,
+          "ree_pv_mw": 42.953125,
+          "mean_sun_elevation_deg": -62.535712901920775
+        },
+        {
+          "hour_utc": 23,
+          "replica_mw": 39.375,
+          "ree_csp_mw": 14.854166666666668,
+          "ree_pv_mw": 38.302083333333336,
+          "mean_sun_elevation_deg": -69.85961018953586
+        }
+      ],
+      "charge_coupling_detrended": {
+        "n_days": 32,
+        "corr_daylight_replica_vs_night_replica": 0.7289886473577121,
+        "corr_daylight_pv_vs_night_csp": 0.7186883541909164,
+        "corr_night_replica_vs_night_csp": 0.6232037893811726
+      }
+    },
+    {
+      "source_table": "energy_generation",
+      "window_utc": [
+        "2025-01-01 00:00:00",
+        "2025-12-10 22:00:00"
+      ],
+      "n_hours": 8220,
+      "n_night_hours": 3196,
+      "alignment": {
+        "ree_sol_field_vs_components": {
+          "note": "REE's own `sol` field against solFot+solTer; unused, reported as a check",
+          "max_abs_gap_mw": 3002.75,
+          "hours_gap_above_5mw": 18,
+          "worst_day": "2025-04-28"
+        },
+        "all_hours": {
+          "corr_replica_vs_ree_total": 0.9973819343368535,
+          "mae_mw": 277.13059610705596,
+          "mean_replica_mw": 6192.521897810219,
+          "mean_ree_total_mw": 6193.738057583131,
+          "mean_signed_gap_mw": -1.2161597729115874
+        },
+        "lag_scan": {
+          "by_lag": {
+            "-3": {
+              "n": 8217,
+              "corr": 0.5773380450377869,
+              "mae_mw": 4241.564216461807
+            },
+            "-2": {
+              "n": 8218,
+              "corr": 0.7630074223838349,
+              "mae_mw": 2951.887097428409
+            },
+            "-1": {
+              "n": 8219,
+              "corr": 0.9178926427878934,
+              "mae_mw": 1630.749381514377
+            },
+            "0": {
+              "n": 8220,
+              "corr": 0.9973819343368535,
+              "mae_mw": 277.13059610705596
+            },
+            "1": {
+              "n": 8219,
+              "corr": 0.9608594603659951,
+              "mae_mw": 1104.8379162104065
+            },
+            "2": {
+              "n": 8218,
+              "corr": 0.8291991423295457,
+              "mae_mw": 2438.8524681593253
+            },
+            "3": {
+              "n": 8217,
+              "corr": 0.6522181798207184,
+              "mae_mw": 3740.9401748407768
+            }
+          },
+          "best_lag_hours": 0
+        }
+      },
+      "night": {
+        "n": 3196,
+        "replica_solar_mw": {
+          "n": 3196,
+          "mean": 263.5287859824781,
+          "median": 143.0,
+          "p05": 13.0,
+          "p95": 685.5,
+          "min": 0.0,
+          "max": 859.0,
+          "sum": 842238.0
+        },
+        "ree_csp_solTer_mw": {
+          "n": 3196,
+          "mean": 211.04714226115976,
+          "median": 76.375,
+          "p05": 0.0,
+          "p95": 618.9166666666667,
+          "min": 0.0,
+          "max": 701.4166666666666,
+          "sum": 674506.6666666666
+        },
+        "ree_pv_solFot_mw": {
+          "n": 3196,
+          "mean": 48.64906654151023,
+          "median": 37.125,
+          "p05": 6.0,
+          "p95": 130.0,
+          "min": 0.0,
+          "max": 317.0833333333333,
+          "sum": 155482.4166666667
+        },
+        "share_of_replica_explained_by_csp": 0.8008504326172253,
+        "share_of_replica_explained_by_pv": 0.18460627122816434,
+        "corr_replica_vs_csp": 0.9838817025513354,
+        "corr_replica_vs_pv": 0.28658091221270166,
+        "residual_replica_minus_ree_total_mw": {
+          "n": 3196,
+          "mean": 3.8325771798080925,
+          "median": 0.33333333333337123,
+          "p05": -2.6666666666666714,
+          "p95": 21.583333333333332,
+          "min": -161.75,
+          "max": 55.25,
+          "sum": 12248.916666666664
+        },
+        "hours_above_threshold": {
+          "replica": 3190,
+          "ree_csp": 2820,
+          "ree_pv": 3178
+        }
+      },
+      "not_night": {
+        "n": 5024,
+        "replica_solar_mw": {
+          "n": 5024,
+          "mean": 9964.230095541401,
+          "median": 10588.0,
+          "p05": 94.0,
+          "p95": 20593.54999999999,
+          "min": 4.0,
+          "max": 23999.0,
+          "sum": 50060292.0
+        },
+        "ree_csp_solTer_mw": {
+          "n": 5024,
+          "mean": 580.1451532643312,
+          "median": 490.54166666666663,
+          "p05": 2.0,
+          "p95": 1491.6541666666667,
+          "min": 0.0,
+          "max": 1990.3333333333333,
+          "sum": 2914649.25
+        },
+        "ree_pv_solFot_mw": {
+          "n": 5024,
+          "mean": 9388.512838375796,
+          "median": 10221.25,
+          "p05": 43.43333333333334,
+          "p95": 19450.65833333333,
+          "min": 0.0,
+          "max": 22758.916666666668,
+          "sum": 47167888.5
+        },
+        "share_of_replica_explained_by_csp": 0.05822277764580359,
+        "share_of_replica_explained_by_pv": 0.9422216015040423,
+        "corr_replica_vs_csp": 0.693976639539467,
+        "corr_replica_vs_pv": 0.9911173727342051,
+        "residual_replica_minus_ree_total_mw": {
+          "n": 5024,
+          "mean": -4.427896098726099,
+          "median": 8.29166666666606,
+          "p05": -1299.4875,
+          "p95": 1221.0416666666672,
+          "min": -2265.5,
+          "max": 7896.916666666666,
+          "sum": -22245.74999999992
+        },
+        "hours_above_threshold": {
+          "replica": 5024,
+          "ree_csp": 4809,
+          "ree_pv": 5022
+        }
+      },
+      "night_residual": {
+        "pct_of_replica_night_energy_explained_by_ree": 98.54567038453897,
+        "mae_mw": 5.547011889862329,
+        "median_abs_mw": 2.0,
+        "p95_abs_mw": 21.87500000000003,
+        "mean_replica_mw": 263.5287859824781
+      },
+      "flat_night_check": {
+        "note": "nights where the replica holds one value (range <= 4 MW, the ES quantum)",
+        "n_nights_total": 344,
+        "n_nights_flat": 4,
+        "on_flat_nights": {
+          "mean_replica_mw": 22.19128787878788,
+          "mean_ree_mw": 22.583333333333336,
+          "mean_ree_range_mw": 2.520833333333334
+        }
+      },
+      "energy": {
+        "pct_of_replica_energy_at_night": 1.654609309203295,
+        "pct_of_ree_csp_energy_at_night": 18.792905137793422,
+        "pct_of_ree_pv_energy_at_night": 0.32855313063065805,
+        "night_replica_mwh": 842238.0,
+        "night_ree_csp_mwh": 674506.6666666666,
+        "night_ree_pv_mwh": 155482.4166666667
+      },
+      "monthly_night_mean_mw": [
+        {
+          "month": "2025-01",
+          "n_hours": 357,
+          "replica_mw": 57.056022408963585,
+          "ree_csp_mw": 31.518674136321195,
+          "ree_pv_mw": 25.38071895424837,
+          "csp_share_pct": 55.24162534570507,
+          "pv_share_pct": 44.483856186688925,
+          "residual_mean_mw": 0.15662931839402405,
+          "corr_replica_vs_csp": 0.8617693466674627
+        },
+        {
+          "month": "2025-02",
+          "n_hours": 308,
+          "replica_mw": 109.92857142857143,
+          "ree_csp_mw": 68.90151515151516,
+          "ree_pv_mw": 37.72564935064935,
+          "csp_share_pct": 62.6784413334121,
+          "pv_share_pct": 34.31832949376809,
+          "residual_mean_mw": 3.3014069264069272,
+          "corr_replica_vs_csp": 0.9563243589447271
+        },
+        {
+          "month": "2025-03",
+          "n_hours": 302,
+          "replica_mw": 158.92384105960264,
+          "ree_csp_mw": 113.23565121412803,
+          "ree_pv_mw": 42.68377483443709,
+          "csp_share_pct": 71.251519255478,
+          "pv_share_pct": 26.858006042296072,
+          "residual_mean_mw": 3.004415011037527,
+          "corr_replica_vs_csp": 0.9925638215819328
+        },
+        {
+          "month": "2025-04",
+          "n_hours": 245,
+          "replica_mw": 287.43265306122447,
+          "ree_csp_mw": 215.47993197278913,
+          "ree_pv_mw": 68.0404761904762,
+          "csp_share_pct": 74.96710261617038,
+          "pv_share_pct": 23.671797711856787,
+          "residual_mean_mw": 3.912244897959185,
+          "corr_replica_vs_csp": 0.9848400458633157
+        },
+        {
+          "month": "2025-05",
+          "n_hours": 227,
+          "replica_mw": 465.4537444933921,
+          "ree_csp_mw": 382.4394273127753,
+          "ree_pv_mw": 78.05800293685755,
+          "csp_share_pct": 82.16486210225445,
+          "pv_share_pct": 16.77030292705395,
+          "residual_mean_mw": 4.956314243759175,
+          "corr_replica_vs_csp": 0.9535849373671805
+        },
+        {
+          "month": "2025-06",
+          "n_hours": 210,
+          "replica_mw": 434.1714285714286,
+          "ree_csp_mw": 370.49285714285713,
+          "ree_pv_mw": 56.11904761904762,
+          "csp_share_pct": 85.33331139773625,
+          "pv_share_pct": 12.925550583486883,
+          "residual_mean_mw": 7.55952380952381,
+          "corr_replica_vs_csp": 0.9787875584690598
+        },
+        {
+          "month": "2025-07",
+          "n_hours": 217,
+          "replica_mw": 598.7741935483871,
+          "ree_csp_mw": 547.2615207373271,
+          "ree_pv_mw": 46.59754224270354,
+          "csp_share_pct": 91.39697846599043,
+          "pv_share_pct": 7.78215606897861,
+          "residual_mean_mw": 4.915130568356373,
+          "corr_replica_vs_csp": 0.9126566980315726
+        },
+        {
+          "month": "2025-08",
+          "n_hours": 247,
+          "replica_mw": 495.02024291497975,
+          "ree_csp_mw": 444.4780701754386,
+          "ree_pv_mw": 42.73414304993253,
+          "csp_share_pct": 89.78987759330442,
+          "pv_share_pct": 8.6328071753769,
+          "residual_mean_mw": 7.808029689608635,
+          "corr_replica_vs_csp": 0.9702268605863325
+        },
+        {
+          "month": "2025-09",
+          "n_hours": 284,
+          "replica_mw": 404.26056338028167,
+          "ree_csp_mw": 343.00410798122067,
+          "ree_pv_mw": 54.41754694835681,
+          "csp_share_pct": 84.84728391835787,
+          "pv_share_pct": 13.461008042272741,
+          "residual_mean_mw": 6.838908450704227,
+          "corr_replica_vs_csp": 0.9831825367620174
+        },
+        {
+          "month": "2025-10",
+          "n_hours": 320,
+          "replica_mw": 202.515625,
+          "ree_csp_mw": 150.13776041666668,
+          "ree_pv_mw": 46.889583333333334,
+          "csp_share_pct": 74.13638350950288,
+          "pv_share_pct": 23.153563253864156,
+          "residual_mean_mw": 5.488281250000001,
+          "corr_replica_vs_csp": 0.9890439738859078
+        },
+        {
+          "month": "2025-11",
+          "n_hours": 360,
+          "replica_mw": 99.78888888888889,
+          "ree_csp_mw": 38.57800925925926,
+          "ree_pv_mw": 61.048611111111114,
+          "csp_share_pct": 38.65962402108155,
+          "pv_share_pct": 61.1777641688008,
+          "residual_mean_mw": 0.1622685185185189,
+          "corr_replica_vs_csp": 0.8607885441213821
+        },
+        {
+          "month": "2025-12",
+          "n_hours": 119,
+          "replica_mw": 42.168067226890756,
+          "ree_csp_mw": 21.333333333333336,
+          "ree_pv_mw": 22.131652661064425,
+          "csp_share_pct": 50.591204995350076,
+          "pv_share_pct": 52.48438953102165,
+          "residual_mean_mw": -1.2969187675070029,
+          "corr_replica_vs_csp": 0.6922932074872368
+        }
+      ],
+      "night_hour_profile": [
+        {
+          "hour_utc": 0,
+          "replica_mw": 290.92128279883383,
+          "ree_csp_mw": 241.31778425655978,
+          "ree_pv_mw": 46.10155490767736,
+          "mean_sun_elevation_deg": -48.858040356203595
+        },
+        {
+          "hour_utc": 1,
+          "replica_mw": 267.6297376093294,
+          "ree_csp_mw": 219.9203109815355,
+          "ree_pv_mw": 44.70286686103013,
+          "mean_sun_elevation_deg": -45.31408219629655
+        },
+        {
+          "hour_utc": 2,
+          "replica_mw": 246.61807580174928,
+          "ree_csp_mw": 197.8955296404276,
+          "ree_pv_mw": 44.2220602526725,
+          "mean_sun_elevation_deg": -38.23844359038486
+        },
+        {
+          "hour_utc": 3,
+          "replica_mw": 214.84256559766763,
+          "ree_csp_mw": 163.14188532555877,
+          "ree_pv_mw": 44.17128279883382,
+          "mean_sun_elevation_deg": -29.069719225580677
+        },
+        {
+          "hour_utc": 4,
+          "replica_mw": 85.48826291079813,
+          "ree_csp_mw": 44.37050078247261,
+          "ree_pv_mw": 38.30868544600939,
+          "mean_sun_elevation_deg": -25.6059360052733
+        },
+        {
+          "hour_utc": 5,
+          "replica_mw": 46.123893805309734,
+          "ree_csp_mw": 11.238200589970502,
+          "ree_pv_mw": 35.977138643067846,
+          "mean_sun_elevation_deg": -19.59282454495835
+        },
+        {
+          "hour_utc": 18,
+          "replica_mw": 154.327868852459,
+          "ree_csp_mw": 93.83879781420765,
+          "ree_pv_mw": 58.591530054644814,
+          "mean_sun_elevation_deg": -16.37710497625302
+        },
+        {
+          "hour_utc": 19,
+          "replica_mw": 216.50632911392404,
+          "ree_csp_mw": 161.790611814346,
+          "ree_pv_mw": 51.1503164556962,
+          "mean_sun_elevation_deg": -22.809921730701664
+        },
+        {
+          "hour_utc": 20,
+          "replica_mw": 297.95238095238096,
+          "ree_csp_mw": 235.3670634920635,
+          "ree_pv_mw": 58.47850529100529,
+          "mean_sun_elevation_deg": -28.49413604849276
+        },
+        {
+          "hour_utc": 21,
+          "replica_mw": 365.719298245614,
+          "ree_csp_mw": 303.56481481481484,
+          "ree_pv_mw": 58.50974658869395,
+          "mean_sun_elevation_deg": -33.43196316929483
+        },
+        {
+          "hour_utc": 22,
+          "replica_mw": 340.3090379008746,
+          "ree_csp_mw": 283.1491739552964,
+          "ree_pv_mw": 53.61516034985423,
+          "mean_sun_elevation_deg": -41.791688880382864
+        },
+        {
+          "hour_utc": 23,
+          "replica_mw": 317.0906432748538,
+          "ree_csp_mw": 263.7614522417154,
+          "ree_pv_mw": 49.7066276803119,
+          "mean_sun_elevation_deg": -47.41614687882811
+        }
+      ],
+      "charge_coupling_detrended": {
+        "n_days": 343,
+        "corr_daylight_replica_vs_night_replica": 0.6490217681859175,
+        "corr_daylight_pv_vs_night_csp": 0.6025483520125414,
+        "corr_night_replica_vs_night_csp": 0.9661867561094389
+      }
+    }
+  ],
+  "daily_source_calibration": {
+    "n_days": 344,
+    "corr": 0.9981776568564221,
+    "by_output_band": [
+      {
+        "apidatos_daily_csp_mwh_band": "(-1.0, 200.0]",
+        "n_days": 5,
+        "mean_apidatos_mwh": 31.517200000000003,
+        "mean_5min_archive_mwh": 49.0,
+        "median_ratio_archive_over_apidatos": 3.1746031746031744
+      },
+      {
+        "apidatos_daily_csp_mwh_band": "(200.0, 1000.0]",
+        "n_days": 34,
+        "mean_apidatos_mwh": 464.90223529411765,
+        "mean_5min_archive_mwh": 539.7009803921568,
+        "median_ratio_archive_over_apidatos": 1.0856964155160398
+      },
+      {
+        "apidatos_daily_csp_mwh_band": "(1000.0, 3000.0]",
+        "n_days": 36,
+        "mean_apidatos_mwh": 1845.218138888889,
+        "mean_5min_archive_mwh": 1811.6365740740741,
+        "median_ratio_archive_over_apidatos": 0.9795739382583919
+      },
+      {
+        "apidatos_daily_csp_mwh_band": "(3000.0, 10000.0]",
+        "n_days": 103,
+        "mean_apidatos_mwh": 6076.69708737864,
+        "mean_5min_archive_mwh": 5931.0436893203905,
+        "median_ratio_archive_over_apidatos": 0.9860976375495136
+      },
+      {
+        "apidatos_daily_csp_mwh_band": "(10000.0, 30000.0]",
+        "n_days": 166,
+        "mean_apidatos_mwh": 17721.964668674696,
+        "mean_5min_archive_mwh": 17461.913654618475,
+        "median_ratio_archive_over_apidatos": 0.9859206437724155
+      }
+    ]
+  },
+  "daily_check": [
+    {
+      "label": "energy_renewable 2026-01-14..2026-08-10",
+      "window": [
+        "2026-01-14",
+        "2026-08-10"
+      ],
+      "n_days": 207,
+      "aggregation_identity": {
+        "note": "replica daily solar energy vs REE (PV + CSP) daily energy",
+        "corr": 0.9988327818257832,
+        "mean_replica_mwh": 188439.31400966184,
+        "mean_ree_pv_plus_csp_mwh": 191065.42961352653,
+        "mean_pct_gap": -1.8345542296963384
+      },
+      "night_fits_inside_csp_budget": {
+        "days_night_le_csp": 187,
+        "days_total": 207,
+        "ratio_night_over_csp": {
+          "n": 207,
+          "mean": 0.9591511022869499,
+          "median": 0.18560066668182493,
+          "p05": 0.09781808789213269,
+          "p95": 2.157475471516336,
+          "min": 0.04611815400647062,
+          "max": 53.36209996404171,
+          "sum": 198.54427817339862
+        }
+      },
+      "corr_night_vs_csp_raw": 0.8189741857467078,
+      "corr_night_vs_pv_raw": 0.6917541230126273,
+      "corr_night_vs_csp_detrended": 0.6685054656516537,
+      "corr_night_vs_pv_detrended": 0.27154097674832356,
+      "monthly_mean_mwh": [
+        {
+          "month": "2026-01",
+          "night_replica_mwh": 336.1666666666667,
+          "ree_csp_mwh": 950.9805555555556,
+          "ree_pv_mwh": 71936.53888888888
+        },
+        {
+          "month": "2026-02",
+          "night_replica_mwh": 657.2692307692307,
+          "ree_csp_mwh": 4865.6015384615375,
+          "ree_pv_mwh": 93082.62576923077
+        },
+        {
+          "month": "2026-03",
+          "night_replica_mwh": 2797.8709677419356,
+          "ree_csp_mwh": 10386.61193548387,
+          "ree_pv_mwh": 138495.24322580648
+        },
+        {
+          "month": "2026-04",
+          "night_replica_mwh": 2306.1666666666665,
+          "ree_csp_mwh": 12237.573666666667,
+          "ree_pv_mwh": 168508.32366666666
+        },
+        {
+          "month": "2026-05",
+          "night_replica_mwh": 2567.6559139784945,
+          "ree_csp_mwh": 16612.695483870968,
+          "ree_pv_mwh": 200947.2393548387
+        },
+        {
+          "month": "2026-06",
+          "night_replica_mwh": 3698.5,
+          "ree_csp_mwh": 20741.001999999997,
+          "ree_pv_mwh": 238107.96533333333
+        },
+        {
+          "month": "2026-07",
+          "night_replica_mwh": 3624.0967741935483,
+          "ree_csp_mwh": 19389.324193548393,
+          "ree_pv_mwh": 249356.09709677417
+        },
+        {
+          "month": "2026-08",
+          "night_replica_mwh": 4195.4,
+          "ree_csp_mwh": 22565.344,
+          "ree_pv_mwh": 258761.17400000003
+        }
+      ],
+      "gate_window": {
+        "window": [
+          "2026-07-11",
+          "2026-08-10"
+        ],
+        "bounds": "[start, end) -- ABL-348's fit window ends where this begins",
+        "n_days": 30,
+        "days_night_le_csp": 30,
+        "mean_night_mwh": 3626.0,
+        "mean_ree_csp_mwh": 19433.96266666667,
+        "ratio_night_over_csp": {
+          "n": 30,
+          "mean": 0.18494159645745448,
+          "median": 0.18321309109327408,
+          "p05": 0.14181073237791483,
+          "p95": 0.24247983845952445,
+          "min": 0.09864938057050265,
+          "max": 0.26137329019539357,
+          "sum": 5.548247893723635
+        }
+      }
+    },
+    {
+      "label": "energy_generation 2026-01-14..2026-08-10",
+      "window": [
+        "2026-01-14",
+        "2026-08-10"
+      ],
+      "n_days": 209,
+      "aggregation_identity": {
+        "note": "replica daily solar energy vs REE (PV + CSP) daily energy",
+        "corr": 0.9988993378169921,
+        "mean_replica_mwh": 187444.8038277512,
+        "mean_ree_pv_plus_csp_mwh": 190039.57401913876,
+        "mean_pct_gap": -1.7972975665511808
+      },
+      "night_fits_inside_csp_budget": {
+        "days_night_le_csp": 189,
+        "days_total": 209,
+        "ratio_night_over_csp": {
+          "n": 209,
+          "mean": 0.9523941166801256,
+          "median": 0.18560066668182493,
+          "p05": 0.09793684398904268,
+          "p95": 2.147207025614915,
+          "min": 0.04611815400647062,
+          "max": 53.36209996404171,
+          "sum": 199.05037038614626
+        }
+      },
+      "corr_night_vs_csp_raw": 0.8212419939187459,
+      "corr_night_vs_pv_raw": 0.6966326152479799,
+      "corr_night_vs_csp_detrended": 0.6680707145826303,
+      "corr_night_vs_pv_detrended": 0.2716081666065586,
+      "monthly_mean_mwh": [
+        {
+          "month": "2026-01",
+          "night_replica_mwh": 336.1666666666667,
+          "ree_csp_mwh": 950.9805555555556,
+          "ree_pv_mwh": 71936.53888888888
+        },
+        {
+          "month": "2026-02",
+          "night_replica_mwh": 650.3571428571429,
+          "ree_csp_mwh": 4745.618928571429,
+          "ree_pv_mwh": 92196.55785714286
+        },
+        {
+          "month": "2026-03",
+          "night_replica_mwh": 2797.8709677419356,
+          "ree_csp_mwh": 10386.61193548387,
+          "ree_pv_mwh": 138495.24322580648
+        },
+        {
+          "month": "2026-04",
+          "night_replica_mwh": 2306.1666666666665,
+          "ree_csp_mwh": 12237.573666666667,
+          "ree_pv_mwh": 168508.32366666666
+        },
+        {
+          "month": "2026-05",
+          "night_replica_mwh": 2567.3548387096776,
+          "ree_csp_mwh": 16612.695483870968,
+          "ree_pv_mwh": 200947.2393548387
+        },
+        {
+          "month": "2026-06",
+          "night_replica_mwh": 3698.5,
+          "ree_csp_mwh": 20741.001999999997,
+          "ree_pv_mwh": 238107.96533333333
+        },
+        {
+          "month": "2026-07",
+          "night_replica_mwh": 3624.0967741935483,
+          "ree_csp_mwh": 19389.324193548393,
+          "ree_pv_mwh": 249356.09709677417
+        },
+        {
+          "month": "2026-08",
+          "night_replica_mwh": 4195.4,
+          "ree_csp_mwh": 22565.344,
+          "ree_pv_mwh": 258761.17400000003
+        }
+      ],
+      "gate_window": {
+        "window": [
+          "2026-07-11",
+          "2026-08-10"
+        ],
+        "bounds": "[start, end) -- ABL-348's fit window ends where this begins",
+        "n_days": 30,
+        "days_night_le_csp": 30,
+        "mean_night_mwh": 3626.0,
+        "mean_ree_csp_mwh": 19433.96266666667,
+        "ratio_night_over_csp": {
+          "n": 30,
+          "mean": 0.18494159645745448,
+          "median": 0.18321309109327408,
+          "p05": 0.14181073237791483,
+          "p95": 0.24247983845952445,
+          "min": 0.09864938057050265,
+          "max": 0.26137329019539357,
+          "sum": 5.548247893723635
+        }
+      }
+    }
+  ]
+}
