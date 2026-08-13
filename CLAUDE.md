@@ -720,16 +720,27 @@ against it after parsing, so an explicit path still overrides. `abl195` and
 `abl253` keep their historical paths byte-for-byte. The three tables are one
 registration in three views and are cross-checked at **import** by
 `check_registration_tables` (`src/evaluation/gate_registration.py:39`, called at
-`evaluate_wind_retrain.py:184` and `evaluate_solar_retrain.py:118`), so a scope
+`evaluate_wind_retrain.py:285` and `evaluate_solar_retrain.py:536`), so a scope
 added to one and not the others fails before any fit rather than mid-run — it
 raises on `import`, so even `--help` exits non-zero. That is deliberately louder
 than a failing test: the tables disagreeing is **not** a textual conflict, so
 GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
-platform will show it. **Registering a new scope means editing every one of these
-tables** — three on the wind harness, and **five on solar** since ABL-376 added
-`FIT_RULES` and `SCOPE_TITLES` to the same import-time check. Count them in the
-`check_registration_tables(...)` call in the harness you are editing rather than
-from this sentence; that call is the list.
+platform will show it.
+
+**Registering a new scope means editing every registration table — but only
+three of them are import-checked, and that is true on both harnesses.** The call
+is `check_registration_tables(SCOPES=..., GATE_BASIS=..., SCOPE_OUTPUTS=...)` and
+nothing else. Solar carries **five** tables: `FIT_RULES`, `SCOPE_FEATURES` and
+`SCOPE_TITLES` are **not** in that call, so a scope missing from any of them
+resolves through a module-level default **silently, at run time**. That is not
+hypothetical — it is exactly how ABL-404 happened, and it is why the rows that
+depend on it each carry a comment saying so. Adding a table to the check is not
+free: it raises on `import` for every branch already in flight, and
+`SCOPE_FEATURES` must stay absent-able because inheriting the current
+`FEATURE_COLUMNS` is the intended path for a new tranche (`abl316-t2a` does
+exactly that). Read the `check_registration_tables(...)` call in the harness you
+are editing rather than this sentence; that call is the list, and it is shorter
+than the set of tables you must still edit by hand.
 
 **What the fit was allowed to see is part of the registration too (ABL-376).**
 `FIT_RULES` (`evaluate_solar_retrain.py`) carries `exclude_impossible_night` per
@@ -783,10 +794,23 @@ Three things follow, and the first is the general rule:
   ES is the strictly stronger case: its overnight MW is real CSP dispatch, so
   the rule would delete generation rather than noise.
 - **Never disposition a night-floor change on the negative-prediction rate.** It
-  cannot see the level. The same BG run that doubles night MAE *improves* the
-  night-negative rate 20.09% -> 9.86% at 8/8 seeds, p = 0.0078. That is the
-  metric ABL-381 §4 and ABL-395 both reported, and on its own it would have
-  adopted this. Report night MAE and night bias beside it.
+  cannot see the level, and on BG it cannot be read at all. Over the same eight
+  paired fits, night MAE rises **+61.05 MW** (rule at 25 features, 8/8 seeds,
+  p = 0.0078) against a 6.96 MW control-vs-control null — readable — while **not
+  one** negative-rate contrast clears its own null of **14.06pp**: the rule's
+  apparent *improvement* is -7.12pp at 25 features (7/8, p = 0.070) and -11.78pp
+  at 27 (8/8, p = 0.0078), and both sit inside the noise. So the metric moved the
+  way that would have adopted the rule, on fits where the level metric says the
+  rule roughly doubles the error, and it did so without being readable in the
+  first place. That is the metric ABL-381 §4 and ABL-395 both reported. Report
+  night MAE and night bias beside it, and read `outside_the_null` before quoting
+  any of the three — an 8/8 sign test is not readability when the single-seed
+  null is wider than the effect.
+
+  Quote the two factors' contrasts, never the 25-off -> 27-on diagonal. Those
+  endpoints (20.09% -> 9.85%) differ by *both* changes at once, so they are not a
+  measurement of either; the machine record keeps them apart as
+  `exclusion_at_f25` / `exclusion_at_f27` / `both_vs_neither` for that reason.
 - **ABL-376's 27x mechanism is real in structure and useless in direction.** The
   interaction on night MAE is -14.2 MW (7/8 seeds, sign p = 0.070, clearing a
   conservative 4-fit null of 11.3): geometry makes the rule do *less damage*, not

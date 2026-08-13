@@ -385,6 +385,29 @@ FIT_RULES = {
     # reason to edit this row.  Re-fitting any of these eight under the rule is a
     # real experiment and belongs in its own scope.
     "abl316-t2a": {"exclude_impossible_night": False},
+    # ABL-403 registered the value for the tranches that do not exist yet, on the
+    # CEO's adoption of PR #58: **`exclude_impossible_night: False` for every
+    # remaining ABL-316 solar tranche, ES and EE included** -- 2c (ABL-419) and 2d
+    # (ABL-421).  Registered on the evidence and before those fits, not against a
+    # result, which is the only way a pre-registration means anything.
+    #
+    # This comment is load-bearing precisely because this table is *not* one of
+    # the three `check_registration_tables` cross-checks (see the call at the
+    # bottom of this file).  A new scope that omits its row here does not fail at
+    # import; it resolves through `DEFAULT_FIT_RULES`, which is also False -- so
+    # the omission would produce the registered *behaviour* while leaving no
+    # record that anyone chose it.  Right answer, absent registration, and the
+    # next reader cannot tell the two apart.  Add the row.
+    #
+    # The measurement behind the value: on BG the rule alone raises night MAE
+    # +61.05 MW (8/8 seeds, p = 0.0078, outside a 6.96 MW null), drives night bias
+    # -2.1 -> +88.5 MW, costs 1.4-1.9pp of gate-band WAPE and eats 47% of the D-7
+    # margin ABL-405's PASS was carrying.  It refuses 76.4% of BG's night fit rows
+    # while 25.3% of the *scored* gate rows are night rows at a 225 MW mean -- you
+    # cannot forbid a model to learn what you still grade it on.  ES is the
+    # stronger case still: its overnight MW is real CSP dispatch (ABL-411), so the
+    # rule would delete generation rather than noise.
+    # `reports/abl_403_night_rule_interaction.md`.
 }
 
 # ABL-395: and so is the feature *vector*, for exactly the reason stated above
