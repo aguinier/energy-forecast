@@ -536,8 +536,39 @@ def daily_source_calibration(ree_hourly: pd.DataFrame, daily: pd.DataFrame) -> D
     }
 
 
+def _gate_window_slice(
+    joined: pd.DataFrame, window: Tuple[date, date]
+) -> Dict[str, object]:
+    """The ABL-348 registered gate window, sliced out of the daily check.
+
+    Half-open `[start, end)`: the registered fit window *ends* where the gate
+    window begins, so the shared endpoint belongs to the gate side once.
+    """
+    start, end = window
+    idx = pd.to_datetime(pd.Index(joined.index))
+    sub = joined[(idx >= pd.Timestamp(start)) & (idx < pd.Timestamp(end))]
+    header = {
+        "window": [start.isoformat(), end.isoformat()],
+        "bounds": "[start, end) -- ABL-348's fit window ends where this begins",
+    }
+    if sub.empty:
+        return {**header, "n_days": 0, "error": "no overlapping days"}
+    ratio = sub["night_mwh"] / sub["ree_csp_mwh"]
+    return {
+        **header,
+        "n_days": int(len(sub)),
+        "days_night_le_csp": int((sub["night_mwh"] <= sub["ree_csp_mwh"]).sum()),
+        "mean_night_mwh": float(sub["night_mwh"].mean()),
+        "mean_ree_csp_mwh": float(sub["ree_csp_mwh"].mean()),
+        "ratio_night_over_csp": _stats(ratio.to_numpy()),
+    }
+
+
 def daily_budget_check(
-    replica: pd.DataFrame, daily: pd.DataFrame, label: str
+    replica: pd.DataFrame,
+    daily: pd.DataFrame,
+    label: str,
+    gate_window: Optional[Tuple[date, date]] = None,
 ) -> Dict[str, object]:
     """Coarse energy-budget test for windows the 5-minute archive cannot reach.
 
@@ -572,7 +603,7 @@ def daily_budget_check(
     ratio = joined["night_mwh"] / joined["ree_csp_mwh"]
     months = pd.PeriodIndex(pd.to_datetime(joined.index), freq="M")
     detr = joined.groupby(months).transform(lambda s: s - s.mean())
-    return {
+    out: Dict[str, object] = {
         "label": label,
         "window": [str(joined.index.min()), str(joined.index.max())],
         "n_days": int(len(joined)),
@@ -608,6 +639,9 @@ def daily_budget_check(
             for m, g in joined.groupby(months)
         ],
     }
+    if gate_window is not None:
+        out["gate_window"] = _gate_window_slice(joined, gate_window)
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -625,6 +659,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     parser.add_argument(
         "--daily-end", default="2026-08-10", help="last day of the daily energy-budget check"
+    )
+    parser.add_argument(
+        "--gate-start",
+        default="2026-07-11",
+        help="ABL-348's registered gate window, start (inclusive); sliced out of the daily check",
+    )
+    parser.add_argument(
+        "--gate-end",
+        default="2026-08-10",
+        help="ABL-348's registered gate window, end (exclusive)",
     )
     parser.add_argument("--skip-daily", action="store_true", help="hourly test only")
     parser.add_argument(
@@ -691,7 +735,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if not args.skip_daily:
         d_start = datetime.strptime(args.daily_start, "%Y-%m-%d").date()
         d_end = datetime.strptime(args.daily_end, "%Y-%m-%d").date()
-        print(f"daily energy-budget check {d_start} .. {d_end} ...")
+        gate = (
+            datetime.strptime(args.gate_start, "%Y-%m-%d").date(),
+            datetime.strptime(args.gate_end, "%Y-%m-%d").date(),
+        )
+        print(f"daily energy-budget check {d_start} .. {d_end} (gate slice {gate[0]} .. {gate[1]}) ...")
         daily = fetch_daily_structure(d_start, d_end, cache_dir)
         # Calibrate the daily product where the 5-minute archive still reaches.
         overlap_daily = fetch_daily_structure(start, end, cache_dir)
@@ -700,7 +748,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         for table in [t.strip() for t in args.tables.split(",") if t.strip()]:
             replica = read_replica_solar(db_path, table, d_start, d_end)
             payload["daily_check"].append(
-                daily_budget_check(replica, daily, f"{table} {d_start}..{d_end}")
+                daily_budget_check(replica, daily, f"{table} {d_start}..{d_end}", gate)
             )
 
     out = Path(args.out)

@@ -1,6 +1,6 @@
 {
   "issue": "ABL-411",
-  "generated_at_utc": "2026-08-13T21:40:29+00:00",
+  "generated_at_utc": "2026-08-13T21:55:14+00:00",
   "replica": {
     "path": "C:\\Code\\able\\data\\energy_dashboard.db",
     "bytes": 9432453120,
@@ -883,7 +883,28 @@
           "ree_csp_mwh": 22565.344,
           "ree_pv_mwh": 258761.17400000003
         }
-      ]
+      ],
+      "gate_window": {
+        "window": [
+          "2026-07-11",
+          "2026-08-10"
+        ],
+        "bounds": "[start, end) -- ABL-348's fit window ends where this begins",
+        "n_days": 30,
+        "days_night_le_csp": 30,
+        "mean_night_mwh": 3626.0,
+        "mean_ree_csp_mwh": 19433.96266666667,
+        "ratio_night_over_csp": {
+          "n": 30,
+          "mean": 0.18494159645745448,
+          "median": 0.18321309109327408,
+          "p05": 0.14181073237791483,
+          "p95": 0.24247983845952445,
+          "min": 0.09864938057050265,
+          "max": 0.26137329019539357,
+          "sum": 5.548247893723635
+        }
+      }
     },
     {
       "label": "energy_generation 2026-01-14..2026-08-10",
@@ -966,7 +987,28 @@
           "ree_csp_mwh": 22565.344,
           "ree_pv_mwh": 258761.17400000003
         }
-      ]
+      ],
+      "gate_window": {
+        "window": [
+          "2026-07-11",
+          "2026-08-10"
+        ],
+        "bounds": "[start, end) -- ABL-348's fit window ends where this begins",
+        "n_days": 30,
+        "days_night_le_csp": 30,
+        "mean_night_mwh": 3626.0,
+        "mean_ree_csp_mwh": 19433.96266666667,
+        "ratio_night_over_csp": {
+          "n": 30,
+          "mean": 0.18494159645745448,
+          "median": 0.18321309109327408,
+          "p05": 0.14181073237791483,
+          "p95": 0.24247983845952445,
+          "min": 0.09864938057050265,
+          "max": 0.26137329019539357,
+          "sum": 5.548247893723635
+        }
+      }
     }
   ]
 }

@@ -51,6 +51,11 @@ a replica defect, but not physical generation either. §4 sizes it.
 | **Baseline** | None. This is a measurement against an external reference series, not a model comparison |
 | **In/out of sample** | **Out of sample by construction** — nothing was fitted |
 
+**Reproduction.** The probe was re-run from a **cold HTTP cache** — every REE day
+re-fetched — and the JSON came back identical except for its own timestamp and
+the `gate_window` block added on that second pass. Nothing here depends on a
+cached response or on a one-off console session.
+
 **Timestamps.** REE's `ts` is Europe/Madrid local. Two independent checks: the
 response pads the requested local day by three hours each side (361 × 5 min =
 30 h), and PV peaks at 14:00 local = 12:00 UTC. The autumn fold is disambiguated
@@ -219,8 +224,17 @@ Over **2026-01-14 → 2026-08-10**, n = **209** days, `energy_generation`:
 - **Night energy fits inside the daily CSP budget on 189 of 209 days**, median
   ratio night/CSP **0.186** — i.e. about 19% of daily CSP energy is booked at
   night, matching the 18.79% measured hourly in 2025.
-- **In the ABL-348 gate window (2026-07-11 → 2026-08-10): 30 of 30 days**, mean
-  ratio **0.185**, mean night 3,626 MWh against mean daily CSP 19,434 MWh.
+- **In the ABL-348 gate window (2026-07-11 → 2026-08-10, half-open — the
+  registered fit window ends where this begins): 30 of 30 days**, mean ratio
+  **0.185**, **max 0.261**, mean night 3,626 MWh against mean daily CSP
+  19,434 MWh. So no day in the window comes within a factor of three of
+  exhausting the CSP budget. Machine record:
+  `daily_check[].gate_window`. **Both replica source tables agree to the digit
+  here** — `energy_renewable` and `energy_generation` return identical ES night
+  energy over these 30 days, so ABL-410's choice of scoring truth does not move
+  ES's night floor in the window ABL-419 reads on. (They differ over the full
+  209-day span, where ABL-188's zero-fill still bites: 207 usable days against
+  209.)
 - Detrended daily correlation of night energy against CSP **+0.668**, against PV
   **+0.272**.
 
