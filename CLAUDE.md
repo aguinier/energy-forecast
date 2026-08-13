@@ -378,19 +378,57 @@ screening the wrong table moves the disposition and not just the prose. The
 resolved table is recorded in `meta.training_source` and printed in the report:
 two gate reads are not comparable unless both name the table they read.
 
-The **wind** harness (`scripts/evaluate_wind_retrain.py`) still has no source
-argument **on `main`** and therefore still fits on `energy_renewable`. The
-equivalent change exists on the unmerged `ABL-322-pilot` branch (`8662989`),
-which also widens `PAIRS["wind_offshore"]` to BE/DE/FR/NL — a pilot scoping
-decision, which is why ABL-345 left that file alone rather than conflict with it.
-If that branch is dropped or rebased, the wind harness has no source argument at
-all; do not assume `main` carries it.
+The **wind** harness (`scripts/evaluate_wind_retrain.py`) takes the same
+`--renewable-source` argument, resolves it to the same two read sites, and
+records it in `meta.training_source`.
 
 Neither harness takes a **country** argument, and neither should get one as a
-flag alone: `COUNTRIES`/`PAIRS` are the registered scope and `performance_pass`
-is `len(gate_cells) == 9` (solar) / `== 15` (wind) against it, so a run scoped to
-a subset reports `n/9` and FAILs on the count no matter how it scored. Extending
-either to a new country is a new pre-registration, not a filter.
+flag alone. `COUNTRIES`/`PAIRS` are the registered scope and `performance_pass`
+is `len(gate_cells) ==` that scope's size, so a filtered run FAILs on the count
+no matter how it scored — and a country filter cannot say "offshore only", so it
+also drags serving pairs of the *other* stream into the gate. Scoping a run is a
+new pre-registration, not a filter.
+
+The wind harness therefore takes `--scope`, not `--countries`. `SCOPES` maps a
+registered name to an explicit `(stream, country)` pair list, and the bar is that
+list's size × `PRIMARY_BANDS` — read from the table in the file, never from what
+the run turned out to score, so a pair that silently yields no gate rows still
+shortfalls the count and reads FAIL. `abl195` (the default, so an unflagged run
+reproduces ABL-195 exactly) is 5 pairs → 15 cells; `abl322-pilot` is DE/NL
+`wind_offshore` → 6 cells and refits no serving pair. Adding a scope is a
+pre-registration and belongs in review. `tests/test_gate_scope_registration.py`
+pins all of this, including that `--countries` is not reintroduced.
+
+A scope also registers its **gate basis** (`GATE_BASIS`): the columns that must
+be *simultaneously finite* for a row to enter a gate cell. This is not a detail.
+`common_scores` intersects on every column it is handed, and the harness handed
+it `challenger, incumbent, seasonal_naive, persistence` — so a pair with **no
+incumbent** has an empty intersection, and every cell scores `n=0` with every
+score `None`. ABL-322 hit exactly this: DE and NL `wind_offshore` have 0 rows in
+`forecasts`, so the first pilot run returned 0/6 cells and the harness rendered
+`FAIL` — a model-quality verdict on a comparison that never happened. **Every
+new country in the ABL-316 tranches is in that position**, so this would have
+mis-dispositioned all 37 remaining pairs. `abl322-pilot` therefore gates on
+`(challenger, seasonal_naive)` — the two columns its registered bar actually
+names — and reports the incumbent and persistence on their own intersection with
+that basis, each carrying its own n, so an absent comparator reads *Not measured*
+instead of emptying the cell.
+
+`abl195` deliberately **keeps** the four-way basis it was published under: its
+48-64h cells scored 480 rows against the 510 the same report records as selected,
+so the incumbent conjunct did drop rows there, and re-basing it would silently
+move numbers that have already been dispositioned. Re-reading ABL-195 under the
+narrower basis is a separate decision for whoever owns that gate.
+
+Relatedly, a run in which any cell scores zero rows now returns verdict
+`UNREADABLE`, not `FAIL`. A cell that scored nothing did not lose a race; saying
+`FAIL` invites exactly the wrong next move (feature work on a model that was
+never measured).
+
+The **solar** harness still hardcodes `len(gate_cells) == 9` against its
+`COUNTRIES` and has no scope argument. That is correct while every solar run is
+the full ABL-253 scope; the ABL-348 tranche will need the same `SCOPES`
+treatment before it can gate a subset.
 
 Why the source matters for the 37 unmodelled solar / wind_onshore pairs, measured
 on the replica 2026-08-12: **33 of the 37 have under 365 days in
