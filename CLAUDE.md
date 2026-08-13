@@ -38,6 +38,10 @@ energy_forecast/
 │   ├── data_quality.py     # Training-data invariants (ABL-188: rejects
 │   │                       # suspect constant-value runs from energy_renewable)
 │   ├── features.py         # Feature engineering (incl. holiday features)
+│   ├── solar_geometry.py   # Sun elevation per (country, timestamp) — one
+│   │                       # capacity-weighted point per country (ABL-337)
+│   ├── solar_clamp.py      # Serving-path night mask + non-negativity floor
+│   │                       # for solar, with per-run telemetry (ABL-337)
 │   ├── metrics.py          # Evaluation metrics
 │   ├── forecaster.py       # Forecaster class (XGBoost/LightGBM/CatBoost)
 │   ├── hyperopt.py         # Optuna Bayesian hyperparameter optimization
@@ -55,6 +59,7 @@ energy_forecast/
 │   ├── train.py              # Training script (enhanced)
 │   ├── train_chronos2.py     # Chronos-2 fine-tuning script
 │   ├── forecast_daily.py     # Daily forecast job
+│   ├── abl335_solar_night_probe.py # Solar forecasts/actuals vs sun geometry
 │   ├── forecast_chronos2.py  # Chronos-2 forecast generation
 │   ├── compare_experiments.py # Cross-experiment backtest comparison
 │   └── scheduler_setup.sh    # Cron setup
@@ -202,11 +207,54 @@ and redundant with `energy_generation` — retiring or re-deriving it is its
 own cross-module migration requiring separate CEO/board approval, not a fix
 available to this issue — so `src/data_quality.py`'s `exclude_suspect_constant_runs`
 guards the training-data boundary instead: any individual-renewable-type
-target loaded via `load_renewable_type_data` (`db.py:398`) that holds a
+target loaded via `load_renewable_type_data` (`src/db.py:482`) that holds a
 bit-identical value for 24+ hours is nulled before it can enter training,
 with a `logger.warning` naming the exact excluded window. No stored row is
 fixed by this — that needs a supplemental ENTSO-E re-fetch for the affected
 window, proposed but not executed in the ABL-188 report.
+
+**Neither generation table is hourly, and most countries are both** (ABL-332).
+`energy_generation` and `energy_renewable` store whatever resolution ENTSO-E
+published, and for most countries that changed partway through the history —
+an hourly backbone for the early years, quarter-hourly later. Measured on the
+replica 2026-08-12 over `config.SUPPORTED_COUNTRIES`: **22 of 24** carry
+sub-hourly rows in `energy_renewable` and **20 of 24** in `energy_generation`.
+Only **BE, BG, CH, LV, PT** are hourly throughout both. Do not reason about a
+country's resolution from its name or its row count alone; the per-country
+table is in `reports/abl_332_renewable_resolution.md`, regenerable with
+`scripts/audit_renewable_resolution.py`.
+
+Everything downstream of the read is hourly, and this is the contract:
+`load_renewable_type_data` calls `aggregate_renewable_to_hourly`
+(`src/db.py:398`) so **exactly one resolution leaves the read — the hourly
+mean**. It has to be the read and not the consumer, because both consumers
+already assumed hourly and disagreed about it: `features.py:227`'s
+`create_lag_features` shifts by `days * 24` **rows** (a day only on an hourly
+frame) and `src/wind_features.py` floors every lookup to the hour. Before
+ABL-332 the serving builder therefore read the `:00` sub-sample and discarded
+`:15`/`:30`/`:45` while training used the hourly mean — the same column name
+carrying two different numbers, with no error and no log line. Measured on DE
+solar over 2026-01-01 → 2026-08-12 (5,339 hours), the `:00` sub-sample differs
+from its hour's mean by a median of **373.6 MW** (p90 3,211 MW, max 5,500 MW)
+at a mean bias of only +3 MW — near-unbiased in aggregate, wrong in almost
+every individual hour.
+
+If you hand `src/wind_features.py` a sub-hourly series it now raises
+`SubHourlyResolutionError` (`src/wind_features.py:142`) rather than
+subsampling. Do not "fix" that by flooring the index — aggregate it.
+
+The frame a model is **fitted** on did not change when ABL-332 landed —
+`load_training_data`'s `resample('h').mean()` simply became a no-op — but
+**`scripts/train.py`'s availability screen did** (`scripts/train.py:354`). It
+reads the same loader and thresholds on `(target_value > 0).sum() / len(df)`
+without resampling, and an hourly mean is non-zero whenever any sub-sample in
+the hour is, so that fraction only rises. Measured over the screen's own
+30-day window on 2026-08-12, all supported pairs, both source tables: 53 pairs
+move the percentage without changing verdict and **one changes verdict —
+IT/wind_offshore, 0.4865 → 0.5764 across the 0.50 threshold**, so it is now
+eligible to train where it was previously skipped. Expect it to appear the
+next time a training sweep runs; it is not a new data problem, it is the
+screen finally measuring the hourly frame the model is fitted on.
 
 **Which table an individual renewable type is read from is a property of the
 model artifact, not a global** (ABL-331). `model_data["training_source"]` is
@@ -240,10 +288,44 @@ that is what made the guard a no-op for exactly the artifacts a gate produces.
 only the aggregate `load`/`renewable`/`price` types, which carry no source by
 the rule above, and is read back by `CascadeForecaster.load_model`.
 
-Note that both harnesses still build their features with no `actuals_source`,
-so today they fit on `energy_renewable`; ABL-342 made the provenance faithful,
-it did not give them a source argument. The ABL-316 pairs that need
-`energy_generation` want one added.
+ABL-342 made that provenance faithful but gave neither harness a way to read
+anything else. The **solar** harness now has one (ABL-345):
+`scripts/evaluate_solar_retrain.py --renewable-source energy_generation`. It
+resolves the source once (`evaluate_solar_retrain.py:208`) and hands the same
+string to both read sites — the `RenewableFeatureBuilder`, which supplies the
+fitted series, every lag and rolling feature, the D-7/persistence baselines and
+the gate actuals; and `_constant_runs`, whose result drives `verdict`, so
+screening the wrong table moves the disposition and not just the prose. The
+resolved table is recorded in `meta.training_source` and printed in the report:
+two gate reads are not comparable unless both name the table they read.
+
+The **wind** harness (`scripts/evaluate_wind_retrain.py`) still has no source
+argument **on `main`** and therefore still fits on `energy_renewable`. The
+equivalent change exists on the unmerged `ABL-322-pilot` branch (`8662989`),
+which also widens `PAIRS["wind_offshore"]` to BE/DE/FR/NL — a pilot scoping
+decision, which is why ABL-345 left that file alone rather than conflict with it.
+If that branch is dropped or rebased, the wind harness has no source argument at
+all; do not assume `main` carries it.
+
+Neither harness takes a **country** argument, and neither should get one as a
+flag alone: `COUNTRIES`/`PAIRS` are the registered scope and `performance_pass`
+is `len(gate_cells) == 9` (solar) / `== 15` (wind) against it, so a run scoped to
+a subset reports `n/9` and FAILs on the count no matter how it scored. Extending
+either to a new country is a new pre-registration, not a filter.
+
+Why the source matters for the 37 unmodelled solar / wind_onshore pairs, measured
+on the replica 2026-08-12: **33 of the 37 have under 365 days in
+`energy_renewable`** (median 276 d), while **37 of 37 have over a year in
+`energy_generation`** (median 2,049 d). Only BG and CH reach 2021 in both. A
+harness pinned to `energy_renewable` gates those pairs on a model that has never
+seen a full seasonal cycle.
+
+One wrinkle both harnesses share: `--replica-db` governs only the incumbent, TSO
+and contamination reads. The builder goes through `db.get_connection()` and so
+opens **`config.DATABASE_PATH`** (`ENERGY_DB_PATH`) — point them at different
+files and one run reads two databases. Pass `ENERGY_DB_PATH` explicitly; without
+it the builder raises `sqlite3.OperationalError: unable to open database file`
+before any fit, whatever `--replica-db` says.
 
 The **training window** obeys the same rule. Both `train` entry points close an
 open-ended window (`end_date is None`) with `db.get_latest_data_timestamp`, which
@@ -474,6 +556,63 @@ python scripts/forecast_daily.py --dry-run
 # Specific countries
 python scripts/forecast_daily.py --countries DE,FR
 ```
+
+### Solar is clamped to physical reality on the way out (ABL-337)
+
+`save_forecasts()` (`src/db.py`) is the choke point every serving write goes
+through, and solar rows do not pass it unchanged. `src/solar_clamp.py` zeroes any
+hour whose sun stays below `NIGHT_ELEVATION_THRESHOLD_DEG` (-8 deg, geometric)
+for the whole hour, and floors the rest at zero. `renewable_type='solar'` only,
+**new rows only** — stored history is never rewritten, and no `UPDATE` is issued,
+so the vintage archive stays a faithful record of what the models said.
+
+This is a guard, not a fix. ABL-335 measured what the models emit: 22,718 of
+131,356 stored solar rows negative, DE holding a 155-268 MW floor straight
+through local midnight. The fit defect underneath is ABL-338's. **So the clamp
+reports itself**: every run appends one row per country and model to
+`forecast_clamp_log`, in the same database the clamped rows went into —
+
+```sql
+SELECT clamped_at, country_code, model_name, hours_zeroed_night,
+       hours_raised_floor, mw_removed_night, mw_removed_total
+FROM forecast_clamp_log ORDER BY clamped_at DESC;
+```
+
+A retrain that fixes the fit drives `hours_zeroed_night` and `mw_removed_total`
+toward zero; the clamp going quiet is the measurement, and the clamp staying busy
+after a retrain means the retrain did not work.
+
+Sun elevation comes from `src/solar_geometry.py` — one capacity-weighted
+representative point per country, taken from `weather_location`. Import it; do
+not write a second copy (a training-side solar-geometry feature must use the same
+number the serving clamp uses). The -8 deg threshold was chosen by measurement,
+not convention: at -6 the mask would zero hours that recorded up to 18.7 MW of
+real DE generation, at -8 up to 3.6 MW, and below -10 it stops covering 02:00 UTC
+in August, which is one of the hours the defect appears in. Re-measure before
+changing it:
+
+```bash
+python scripts/abl335_solar_night_probe.py --check-actuals     # threshold vs actuals
+python scripts/abl335_solar_night_probe.py --stored-forecasts  # negative/night rows
+```
+
+Caveat worth knowing before trusting that check: FR's `energy_renewable.solar_mw`
+itself carries 137-440 MW at sun elevations down to -65 deg on 337 distinct days,
+so FR's "the mask would zero a real actual" count is dominated by an actuals
+defect rather than by the threshold.
+
+The clamp sits in `save_forecasts()`, so it covers every serving writer that
+goes through it, by construction rather than by each caller remembering to
+clamp. Two writers import it: `scripts/forecast_daily.py` and
+`src/tso_correction_forecaster.py:37`.
+
+The second one does not currently run at all. `forecast_daily.py:226` launches
+it as a subprocess **by file path**, and ABL-340 moved it to relative imports,
+so it dies at import with `attempted relative import with no known parent
+package` — every BE solar / wind row from the `tso-correction` runner has failed
+since, while the run summary still reports `[DONE]`. ABL-354. That path
+inherits the clamp the moment it can start; nothing about the clamp needs to
+change for it.
 
 ### Tests
 

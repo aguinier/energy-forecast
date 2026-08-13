@@ -91,6 +91,32 @@ zero-fill window (2025-09-08 22:00–2025-11-14 15:45 UTC, 6,408 quarter-hours)
 is nulled before it can reach a lag or rolling-window feature, with no
 solar-specific code needed here. See
 `tests/test_solar_features.py::test_a_suspect_constant_actuals_run_is_excluded_from_lags_and_rolling`.
+
+## Resolution (ABL-332)
+
+This module is hourly by construction — every lag, persistence and rolling
+anchor floors to the hour. That was silently wrong for any country storing
+sub-hourly rows, which measured on the replica 2026-08-12 is **22 of the 24
+`config.SUPPORTED_COUNTRIES`** in `energy_renewable` (the currently-serving
+source) and 20 of 24 in `energy_generation`; only BE, BG, CH, LV and PT are
+hourly throughout both. On such a country `series.loc[ts.floor("h")]` found
+the `:00` row, returned a scalar, and built every lag from a quarter of the
+data. The rolling windows did something *different* again — they slice the
+raw index by time, so they averaged all ~96 samples a day. Neither raised,
+neither logged.
+
+The fix is one aggregation at the shared read (`db.aggregate_renewable_to_hourly`,
+called by `load_renewable_type_data`) rather than resolution-awareness spread
+through this module, because training was *already* hourly: `load_training_data`
+resamples to the hourly mean and `features.py:create_lag_features` shifts by
+`days * 24` **rows**, which only means a day on an hourly frame. Serving was
+the arm that disagreed. Aggregating at the read makes the training resample a
+no-op and moves serving onto the definition the frozen artifacts were fitted
+against.
+
+`_assert_hourly` then makes the old failure loud: this builder raises
+`SubHourlyResolutionError` rather than subsampling if it is ever handed a
+sub-hourly series again.
 """
 
 from __future__ import annotations
@@ -111,6 +137,21 @@ from .db import get_connection, load_renewable_type_data
 
 class ServeFaithfulnessError(AssertionError):
     """Raised when a feature would need data past its declared cutoff."""
+
+
+class SubHourlyResolutionError(AssertionError):
+    """Raised when the actuals series handed to this builder is not on the hour.
+
+    ABL-332. Every lookup below floors to the hour, so a quarter-hourly series
+    answers from the `:00` sub-sample and discards `:15`, `:30` and `:45` --
+    returning a scalar, raising nothing, logging nothing. That is what it did
+    for 22 of the 24 supported countries until `db.aggregate_renewable_to_hourly`
+    was put on the read.
+
+    This exception exists so that failure cannot go quiet again. Subsampling is
+    not an acceptable degraded mode for a feature the model was fitted on
+    hourly means: it is a different number wearing the same column name.
+    """
 
 
 #: Point (same-hour) lags in days. 1 has a defined fallback (see module
@@ -237,13 +278,38 @@ def _load_actuals_series(
     if df.empty:
         return pd.Series(dtype=float, index=pd.DatetimeIndex([]))
     series = pd.Series(df["target_value"].to_numpy(dtype=float), index=pd.DatetimeIndex(df["timestamp_utc"]))
-    return series.sort_index()
+    return _assert_hourly(series.sort_index(), f"{country_code}/{forecast_type}")
+
+
+def _assert_hourly(series: pd.Series, context: str) -> pd.Series:
+    """ABL-332: refuse a series this builder would silently subsample.
+
+    `db.load_renewable_type_data` aggregates to hourly means, so reaching here
+    with anything else means that aggregation was bypassed — a caller injecting
+    its own series, or a regression in the loader. Either way the honest answer
+    is to stop, not to quietly build features from a quarter of the data.
+    """
+    if series.empty:
+        return series
+    index = pd.DatetimeIndex(series.index)
+    off_hour = index[index != index.floor("h")]
+    if len(off_hour):
+        raise SubHourlyResolutionError(
+            f"{context}: actuals series carries {len(off_hour)} of {len(index)} "
+            f"observations off the hour (first: {off_hour[0]}). Every lag, "
+            f"persistence and rolling anchor in this module floors to the hour, "
+            f"so these samples would be discarded without a word. Aggregate the "
+            f"series first — db.aggregate_renewable_to_hourly is what "
+            f"load_renewable_type_data uses."
+        )
+    return series
 
 
 def _lookup_hour(series: pd.Series, ts: pd.Timestamp) -> float:
-    """Exact hourly lookup. No interpolation, no nearest-neighbour — a missing
-    hour is NaN, not a fabricated value (dashboard-wide convention; see
-    top-level CLAUDE.md 'Never extrapolate')."""
+    """Exact hourly lookup on an hourly series (`_assert_hourly` is what makes
+    that a contract rather than a hope). No interpolation, no nearest-neighbour
+    — a missing hour is NaN, not a fabricated value (dashboard-wide convention;
+    see top-level CLAUDE.md 'Never extrapolate')."""
     floored = ts.floor("h")
     if floored in series.index:
         return float(series.loc[floored])
