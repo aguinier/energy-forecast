@@ -142,8 +142,13 @@ COUNTRIES = ("BG", "CH")
 #: `LEGACY_FEATURE_COLUMNS` is ABL-395's own anchor for exactly this, derived by
 #: subtraction from the live list rather than hand-copied, and pinned at 25 by
 #: `tests/test_gate_feature_list_contract.py`.  Note that `features_for` is
-#: *not* what is called here: `SCOPE_FEATURES` does not carry an `abl316-t1b`
-#: row, so `features_for("abl316-t1b")` returns the 27 (ABL-404).
+#: *not* what is called here.  When this was written `SCOPE_FEATURES` carried no
+#: `abl316-t1b` row and `features_for("abl316-t1b")` returned the 27 -- the
+#: defect this issue raised as ABL-404, which has since pinned that row to
+#: `LEGACY_FEATURE_COLUMNS`, so the two now agree.  The pin stays explicit here
+#: anyway: this arm is the challenger ABL-381 was read on, which is a property of
+#: that read rather than something to re-resolve through a table a later tranche
+#: could re-register.
 #:
 #: The empirical check that this is the right vector is the seed-42 control
 #: reproducing all six published cells, not this comment.

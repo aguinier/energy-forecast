@@ -102,10 +102,11 @@ SCOPES = {
     # `experiments/ABL348/results_abl381_tranche1b.json` and `reports/abl_381_*`
     # are byte-unchanged by any run of this scope.  Re-basing `abl316-t1b` in
     # place would have been the ABL-387 failure mode with a feature list in place
-    # of a path -- and is separately live as ABL-404, since that scope still holds
-    # no `SCOPE_FEATURES` row and so resolves to 27 against its own 25-feature
-    # published read.  Nothing here fixes that; this scope simply does not rely on
-    # it.
+    # of a path -- and was separately live as ABL-404, since that scope held no
+    # `SCOPE_FEATURES` row and so resolved to 27 against its own 25-feature
+    # published read.  Nothing here fixed that; this scope simply did not rely on
+    # it.  ABL-404 has since pinned `abl316-t1b` to `LEGACY_FEATURE_COLUMNS`, so
+    # that route is closed as well as unused.
     #
     # The eight are grouped by the pre-committed D-7 bar (18.35-26.11%, plus CH at
     # 12.67%) so the tranche's pass rate reads as one number.  The Mediterranean
@@ -407,6 +408,24 @@ DEFAULT_SCOPE_FEATURES = FEATURE_COLUMNS
 SCOPE_FEATURES = {
     "abl253": LEGACY_FEATURE_COLUMNS,
     "abl376": LEGACY_FEATURE_COLUMNS,
+    # ABL-404.  `abl316-t1b` belongs here for exactly the reason the two above do,
+    # and was missing only because of merge order: PR #40 registered the scope at
+    # 18:34Z and PR #46 added this table afterwards, off a branch cut before the
+    # scope existed.  Neither merge conflicted and nothing on GitHub flagged it,
+    # which is the same shape as the ABL-387/ABL-380 near-miss recorded in the
+    # `check_registration_tables` comment: a new scope landing beside a new table.
+    #
+    # Unpinned, this row's absence was not inert.  `SCOPE_OUTPUTS['abl316-t1b']`
+    # writes `experiments/ABL348/results_abl381_tranche1b.json` and
+    # `reports/abl_381_solar_tranche1b.md` -- ABL-381's published PASS 6/6 -- so
+    # `--scope abl316-t1b` refitted BG and CH at 27, overwrote both in place, and
+    # exited 0 under ABL-381's registered `SCOPE_TITLES` heading.  Using ABL-395's
+    # own measurement on these two pairs, that moves BG's 24-36h cell 18.89% ->
+    # 19.95% WAPE, from beating its 19.15% hour-of-day climatology to losing to
+    # it, inside a file still titled ABL-381 and still reporting PASS.  The gate
+    # verdict survives (D-7 is 24.40%) but ABL-381 section 3's reference
+    # comparison inverts.
+    "abl316-t1b": LEGACY_FEATURE_COLUMNS,
     # ABL-405 (`abl316-t2a`) is deliberately **absent** and takes
     # `DEFAULT_SCOPE_FEATURES` -- the current 27.  Fitting the tranche at 27 was
     # the sole gate on re-tranching the remaining solar pairs, so inheriting the
@@ -417,15 +436,28 @@ SCOPE_FEATURES = {
     # `meta.n_features` and `meta.feature_set_is_registered_for_scope`, which
     # reads False for this scope and prints as such in the report.
     #
-    # Worth stating, because it is the same shape as the live defect next door:
-    # once this tranche's read is dispositioned it is in `abl316-t1b`'s position,
-    # a published read with no row here, and a later move of `FEATURE_COLUMNS`
-    # would re-base it silently.  That is **ABL-404**, which is about the
-    # mechanism rather than about any one scope, and pinning a row to
-    # `FEATURE_COLUMNS` here would not fix it anyway -- that binds to the same
-    # mutable constant `LEGACY_FEATURE_COLUMNS` is derived from.  A real pin is a
-    # literal column tuple, and choosing that for every dispositioned scope is
-    # ABL-404's call, not a side-effect of this tranche.
+    # This tranche's read is now dispositioned, so the position this comment
+    # anticipated -- a published read with no row here, silently re-based by a
+    # later move of `FEATURE_COLUMNS` -- has arrived.  **ABL-404 covers it, and
+    # still without a row here**, which is why the absence above survives.
+    #
+    # The objection ABL-404 had to answer was recorded here: pinning a row to
+    # `FEATURE_COLUMNS` would not fix anything, because that binds to the same
+    # mutable constant `LEGACY_FEATURE_COLUMNS` is derived from, and a real pin is
+    # a literal column tuple.  It is -- and this scope already has one.  Its
+    # committed machine record carries `meta.feature_columns`, the 27 literal
+    # names this tranche was actually fitted on, written by the run itself.
+    # `test_a_dispositioned_scope_still_resolves_to_the_list_it_was_read_on` reads
+    # that list back out of the evidence and asserts `features_for` still resolves
+    # to it, so moving `FEATURE_COLUMNS` to 28 fails the suite here rather than
+    # re-basing this read.  A registration table cannot be a better witness of
+    # what a fit consumed than the record the fit wrote.
+    #
+    # So the rule the guard enforces is not "every scope must be pinned" -- that
+    # would fail on this row, which is the whole point of the tranche.  It is
+    # "every scope whose evidence is committed must still resolve to the list that
+    # evidence was taken on", which this row satisfies by inheriting the default,
+    # and which `abl316-t1b` above did not.
 }
 
 # The report's H1.  This was the string literal "ABL-253 -- Serve-faithful solar

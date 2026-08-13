@@ -89,7 +89,15 @@ than an omission, and the run records the resolved value three ways
 `meta.feature_set_is_registered_for_scope`, which is `false` here and prints as
 such in the harness report).
 
-### ABL-404 is adjacent, live, and not fixed here
+### ABL-404 was adjacent and live at this read, and is not fixed here
+
+> **Closed after this read, 2026-08-13 (ABL-404).** `abl316-t1b` is now pinned to
+> `LEGACY_FEATURE_COLUMNS`, and the guard that missed it no longer enumerates its
+> scopes by hand — it derives them from the reads this repository has published
+> and holds each to the list its own committed machine record was written on.
+> This section is left as written: it is what was true when tranche 2a was read,
+> and it is the reason the routing-around below was necessary rather than
+> optional. Nothing in it was regenerated.
 
 `abl316-t1b` holds **no** `SCOPE_FEATURES` row either. Because its
 `SCOPE_OUTPUTS` paths are the ones ABL-381 published at, a `--scope abl316-t1b`
