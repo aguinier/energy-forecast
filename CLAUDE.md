@@ -596,6 +596,29 @@ reproduces; `abl376` is the same countries, basis and windows with the rule on �
 a controlled A/B on the rule alone. Do not re-read a dispositioned scope under a
 changed fit rule; register a new one.
 
+**A one-seed solar A/B on this harness cannot resolve anything under ~5%
+(ABL-376 §5).** Refitting the solar gate's CatBoost at eight seeds, changing
+nothing else, moves daylight MAE by up to **4.4% (FR), 3.7% (DE) and 5.4% (BE)**
+between two seeds — the same order ABL-375 measured on DE. So a gap quoted from
+a single fit per arm is not a measurement, and both of this rule's headline
+numbers dissolved when one was run: FR's night level moved −0.33 MW against a
+within-arm spread of 19.6, and its daylight MAE moved the *wrong* way by 0.38%.
+Pair the arms by seed — same seed, same frames, one integer apart, so the
+across-seed variance cancels inside the difference — and quote the effect
+against a null built from every control-vs-control seed pair, which is what a
+single-seed gap looks like with nothing changed at all.
+`scripts/abl376_night_seed_spread.py` is the worked example; it builds each
+country's frames once and refits around them, which is what makes 16 fits per
+country affordable (~4–5 min of building, ~4–5 s per fit).
+
+A corollary worth keeping: **a fit-side rule can only move what the feature
+vector can represent.** The same exclusion is 27× more effective on FR's night
+level once `sun_elevation_deg` and `is_night` are in the vector (−8.81 MW, 7
+seeds of 8) than on the gate's 25 legacy columns (−0.33 MW, 5 of 8), because
+nothing in those 25 distinguishes "0 W/m² because the sun is down" from "0 W/m²
+at a dark winter dawn". Before concluding a target-side fix does nothing, check
+the model has a handle for the thing you removed.
+
 **Which way the two `.gitignore` globs cut — they do not cut the same way.**
 Entries stay exactly one directory deep under `experiments/`, and below that the
 resemblance ends. `.gitignore:56` (`experiments/*/artifacts/`) matches on the

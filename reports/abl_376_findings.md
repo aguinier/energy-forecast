@@ -240,7 +240,35 @@ large enough to matter, and they are separable:
    `sun_elevation_deg` and `is_night`. Removing impossible *targets* cannot move
    a level the model has no feature to represent.
 
-<!-- MECHANISM PROBE -->
+**The second of those is testable, and I tested it.** Same eight seeds, same
+frames, same rule, FR only, with `sun_elevation_deg` and `is_night` appended to
+the gate's 25 columns (`--with-geometry`; exploratory, and its record says so):
+
+| FR night mean prediction | control | night-fit | paired | seeds down | null max |
+|---|---:|---:|---:|---:|---:|
+| legacy 25 columns (registered) | 43.66 ± 10.06 | 43.33 ± 19.59 | −0.33 MW | 5/8 | 28.81 MW |
+| + geometry (27 columns) | 58.39 ± 7.38 | 49.59 ± 19.87 | **−8.81 MW** | **7/8** | 20.40 MW |
+
+**Partly confirmed, and that is the interesting part.** Give the model a way to
+say "night" and the same rule moves the night level 27 times further and in a
+consistent direction — 7 seeds of 8 down, against 5 of 8 and a third of a
+megawatt without it. So the missing feature is real, and it is part of why the
+registered frame is inert.
+
+But it is not sufficient. −8.81 MW at t = −1.61 is still inside its own 20.40 MW
+null, and 49.59 MW is not 0.05 MW. **The geometry features do not recover
+ABL-338's collapse**, so the remaining difference has to sit in explanation 1 —
+the fit history. ABL-338 removes a sustained multi-month night block from a
+2023-onward fit; the registered window removes 113 scattered hours from six
+months of 2026. Those are different interventions and only the first can drive a
+night level to zero.
+
+The daylight axis is unmoved by the feature either: +0.19% paired, 5/8 seeds,
+inside a 5.19% null.
+
+(DE was requested in the same probe as a near-clean comparator; it excludes 4
+hours and carries no information about this mechanism. Whatever it returns does
+not bear on the FR read above.)
 
 ### What this changes about the recommendation
 
@@ -250,6 +278,22 @@ it is *not* is a measured improvement on the registered frame. The issue's two
 headline numbers should not be restated as properties of this change — they are
 properties of ABL-338's frame, and this pack should be read as replacing them
 rather than confirming them.
+
+Three consequences worth stating plainly:
+
+1. **Land it as a correctness rule, not as a win.** Refusing to train on values
+   the sun says are impossible is right whether or not it moves a metric, and it
+   costs nothing measurable here. Any changelog entry that quotes 22.46 → 0.05
+   or "daylight −1.5%" as an outcome of this change would be wrong.
+2. **Nothing here rescues FR's night level.** On the registered configuration
+   the serving clamp (ABL-337) is what holds that line, and it still is. A
+   fit-side fix of the size ABL-338 saw needs the geometry features *and* a fit
+   window that actually contains the contamination it is removing — neither of
+   which this issue changes.
+3. **The single-seed null is the reusable finding.** 3.7–5.4% of daylight MAE on
+   this harness, from seed alone. Any future solar A/B on this frame quoting a
+   gap smaller than that at one seed is quoting noise, and two are already in
+   the record.
 
 ## 6. Caveats
 
@@ -275,6 +319,17 @@ rather than confirming them.
   ~195 MW) it removes only 21:00. It under-removes rather than over-removes,
   which is the right way round — zeroing an hour that really generated would be
   fabricating a number.
+- **§4's gate read predates ABL-389.** That change — merged into main while this
+  branch was open, and merged into this branch afterwards — reports a constant
+  and an hour-of-day climatology reference beside the D-7 bar in both gate
+  harnesses. Both §4 arms were fitted before it, so neither carries those
+  columns. It does not disturb §4: ABL-389 adds *reported* comparators scored on
+  their own intersection with the basis, and the gate basis, the D-7 bar and the
+  9/9 verdict are unchanged. But on solar a D-7 bar is close to a formality, and
+  the climatology is the reference that would actually test the challenger. A
+  re-read of this scope carrying those columns is worth doing and is **not** in
+  this pack; it is a follow-up, and it is a question about the solar gate rather
+  than about this fit rule.
 - Not a promotion recommendation. Promotion is a pre-registered gate read plus a
   Board decision; this is a fit-rule change in the evaluation harness and the
   shared feature module, and it reaches no serving path.
