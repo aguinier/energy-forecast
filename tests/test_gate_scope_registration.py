@@ -287,23 +287,37 @@ def test_solar_harness_scope_flag_is_a_choice_not_a_country_filter():
     assert "choices" in {kw.arg for kw in scope_arg.keywords}
 
 
-def test_solar_scoring_calls_use_the_registered_basis_not_a_hardcoded_tuple():
-    """Both `common_scores` call sites must pass the scope's basis.
+#: The scoring entry points a harness may call. ABL-389 moved the duplicated
+#: `scored` closure out of both harnesses into `scored_with_comparators`, so the
+#: basis now arrives one call further out; without naming it here this test would
+#: have found no `common_scores` call in the harness and passed vacuously,
+#: which is the failure mode `test_default_scope_reproduces_abl195` was written
+#: about. Any new scoring entry point belongs in this set.
+SCORING_CALLS = ("common_scores", "scored_with_comparators")
 
-    On `origin/main` both inlined `("challenger", "incumbent", "seasonal_naive",
-    "persistence")`, which is what made an absent incumbent empty the gate.
+
+@pytest.mark.parametrize("harness", [HARNESS, SOLAR_HARNESS], ids=["wind", "solar"])
+def test_scoring_calls_use_the_registered_basis_not_a_hardcoded_tuple(harness):
+    """Every scoring call site must pass the scope's basis, never a literal.
+
+    On `origin/main` the solar harness inlined `("challenger", "incumbent",
+    "seasonal_naive", "persistence")` at both call sites, which is what made an
+    absent incumbent empty the gate.
     """
-    source = SOLAR_HARNESS.read_text(encoding="utf-8")
-    for call in ast.walk(ast.parse(source)):
-        if not (isinstance(call, ast.Call)
-                and getattr(call.func, "id", "") == "common_scores"):
-            continue
+    source = harness.read_text(encoding="utf-8")
+    calls = [call for call in ast.walk(ast.parse(source))
+             if isinstance(call, ast.Call)
+             and getattr(call.func, "id", "") in SCORING_CALLS]
+    assert calls, (
+        f"{harness.name} calls none of {SCORING_CALLS}; this test has stopped "
+        "pinning anything -- name the new scoring entry point in SCORING_CALLS")
+    for call in calls:
         basis_arg = call.args[1]
         inlined = (isinstance(basis_arg, ast.Tuple)
                    and all(isinstance(e, ast.Constant) for e in basis_arg.elts))
         assert not inlined, (
-            "common_scores is called with a hardcoded comparator tuple; it must "
-            "use the scope's registered GATE_BASIS")
+            f"{getattr(call.func, 'id', '?')} is called with a hardcoded comparator "
+            "tuple; it must use the scope's registered GATE_BASIS")
 
 
 #: The solar countries carrying a model today. ABL-253 registered BE/DE/FR; AT is

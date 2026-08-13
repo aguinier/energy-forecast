@@ -479,6 +479,73 @@ of its own (`evaluate_solar_retrain.py:60`), registers a `GATE_BASIS` per scope
 only registered solar scope today, so an unflagged run still reproduces ABL-253;
 ABL-381's tranche registers the second.
 
+**Every read reports four model-free references** (ABL-389). `constant_causal` and
+`constant_oracle` are a flat line at the **fit-window mean** — the honest "no
+model" floor, using only what was knowable before the gate window opened — and at
+the **gate-window median**, the hindsight upper bound on what *any* constant could
+achieve. `climatology_causal` and `climatology_oracle` are the same two forms taken
+**per hour of day**. All four are in `REPORTED_COMPARATORS`
+(`evaluate_wind_retrain.py:207`, `evaluate_solar_retrain.py:134`) and defined once
+in `src/evaluation/model_free_reference.py`, so the two harnesses cannot compute
+the same named reference differently.
+
+They exist because **the registered D-7 bar certifies close to nothing on a
+low-capacity-factor pair**. ABL-380 passed 6/6 and reported, against its own pass,
+that CH `wind_onshore` cleared all three cells at 47.42% WAPE while a constant at
+the gate-window median scored 40.29% — the fitted model was 7.1pp *worse than a
+flat line* — and that BG's registered D-7 bar of 93.75% is cleared outright by a
+causal constant at 82.77%, with no model at all. Both numbers reached the evidence
+pack only because a human went looking. `lost_to_a_model_free_reference`
+(`model_free_reference.py:289`) now names such cells in the report unprompted, per
+oracle, because losing to the level and losing to the average day are different
+statements about a model.
+
+**The climatology is there because the constant alone was measured and found
+insufficient.** On solar a flat line scores 63–95% WAPE on every cell — it cannot
+represent a diurnal cycle, and on solar the diurnal cycle is the signal — so it is
+a comparator the challenger cannot lose to, which is the ABL-380 defect one level
+up. An hour-of-day predictor is the tighter reference on **both** technologies,
+because a constant is a climatology with one bucket. Measured against the replica
+over ABL-348's windows on 2026-08-13, whole gate window per pair:
+
+| pair | const causal | const oracle | clim causal | clim oracle |
+|---|---:|---:|---:|---:|
+| BG solar | 75.30% | 73.49% | 41.98% | 19.15% |
+| CH solar | 95.08% | 94.65% | 37.53% | 9.02% |
+| BG `wind_onshore` | 82.77% | 63.78% | 81.03% | 62.50% |
+| CH `wind_onshore` | 79.07% | 40.29% | 77.82% | 38.20% |
+
+So CH wind's challenger loses to the oracle climatology by **9.2pp**, where the
+constant put the gap at 7.1pp. Keep both: the constant asks whether a model
+predicts the *level*, the climatology whether it predicts the level *and the daily
+shape*, and the gap between them is how much of the series is forced diurnal
+structure — ~1.5pp on CH wind, ~86pp on CH solar.
+
+**These are reported references and never gate criteria.** They are in no
+`GATE_BASIS` entry, and a pair that clears D-7 while losing to one still reads
+`PASS` — beside the number that qualifies it. Moving a bar after seeing a result is
+what the pre-registration apparatus exists to prevent, and a conservative direction
+does not exempt it; `tests/test_gate_model_free_reference.py` pins both halves,
+reading `GATE_BASIS` from the *source literal* via `ast` rather than through the
+imported module.
+
+Each reference is attached as a **column** (`attach_model_free_references`) and
+scored by the same path `seasonal_naive` and `persistence` take, not special-cased
+inside the scorer — which is what preserves the ABL-322/ABL-378 property above. A
+window holding no finite observation yields no level, an all-NaN column and `n=0`,
+and reads *Not measured*; it never becomes a flat line at zero. The `scored`
+closure both harnesses duplicated is now `scored_with_comparators`
+(`src/evaluation/wind_retrain.py:113`).
+
+**A climatology is 24 levels, so it is the first comparator that can be *partially*
+measured.** An hour of day absent from its source window leaves those rows NaN;
+they drop from that column's own intersection and lower only its `n`. Nothing is
+filled from a neighbouring hour — that would be interpolating to close a visual
+gap. **Read a climatology's `comparator_n` before comparing its WAPE to the
+challenger's**: scored on different rows, they are not the same measurement. The
+markdown levels table prints an `h` count per pair for exactly this, and anything
+below 24 means rows were dropped.
+
 **A scope also registers where it writes** (ABL-387). `--artifact-dir`,
 `--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
 which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
@@ -877,9 +944,21 @@ command will not find them otherwise.
 
 **Holiday Features:**
 - is_holiday - Binary flag for public holidays
-- days_to_holiday - Days until next holiday (capped at 14)
-- days_from_holiday - Days since last holiday (capped at 14)
+- days_to_holiday - Days until next holiday (capped at 7, `src/features.py:177`)
+- days_from_holiday - Days since last holiday (capped at 7, `src/features.py:185`)
 - is_bridge_day - Workday between holiday and weekend
+
+> **Declared, but in no serving artifact** (ABL-386/ABL-394, measured 2026-08-13).
+> All 66 artifacts that carry a `feature_columns` list at all were fitted before
+> ABL-338 (5cf2296) threaded `country_code` into `create_all_features`, so
+> `create_holiday_features` never ran on a training frame and the fit-site
+> narrowing dropped these four names in silence. Dropping exactly those four
+> reproduces the served list length on all eight types
+> (23/23/26/25/27/25/24/24), so this is one plumbing gap, not eight drifts. They
+> are live for the **next** fit of any country and have never been evaluated on
+> any target — ABL-386's read on solar is MIXED. The frozen lists and the
+> recorded gap are in `tests/feature_list_manifest.json`; the narrowing now warns
+> instead of dropping silently (`select_feature_columns`, `src/features.py:534`).
 
 **Weather Features:**
 - Load: temperature, heating/cooling degree days
