@@ -1,8 +1,8 @@
-# Serve-faithful solar retrain gate — registered scope `abl316-t1b`
+# ABL-381 — Serve-faithful solar retrain gate, ABL-316 tranche 1b: BG and CH on energy_generation
 
 **Disposition: PASS**
 
-Generated: 2026-08-13 12:40 UTC
+Generated: 2026-08-13 13:00 UTC
 Fit targets: 2026-01-14 00:00:00 → 2026-07-11 00:00:00 (exclusive).
 Out-of-sample gate targets: 2026-07-11 00:00:00 → 2026-08-10 00:00:00 (exclusive).
 Baseline: literal seasonal-naive D-7. TSO is revision-contaminated context only and is not a gate criterion.
@@ -52,8 +52,12 @@ Every training row was built with `RenewableFeatureBuilder.row(target, generated
 
 | country | algorithm | retained / intended fit rows | unique fit targets | excluded missing | degraded lag-1d rows | artifact SHA-256 |
 |---|---|---:|---:|---:|---:|---|
-| BG | catboost | 34,176 / 34,176 | 4,272 | 0 | 23,674 | `380e5c884ab633f08e7b8f5fa111dc2b095bd9bb26b270ecccb271d94f62051b` |
-| CH | catboost | 34,176 / 34,176 | 4,272 | 0 | 23,674 | `f79338bb988e92effaa25192e870af9e0637461eb65dea26ddb7b5a33f7da270` |
+| BG | catboost | 34,176 / 34,176 | 4,272 | 0 | 23,674 | `c6c62b6021bdf354eea7ae6f6070e8e434cffe277df9679d12587bca106af201` |
+| CH | catboost | 34,176 / 34,176 | 4,272 | 0 | 23,674 | `26ea961436e2710471d318da490347416d6491f8aa92d9ca3573ed3c4a500b95` |
+
+### Physically impossible night rows (ABL-376)
+
+Not registered for scope `abl316-t1b`. The fit saw every night row, including any whose actual the sun says is impossible.
 
 ## Data quality and limits
 

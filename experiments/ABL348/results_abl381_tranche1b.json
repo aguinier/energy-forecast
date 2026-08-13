@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_at": "2026-08-13 12:40 UTC",
+    "generated_at": "2026-08-13 13:00 UTC",
     "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
     "replica_bytes": 9432453120,
     "databases": {
@@ -22,6 +22,11 @@
       "challenger",
       "seasonal_naive"
     ],
+    "fit_rules": {
+      "exclude_impossible_night": false
+    },
+    "night_threshold_deg": -8.0,
+    "impossible_night_threshold_mw": 1.0,
     "reported_comparators": [
       "challenger",
       "incumbent",
@@ -91,6 +96,7 @@
         "unique_targets": 720,
         "degraded_lag_1d_rows": 3990
       },
+      "night_fit_audit": null,
       "model_free_reference_mw": {
         "constant_causal": 855.2406127439137,
         "constant_oracle": 1087.861209,
@@ -149,7 +155,7 @@
       },
       "constant_runs": [],
       "artifact_path": "C:\\Code\\able\\energy-forecast-abl381\\experiments\\ABL316\\artifacts\\BG\\solar\\model.joblib",
-      "artifact_sha256": "380e5c884ab633f08e7b8f5fa111dc2b095bd9bb26b270ecccb271d94f62051b"
+      "artifact_sha256": "c6c62b6021bdf354eea7ae6f6070e8e434cffe277df9679d12587bca106af201"
     },
     {
       "country": "CH",
@@ -177,6 +183,7 @@
         "unique_targets": 720,
         "degraded_lag_1d_rows": 3990
       },
+      "night_fit_audit": null,
       "model_free_reference_mw": {
         "constant_causal": 833.3702867102061,
         "constant_oracle": 677.2208244999999,
@@ -235,7 +242,7 @@
       },
       "constant_runs": [],
       "artifact_path": "C:\\Code\\able\\energy-forecast-abl381\\experiments\\ABL316\\artifacts\\CH\\solar\\model.joblib",
-      "artifact_sha256": "f79338bb988e92effaa25192e870af9e0637461eb65dea26ddb7b5a33f7da270"
+      "artifact_sha256": "26ea961436e2710471d318da490347416d6491f8aa92d9ca3573ed3c4a500b95"
     }
   ],
   "gate_cells": [

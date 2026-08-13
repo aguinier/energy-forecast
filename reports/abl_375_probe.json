@@ -1,0 +1,332 @@
+{
+  "issue": "ABL-375",
+  "generated_at": "2026-08-13T10:21:51",
+  "python": "3.14.3",
+  "executable": "C:\\Code\\able\\energy-forecast\\.venv\\Scripts\\python.exe",
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 9432453120,
+  "registered_holdout": [
+    "2026-04-30",
+    "2026-06-12"
+  ],
+  "night_threshold_deg": -8.0,
+  "registered_window_is_unread": {
+    "abl338_committed_windows": [
+      {
+        "start": "2026-06-13",
+        "end": "2026-08-11",
+        "arm_set": "incumbent algorithm, uncleaned",
+        "overlaps_registered_holdout": false
+      },
+      {
+        "start": "2026-06-13",
+        "end": "2026-08-11",
+        "arm_set": "forced xgboost, uncleaned",
+        "overlaps_registered_holdout": false
+      },
+      {
+        "start": "2026-06-13",
+        "end": "2026-08-11",
+        "arm_set": "catboost diagnostic, DE/FR",
+        "overlaps_registered_holdout": false
+      },
+      {
+        "start": "2026-06-13",
+        "end": "2026-08-11",
+        "arm_set": "incumbent algorithm, cleaned",
+        "overlaps_registered_holdout": false
+      },
+      {
+        "start": "2026-06-13",
+        "end": "2026-08-11",
+        "arm_set": "forced xgboost, cleaned",
+        "overlaps_registered_holdout": false
+      },
+      {
+        "start": "2026-03-01",
+        "end": "2026-04-29",
+        "arm_set": "incumbent algorithm, cleaned",
+        "overlaps_registered_holdout": false
+      },
+      {
+        "start": "2026-03-01",
+        "end": "2026-04-29",
+        "arm_set": "forced xgboost, cleaned",
+        "overlaps_registered_holdout": false
+      }
+    ],
+    "abl348_gate_window": {
+      "start": "2026-07-11",
+      "end": "2026-08-10",
+      "overlaps_registered_holdout": false,
+      "inside_an_abl338_read_window": true
+    }
+  },
+  "countries": {
+    "AT": {
+      "country_code": "AT",
+      "incumbent": {
+        "algorithm": "xgboost",
+        "model_version": "20260112_165237",
+        "training_source": "energy_renewable",
+        "n_feature_columns": 25,
+        "carries_geometry": false,
+        "hyperparams": {
+          "n_estimators": 500,
+          "max_depth": 8,
+          "learning_rate": 0.05,
+          "min_child_weight": 3,
+          "subsample": 0.8,
+          "colsample_bytree": 0.8,
+          "objective": "reg:squarederror",
+          "n_jobs": -1,
+          "random_state": 42,
+          "verbosity": 0,
+          "early_stopping_rounds": 50
+        },
+        "hyperparams_equal_config_default": true
+      },
+      "featured_frame_start": "2025-11-27 21:00:00",
+      "featured_frame_end": "2026-06-12 23:00:00",
+      "n_train": 3647,
+      "train_end": "2026-04-29 23:00:00",
+      "n_holdout": 1056,
+      "holdout_bands": {
+        "daylight": 670,
+        "shoulder": 119,
+        "night": 267
+      },
+      "contamination": {
+        "abl337_impossible_night_rows_in_fit": 0,
+        "abl337_impossible_night_max_mw_in_fit": 0.0,
+        "abl337_impossible_night_rows_in_holdout": 0,
+        "abl337_impossible_night_max_mw_in_holdout": 0.0
+      },
+      "baseline_seasonal_naive_d7": {
+        "daylight": {
+          "n": 670,
+          "mean_actual_mw": 2099.6,
+          "d7_mae_mw": 781.9,
+          "d7_bias_mw": 33.7,
+          "d7_wape_pct": 37.24
+        },
+        "shoulder": {
+          "n": 119,
+          "mean_actual_mw": 1.2,
+          "d7_mae_mw": 1.0,
+          "d7_bias_mw": -0.9,
+          "d7_wape_pct": 80.69
+        },
+        "night": {
+          "n": 267,
+          "mean_actual_mw": 0.0,
+          "d7_mae_mw": 0.0,
+          "d7_bias_mw": 0.0
+        },
+        "all": {
+          "n": 1056,
+          "mean_actual_mw": 1332.2,
+          "d7_mae_mw": 496.2,
+          "d7_bias_mw": 21.3,
+          "d7_wape_pct": 37.25
+        }
+      }
+    },
+    "BE": {
+      "country_code": "BE",
+      "incumbent": {
+        "algorithm": "catboost",
+        "model_version": "20260201_222022",
+        "training_source": "energy_renewable",
+        "n_feature_columns": 25,
+        "carries_geometry": false,
+        "hyperparams": {
+          "iterations": 500,
+          "depth": 8,
+          "learning_rate": 0.05,
+          "l2_leaf_reg": 3,
+          "random_seed": 42,
+          "verbose": 0,
+          "thread_count": -1
+        },
+        "hyperparams_equal_config_default": true
+      },
+      "featured_frame_start": "2024-01-15 00:00:00",
+      "featured_frame_end": "2026-06-12 23:00:00",
+      "n_train": 20277,
+      "train_end": "2026-04-29 23:00:00",
+      "n_holdout": 1056,
+      "holdout_bands": {
+        "daylight": 681,
+        "shoulder": 143,
+        "night": 232
+      },
+      "contamination": {
+        "abl337_impossible_night_rows_in_fit": 0,
+        "abl337_impossible_night_max_mw_in_fit": 0.1,
+        "abl337_impossible_night_rows_in_holdout": 0,
+        "abl337_impossible_night_max_mw_in_holdout": 0.0
+      },
+      "baseline_seasonal_naive_d7": {
+        "daylight": {
+          "n": 681,
+          "mean_actual_mw": 2898.1,
+          "d7_mae_mw": 1425.5,
+          "d7_bias_mw": 278.5,
+          "d7_wape_pct": 49.19
+        },
+        "shoulder": {
+          "n": 143,
+          "mean_actual_mw": 2.1,
+          "d7_mae_mw": 1.5,
+          "d7_bias_mw": -1.3,
+          "d7_wape_pct": 74.61
+        },
+        "night": {
+          "n": 232,
+          "mean_actual_mw": 0.0,
+          "d7_mae_mw": 0.0,
+          "d7_bias_mw": 0.0
+        },
+        "all": {
+          "n": 1056,
+          "mean_actual_mw": 1869.2,
+          "d7_mae_mw": 919.5,
+          "d7_bias_mw": 179.4,
+          "d7_wape_pct": 49.19
+        }
+      }
+    },
+    "DE": {
+      "country_code": "DE",
+      "incumbent": {
+        "algorithm": "catboost",
+        "model_version": "20260223_193822",
+        "training_source": "energy_renewable",
+        "n_feature_columns": 25,
+        "carries_geometry": false,
+        "hyperparams": {
+          "iterations": 500,
+          "depth": 8,
+          "learning_rate": 0.05,
+          "l2_leaf_reg": 3,
+          "random_seed": 42,
+          "verbose": 0,
+          "thread_count": -1
+        },
+        "hyperparams_equal_config_default": true
+      },
+      "featured_frame_start": "2025-11-26 17:00:00",
+      "featured_frame_end": "2026-06-12 23:00:00",
+      "n_train": 3755,
+      "train_end": "2026-04-29 23:00:00",
+      "n_holdout": 1056,
+      "holdout_bands": {
+        "daylight": 686,
+        "shoulder": 142,
+        "night": 228
+      },
+      "contamination": {
+        "abl337_impossible_night_rows_in_fit": 4,
+        "abl337_impossible_night_max_mw_in_fit": 1.7,
+        "abl337_impossible_night_rows_in_holdout": 0,
+        "abl337_impossible_night_max_mw_in_holdout": 0.0
+      },
+      "baseline_seasonal_naive_d7": {
+        "daylight": {
+          "n": 686,
+          "mean_actual_mw": 22062.4,
+          "d7_mae_mw": 6509.3,
+          "d7_bias_mw": 933.0,
+          "d7_wape_pct": 29.5
+        },
+        "shoulder": {
+          "n": 142,
+          "mean_actual_mw": 27.2,
+          "d7_mae_mw": 14.8,
+          "d7_bias_mw": -13.3,
+          "d7_wape_pct": 54.36
+        },
+        "night": {
+          "n": 228,
+          "mean_actual_mw": 0.0,
+          "d7_mae_mw": 0.0,
+          "d7_bias_mw": 0.0
+        },
+        "all": {
+          "n": 1056,
+          "mean_actual_mw": 14335.8,
+          "d7_mae_mw": 4230.6,
+          "d7_bias_mw": 604.3,
+          "d7_wape_pct": 29.51
+        }
+      }
+    },
+    "FR": {
+      "country_code": "FR",
+      "incumbent": {
+        "algorithm": "catboost",
+        "model_version": "20260201_222014",
+        "training_source": "energy_renewable",
+        "n_feature_columns": 25,
+        "carries_geometry": false,
+        "hyperparams": {
+          "iterations": 500,
+          "depth": 8,
+          "learning_rate": 0.05,
+          "l2_leaf_reg": 3,
+          "random_seed": 42,
+          "verbose": 0,
+          "thread_count": -1
+        },
+        "hyperparams_equal_config_default": true
+      },
+      "featured_frame_start": "2023-01-15 00:00:00",
+      "featured_frame_end": "2026-06-12 23:00:00",
+      "n_train": 29100,
+      "train_end": "2026-04-29 23:00:00",
+      "n_holdout": 1056,
+      "holdout_bands": {
+        "daylight": 656,
+        "shoulder": 123,
+        "night": 277
+      },
+      "contamination": {
+        "abl337_impossible_night_rows_in_fit": 464,
+        "abl337_impossible_night_max_mw_in_fit": 439.3,
+        "abl337_impossible_night_rows_in_holdout": 24,
+        "abl337_impossible_night_max_mw_in_holdout": 251.0
+      },
+      "baseline_seasonal_naive_d7": {
+        "daylight": {
+          "n": 656,
+          "mean_actual_mw": 8327.1,
+          "d7_mae_mw": 2128.1,
+          "d7_bias_mw": -2.8,
+          "d7_wape_pct": 25.56
+        },
+        "shoulder": {
+          "n": 123,
+          "mean_actual_mw": 159.2,
+          "d7_mae_mw": 29.9,
+          "d7_bias_mw": -12.9,
+          "d7_wape_pct": 18.79
+        },
+        "night": {
+          "n": 277,
+          "mean_actual_mw": 18.1,
+          "d7_mae_mw": 11.3,
+          "d7_bias_mw": -10.8,
+          "d7_wape_pct": 62.37
+        },
+        "all": {
+          "n": 1056,
+          "mean_actual_mw": 5196.2,
+          "d7_mae_mw": 1328.4,
+          "d7_bias_mw": -6.1,
+          "d7_wape_pct": 25.57
+        }
+      }
+    }
+  }
+}

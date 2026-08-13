@@ -9,9 +9,11 @@ Probes: `reports/abl_381_tranche1b_precheck.json`,
 `reports/abl_381_nonneg_and_constant_probe.json`,
 `reports/abl_381_night_floor_probe.json`.
 
-Two findings outrank the pass: **BG's solar actuals carry a large overnight
-floor** (§5), and **CH's TSO forecast beats the challenger** (§6). Neither
-changes the disposition; both change what the disposition is worth.
+Three findings outrank the pass: **BG's solar actuals carry a large overnight
+floor** (§5), **CH's TSO forecast beats the challenger** (§6), and — added on the
+ABL-389 re-read — **BG's apparent win over an hour-of-day climatology is inside
+the registered solar seed spread and is withdrawn** (§3). None changes the
+disposition; all three change what the disposition is worth.
 
 ---
 
@@ -192,6 +194,60 @@ The disposition stands. But **"clears seasonal-naive D-7" is a low bar on solar*
 and the D-7 bar being uninformative is now measured on both wind (ABL-380) and
 solar. I recommend the climatology reference be reported for the remaining 33.
 
+### The registered decision margin eats BG's, and this read cannot resolve it
+
+**ABL-385 landed on `main` after this read and supplies the number that settles
+it.** Over 3,360 fits at 12 registered seeds it publishes a pooled per-fit CV for
+**solar** — median 2.32%, p80 4.47%, p90 5.43% — and the margin a gap must clear
+to be readable at two-sided 95%:
+`delta_min(k) = 1.96 · sqrt(c_A² + c_B²) / sqrt(k)`.
+
+Its published table is for two *fitted* arms. Here only one side is fitted: these
+are single-seed fits (42, pinned) and all four references are **deterministic
+arithmetic on the actuals**, so `c_B = 0` and the margin shrinks by `sqrt(2)`:
+
+| CV used | delta_min, two fitted arms, k=1 | **delta_min here (one fitted arm, k=1)** |
+|---|---:|---:|
+| p90 (5.43%) | 15.06% | **10.64%** |
+| p80 (4.47%) | 12.40% | **8.76%** |
+| median (2.32%) | 6.43% | **4.55%** |
+
+Against each margin as a fraction of the challenger's own error:
+
+| pair | challenger | oracle climatology | margin | as % of challenger | readable? |
+|---|---:|---:|---:|---:|---|
+| BG | 18.89% | 19.15% | 0.26pp | **1.4%** | **no** — below even the median CV's 4.55% |
+| CH | 8.16% | 9.02% | 0.86pp | **10.5%** | yes at median and p80; **marginal at p90** (10.64%) |
+
+**I withdraw the claim that BG beats an hour-of-day climatology.** At 1.4% of its
+own error it is not readable at one seed under any of the three CVs — it would
+take well over 20 seeds to become so. BG has not been shown to beat the average
+day, and it has not been shown to lose to it either; the read is silent.
+
+CH's 10.5% clears the median and p80 margins and sits a hair under p90, so it is
+readable but should be quoted as such — "beats the average day by about 10% of its
+own error, at the edge of what one seed can resolve" — not as a comfortable win.
+
+Two caveats, both against me. ABL-385 reads solar on **daylight MAE** and these
+margins are whole-window **WAPE**; a relative CV transfers between them better
+than an absolute pp figure would, but they are not the same metric. And BG and CH
+are not among ABL-385's 14 served pairs — they cannot be, since having no served
+model is why they are in this tranche — so this is the **fleet percentile**, which
+that report says to use only where no pair-specific CV exists. That is exactly
+this case, and it names the right remedy: measure the CV on these two pairs.
+
+**Recommended and cheap:** run ABL-376's paired-seed protocol
+(`scripts/abl376_night_seed_spread.py`) over BG and CH — frozen seeds disjoint
+from 42, arms paired within seed. ABL-376 measured ~4–5 min of frame building plus
+~4–5 s per fit, so this is minutes for both pairs, against the ~3 min/pair a full
+gate re-read costs. It would replace the fleet percentile with these pairs' own CV
+and settle CH's margin properly.
+
+None of this moves the verdict. The PASS is against the D-7 bar, both pairs clear
+it by 19.9–36.8%, and D-7 is deterministic — a margin that large is readable at
+one seed under every CV above. What the seed spread bounds is the *reference*
+comparison, which is the whole point of reporting a reference.
+
 ## 4. ABL-338 non-negativity — the issue's premise is refuted by ABL-338's own evidence
 
 The issue asks me to confirm ABL-338's non-negativity constraint is **active** in
@@ -299,6 +355,36 @@ do not own ingest; I recommend a defect issue owned by whoever owns ENTSO-E sola
 ingest, with BG checked first and **all 35 remaining countries screened for the
 same floor before their tranches run** (see §8).
 
+**ABL-376 is now on `main` and is the model-side half of this.** It registers a
+scope that drops from the *fit* those night rows the sun says cannot exist,
+fit-side only, so a scope never scores itself on a filtered target. Its A/B is
+BE/DE/FR.
+
+**State plainly what that A/B found: neither claimed effect survived its own seed
+spread.** Paired within seed over eight seeds, FR's night level moved −0.33 MW
+against a within-arm sd of 19.6, and daylight MAE moved *the wrong way* on FR
+(+0.38%) and DE (−0.60%) — all three countries inside the control-vs-control null.
+So the rule is not established as beneficial, and I am not going to describe it as
+a fix waiting to be applied here.
+
+What makes BG worth trying anyway is a fact about BG rather than about the rule:
+the exclusion can only act on rows it removes, and it removed **0 rows on BE and
+32 on DE** — the two countries where it did nothing had almost nothing to drop.
+BG books 5–6% of its energy in the dark, so it is the pair in this tranche with a
+real population for the rule to act on, and therefore the sharper test of it. CH
+has no floor and should be near-inert, which makes the two a usable contrast
+rather than a repeat.
+
+I have **not** flipped the rule for `abl316-t1b`. It is registered
+`exclude_impossible_night: False` — explicitly, not by default — because these six
+cells are already dispositioned under the pre-ABL-376 protocol, and changing a fit
+rule under a dispositioned scope moves numbers while leaving no record of which
+rule produced which read. That is the confound ABL-376 registered a separate scope
+to avoid, and it applies here. **Re-fitting BG/CH under the rule is a real
+experiment and deserves its own issue and its own scope** — it is the natural
+follow-up to this tranche, and unlike most of §8 it is a question about the model
+rather than about the data.
+
 ## 6. CH's TSO forecast beats the challenger
 
 All-D+2, per-country, each comparator on its own intersection with the gate basis
@@ -322,17 +408,21 @@ put in front of a promotion decision for CH, and I am putting it there.
 
 ## 7. Harness defects found
 
-**7a. The solar harness hardcoded ABL-253's heading — found here, fixed here.**
-`scripts/evaluate_solar_retrain.py` rendered `"# ABL-253 — Serve-faithful solar
-retrain gate"` as a literal, not derived from the scope, so a correct BG/CH gate
-read came out **headed with another issue's number** — and would have on all 33
-remaining tranches. ABL-387 fixed the output paths but not the title. The wind
-twin has derived it since ABL-322, so the fix is that line ported:
-`f"# Serve-faithful solar retrain gate — registered scope \`{meta['scope']}\`"`.
-The first read of this tranche reported the defect and left the artifact
-byte-exact; that was the right call while the fix was another issue's, but the
-re-read had to regenerate the file anyway, so it is corrected at the source
-instead of annotated.
+**7a. The solar harness hardcoded ABL-253's heading — reported here, fixed by
+ABL-376.** `scripts/evaluate_solar_retrain.py` rendered `"# ABL-253 —
+Serve-faithful solar retrain gate"` as a literal, so a correct BG/CH gate read
+came out **headed with another issue's number**, and would have on all 33
+remaining tranches. ABL-387 fixed the output paths but not the title.
+
+I fixed it in this branch by interpolating `meta['scope']`, the wind twin's line.
+ABL-376 then landed on `main` with a better fix — a registered `SCOPE_TITLES`
+table with a derived fallback — and I took theirs in the merge and deleted mine.
+A slug is a key, not a title, so `abl316-t1b` is registered there explicitly
+rather than left to the fallback: this report is cited in a PASS the Board has
+been asked to review, and "abl316-t1b" is not what should head it. Recorded
+because the sequence is the point — the defect was found by a tranche read,
+reported rather than worked around, and closed at the source by the issue that
+owned that file.
 
 **7b. ABL-387's depth guard tests a proxy, not the property.**
 `test_experiment_outputs_stay_one_directory_deep` requires `experiments/<dir>/<name>`
@@ -349,20 +439,41 @@ Founding Engineer's call whether the guard should assert "is git-ignored" instea
 of "is 3 path segments" — it matters because per-tranche grouping is the natural
 layout for 33 more tranches.
 
+**7c. The registration-table cross-check earned its keep — twice.** `abl316-t1b`
+landed in `SCOPES`/`GATE_BASIS` at `776bfe7`, before `SCOPE_OUTPUTS` existed.
+Merging ABL-387 was textually clean and GitHub would have reported it mergeable,
+but import raised `SCOPE_OUTPUTS is missing 'abl316-t1b'`. Nothing else would have
+caught it — the second time that guard has fired on exactly this sequence (the
+wind twin records the first).
+
+It fired the same way again on this re-read. ABL-376 added **two more tables** to
+the solar harness — `FIT_RULES` and `SCOPE_TITLES` — so registering a solar scope
+now means editing **five**, not three, and `CLAUDE.md` was updated on `main` to
+say so. Merging it conflicted textually in the three tables I already owned, which
+is what made the two new ones visible; had my scope not touched those lines, the
+merge would have been clean and this tranche would have run with a derived
+placeholder title and an unstated fit rule. Both new tables default rather than
+abort, which is the right call for them, and is also why nothing would have
+complained.
+
 **7d. The artifact SHA-256 cannot witness a refit — `Forecaster.save` stamps
-`saved_at`.** The re-read refitted both pairs, and both hashes changed:
+`saved_at`.** This tranche has now been fitted three times: the original read, the
+ABL-389 re-read, and again after merging ABL-376 so the machine record would carry
+its `fit_rules`. **Three fits, three distinct hash pairs, one set of predictions:**
 
-| pair | first read | re-read |
-|---|---|---|
-| BG | `9bbe1e74…aa5e` | `380e5c88…051b` |
-| CH | `9ff1a53d…dd5e` | `f79338bb…a270` |
+| pair | first read | ABL-389 re-read | post-ABL-376 |
+|---|---|---|---|
+| BG | `9bbe1e74…aa5e` | `380e5c88…051b` | `c6c62b60…f354` |
+| CH | `9ff1a53d…dd5e` | `f79338bb…a270` | `26ea9614…7104` |
 
-The models are nevertheless **identical**: challenger and D-7 WAPE reproduce to
+The models are nevertheless **identical**. Challenger and D-7 WAPE reproduce to
 1e-12 in all six cells (18.885225 / 18.598880 / 20.027198 for BG, 8.161702 /
-8.007164 / 8.394333 for CH), which is the check that actually establishes it.
-The hashes differ because `src/forecaster.py:save` writes
+8.007164 / 8.394333 for CH), and on the third fit all six cells × six comparators
+matched the second to 1e-12 as well. That equality is the check that establishes
+it. The hashes differ because `src/forecaster.py:save` writes
 `"saved_at": datetime.now().isoformat()` into every bundle, so two bit-identical
-models are guaranteed different SHA-256 values.
+models are guaranteed different SHA-256 values — and three refits are a cleaner
+demonstration of that than one.
 
 This matters beyond bookkeeping. The first read published those hashes as "the
 artifacts' binding identity", and for the *move* they performed that job
@@ -378,12 +489,34 @@ than left standing. Founding Engineer: excluding `saved_at` from the hash (or
 hashing the estimator alone) would make the artifact hash mean what the reports
 have been implying it means.
 
-**7c. The registration-table cross-check earned its keep.** `abl316-t1b` landed in
-`SCOPES`/`GATE_BASIS` at `776bfe7`, before `SCOPE_OUTPUTS` existed. Merging ABL-387
-was textually clean and GitHub would have reported it mergeable, but import raised
-`SCOPE_OUTPUTS is missing 'abl316-t1b'`. Nothing else would have caught it. This is
-the second time that guard has fired on exactly this sequence (the wind twin
-records the first).
+**7e. A guard I wrote on this branch was the wrong shape, and ABL-376 proved it.**
+`test_no_solar_scope_refits_a_serving_country` asserted that no scope *except
+`abl253`, exempted by name*, may include a country with a live solar model.
+Merging ABL-376 turned it red: `abl376` is BE/DE/FR with the night rule on, a
+deliberate controlled A/B against `abl253`, and it is doing nothing wrong.
+
+The guard was wrong twice. It read a legitimate second read of the serving
+countries as a fault, and its only repair path was to extend a hardcoded exemption
+list every time someone registered such a scope — a guard that has to be edited by
+whoever trips it is one that will eventually be edited to pass rather than to be
+true. What actually protects `abl253`'s dispositioned evidence from `abl376` is
+not a country list: it is that the two write to **different registered paths**.
+
+Replaced with the two properties it was reaching for:
+
+- `test_no_abl316_tranche_refits_a_serving_country` — scoped to the ABL-316
+  rollout, which is where the risk of silently refitting a live pair actually
+  lives, and derived from the scope name rather than an exemption list.
+- `test_no_two_solar_scopes_share_an_output_path` — no two scopes may share an
+  `artifact_dir`, `json_out` or `report_out`. This is the real invariant, it is
+  checkable because ABL-387 made the paths part of the registration, and a
+  copy-pasted scope is exactly how it would silently stop holding.
+
+Recorded because the failure mode generalises: a guard written from one tranche's
+vantage can encode that tranche's assumptions as universal law, and the merge that
+exposes it looks like the *other* branch's problem. Suite is green at 869 with the
+replacement, and both properties are strictly stronger than what they replace on
+the case that mattered.
 
 ## 8. What makes the remaining 33 different from these two
 
@@ -434,14 +567,27 @@ records the first).
   serving today was refitted.
 - **Qualify CH's pass explicitly if it goes to the Board.** It clears D-7 by 33–37%
   while (a) being beaten by the TSO forecast we already ingest, and (b) beating a
-  hindsight hour-of-day climatology by 0.86pp. That combination should be in front
-  of the decision, not behind it.
+  hindsight hour-of-day climatology by 0.86pp — about 10% of its own error, and
+  the only one of the two margins here that survives the registered solar seed
+  spread. That combination should be in front of the decision, not behind it.
+- **Withdrawn: that BG beats an hour-of-day climatology.** Its 0.26pp margin is
+  ~1.4% of its own error, well inside the 3.7–5.4% single-seed spread ABL-376 §5
+  registered for this harness. BG still PASSes on the D-7 bar, which is
+  deterministic; it has simply not been shown to beat the average day. **Measure
+  the seed spread on BG and CH before either goes to the Board** — minutes of
+  compute under ABL-376's protocol (§3).
 - **Three handoffs to the Founding Engineer**, none of which I should land inside a
   tranche read: the geometry features missing from the harness `FEATURE_COLUMNS`
   (§4), the depth-guard proxy (§7b), and `saved_at` making the artifact SHA-256
   useless as a reproducibility witness (§7d). The hardcoded ABL-253 heading (§7a)
-  *is* fixed here — it is one line, it is the wind twin's line, and the re-read
-  had to regenerate the mislabelled file anyway.
+  is **closed** — ABL-376 landed a registered `SCOPE_TITLES` table and this
+  tranche is registered in it.
+- **One follow-up experiment I recommend but have not run: re-fit BG and CH under
+  ABL-376's night-exclusion rule** (§5). BG books 5–6% of its energy in the dark
+  and is the pair that rule should move most; CH should be near-inert, which makes
+  the two a usable contrast. It needs its own issue and its own registered scope —
+  flipping the rule under `abl316-t1b` would move six dispositioned cells and
+  destroy the record of which rule produced which read.
 - **One escalation to the CEO**: BG's overnight solar floor (§5) is a data defect
   on both source tables, it is upstream of anything this module controls, and the
   remaining 33 countries should be screened for it before their tranches run.
