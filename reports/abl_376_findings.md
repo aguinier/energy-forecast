@@ -13,11 +13,19 @@ or sidecar write was performed.
 | Night predicate | `solar_geometry.is_night_hour` — the serving clamp's own, sun below -8 deg geometric for the whole hour |
 | Threshold | 1 MW, ABL-338's, kept rather than re-derived |
 | Registered gate | Both arms **PASS 9/9** cells |
-| The result | see §5 — measured over a seed spread, not at one seed |
-| Daylight | see §5 |
+| Night, over 8 seeds | FR 43.66 → 43.33 MW — **no collapse**; the issue's 22.46 → 0.05 does not reproduce here (§5) |
+| Daylight, over 8 seeds | FR **+0.38%** (worse), inside a 4.40% single-seed null; the issue's −1.5% does not reproduce either (§5) |
+| Disposition | Land it as a correctness rule, not as an improvement. Not a promotion recommendation. |
 
-The night axis is the result. The daylight axis is read against the across-seed
-noise floor rather than at a single seed, for the reason given in §5.
+**Read this pack as replacing the issue's two headline numbers, not confirming
+them.** They were measured on ABL-338's frame — 27,228 training hours from 2023,
+training-time features including `is_night`, a spring holdout. On the registered
+frame, at eight seeds, both effects are inside the noise and the daylight one
+points the other way. §5 has the numbers and §5's last part has the two
+candidate reasons the frames disagree.
+
+What survives unchanged: the rule is principled, it is a provable no-op where
+the data is clean (§3), and it does not threaten the gate (§4).
 
 ## 1. What I could and could not reproduce
 
@@ -139,7 +147,109 @@ improvement would have been the filter marking its own homework.
 
 ## 5. Daylight and night, decomposed over a seed spread
 
-<!-- SEED SPREAD SECTION -->
+**Neither of the two effects this issue was filed on survives a seed spread on
+the registered frame.** That is the finding of this section.
+
+### Protocol
+
+Eight seeds — `101, 103, 107, 109, 113, 127, 131, 137` — frozen in
+`scripts/abl376_night_seed_spread.py` at commit `b7af17d`, before the first fit,
+and deliberately disjoint from the gate's seed 42: a spread anchored on the arm
+that produced the headline is not a spread. Two arms per seed differing in
+exactly one thing, the fit rule, fitted on frames built **once** per country and
+shared by every fit, so at each seed the arms differ by nothing else. The
+difference is therefore taken *within* a seed and across-seed variance never
+enters it.
+
+Both arms are scored on identical, **unfiltered** gate rows — the registered
+window 2026-07-11 → 2026-08-10, 1,950 rows per country after the latest-vintage
+selection, split by `solar_features.solar_bands` into daylight / shoulder /
+night (FR: 1,243 / 245 / 462). Out-of-sample by target timestamp. Feature set is
+the gate's own 25 legacy columns. Replica and source table as §2.
+
+This scores on rows where the actual and the features are finite, not on §4's
+four-column gate basis, so its `n` is its own and is quoted above; what matters
+is that both arms see the same rows. (The registered JSON predates the
+`feature_set` key that later runs carry — the flag that added it is additive and
+default-off, and it postdates this read.)
+
+### The night axis — the claimed result does not reproduce
+
+Mean challenger prediction over the gate's night hours, MW:
+
+| country | night rows | control | night-fit | paired change | t (df=7) |
+|---|---:|---:|---:|---:|---:|
+| FR | 462 | 43.66 ± 10.06 | 43.33 ± 19.59 | **−0.33 MW** | −0.04 |
+| DE | 420 | −0.17 ± 43.07 | −10.02 ± 14.68 | −9.85 MW | −0.55 |
+| BE | 420 | −6.51 ± 3.19 | −6.51 ± 3.19 | 0.00 MW | — |
+
+The issue reports FR's mean night prediction going **22.46 → 0.05 MW**. Here it
+goes 43.66 → 43.33 — a third of a megawatt, against a within-arm spread of 19.6
+and a single-seed null whose maximum is 28.81 MW. **The night level does not
+collapse on this frame.** It is not made worse either; the rule is simply not
+what is holding it up.
+
+### The daylight axis — inside its own null, and pointing the other way
+
+| country | daylight rows | control MAE | paired change | as % | seeds improved | single-seed null (max) |
+|---|---:|---:|---:|---:|---:|---:|
+| FR | 1,243 | 1,602.1 MW | **+6.03 MW** | **+0.38%** | 2/8 | 70.5 MW (4.40%) |
+| DE | 1,278 | 3,784.3 MW | −22.88 MW | −0.60% | 6/8 | 140.0 MW (3.70%) |
+| BE | 1,311 | 580.0 MW | 0.00 MW | 0.00% | 0/8 | 31.3 MW (5.39%) |
+
+The issue reports FR daylight MAE **improving 1.5%**. Here it moves +0.38% —
+the wrong way — at a paired t of 1.69 on 7 degrees of freedom, six of eight
+seeds worse. DE moves −0.60% at t = −1.01. Both are comfortably inside their own
+single-seed nulls, which run 3.7–5.4% of MAE. **A one-seed read of this frame
+could have reported anything up to a 4.4% FR gap with nothing changed at all**,
+which is an order of magnitude more than either the claim or the measurement.
+
+That null is the section's transferable result: it says a single-seed solar A/B
+on this harness cannot resolve an effect of the size this issue is about. ABL-338
+put its own noise floor at ~1.5% and read its 1.5% daylight gain as "not a
+regression" for that reason. On the registered frame the floor is wider still.
+
+### BE is the control the design provides for itself
+
+BE excludes nothing, and its two arms predict **bit-identically at all eight
+seeds** — every paired difference is exactly 0.00, on both axes. That is worth
+more than a passing metric: it attests that these fits are deterministic given
+(data, seed), without which the pairing above would not be valid, and it shows
+the rule is a provable end-to-end no-op where the data is clean. Stating the
+rule over countries rather than as an FR special case is what makes that
+checkable.
+
+### Why this frame and ABL-338's disagree
+
+The two reads are not in contradiction; they are different experiments, and §1
+already showed how far frame alone moves a night row count. Two differences are
+large enough to matter, and they are separable:
+
+1. **History.** ABL-338 fits FR on 27,228 training hours from 2023-01-01,
+   including the flat ~234 MW-through-the-night block the issue quotes. The
+   registered gate fits 2026-01-14 → 2026-07-11, where 113 contaminated hours
+   sit among 11,648 night fit rows. Removing a sustained multi-month block and
+   removing 1% of night rows are not the same intervention.
+
+2. **The model has no way to say "night".** The registered gate fits the 25
+   legacy columns. ABL-338 §1 measured what that costs: at every night hour all
+   three radiation columns read 0.0 and both target lags read 0.0, so nothing in
+   the vector distinguishes "0 W/m² because the sun is down" from "0 W/m² at a
+   dark winter dawn", and the model's night output is an incidental country
+   constant. ABL-338's own arms — the ones this rule was measured in — carried
+   `sun_elevation_deg` and `is_night`. Removing impossible *targets* cannot move
+   a level the model has no feature to represent.
+
+<!-- MECHANISM PROBE -->
+
+### What this changes about the recommendation
+
+The rule remains right on its own terms, and §3–§4 still hold: it is
+principled, it is a no-op on clean data, and it does not threaten the gate. What
+it is *not* is a measured improvement on the registered frame. The issue's two
+headline numbers should not be restated as properties of this change — they are
+properties of ABL-338's frame, and this pack should be read as replacing them
+rather than confirming them.
 
 ## 6. Caveats
 
@@ -151,7 +261,14 @@ improvement would have been the filter marking its own homework.
 - ABL-188 constant-run screening found no suspect solar run in the window.
 - One 30-day summer holdout. Out-of-sample by target timestamp, not year-round
   evidence, and July/August is when a night-hour rule has the least night to act
-  on.
+  on. §5's night band is 462 FR rows out of 1,950 for that reason.
+- **§5's spread is eight seeds of one algorithm on one window.** Eight is enough
+  to say the effect is inside the null and not enough to put a tight interval on
+  it; the null itself is 28 pairs from those same eight. CatBoost only — the
+  gate's algorithm — so none of it transfers to the XGBoost artifacts.
+- §5 does not show the rule is harmless *in general*. It shows it is inert on
+  this frame. The one place it demonstrably acts is the one the issue found it
+  in, and that frame is not this one.
 - The rule is **conservative by construction**: `is_night_hour` requires the sun
   below threshold for the whole hour, so shoulder contamination survives it. On
   2026-07-29, of the three FR hours the issue names (03:00, 20:00, 21:00 at
@@ -173,3 +290,15 @@ improvement would have been the filter marking its own homework.
 The control is the same command with `--scope abl253` **and all three output
 flags overridden**; run without them it will overwrite ABL-253's dispositioned
 evidence.
+
+The §5 seed spread, which builds each country's frames once and refits 16 times:
+
+```
+.venv\Scripts\python.exe scripts/abl376_night_seed_spread.py \
+    --replica-db C:\Code\able\data\energy_dashboard.db
+```
+
+Roughly 4-5 minutes of frame building and 4-5 seconds per fit, per country.
+Adding `--with-geometry` runs the §5 mechanism probe instead; it is exploratory,
+it says so in its own record (`feature_set`, `is_registered_read`), and it is
+not the registered read.
