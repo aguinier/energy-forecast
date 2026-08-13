@@ -259,8 +259,9 @@ def test_an_exempt_country_is_visibly_exempt_in_the_telemetry():
 
 def test_an_exempt_country_still_gets_the_non_negativity_floor_at_night():
     # The floor is not part of the exemption, and not because negative solar is
-    # impossible — NL books a real -1.1 MW overnight floor net of consumption
-    # (see solar_geometry, "Why the non-negativity floor is fleet-wide"). It is
+    # impossible — NL books a structural -1.1 MW overnight floor, admissible
+    # under A75 net-of-consumption semantics (see solar_geometry, "Why the
+    # non-negativity floor is fleet-wide"). It is
     # fleet-wide because that excursion is ~1 MW and a CSP country's is not
     # different in kind. A negative night row is raised to zero and counted as a
     # raised hour rather than a zeroed night hour.

@@ -24,11 +24,11 @@ The non-negativity floor is **not** part of the exemption: it applies
 everywhere. Do not read that as "negative solar is impossible" — it is not.
 `energy_generation` is net of consumption, and NL books a structural overnight
 floor of about -1.1 MW (100% of instants 20Z-02Z, min -1.62 MW fleet-wide over
-the ABL-348 registered window). That is real reported draw, and the floor does
-erase it. The floor is justified by the size of that excursion rather than by
-physics: see "Why the non-negativity floor is fleet-wide" in
-`src/solar_geometry.py` for the measurement, the bound it holds over, and the
-tripwire if NL is ever served.
+the ABL-348 registered window). The floor erases that reported MW, and it is
+justified by the size of the excursion rather than by physics: see "Why the
+non-negativity floor is fleet-wide" in `src/solar_geometry.py` for the
+measurement, the bound it holds over, the tripwire if NL is ever served, and
+why `energy_renewable` cannot be used to check any of it.
 
 There is no default in that table. A country reaching this clamp undeclared
 raises `UndeclaredNightGenerationError` rather than inheriting "cannot generate

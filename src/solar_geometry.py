@@ -213,9 +213,10 @@ NIGHT_GENERATION_POSSIBLE = {
     # NL's night series is uniformly *negative* — 1,544 of 1,544 night hours
     # across both ABL-348 windows, -1.47 to -0.12 MW. Not generation at all, and
     # the non-negativity floor rather than the night mask is what answers it.
-    # That negative is real reported consumption, not a defect, and it is why
-    # the floor is justified by a bound rather than by physics — see "Why the
-    # non-negativity floor is fleet-wide" below the table.
+    # That negative is admissible under A75's net-of-consumption semantics
+    # rather than demonstrably a defect, and it is why the floor is justified by
+    # a measured bound rather than by physics — see "Why the non-negativity
+    # floor is fleet-wide" below the table.
     'NL': False,
     'NO': False,
     'PL': False,
@@ -248,16 +249,46 @@ NIGHT_GENERATION_POSSIBLE = {
 # fit+gate window; IT is the only other one over calendar 2025. It is a flat
 # overnight floor rather than scatter — NL is negative at 100% of instants from
 # 20Z through 02Z at a -1.0 to -1.1 MW mean, 80.7% at 03Z, tapering across dawn
-# and dusk (04Z 46.2%, 19Z 71.5%) and clean 09Z-14Z. The same instants on
-# `energy_renewable` — the pre-netting side of the same A75 fetch — carry 0
-# negatives and a min of exactly 0.0 over n = 19,948, which is what identifies
-# the cause as netting rather than an ingest defect or a sign error.
+# and dusk (04Z 46.2%, 19Z 71.5%) and clean 09Z-14Z.
 #
-# So the floor does erase real reported MW. It is justified by how little:
+# **`energy_renewable` cannot corroborate that, and an earlier revision of this
+# block wrongly said it could.** It is not the pre-netting side of the fetch.
+# Over the ABL-348 gate window `energy_renewable.solar_mw` is the *zero-clipped
+# copy* of `energy_generation.solar_mw` — `ren == max(0, gen)` to 1e-9 at 100.0%
+# of instants in 28 of 32 countries and 99.0% for NL (2,946/2,976), with NL
+# flipping into that regime on a single day: 41.7% on 2026-07-01, 99.0% on
+# 2026-07-02. `db.py`'s ABL-321 note reaches the same place from the other side
+# ("the gate truth is byte-identical between the two tables for 9 of 10 pairs").
+# So `ren - gen` over that window *is* `max(0, -gen)` — the floor's own
+# correction — and asking whether it is non-negative is asking the floor about
+# itself. On the 1,045 gate-window NL instants with `gen < 0`, `ren` is exactly
+# 0.0 on 1,036 of them, so the subtraction returns `-gen` and nothing else.
+#
+# Outside that window the two series are not related that way and the difference
+# is not a consumption series either: over the fit+gate window `ren - gen` goes
+# negative at 8,668 of 19,948 NL instants, to -185.84 MW at midday, which no
+# pre-netting series can do. Only 305 of those carry ABL-188's zero-fill, so it
+# is a level difference — NL daytime `ren/gen` runs 0.42-0.64 across 2026-01..06
+# against 0.98 in July and 1.00 in August — not a fill artifact. Fleet-wide the
+# same subtraction goes negative 645 times *inside* the gate window (HU 480,
+# PT 150, GR 15, min -239.0 MW).
+#
+# What survives is weaker than a measurement and is stated here as such: A75's
+# net-of-consumption semantics make a small negative **admissible**, and NL's is
+# structurally stable rather than sporadic, so metered overnight draw is the
+# reasonable reading of it. The replica holds no independent series that isolates
+# the cause. Do not reach for `energy_renewable` to close that gap — its ABL-188
+# zero-fill and its own FR night defect (137-440 MW at sun elevations to -65 deg
+# on 337 distinct days, CLAUDE.md) are two further reasons it cannot arbitrate a
+# sign.
+#
+# So the floor does erase reported MW. It is justified by how little:
 #
 #   1. **Bounded where it matters.** Over the ABL-348 registered window the
 #      deepest excursion anywhere in the fleet is -1.62 MW, below any level a
-#      forecast resolves. NL's per-year minimum is -1.30/-1.43/-1.74/-1.59/-1.62
+#      forecast resolves. That is a direct read of `energy_generation` — it never
+#      went through the join above, so the correction to `energy_renewable` does
+#      not move it. NL's per-year minimum is -1.30/-1.43/-1.74/-1.59/-1.62
 #      MW for 2021/22/24/25/26 — the structural floor is stable and ~1 MW deep
 #      across five years. 2023 is the one exception and it is the outlier
 #      discussed below, not a different floor.
@@ -289,7 +320,12 @@ NIGHT_GENERATION_POSSIBLE = {
 # Evidence: ABL-411 follow-up by the Forecasting Scientist, reproduced against
 # the replica `C:\Code\able\data\energy_dashboard.db` (`mode=ro`, source
 # `energy_generation`, direct read of actuals — nothing fitted). The full-history
-# tail in the paragraph above is this repo's own read on the same replica.
+# tail in the paragraph above is this repo's own read on the same replica. The
+# `energy_renewable` correction is too: the Scientist's ABL-425 addendum offered
+# the gate-window join as the measured cause and a 1.049 MW bound on the floor's
+# cost. Every figure in it reproduces exactly, and the reproduction is what shows
+# the comparator is the clipped copy — 1.049 MW is `-min(gen)` over that window,
+# i.e. this block's own -1.05 with the sign flipped, not a second observation.
 
 
 def night_generation_possible(country_code: str) -> bool:

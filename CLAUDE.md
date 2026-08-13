@@ -1145,14 +1145,27 @@ follow and all three are load-bearing:
   negative solar is impossible. It is not: `energy_generation` is the A75
   document *net of consumption*, and NL books a structural overnight floor of
   about −1.1 MW (100% of instants 20Z–02Z, min −1.62 MW — the deepest anywhere
-  in the fleet over ABL-348's registered window). That is real reported draw,
-  and the floor erases it. The floor is justified by the size of the excursion,
-  not by physics. `src/solar_geometry.py`'s "Why the non-negativity floor is
-  fleet-wide" carries the measurement, the window the bound holds over, the
-  five full-history instants that exceed it, and the tripwire if NL is ever
-  served. Two premises of the same class have now failed here: ES generates
-  when the code said it could not, NL consumes when the code said it could not.
+  in the fleet over ABL-348's registered window). The floor erases that
+  reported MW, and is justified by the size of the excursion, not by physics.
+  `src/solar_geometry.py`'s "Why the non-negativity floor is fleet-wide"
+  carries the measurement, the window the bound holds over, the five
+  full-history instants that exceed it, and the tripwire if NL is ever served.
+  Two premises of the same class have now failed here: ES generates when the
+  code said it could not, NL books a negative when the code said it could not.
   Both were physical absolutes the A75 semantics never supported.
+- **`energy_renewable` cannot arbitrate the sign of solar, so do not use it to
+  check the floor.** Over ABL-348's gate window it is the *zero-clipped copy*
+  of `energy_generation`: `ren == max(0, gen)` to 1e-9 at 100.0% of instants in
+  28 of 32 countries and 99.0% for NL, NL flipping into that regime between
+  2026-07-01 (41.7%) and 2026-07-02 (99.0%) — which is the same fact `db.py`
+  records as "the gate truth is byte-identical between the two tables for 9 of
+  10 pairs" (ABL-321). So `ren − gen` in that window is `max(0, −gen)`, the
+  floor's own correction, and reads as a clean non-negative "Actual Consumption
+  series" no matter what the data says. Outside the window it is not a
+  consumption series either — it goes to −185.84 MW at NL midday over fit+gate,
+  with only 305 of 8,668 excursions attributable to ABL-188 zero-fill. This
+  retired an ABL-425 finding that had been reported from both sides; see
+  `solar_geometry.py` for the full reproduction.
 - **The registered thing is the *fact*, not the policy.** The clamp and
   ABL-376's `exclude_impossible_night` fit rule both read this one table and
   apply their own policy on top, so they cannot come to disagree about which
