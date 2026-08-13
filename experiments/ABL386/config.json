@@ -196,6 +196,43 @@
     "why_it_is_part_of_the_registration": "an xgboost-3.3.0 pickle loaded under 2.1.4 keeps its trees and silently resets the fitted intercept to 0.5, producing shape with no level. Every artifact read here is under .venv."
   },
 
+  "corrections_after_the_fit": {
+    "rule": "A registration is amended visibly or not at all. The text above is left standing so the diff shows what was believed before the fit, and each entry says whether it changes any arm that was fitted or any registered verdict.",
+    "entries": [
+      {
+        "field": "evidence_pack / measurement paths",
+        "registered": "the verdict script was to write reports/abl_386_solar_holiday_verdict",
+        "changed_to": "reports/abl_386_holiday_verdict_tables.{json,md}",
+        "why": "that stem is the hand-written evidence pack. Leaving the generator pointed at it meant any re-run would silently overwrite the prose. Cosmetic, pre-verdict, changes no number.",
+        "changes_a_fitted_arm": false,
+        "changes_the_verdict": false
+      },
+      {
+        "field": "primary_bar.materiality_is_derived_not_assumed",
+        "observation": "the registered test is UNPAIRED range disjointness, but the two arms in a contrast share their seed, so a paired-by-seed difference would have been materially more powerful. That was not registered and so is reported in section 5 of the evidence pack as EXPLORATORY only; it does not move the verdict.",
+        "measured_post_hoc": "pooled over all 24 paired fits the primary effect is +1.22% with sd 4.45%, 13/24 positive. Paired by seed, the seed-to-seed variation in the DIFFERENCE still exceeds the difference - catboost/AT swings +12.07% to -4.97% between two seeds on the paired difference itself.",
+        "changes_a_fitted_arm": false,
+        "changes_the_verdict": false,
+        "handling": "named as the first thing a follow-up registration should fix, rather than substituted in here after the fact."
+      },
+      {
+        "field": "scope_item_4 finding, restated after measurement",
+        "note": "recorded here because the registration described the drift probe as a pre-fit input and the result turned out to be larger than solar: 66 of 66 artifacts with a feature list, across every forecast type, are missing all four holiday names. The load half of that is explicitly NOT answered by this issue and is handed over as a follow-up.",
+        "changes_a_fitted_arm": false,
+        "changes_the_verdict": false
+      }
+    ]
+  },
+  "outcome": {
+    "primary_verdict": "MIXED",
+    "replicate_verdict": "NO_EFFECT",
+    "downgraded_by_replicate_disagreement": false,
+    "final_verdict": "MIXED",
+    "registered_recommendation": "a further read - the MIXED mapping permits exclusion on parsimony only if no cell shows disjoint HELP, and xgboost/AT does (-1.75%, disjoint)",
+    "night_guardrail_failures": ["catboost/DE", "catboost/FR"],
+    "reproducibility_check": "PASSED exactly - all four countries reproduce ABL-375's committed catboost geometry seed means and ranges to the decimal",
+    "read_the_evidence_pack_for_the_caveats": "reports/abl_386_solar_holiday_verdict.md"
+  },
   "voids_this_registration": "any change to the holdout window, the fit truncation rule, the arm set, the seeds, the bands, the metric, the primary contrast, the non-overlap materiality rule, the verdict thresholds, the night guardrail or the recommendation mapping, after any challenger score has been seen on the registered holdout. Seeing a null and re-reading on a denser window to find an effect voids it outright.",
   "promotion": "NONE. No model produced here goes near models/ or the serving registry. No serving artifact is retrained. The output is an evidence pack and a recommendation about a feature list.",
   "artifact_location": "reports/abl_386_solar (experiment output only; not a serving registry)"
