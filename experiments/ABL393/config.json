@@ -208,6 +208,35 @@
     "why_it_is_part_of_the_registration": "an xgboost-3.3.0 pickle loaded under 2.1.4 keeps its trees and silently resets the fitted intercept to 0.5, producing shape with no level. Every artifact read here - the 8 incumbents this harness loads for their algorithm and version - is read under .venv."
   },
 
+  "corrections_after_the_fit": {
+    "rule": "A registration is amended visibly or not at all. The text above is left standing so the diff shows what was believed before the fit, and each entry says whether it changes any arm that was fitted or any registered verdict.",
+    "entries": [
+      {
+        "field": "recommendation_mapping_registered_in_advance.NO_EFFECT, second clause",
+        "registered": "'recommend EXCLUDE on parsimony, AND record that src/features.py's high impact for load forecasting comment is contradicted by measurement and should be corrected'",
+        "what_happened": "that clause was written expecting NO_EFFECT to be the LOAD outcome. It fired on PRICE. Load read HELP, so the comment - which names load specifically - is vindicated rather than refuted, and applying the clause to price would have published a false statement about our own source.",
+        "handling": "the mapping string is left in place and the verdict script carries a `NO_EFFECT@price` override for the RATIONALE only, flagged in the source at the mapping. The registered ACTION is untouched: NO_EFFECT recommends EXCLUDE either way, and that is what price gets.",
+        "changes_a_fitted_arm": false,
+        "changes_a_verdict": false,
+        "changes_a_recommendation": false
+      },
+      {
+        "field": "gain decomposition rendering (not a registered statistic)",
+        "what_happened": "the holiday-affected share of the all-hours gain is meaningless where the total gain is negative - four cells (DE price x2, FR winter load x2) have the holiday arm worse overall, and a share of a negative total reads as 'most of the gain landed elsewhere' rather than 'there was no gain'.",
+        "handling": "those cells render `net loss` and the share is null in the JSON. The decomposition was always arithmetic on the registered subsets rather than a test, so nothing gating is affected.",
+        "changes_a_fitted_arm": false,
+        "changes_a_verdict": false
+      }
+    ]
+  },
+  "outcome": {
+    "load": {"spring": "HELP", "winter_replication": "HELP", "downgraded": false, "verdict": "HELP", "recommendation": "KEEP"},
+    "price": {"spring": "NO_EFFECT", "verdict": "NO_EFFECT", "recommendation": "EXCLUDE"},
+    "load_spring_cells": "8 of 8 material, 8 of 8 favouring the holiday features, every cell at 8/8 seeds (sign test p = 0.0078)",
+    "price_spring_cells": "2 of 8 material, both favouring the holiday features; DE moves the other way at both algorithms and is not material at either",
+    "reproducibility_check": "PASSED - ABL-386's committed DE catboost invocation re-run under this issue's code reproduces all 12 arm-fits field for field; only new JSON keys are added",
+    "read_the_evidence_pack_for_the_caveats": "reports/abl_393_load_price_holiday_verdict.md"
+  },
   "voids_this_registration": "any change to either window, the fit truncation rule, the arm set, the seeds, the metric, the primary paired statistic, the sign-test thresholds, the group or type verdict rules, the subset definitions or the recommendation mapping, after any registered challenger score has been seen. Seeing a null and re-reading on a third window to find an effect voids it outright.",
   "promotion": "NONE. No model produced here goes near models/ or the serving registry. No serving artifact is retrained. The output is an evidence pack and a recommendation about a feature list.",
   "artifact_location": "reports/abl_393_load_price (experiment output only; not a serving registry)"
