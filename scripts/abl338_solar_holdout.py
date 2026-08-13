@@ -78,6 +78,44 @@ added one more flag for it:
     result), and ``--drop-impossible-night`` (whose predicate is the solar night
     mask). Both would otherwise pass through the `c in train_frame.columns`
     filter without comment.
+
+ABL-393 asks the ABL-386 question on the two targets whose prior is the opposite
+- load and price, where a public holiday really does move demand - and needed
+three things this script did not have. None of them is a second harness: the
+fit, the arms and the scoring path are the ones above.
+
+``--type load`` / ``--type price``
+    `--type` used to be restricted to `config.RENEWABLE_TYPES`. Both aggregate
+    types go through the same `load_training_data` -> `create_all_features` path
+    (their `source` is `None` - each reads one fixed table, see
+    `Forecaster._resolved_training_source`), and neither has a band structure, so
+    they land on the `bands == ()` branch ABL-385 added for wind. The two
+    solar-only refusals above apply to them unchanged.
+
+    On these two types `control_noholiday` is **exactly** the serving feature
+    list, and that is measured rather than assumed: all 48 serving load/price
+    artifacts equal `get_feature_columns(type, include_holidays=False)` name for
+    name and in order - 26 names on load, 25 on price
+    (`reports/abl_386_feature_drift.json`). With no geometry to carry, the
+    `control` / `control_noholiday` contrast here *is* "what the next retrain
+    produces" against "what is served today".
+
+``--holiday-subsets``
+    A public holiday is 2-5 days in a 44-day window, so an effect that is real on
+    holiday rows is diluted roughly twentyfold in an all-hours mean. Each arm
+    then also reports its metrics over `holiday` (`is_holiday == 1`),
+    `holiday_affected` (holiday, bridge day, or within a day of one - the rows
+    these four features can distinguish at all) and `ordinary` (the rest). Off by
+    default so no existing invocation changes shape.
+
+model-free references
+    Every run now scores the four `src/evaluation/model_free_reference`
+    predictors beside the D-7 baseline, through the same `_band_metrics` the arms
+    use. ABL-381/ABL-389: a flat line scores badly on anything with a diurnal
+    cycle, so a margin quoted only against D-7 or only against a constant
+    flatters the model, and the hour-of-day climatology has been the tighter
+    reference on every pair measured so far. All four are reported; this script
+    has no gate in it, so none of them can be a bar.
 """
 
 import argparse
@@ -94,10 +132,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import config  # noqa: E402
 from src.db import load_training_data  # noqa: E402
+from src.evaluation.model_free_reference import (  # noqa: E402
+    MODEL_FREE_COMPARATORS,
+    attach_model_free_references,
+)
 from src.features import (  # noqa: E402
     HOLIDAY_FEATURES,
+    HOLIDAY_SUBSETS,
     create_all_features,
     get_feature_columns,
+    holiday_subset_masks,
 )
 from src.forecaster import Forecaster  # noqa: E402
 from src.solar_features import (  # noqa: E402
@@ -187,12 +231,28 @@ ARMS = tuple(ARM_SPECS)
 #: and a "no effect" result that measured nothing. Refused at argparse instead.
 SOLAR_ONLY_ARMS = tuple(a for a, spec in ARM_SPECS.items() if spec[0] or a in ARM_NIGHT_WEIGHT)
 
+#: The two non-renewable targets this script can fit (ABL-393). They are not in
+#: `config.RENEWABLE_TYPES`, take no `source`, and have no bands — everything
+#: else on the path is shared with the renewable types.
+AGGREGATE_TYPES = ("load", "price")
+
+#: Every `--type` this script accepts. `net_position` is deliberately absent:
+#: it is Chronos-2's, is not fitted by `Forecaster`, and has no artifact under
+#: `models/<CC>/net_position/`.
+FITTABLE_TYPES = tuple(sorted(set(config.RENEWABLE_TYPES) | set(AGGREGATE_TYPES)))
+
+
 #: Bands are a solar concept. Night / shoulder / daylight exist because the
 #: incumbent emitted garbage at night and a headline had to be kept away from
 #: it; no other renewable type has a structurally-zero band to protect. A
 #: non-solar run reports `all` alone rather than three copies of it.
 def _band_names(forecast_type: str) -> tuple:
     return ("daylight", "shoulder", "night") if forecast_type == "solar" else ()
+
+
+#: `HOLIDAY_SUBSETS` and `holiday_subset_masks` live in `src/features.py`, beside
+#: the four names they are defined over, so the pre-fit density probe reports the
+#: same rows this script then scores.
 
 
 def _legacy_feature_columns(forecast_type: str = "solar", include_holidays: bool = True) -> list:
@@ -293,6 +353,7 @@ def evaluate_country(
     arms: tuple = ARMS,
     seeds: tuple = (None,),
     forecast_type: str = "solar",
+    holiday_subsets: bool = False,
 ) -> dict:
     bands = _band_names(forecast_type)
     live_path = LIVE_MODELS_DIR / country_code / forecast_type / "model.joblib"
@@ -382,14 +443,57 @@ def evaluate_country(
 
     actual = holdout_frame["target_value"].to_numpy(dtype=float)
 
-    # The free baseline, on exactly the holdout rows the arms are scored on.
-    baseline_pred = _seasonal_naive(holdout_frame)
-    results["baseline_seasonal_naive_d7"] = {
-        b: _band_metrics(actual[(holdout_frame["band"] == b).to_numpy()],
-                         baseline_pred[(holdout_frame["band"] == b).to_numpy()])
-        for b in bands
+    subsets = holiday_subset_masks(holdout_frame) if holiday_subsets else {}
+    results["holiday_subsets"] = {
+        name: int(mask.sum()) for name, mask in subsets.items()
     }
-    results["baseline_seasonal_naive_d7"]["all"] = _band_metrics(actual, baseline_pred)
+
+    def _scored(predicted: np.ndarray) -> dict:
+        """Every metric block one predictor gets: bands, subsets, all hours.
+
+        NaN predictions are dropped **per block** rather than globally, because a
+        climatology is 24 levels and can be measurable at some hours and not
+        others (ABL-389). Each block therefore carries its own `n`, and the two
+        WAPEs in a row are not comparable unless those `n` agree.
+        """
+        finite = np.isfinite(predicted)
+        out = {}
+        for b in bands:
+            m = (holdout_frame["band"] == b).to_numpy() & finite
+            out[b] = _band_metrics(actual[m], predicted[m])
+        for name, mask in subsets.items():
+            out[name] = _band_metrics(actual[mask & finite], predicted[mask & finite])
+        out["all"] = _band_metrics(actual[finite], predicted[finite])
+        return out
+
+    # The free baseline, on exactly the holdout rows the arms are scored on.
+    results["baseline_seasonal_naive_d7"] = _scored(_seasonal_naive(holdout_frame))
+
+    # ABL-389's four model-free references, computed by the canonical module
+    # rather than re-derived here, and scored through the same `_band_metrics`
+    # the arms go through. `constant_causal` and `climatology_causal` see only
+    # the fit window, so they are what a forecaster could have served without any
+    # model; the two oracles see the holdout and are hindsight upper bounds.
+    #
+    # Reported, never a bar. ABL-381's standing ask is that a margin be quoted
+    # against the hour-of-day climatology and not only against D-7, because a
+    # flat line loses to anything with a diurnal cycle and so certifies nothing.
+    actual_series = pd.Series(
+        featured["target_value"].to_numpy(dtype=float),
+        index=pd.DatetimeIndex(pd.to_datetime(featured["timestamp_utc"])),
+    )
+    reference_frame, reference_levels = attach_model_free_references(
+        pd.DataFrame({"target_ts": pd.to_datetime(holdout_frame["timestamp_utc"])}),
+        actual_series,
+        fit_start=actual_series.index.min(),
+        gate_start=pd.Timestamp(holdout_start),
+        gate_end=pd.Timestamp(holdout_end) + pd.Timedelta(days=1),
+    )
+    results["model_free_reference"] = {
+        name: _scored(reference_frame[name].to_numpy(dtype=float))
+        for name in MODEL_FREE_COMPARATORS
+    }
+    results["model_free_reference_levels"] = reference_levels
 
     for arm, seed in ((a, s) for a in arms for s in seeds):
         use_geometry, nonneg, overrides, daylight_only = ARM_SPECS[arm]
@@ -481,10 +585,7 @@ def evaluate_country(
             or forecaster.hyperparams.get("loss_function"),
             "n_trees": int(n_trees) if n_trees is not None else None,
         }
-        for b in bands:
-            in_band = (holdout_frame["band"] == b).to_numpy()
-            arm_result[b] = _band_metrics(actual[in_band], predicted[in_band])
-        arm_result["all"] = _band_metrics(actual, predicted)
+        arm_result.update(_scored(predicted))
         results["arms"][arm_key] = arm_result
         if bands:
             logger.info(
@@ -505,9 +606,12 @@ def evaluate_country(
 
 def _render_markdown(payload: dict) -> str:
     forecast_type = payload.get("forecast_type", "solar")
-    title = ("# ABL-338 — solar non-negativity and solar geometry: held-out A/B"
-             if forecast_type == "solar"
-             else f"# Held-out A/B — {forecast_type} (ABL-385 reuse of the ABL-338 harness)")
+    if forecast_type == "solar":
+        title = "# ABL-338 — solar non-negativity and solar geometry: held-out A/B"
+    elif forecast_type in AGGREGATE_TYPES:
+        title = f"# Held-out A/B — {forecast_type} (ABL-393 reuse of the ABL-338 harness)"
+    else:
+        title = f"# Held-out A/B — {forecast_type} (ABL-385 reuse of the ABL-338 harness)"
     lines = [
         title,
         "",
@@ -527,10 +631,16 @@ def _render_markdown(payload: dict) -> str:
     ]
     for country, result in payload["countries"].items():
         banded = bool(result.get("bands"))
-        header = f"## {country} — {result['algorithm']}, source `{result['training_source']}`"
+        # `training_source` is None for load/price by construction — each reads
+        # one fixed table, so recording a renewable source table for them would
+        # be a true-looking, meaningless field (`_resolved_training_source`).
+        source = (f"source `{result['training_source']}`"
+                  if result.get("training_source")
+                  else f"one fixed table for `{result.get('forecast_type', 'solar')}`")
+        header = f"## {country} — {result['algorithm']}, {source}"
         if result.get("forecast_type", "solar") != "solar":
             header = (f"## {country} / {result['forecast_type']} — {result['algorithm']}, "
-                      f"source `{result['training_source']}`")
+                      f"{source}")
         counts = (
             f"(daylight {result['bands']['daylight']:,} / shoulder {result['bands']['shoulder']:,} "
             f"/ night {result['bands']['night']:,}) " if banded else ""
@@ -559,19 +669,50 @@ def _render_markdown(payload: dict) -> str:
                 )
         else:
             # No bands for this type, so the all-hours row is the whole result.
+            # `n` is in the table because the four model-free references do not
+            # all score the same rows: a climatology is 24 levels and an hour of
+            # day absent from its source window leaves those rows unscored for
+            # that column alone (ABL-389).
             lines += [
-                "| arm | MAE | WAPE | RMSE | bias | mean pred | negative preds |",
-                "|---|---:|---:|---:|---:|---:|---:|",
+                "| arm | n | MAE | WAPE | RMSE | bias | mean pred | negative preds |",
+                "|---|---:|---:|---:|---:|---:|---:|---:|",
             ]
-            rows = [("_seasonal-naive D-7_", base)] + list(result["arms"].items())
+            rows = ([("_seasonal-naive D-7_", base)]
+                    + [(f"_{name}_", block) for name, block
+                       in result.get("model_free_reference", {}).items()]
+                    + list(result["arms"].items()))
             for name, a in rows:
                 m = a["all"]
                 lines.append(
-                    f"| {name} | {m['mae_mw']:,.1f} | "
+                    f"| {name} | {m['n']:,} | {m['mae_mw']:,.1f} | "
                     f"{m.get('wape_pct', float('nan')):.1f}% | {m['rmse_mw']:,.1f} | "
                     f"{m['bias_mw']:,.1f} | {m['mean_pred_mw']:,.1f} | "
                     f"{m['n_negative_pred']} |"
                 )
+        subsets = [s for s in HOLIDAY_SUBSETS if s in result.get("holiday_subsets", {})]
+        if subsets:
+            counts = " · ".join(
+                f"{s} {result['holiday_subsets'][s]:,}" for s in subsets)
+            lines += [
+                "",
+                f"Holiday subsets of the holdout ({counts}). `holiday_affected` is a "
+                "holiday, a bridge day, or within one day of a holiday — the rows these "
+                "four features can distinguish from an ordinary day at all. A holiday "
+                "effect that is real here is diluted by the row counts in the all-hours "
+                "table above.",
+                "",
+                "| arm | " + " | ".join(f"{s} MAE" for s in subsets) + " |",
+                "|---|" + "---:|" * len(subsets),
+            ]
+            subset_rows = ([("_seasonal-naive D-7_", base)]
+                           + [(f"_{name}_", block) for name, block
+                              in result.get("model_free_reference", {}).items()]
+                           + list(result["arms"].items()))
+            for name, a in subset_rows:
+                cells = " | ".join(
+                    f"{a[s]['mae_mw']:,.1f}" if a.get(s, {}).get("n") else "n/a"
+                    for s in subsets)
+                lines.append(f"| {name} | {cells} |")
         c = result["contamination"]
         if banded:
             lines += [
@@ -590,10 +731,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--countries", default="AT,BE,DE,FR")
     parser.add_argument("--type", dest="forecast_type", default="solar",
-                        choices=sorted(config.RENEWABLE_TYPES),
-                        help="Individual renewable type to fit (default: solar). "
-                             "Only solar has night/shoulder/daylight bands; every "
-                             "other type reports the all-hours metric alone.")
+                        choices=list(FITTABLE_TYPES),
+                        help="Forecast type to fit (default: solar). Any individual "
+                             "renewable type, or load/price (ABL-393). Only solar has "
+                             "night/shoulder/daylight bands; every other type reports "
+                             "the all-hours metric alone.")
+    parser.add_argument("--holiday-subsets", action="store_true",
+                        help="Also score each arm over holiday rows, holiday-affected "
+                             "rows (holiday, bridge day, or within a day of one) and "
+                             "ordinary rows. A holiday is a few days in a 44-day "
+                             "window, so an all-hours mean dilutes any holiday effect "
+                             "roughly twentyfold.")
     parser.add_argument("--start", default="2023-01-01")
     parser.add_argument("--holdout", required=True, help="START:END, both YYYY-MM-DD, inclusive")
     parser.add_argument("--drop-impossible-night", action="store_true",
@@ -658,6 +806,7 @@ def main() -> int:
         "force_algorithm": args.force_algorithm,
         "arms": list(arms),
         "seeds": list(seeds),
+        "holiday_subsets": args.holiday_subsets,
         "night_threshold_deg": NIGHT_ELEVATION_THRESHOLD_DEG,
         "countries": {},
     }
@@ -665,7 +814,7 @@ def main() -> int:
         payload["countries"][country] = evaluate_country(
             country, args.start, holdout_start, holdout_end, args.drop_impossible_night,
             force_algorithm=args.force_algorithm, arms=arms, seeds=seeds,
-            forecast_type=args.forecast_type,
+            forecast_type=args.forecast_type, holiday_subsets=args.holiday_subsets,
         )
 
     out_dir = Path(args.out)

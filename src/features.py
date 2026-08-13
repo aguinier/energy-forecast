@@ -38,6 +38,43 @@ logger = logging.getLogger("energy_forecast")
 #: being served today (`reports/abl_386_feature_drift.json`).
 HOLIDAY_FEATURES = ("is_holiday", "days_to_holiday", "days_from_holiday", "is_bridge_day")
 
+#: Row subsets these four features can tell apart from an ordinary day, in
+#: report order (ABL-393).
+HOLIDAY_SUBSETS = ("holiday", "holiday_affected", "ordinary")
+
+
+def holiday_subset_masks(df: pd.DataFrame) -> Dict[str, np.ndarray]:
+    """Boolean masks for `HOLIDAY_SUBSETS`, or `{}` if the frame lacks the columns.
+
+    Lives here rather than in the harness that scores them because two scripts
+    need the same predicate — the pre-fit density probe, which reports how many
+    such rows a candidate window holds, and the holdout A/B, which scores each
+    arm over them. A window measured under one definition and scored under
+    another would not be the window that was registered.
+
+    `holiday_affected` is deliberately wider than `is_holiday`. A public holiday
+    is 2-5 days in a 44-day window, so an all-hours mean dilutes a real holiday
+    effect roughly twentyfold; and `days_to_holiday` / `days_from_holiday` are
+    capped at 7, so they are non-constant well beyond the holiday itself, but
+    only their smallest values mark a day whose demand a holiday plausibly moved.
+    Christmas to Epiphany is the case that matters: a count of red days there is
+    4, while the stretch these features actually mark is a fortnight.
+
+    Empty rather than raising: `create_all_features` only builds the four columns
+    when it is given a country, and a caller that did not ask for the subsets
+    should not have to care whether they are present.
+    """
+    if any(c not in df.columns for c in HOLIDAY_FEATURES):
+        return {}
+    holiday = df["is_holiday"].to_numpy() == 1
+    affected = (
+        holiday
+        | (df["is_bridge_day"].to_numpy() == 1)
+        | (df["days_to_holiday"].to_numpy() <= 1)
+        | (df["days_from_holiday"].to_numpy() <= 1)
+    )
+    return {"holiday": holiday, "holiday_affected": affected, "ordinary": ~affected}
+
 
 # ============================================================================
 # TIME FEATURES
