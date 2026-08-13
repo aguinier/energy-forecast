@@ -110,6 +110,36 @@ def common_scores(frame: pd.DataFrame, columns: Iterable[str]) -> tuple[dict, pd
     return ({name: score_predictions(common["actual"], common[name]) for name in columns}, common)
 
 
+def scored_with_comparators(
+    frame: pd.DataFrame,
+    gate_basis: Iterable[str],
+    reported_comparators: Iterable[str],
+) -> tuple[dict, pd.DataFrame, dict]:
+    """Score on the scope's registered gate basis; report the rest beside it.
+
+    Each comparator outside the basis is scored on its own intersection *with*
+    the basis, so a comparator that is absent for this pair costs its own row
+    and nothing else — that is the property (ABL-322/ABL-378) which makes a
+    comparator that never exists read ``Not measured`` instead of emptying the
+    cell. Returns the basis scores, the basis intersection, and each
+    comparator's own n.
+
+    Both gate harnesses held a byte-identical copy of this as a closure inside
+    ``main``. It is one function here because ABL-389 adds comparators to it and
+    every read must compute them identically — and because a closure inside
+    ``main`` cannot be tested without fitting three models against the replica.
+    """
+    gate_basis = tuple(gate_basis)
+    scores, common = common_scores(frame, gate_basis)
+    comparator_n = {name: len(common) for name in gate_basis}
+    for name in reported_comparators:
+        if name in scores:
+            continue
+        sub_scores, sub_common = common_scores(frame, (*gate_basis, name))
+        scores[name], comparator_n[name] = sub_scores[name], len(sub_common)
+    return scores, common, comparator_n
+
+
 def gate_cell(challenger_wape: float | None, naive_wape: float | None,
               n: int, intended_n: int) -> dict:
     min_n = int(np.ceil(0.95 * intended_n))
