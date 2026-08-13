@@ -158,6 +158,14 @@ def main() -> int:
                         help="Per-fit CV of the challenger arm (default: ABL-385 wind fleet p90)")
     parser.add_argument("--seeds", type=int, default=1,
                         help="Seeds averaged per arm; the gate fits once (default: 1)")
+    # ABL-417: this read is not specific to tranche 2b. Everything else in the
+    # payload already derives from `--results` (the scope and verdict are read
+    # out of its `meta`), so the issue label was the only thing pinning the
+    # script to one tranche. Tranche 2e reuses it verbatim rather than growing a
+    # second copy of the margin arithmetic -- the default is unchanged, so
+    # ABL-406's committed output is byte-identical when regenerated.
+    parser.add_argument("--issue", default="ABL-406",
+                        help="Issue label recorded in the payload (default: ABL-406)")
     parser.add_argument("--stdout", action="store_true")
     args = parser.parse_args()
 
@@ -165,7 +173,7 @@ def main() -> int:
     rows = _cell_rows(result, args.cv, args.seeds)
     weakness = _bar_weakness(result)
     payload = {
-        "issue": "ABL-406",
+        "issue": args.issue,
         "reads": args.results,
         "scope": result["meta"]["scope"],
         "verdict": result["verdict"],
