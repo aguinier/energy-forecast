@@ -122,9 +122,180 @@ def night_mask(country_code: str, hour_starts: Sequence) -> np.ndarray:
     return np.asarray(is_night_hour(country_code, index), dtype=bool)
 
 
+#: The three bands a solar evaluation reports separately, brightest first.
+SOLAR_BANDS: Tuple[str, ...] = ("daylight", "shoulder", "night")
+
+
+def solar_bands(country_code: str, hour_starts: Sequence) -> pd.Series:
+    """
+    Label each hour `daylight` / `shoulder` / `night` on the shared geometry.
+
+    `night` is `night_mask`, i.e. the serving clamp's own predicate, so the
+    three bands and the fit rule cannot disagree about which hours are dark.
+    `shoulder` is the band ABL-337 flagged as the clamp's blind spot: not dark
+    enough to be zeroed, but the sun is below the horizon at the hour's midpoint
+    and the fleet should be at ~0. `daylight` is everything else.
+
+    Reporting the three separately is ABL-338's rule and the reason a night-hour
+    change can be read at all: the night error moves by orders of magnitude
+    because the incumbent was emitting garbage there, so a combined metric is
+    dominated by the band whose baseline was worst. `scripts/abl338_solar_holdout.py`
+    still carries its own copy of this split; ABL-385 is rewriting that file, so
+    it is left to that branch to retire rather than conflicted with here.
+
+    Args:
+        country_code: ISO 2-letter code with a representative point in
+            `solar_geometry.SOLAR_REPRESENTATIVE_POINTS`.
+        hour_starts: UTC timestamps labelling the start of each hourly row.
+
+    Returns:
+        Series of band labels, indexed 0..n-1 in the order given.
+    """
+    night = night_mask(country_code, hour_starts)
+    if len(night) == 0:
+        return pd.Series(dtype=object)
+    elevation = solar_geometry_frame(country_code, hour_starts)["sun_elevation_deg"].to_numpy()
+    labels = np.where(night, "night", np.where(elevation <= 0.0, "shoulder", "daylight"))
+    return pd.Series(labels, index=pd.RangeIndex(len(labels)))
+
+
+#: A night actual at or below this many MW is treated as a real zero; above it,
+#: the row is physically impossible and is dropped **from the fit only**.
+#:
+#: 1 MW is ABL-338's threshold, kept rather than re-derived so this rule and the
+#: holdout that measured it are the same rule. It is a floor for reporting noise,
+#: not a physical claim: `NIGHT_ELEVATION_THRESHOLD_DEG` already carries the
+#: geometry's error budget (-8 deg is 6 deg below civil twilight), so an hour
+#: reaching this predicate has no direct beam anywhere in the country's fleet and
+#: the honest expectation is exactly zero. Measured on the replica 2026-08-13,
+#: whole history, latest revision per hour: the largest night actual this admits
+#: is DE 3.6 MW against a 38 GW fleet (0.009%), while FR runs to 440.0 MW.
+IMPOSSIBLE_NIGHT_THRESHOLD_MW = 1.0
+
+
+def impossible_night_mask(
+    country_code: str,
+    hour_starts: Sequence,
+    actuals: Sequence,
+    threshold_mw: float = IMPOSSIBLE_NIGHT_THRESHOLD_MW,
+) -> np.ndarray:
+    """
+    Rows the sun says cannot exist: night by `night_mask`, actual above threshold.
+
+    Night is `solar_geometry.is_night_hour` — the serving clamp's own predicate,
+    reached through `night_mask` — so the fit refuses exactly the hours the clamp
+    zeroes. A second definition here is the failure `solar_geometry` exists to
+    stop: if the fit and the clamp disagree about which hours are night, both are
+    wrong.
+
+    Non-finite actuals are never flagged. They are the missingness audit's
+    business (`finite_training_rows`), and double-counting them would make the
+    two exclusion counts sum past the rows actually dropped.
+
+    Args:
+        country_code: ISO 2-letter code with a representative point in
+            `solar_geometry.SOLAR_REPRESENTATIVE_POINTS`.
+        hour_starts: UTC timestamps labelling the start of each hourly row.
+        actuals: The observed solar MW for those rows, same length and order.
+        threshold_mw: Night actuals strictly above this are impossible.
+
+    Returns:
+        Boolean array, True where the row is to be excluded from a fit.
+
+    Raises:
+        ValueError: If `hour_starts` and `actuals` differ in length. Silently
+            broadcasting would mask rows by position against the wrong hours.
+    """
+    values = np.asarray(pd.Series(list(actuals)).to_numpy(), dtype=float)
+    night = night_mask(country_code, hour_starts)
+    if len(values) != len(night):
+        raise ValueError(
+            f"hour_starts and actuals disagree in length: {len(night)} vs {len(values)}"
+        )
+    if len(values) == 0:
+        return np.zeros(0, dtype=bool)
+    return night & np.isfinite(values) & (values > threshold_mw)
+
+
+def exclude_impossible_night_rows(
+    frame: pd.DataFrame,
+    country_code: str,
+    timestamp_column: str = "target_ts",
+    actual_column: str = "actual",
+    threshold_mw: float = IMPOSSIBLE_NIGHT_THRESHOLD_MW,
+) -> Tuple[pd.DataFrame, dict]:
+    """
+    Drop physically impossible night rows from a **fit** frame, with an audit.
+
+    This is a fit-side rule and only a fit-side rule (ABL-376). Never call it on
+    a scoring frame: a contaminated actual has to stay visible in the score, or
+    the night number measures the filter instead of the model. The asymmetry is
+    the whole point — we refuse to train on values the sun says are impossible,
+    and we still hold the model to account against whatever the source reports.
+
+    It is stated as a general rule over countries rather than as an FR special
+    case, and it is written to be a no-op where the data is clean. Measured on
+    the replica 2026-08-13 over ABL-253's registered fit window (2026-01-14 to
+    2026-07-11), the source's hourly series carries **0 impossible hours for AT
+    and BE, 4 for DE** (max 1.7 MW) **and 114 for FR** (max 285.9 MW).
+
+    What this function removes from a fit frame is slightly less than that, and
+    the gap is not an error: it runs after `finite_training_rows`, so an hour
+    whose features were already missing was dropped as missing rather than as
+    impossible. On that same window the fit loses 4 DE hours (32 rows) and 113
+    FR hours (904 rows) — one contaminated FR hour never reached the fit at all.
+    Rows exceed hours because a fit row is per (target, vintage).
+
+    Args:
+        frame: Fit rows, one per (target, vintage). Not mutated.
+        country_code: ISO 2-letter code, passed through to the geometry.
+        timestamp_column: Column holding each row's target hour start.
+        actual_column: Column holding the observed solar MW.
+        threshold_mw: Night actuals strictly above this are dropped.
+
+    Returns:
+        `(kept, audit)`. `audit` carries the threshold, the night-row
+        denominator and what was removed, so a later run can tell a data fix
+        (fewer impossible rows on the same rule) from a rule change (a different
+        threshold or predicate) rather than having to infer it from a row count.
+    """
+    if len(frame) == 0:
+        return frame.reset_index(drop=True), {
+            "threshold_mw": float(threshold_mw),
+            "night_rows": 0, "excluded_rows": 0, "excluded_targets": 0,
+            "retained_rows": 0, "max_excluded_mw": None,
+            "mean_night_actual_mw": None,
+        }
+
+    timestamps, values = frame[timestamp_column], frame[actual_column]
+    night = night_mask(country_code, timestamps)
+    impossible = impossible_night_mask(country_code, timestamps, values, threshold_mw)
+    finite_night = night & np.isfinite(np.asarray(values, dtype=float))
+    kept = frame.loc[~impossible].reset_index(drop=True)
+
+    return kept, {
+        "threshold_mw": float(threshold_mw),
+        "night_rows": int(finite_night.sum()),
+        "excluded_rows": int(impossible.sum()),
+        # Rows are per (target, vintage), so the row count is the vintage
+        # multiple of the distinct contaminated hours. Both are reported: the
+        # first is what the fit lost, the second is what the source got wrong.
+        "excluded_targets": int(frame.loc[impossible, timestamp_column].nunique()),
+        "retained_rows": int(len(kept)),
+        "max_excluded_mw": float(values[impossible].max()) if impossible.any() else None,
+        "mean_night_actual_mw": (float(values[finite_night].mean())
+                                 if finite_night.any() else None),
+    }
+
+
 __all__ = [
     "SOLAR_GEOMETRY_FEATURES",
+    "SOLAR_BANDS",
     "NIGHT_ELEVATION_THRESHOLD_DEG",
+    "IMPOSSIBLE_NIGHT_THRESHOLD_MW",
     "solar_geometry_frame",
+    "solar_bands",
     "night_mask",
+    "impossible_night_mask",
+    "exclude_impossible_night_rows",
 ]

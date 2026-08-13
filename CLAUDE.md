@@ -601,7 +601,62 @@ added to one and not the others fails before any fit rather than mid-run — it
 raises on `import`, so even `--help` exits non-zero. That is deliberately louder
 than a failing test: the tables disagreeing is **not** a textual conflict, so
 GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
-platform will show it. **Registering a new scope means editing three tables.**
+platform will show it. **Registering a new scope means editing every one of these
+tables** — three on the wind harness, and **five on solar** since ABL-376 added
+`FIT_RULES` and `SCOPE_TITLES` to the same import-time check. Count them in the
+`check_registration_tables(...)` call in the harness you are editing rather than
+from this sentence; that call is the list.
+
+**What the fit was allowed to see is part of the registration too (ABL-376).**
+`FIT_RULES` (`evaluate_solar_retrain.py`) carries `exclude_impossible_night` per
+scope: a night row — night by `solar_geometry.is_night_hour`, the serving clamp's
+own predicate, reached through `solar_features.night_mask` — whose actual exceeds
+`IMPOSSIBLE_NIGHT_THRESHOLD_MW` (1 MW, ABL-338's threshold) is dropped **from the
+fit and never from the score**. `energy_renewable` carries solar for FR at sun
+elevations down to -65 deg, so a model fitted through it learns a night floor
+faithfully; the defect is in the training target, not the model.
+
+That asymmetry is the rule, not an implementation detail. We refuse to train on
+values the sun says are impossible and still score against whatever the source
+reports, so the challenger cannot delete the rows it is held to account on. A run
+that filtered its own gate frame would fit, score, render every number and pass
+every other test, so the call site is pinned by AST in
+`tests/test_solar_night_fit_exclusion.py` rather than by any output.
+
+The rule is stated over countries, not for FR — the predicate is the sun's, so a
+country whose data is clean loses nothing, and a `0` in the report's per-country
+table means the rule ran and found nothing rather than that it was off. It is
+conservative by construction: `is_night_hour` requires the sun below threshold
+for the *whole* hour, so shoulder contamination survives it. The threshold and
+the per-country row count are printed in the scorecard so a later run can tell a
+data fix from a rule change. `abl253` registers the rule **off** and keeps its
+report heading character-for-character, so the dispositioned read still
+reproduces; `abl376` is the same countries, basis and windows with the rule on —
+a controlled A/B on the rule alone. Do not re-read a dispositioned scope under a
+changed fit rule; register a new one.
+
+**A one-seed solar A/B on this harness cannot resolve anything under ~5%
+(ABL-376 §5).** Refitting the solar gate's CatBoost at eight seeds, changing
+nothing else, moves daylight MAE by up to **4.4% (FR), 3.7% (DE) and 5.4% (BE)**
+between two seeds — the same order ABL-375 measured on DE. So a gap quoted from
+a single fit per arm is not a measurement, and both of this rule's headline
+numbers dissolved when one was run: FR's night level moved −0.33 MW against a
+within-arm spread of 19.6, and its daylight MAE moved the *wrong* way by 0.38%.
+Pair the arms by seed — same seed, same frames, one integer apart, so the
+across-seed variance cancels inside the difference — and quote the effect
+against a null built from every control-vs-control seed pair, which is what a
+single-seed gap looks like with nothing changed at all.
+`scripts/abl376_night_seed_spread.py` is the worked example; it builds each
+country's frames once and refits around them, which is what makes 16 fits per
+country affordable (~4–5 min of building, ~4–5 s per fit).
+
+A corollary worth keeping: **a fit-side rule can only move what the feature
+vector can represent.** The same exclusion is 27× more effective on FR's night
+level once `sun_elevation_deg` and `is_night` are in the vector (−8.81 MW, 7
+seeds of 8) than on the gate's 25 legacy columns (−0.33 MW, 5 of 8), because
+nothing in those 25 distinguishes "0 W/m² because the sun is down" from "0 W/m²
+at a dark winter dawn". Before concluding a target-side fix does nothing, check
+the model has a handle for the thing you removed.
 
 **Which way the two `.gitignore` globs cut — they do not cut the same way.**
 Entries stay exactly one directory deep under `experiments/`, and below that the

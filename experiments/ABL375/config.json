@@ -1,0 +1,192 @@
+{
+  "issue": "ABL-375",
+  "parent": "ABL-338",
+  "title": "DE solar: like-for-like XGBoost refit against the serving CatBoost configuration, geometry on both arms",
+  "status": "PRE-REGISTERED - frozen before any arm is fitted on the registered holdout",
+  "registered_at": "2026-08-13T00:00:00Z",
+  "registered_by": "Forecasting Scientist",
+  "evidence_pack": "reports/abl_375_de_solar_verdict.md (verdict and caveats), reports/abl_375_de_solar_algorithm.md (generated tables)",
+  "measurement": "reports/abl_375_probe.json (scripts/abl375_preregistration_probe.py), reports/abl_375_solar/*.json (scripts/abl338_solar_holdout.py)",
+
+  "why_a_new_registration": [
+    "ABL-348's pairs are the 37 unserved energy_generation tranche pairs. BE/DE/FR solar is not among them - it is ABL-253's pair set, on energy_renewable, and carries ABL-348's verdict ALREADY-COVERED.",
+    "ABL-348's metric is WAPE on the D+2 horizon bands 24-36h / 36-48h / 48-64h under the serve-faithful gate harness. ABL-375's question is a fit-side algorithm choice scored on solar-elevation bands, and WAPE cannot express a night result at all: the night denominator is ~0 (measured on the registered holdout: DE night mean actual 0.0 MW). The bands and the metric do not transfer.",
+    "ABL-348's WINDOWS are transferable in principle - they are inherited verbatim from ABL-253, which does cover BE/DE/FR solar. They are not usable here for a different reason: its gate window 2026-07-11 -> 2026-08-10 lies wholly inside ABL-338's summer holdout 2026-06-13 -> 2026-08-11, on which BOTH arms of this exact comparison have already been fitted and scored (committed 5cf2296; generated 2026-08-12 22:49-22:55). Registering a window whose challenger scores are already known is not a pre-registration. Measured and enumerated in reports/abl_375_probe.json:registered_window_is_unread."
+  ],
+
+  "registered_holdout": {
+    "window": ["2026-04-30", "2026-06-12"],
+    "inclusive_of_end_date": true,
+    "hours": 1056,
+    "provenance": "The gap between ABL-338's two committed holdouts - spring ends 2026-04-29, summer starts 2026-06-13. Chosen because it is the only contiguous multi-week window in 2026 on which no arm of this comparison has been fitted or scored, not because of anything observed in it. All seven committed ABL-338 windows are enumerated in the probe with an explicit non-overlap flag.",
+    "never_read_for_this_comparison": true,
+    "season": "late spring / early summer transition. It is NOT the high-summer season the already-observed summer window covers, and the verdict must say so rather than generalising."
+  },
+  "fit_window": {
+    "rule": "every featured row strictly before the holdout start; no gap, no shuffling. The script's own truncation, identical for every arm.",
+    "start_is_per_country_data_start": true,
+    "measured_before_any_fit": {
+      "AT": {"featured_start": "2025-11-27T21:00:00", "train_end": "2026-04-29T23:00:00", "n_train": 3647},
+      "BE": {"featured_start": "2024-01-15T00:00:00", "train_end": "2026-04-29T23:00:00", "n_train": 20277},
+      "DE": {"featured_start": "2025-11-26T17:00:00", "train_end": "2026-04-29T23:00:00", "n_train": 3755},
+      "FR": {"featured_start": "2023-01-15T00:00:00", "train_end": "2026-04-29T23:00:00", "n_train": 29100}
+    },
+    "de_history_caveat": "DE solar in energy_renewable begins 2025-09-08T22:00; after feature lag/rolling warmup the featured frame starts 2025-11-26. DE's fit therefore spans ~156 days and under one seasonal cycle. That is a property of the data, not of this registration, and it bounds how far any DE conclusion generalises across seasons."
+  },
+  "validation_split": "config.VALIDATION_DAYS = 30, taken chronologically off the end of the fit window, inside the fit window and never touching the holdout. Both algorithms early-stop on it at 50 rounds (src/forecaster.py::_train_simple), so early stopping is symmetric.",
+
+  "control_is_a_refit_not_the_live_artifact": "The live BE/DE/FR solar artifacts are fitted through roughly today. Scoring them on the registered holdout would score them in-sample and set a bar nothing can clear. Every arm here is a refit on the identically truncated window. ABL-338 established this; it is restated because it is the single easiest thing to get wrong in this comparison.",
+
+  "arms": {
+    "cells": "2 algorithms x 2 feature sets x 3 seeds x 4 countries = 48 fits",
+    "algorithms": ["catboost", "xgboost"],
+    "feature_sets": {
+      "control": "the 25 names every live solar artifact carries (pre-ABL-338)",
+      "geometry": "control + ABL-338's sun_elevation_deg, is_night = 27 names"
+    },
+    "primary_contrast": "geometry vs geometry across algorithms. Geometry is unconditional in src/features.py on origin/main, so the arm a routine retrain would actually produce is the geometry arm - that is the comparison that matters, and control is retained only so the within-algorithm geometry delta stays visible.",
+    "loss": "each algorithm's default squared error. No nonneg_objective arm: ABL-338 already rejected the log links on DE (CatBoost Poisson collapsed to a constant 1.0 MW; Tweedie cost 62.3% daylight WAPE). Re-running them here would spend compute on a settled question.",
+    "hyperparameters": {
+      "rule": "both algorithms run at their own config.get_default_params() - neither inherits the other's dict, and no tuning happens on either side.",
+      "measured_symmetry": "the three serving CatBoost solar artifacts (BE 20260201_222022, DE 20260223_193822, FR 20260201_222014) and the AT XGBoost artifact (20260112_165237) all carry hyperparams EQUAL to config's defaults for their algorithm - verified field-by-field in reports/abl_375_probe.json:incumbent.hyperparams_equal_config_default. So 'config default' and 'the serving configuration' are the same thing here, and the CatBoost arm is genuinely the serving configuration refitted rather than a stand-in.",
+      "shared": "n_estimators/iterations 500, max_depth/depth 8, learning_rate 0.05, early stopping 50 rounds",
+      "known_asymmetry_reported_not_corrected": "XGBoost's defaults add subsample 0.8, colsample_bytree 0.8, min_child_weight 3; CatBoost's add l2_leaf_reg 3. These are each library's project default and are not matched across libraries. A cross-library comparison cannot be hyperparameter-identical; it can only be default-to-default, and this is stated so nobody reads it as tuned-vs-untuned."
+    },
+    "seeds": [42, 1337, 2718],
+    "seed_knob": "random_state for xgboost, random_seed for catboost; nothing else varies between seeds"
+  },
+
+  "bands": {
+    "definition": "src/solar_features - night = sun below NIGHT_ELEVATION_THRESHOLD_DEG for the whole hour (the serving clamp's own predicate); shoulder = not night but sun elevation <= 0 at the hour midpoint; daylight = the rest.",
+    "measured_holdout_split": {
+      "AT": {"daylight": 670, "shoulder": 119, "night": 267},
+      "BE": {"daylight": 681, "shoulder": 143, "night": 232},
+      "DE": {"daylight": 686, "shoulder": 142, "night": 228},
+      "FR": {"daylight": 656, "shoulder": 123, "night": 277}
+    },
+    "night_is_reported_in_mw_only": "its denominator is ~0; a percentage there reports the denominator, not the model."
+  },
+
+  "metric": "MAE in MW per band. Daylight also carries WAPE. Night and shoulder are MW only.",
+  "baseline": {
+    "free_baseline": "literal seasonal-naive D-7 same-hour actual (target_value_lag_7d), on exactly the holdout rows the arms are scored on",
+    "measured_before_any_fit": {
+      "AT": {"daylight_mae_mw": 781.9, "daylight_wape_pct": 37.24, "shoulder_mae_mw": 1.0, "night_mae_mw": 0.0, "daylight_mean_actual_mw": 2099.6},
+      "BE": {"daylight_mae_mw": 1425.5, "daylight_wape_pct": 49.19, "shoulder_mae_mw": 1.5, "night_mae_mw": 0.0, "daylight_mean_actual_mw": 2898.1},
+      "DE": {"daylight_mae_mw": 6509.3, "daylight_wape_pct": 29.5, "shoulder_mae_mw": 14.8, "night_mae_mw": 0.0, "daylight_mean_actual_mw": 22062.4},
+      "FR": {"daylight_mae_mw": 2128.1, "daylight_wape_pct": 25.56, "shoulder_mae_mw": 29.9, "night_mae_mw": 11.3, "daylight_mean_actual_mw": 8327.1}
+    },
+    "decision_baseline": "the OTHER algorithm's geometry arm on the identical window. D-7 is the sanity floor, not the decision bar - an algorithm choice is a within-challenger question."
+  },
+
+  "primary_bar": {
+    "country": "DE",
+    "band": "daylight",
+    "conditions_all_required": [
+      "mean over seeds of daylight MAE, xgboost+geometry < catboost+geometry",
+      "strict seed non-overlap: max over seeds (xgboost+geometry) < min over seeds (catboost+geometry)",
+      "relative gap (catboost - xgboost) / catboost >= 3.0%"
+    ],
+    "why_3_pct": "twice ABL-338's ~1.5% perturbation noise floor. The seed spread measured here supersedes that figure as the floor and is reported either way; 3.0% is the pre-committed number so the bar cannot move after the spread is seen.",
+    "co_primary_night_guardrail": "DE night mean prediction under xgboost+geometry must be <= under catboost+geometry. A daylight win bought with a night regression is not a win, and night is the whole ABL-337/ABL-338 lineage.",
+    "verdicts": {
+      "PASS": "all three daylight conditions and the night guardrail hold",
+      "AMBIGUOUS": "the seed mean favours xgboost but the ranges overlap, or the gap is under 3.0%, or the night guardrail fails",
+      "FAIL": "the seed mean favours catboost"
+    },
+    "a_fail_or_ambiguous_is_a_result": "and is reported as plainly as a pass. No re-registration on a fail."
+  },
+  "secondary_reported_not_gating": [
+    "shoulder MAE in MW, both algorithms, both feature sets",
+    "night mean and max prediction in MW, and negative-prediction count",
+    "daylight WAPE and skill against literal D-7",
+    "the within-algorithm geometry delta (control -> geometry) per algorithm"
+  ],
+
+  "directional_expectations_registered_before_the_fit": {
+    "purpose": "a per-country algorithm choice needs its counter-cases named in advance, or a table showing DE winning on XGBoost and BE/FR on CatBoost reads as cherry-picking after the fact.",
+    "DE": "xgboost+geometry beats catboost+geometry on daylight. From the already-observed summer window: 3,694.8 -> 3,076.3 MW.",
+    "BE": "catboost+geometry beats xgboost+geometry on daylight. Already-observed summer: 493.8 vs 518.6 MW.",
+    "FR": "catboost+geometry beats xgboost+geometry on daylight. Already-observed summer: 1,285.1 vs 1,468.6 MW.",
+    "AT": "context only - AT already serves xgboost, so it has no algorithm choice pending. Reported because it is the fourth solar country and its cost is one extra fit set.",
+    "if_an_expectation_is_violated": "report the violation, do not reweight the conclusion toward the expectation. A BE or FR reversal on a fresh window would be evidence that the algorithm choice is window-dependent, which is a finding about the whole per-country policy."
+  },
+
+  "already_observed_windows_are_exploratory": {
+    "windows": [
+      {"label": "summer", "window": ["2026-06-13", "2026-08-11"], "n_holdout": 1440},
+      {"label": "spring", "window": ["2026-03-01", "2026-04-29"], "n_holdout": 1440}
+    ],
+    "status": "EXPLORATORY - already fitted and scored under ABL-338 before this registration existed. Quoted from the committed JSON, never refitted, and labelled as already-observed everywhere they appear.",
+    "they_are_not_a_second_gate": "seeing them is what created the hypothesis. They are reported for seasonal range and for the counter-cases, and they cannot confirm the effect they generated."
+  },
+
+  "contamination": {
+    "ABL-337_impossible_night_actuals": {
+      "handling": "--drop-impossible-night: night rows whose actual exceeds 1 MW are dropped from the FIT and never from the SCORE. Identical on every arm, so the comparison is unaffected either way.",
+      "measured_in_registered_windows": {
+        "AT": {"fit_rows": 0, "fit_max_mw": 0.0, "holdout_rows": 0, "holdout_max_mw": 0.0},
+        "BE": {"fit_rows": 0, "fit_max_mw": 0.1, "holdout_rows": 0, "holdout_max_mw": 0.0},
+        "DE": {"fit_rows": 4, "fit_max_mw": 1.7, "holdout_rows": 0, "holdout_max_mw": 0.0},
+        "FR": {"fit_rows": 464, "fit_max_mw": 439.3, "holdout_rows": 24, "holdout_max_mw": 251.0}
+      },
+      "consequence_for_the_primary": "DE's night band on this holdout has max actual 0.0 MW, so DE night MW is measured against a true zero. FR's is not: 24 holdout night hours read up to 251 MW, which no arm can or should predict, so FR night MW carries a floor that is contamination rather than model error. Stated wherever FR night appears.",
+      "not_fixed_here": "the ingest fix is not this issue's and not this role's."
+    },
+    "ABL-188": "applied by src/db.load_renewable_type_data to whatever table is read, so it is identical on both arms by construction. energy_renewable is the source for all four countries (read off the artifacts, not assumed).",
+    "ABL-67": "net_position only - does not intersect a solar target.",
+    "ABL-109_ABL-111": "load only - does not intersect.",
+    "ABL-71": "prod ingest staleness, fixes undeployed. Known wrong-write modes are load and net position, so this is a provenance caveat rather than proof solar ingest is clean."
+  },
+
+  "known_limits_of_this_protocol": {
+    "not_serve_faithful": "features come from the training-time pipeline (features.create_all_features), whose lags and rolling windows are anchored at the target hour; at serving they are anchored at the generation instant (ABL-183). Every arm carries that identically, so the COMPARISON is sound and the absolute MW are optimistic against what the rail would produce. The two geometry features are exempt by construction - both paths call solar_features.solar_geometry_frame.",
+    "no_horizon_bands": "this protocol has no 24-36h / 36-48h / 48-64h decomposition, so it cannot substitute for a gate-harness read. It answers 'which algorithm fits DE solar better', not 'does DE solar clear its promotion gate'.",
+    "one_window_plus_two_observed": "three windows in total, one of them confirmatory. A per-country algorithm policy resting on this should say so."
+  },
+
+  "replica": {
+    "path": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "bytes": 9432453120,
+    "access": "read-only, file:...?mode=ro",
+    "verified_live_replica": "byte count matches the ABL-348 registration's reading of the same file; NOT the 3.0 GB energy-data-gathering partial snapshot"
+  },
+  "interpreter": {
+    "path": "C:\\Code\\able\\energy-forecast\\.venv\\Scripts\\python.exe",
+    "python": "3.14.3",
+    "why_it_is_part_of_the_registration": "an xgboost-3.3.0 pickle loaded under 2.1.4 keeps its trees and silently resets the fitted intercept to 0.5, producing shape with no level. Every artifact read here is under .venv."
+  },
+
+  "corrections_after_the_fit": {
+    "rule": "A registration is amended visibly or not at all. These fields were wrong when frozen; the original text above is left standing so the diff shows what was believed, and each entry says whether it changes any arm that was fitted.",
+    "entries": [
+      {
+        "field": "arms.feature_sets",
+        "registered": "control = 'the 25 names every live solar artifact carries (pre-ABL-338)', geometry = 'control + 2 = 27 names'",
+        "measured": "control = 29 names, geometry = 31.",
+        "cause": "`_legacy_feature_columns()` returns `get_feature_columns('solar')` minus the geometry pair, and that list has grown since the serving artifacts were fitted: is_holiday, days_to_holiday, days_from_holiday, is_bridge_day are in it and are absent from all four serving artifacts. ABL-338's own script docstring makes the same 25-name claim and is wrong for the same reason; its committed runs used 29/31 too, so the ABL-375 numbers stay directly comparable to ABL-338's.",
+        "changes_a_fitted_arm": false,
+        "why_not": "the registered arm was defined by construction ('the non-geometry list, plus the geometry pair'), and that is exactly what was fitted, identically on both algorithms. Only the head-count in the prose was wrong.",
+        "consequence_that_does_matter": "neither arm is the SERVING feature set. So this read compares algorithms and hyperparameters at the serving configuration, on origin/main's current solar feature list - not against the feature list the live artifacts carry. Any statement of the form 'XGBoost beats the serving DE artifact' is out of scope for this protocol and is not made."
+      },
+      {
+        "field": "primary_bar.co_primary_night_guardrail",
+        "registered": "DE night mean prediction under xgboost+geometry must be <= under catboost+geometry",
+        "defect": "written as a one-sided <=, which a large NEGATIVE night mean satisfies. DE xgboost+geometry reads -44.5 MW on the registered window with up to 267 negative predictions, so it passes a guardrail it should not obviously pass.",
+        "handling": "the condition is reported exactly as registered - it passes - and the negative night level is reported beside it rather than folded into the verdict. Rewriting the guardrail after seeing the number would void the registration. A future registration should use |night mean| or the serving clamp's own counters.",
+        "changes_a_fitted_arm": false
+      }
+    ]
+  },
+  "post_hoc_additions": {
+    "seeded_de_on_the_already_observed_windows": {
+      "what": "DE refitted at the registered seeds on ABL-338's summer and spring holdouts, 12 fits, reports/abl_375_solar/holdout_noisefloor_*.json",
+      "when": "after the registered verdict was read and committed (d990fcf). The git order is the evidence that it was not used to move the verdict.",
+      "why": "the registered read found DE catboost+geometry moving 13.79% of its mean across three seeds. That makes every single-seed number in ABL-338 - including the 10.7% this issue was filed on - unreadable until its own spread is known, and the only way to know it is to measure it on those windows.",
+      "status": "POST-HOC. It characterises already-observed numbers; it is not a second gate and does not revise the AMBIGUOUS verdict on the registered window."
+    }
+  },
+  "voids_this_registration": "any change to the holdout window, the fit truncation rule, the arm set, the seeds, the bands, the metric, the primary bar or the 3.0% threshold after a challenger score has been seen on the registered holdout. Fitting the registered window, seeing a FAIL, and re-reading on a different window voids it outright.",
+  "promotion": "NONE. This issue reads the gate and reports. Moving DE solar to XGBoost is a separate change requiring CEO approval, and no artifact produced here goes near the serving registry.",
+  "artifact_location": "reports/abl_375_solar (experiment output only; not a serving registry). No model is written to models/."
+}

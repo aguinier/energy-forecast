@@ -1,0 +1,1507 @@
+{
+  "issue": "ABL-385",
+  "generated_at": "2026-08-13T10:55:26",
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_db_bytes": 9432453120,
+  "live_models_dir": "C:\\Code\\able\\energy-forecast\\models",
+  "windows": [
+    {
+      "window": "W1",
+      "start": "2026-02-13",
+      "end": "2026-03-14"
+    },
+    {
+      "window": "W2",
+      "start": "2026-03-15",
+      "end": "2026-04-13"
+    },
+    {
+      "window": "W3",
+      "start": "2026-04-14",
+      "end": "2026-05-13"
+    },
+    {
+      "window": "W4",
+      "start": "2026-05-14",
+      "end": "2026-06-12"
+    },
+    {
+      "window": "W5",
+      "start": "2026-06-13",
+      "end": "2026-07-12"
+    },
+    {
+      "window": "W6",
+      "start": "2026-07-13",
+      "end": "2026-08-11"
+    }
+  ],
+  "fit_length_ablation_starts": [
+    "2023-01-01",
+    "2025-11-01",
+    "2026-01-01",
+    "2026-03-01"
+  ],
+  "timing_calibration_before_registration": {
+    "why": "size the registered sweep; a design has to be affordable to be frozen",
+    "cell": "DE/solar/catboost/geometry, holdout 2026-06-13..2026-08-11, seeds 42,1337",
+    "already_published_by": "ABL-375 report section 3 (summer, post-hoc seeded, 3 seeds)",
+    "new_information": false,
+    "reproduced": "seed 42 daylight MAE 3694.8 MW == ABL-375's published summer maximum",
+    "measured_wall_clock_s": 6.5
+  },
+  "pairs": {
+    "AT/solar": {
+      "country_code": "AT",
+      "forecast_type": "solar",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\AT\\solar\\model.joblib",
+      "served": true,
+      "algorithm": "xgboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20260112_165237",
+      "n_feature_columns_on_artifact": 25,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 6479,
+        "first": "2025-11-07 23:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 277
+      },
+      "features": {
+        "n_rows_after_featuring": 6143,
+        "n_expected_columns": 31,
+        "n_present": 31,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 1851,
+          "fit_span_days": 77,
+          "n_holdout_daylight_or_shoulder": 389,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 2543,
+          "fit_span_days": 107,
+          "n_holdout_daylight_or_shoulder": 456,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 3263,
+          "fit_span_days": 137,
+          "n_holdout_daylight_or_shoulder": 508,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 3983,
+          "fit_span_days": 167,
+          "n_holdout_daylight_or_shoulder": 540,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 4703,
+          "fit_span_days": 197,
+          "n_holdout_daylight_or_shoulder": 540,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 5423,
+          "fit_span_days": 227,
+          "n_holdout_daylight_or_shoulder": 540,
+          "abl337_impossible_night_rows_in_fit": 0
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 5423,
+          "fit_span_days": 227
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 5423,
+          "fit_span_days": 227
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4604,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "BE/solar": {
+      "country_code": "BE",
+      "forecast_type": "solar",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\BE\\solar\\model.joblib",
+      "served": true,
+      "algorithm": "catboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20260201_222022",
+      "n_feature_columns_on_artifact": 25,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 23109,
+        "first": "2024-01-01 00:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 953
+      },
+      "features": {
+        "n_rows_after_featuring": 22773,
+        "n_expected_columns": 31,
+        "n_present": 31,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 18481,
+          "fit_span_days": 760,
+          "n_holdout_daylight_or_shoulder": 386,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 19173,
+          "fit_span_days": 790,
+          "n_holdout_daylight_or_shoulder": 458,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 19893,
+          "fit_span_days": 820,
+          "n_holdout_daylight_or_shoulder": 521,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 20613,
+          "fit_span_days": 850,
+          "n_holdout_daylight_or_shoulder": 574,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 21333,
+          "fit_span_days": 880,
+          "n_holdout_daylight_or_shoulder": 596,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 22053,
+          "fit_span_days": 910,
+          "n_holdout_daylight_or_shoulder": 553,
+          "abl337_impossible_night_rows_in_fit": 0
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 22053,
+          "fit_span_days": 910
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 6069,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4604,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "DE/solar": {
+      "country_code": "DE",
+      "forecast_type": "solar",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\DE\\solar\\model.joblib",
+      "served": true,
+      "algorithm": "catboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20260223_193822",
+      "n_feature_columns_on_artifact": 25,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 6587,
+        "first": "2025-11-14 16:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 270
+      },
+      "features": {
+        "n_rows_after_featuring": 6251,
+        "n_expected_columns": 31,
+        "n_present": 31,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 693,
+          "n_train_strictly_before": 1958,
+          "fit_span_days": 78,
+          "n_holdout_daylight_or_shoulder": 384,
+          "abl337_impossible_night_rows_in_fit": 0
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 2651,
+          "fit_span_days": 108,
+          "n_holdout_daylight_or_shoulder": 460,
+          "abl337_impossible_night_rows_in_fit": 2
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 3371,
+          "fit_span_days": 138,
+          "n_holdout_daylight_or_shoulder": 523,
+          "abl337_impossible_night_rows_in_fit": 4
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 4091,
+          "fit_span_days": 168,
+          "n_holdout_daylight_or_shoulder": 576,
+          "abl337_impossible_night_rows_in_fit": 4
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 4811,
+          "fit_span_days": 198,
+          "n_holdout_daylight_or_shoulder": 590,
+          "abl337_impossible_night_rows_in_fit": 4
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 5531,
+          "fit_span_days": 228,
+          "n_holdout_daylight_or_shoulder": 556,
+          "abl337_impossible_night_rows_in_fit": 4
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 5531,
+          "fit_span_days": 228
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 5531,
+          "fit_span_days": 228
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4605,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "FR/solar": {
+      "country_code": "FR",
+      "forecast_type": "solar",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\FR\\solar\\model.joblib",
+      "served": true,
+      "algorithm": "catboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20260201_222014",
+      "n_feature_columns_on_artifact": 25,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 31932,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 1318
+      },
+      "features": {
+        "n_rows_after_featuring": 31596,
+        "n_expected_columns": 31,
+        "n_present": 31,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 27304,
+          "fit_span_days": 1125,
+          "n_holdout_daylight_or_shoulder": 392,
+          "abl337_impossible_night_rows_in_fit": 430
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 27996,
+          "fit_span_days": 1155,
+          "n_holdout_daylight_or_shoulder": 450,
+          "abl337_impossible_night_rows_in_fit": 445
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 28716,
+          "fit_span_days": 1185,
+          "n_holdout_daylight_or_shoulder": 498,
+          "abl337_impossible_night_rows_in_fit": 464
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 29436,
+          "fit_span_days": 1215,
+          "n_holdout_daylight_or_shoulder": 540,
+          "abl337_impossible_night_rows_in_fit": 476
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 30156,
+          "fit_span_days": 1245,
+          "n_holdout_daylight_or_shoulder": 540,
+          "abl337_impossible_night_rows_in_fit": 488
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 30876,
+          "fit_span_days": 1275,
+          "n_holdout_daylight_or_shoulder": 534,
+          "abl337_impossible_night_rows_in_fit": 517
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 30876,
+          "fit_span_days": 1275
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 6064,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4579,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "AT/wind_onshore": {
+      "country_code": "AT",
+      "forecast_type": "wind_onshore",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\AT\\wind_onshore\\model.joblib",
+      "served": true,
+      "algorithm": "xgboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20260112_165238",
+      "n_feature_columns_on_artifact": 24,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 6374,
+        "first": "2025-11-07 23:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 277
+      },
+      "features": {
+        "n_rows_after_featuring": 6038,
+        "n_expected_columns": 28,
+        "n_present": 28,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 1746,
+          "fit_span_days": 72
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 2438,
+          "fit_span_days": 102
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 3158,
+          "fit_span_days": 132
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 3878,
+          "fit_span_days": 162
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 4598,
+          "fit_span_days": 192
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 5318,
+          "fit_span_days": 222
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 5318,
+          "fit_span_days": 222
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 5318,
+          "fit_span_days": 222
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4604,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "BE/wind_onshore": {
+      "country_code": "BE",
+      "forecast_type": "wind_onshore",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\BE\\wind_onshore\\model.joblib",
+      "served": true,
+      "algorithm": "catboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20260201_222020",
+      "n_feature_columns_on_artifact": 24,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 23044,
+        "first": "2024-01-01 00:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 953
+      },
+      "features": {
+        "n_rows_after_featuring": 22708,
+        "n_expected_columns": 28,
+        "n_present": 28,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 18416,
+          "fit_span_days": 760
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 19108,
+          "fit_span_days": 790
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 19828,
+          "fit_span_days": 820
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 20548,
+          "fit_span_days": 850
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 21268,
+          "fit_span_days": 880
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 21988,
+          "fit_span_days": 910
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 21988,
+          "fit_span_days": 910
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 6004,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4604,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "DE/wind_onshore": {
+      "country_code": "DE",
+      "forecast_type": "wind_onshore",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\DE\\wind_onshore\\model.joblib",
+      "served": true,
+      "algorithm": "catboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20260201_222000",
+      "n_feature_columns_on_artifact": 24,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 8309,
+        "first": "2025-09-08 22:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 337
+      },
+      "features": {
+        "n_rows_after_featuring": 7973,
+        "n_expected_columns": 28,
+        "n_present": 28,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 693,
+          "n_train_strictly_before": 3680,
+          "fit_span_days": 145
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 4373,
+          "fit_span_days": 175
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 5093,
+          "fit_span_days": 205
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 5813,
+          "fit_span_days": 235
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 6533,
+          "fit_span_days": 265
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 7253,
+          "fit_span_days": 295
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 7253,
+          "fit_span_days": 295
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 6202,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4605,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "FR/wind_onshore": {
+      "country_code": "FR",
+      "forecast_type": "wind_onshore",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\FR\\wind_onshore\\model.joblib",
+      "served": true,
+      "algorithm": "catboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20260201_222010",
+      "n_feature_columns_on_artifact": 24,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 31932,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 1318
+      },
+      "features": {
+        "n_rows_after_featuring": 31596,
+        "n_expected_columns": 28,
+        "n_present": 28,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 27304,
+          "fit_span_days": 1125
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 27996,
+          "fit_span_days": 1155
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 28716,
+          "fit_span_days": 1185
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 29436,
+          "fit_span_days": 1215
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 30156,
+          "fit_span_days": 1245
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 30876,
+          "fit_span_days": 1275
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 30876,
+          "fit_span_days": 1275
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 6064,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4579,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "BE/wind_offshore": {
+      "country_code": "BE",
+      "forecast_type": "wind_offshore",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\BE\\wind_offshore\\model.joblib",
+      "served": true,
+      "algorithm": "xgboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20251226_155415",
+      "n_feature_columns_on_artifact": 24,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 22586,
+        "first": "2024-01-01 00:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 953
+      },
+      "features": {
+        "n_rows_after_featuring": 22250,
+        "n_expected_columns": 28,
+        "n_present": 28,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 652,
+          "n_train_strictly_before": 17998,
+          "fit_span_days": 760
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 18650,
+          "fit_span_days": 790
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 19370,
+          "fit_span_days": 820
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 20090,
+          "fit_span_days": 850
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 20810,
+          "fit_span_days": 880
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 21530,
+          "fit_span_days": 910
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 21530,
+          "fit_span_days": 910
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 5780,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4564,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3176,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "FR/wind_offshore": {
+      "country_code": "FR",
+      "forecast_type": "wind_offshore",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\FR\\wind_offshore\\model.joblib",
+      "served": true,
+      "algorithm": "xgboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20251226_134328",
+      "n_feature_columns_on_artifact": 24,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 31932,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 1318
+      },
+      "features": {
+        "n_rows_after_featuring": 31596,
+        "n_expected_columns": 28,
+        "n_present": 28,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 27304,
+          "fit_span_days": 1125
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 27996,
+          "fit_span_days": 1155
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 28716,
+          "fit_span_days": 1185
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 29436,
+          "fit_span_days": 1215
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 30156,
+          "fit_span_days": 1245
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 30876,
+          "fit_span_days": 1275
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 30876,
+          "fit_span_days": 1275
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 6064,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4579,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "BE/biomass": {
+      "country_code": "BE",
+      "forecast_type": "biomass",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\BE\\biomass\\model.joblib",
+      "served": true,
+      "algorithm": "xgboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20251226_155417",
+      "n_feature_columns_on_artifact": 23,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 22923,
+        "first": "2024-01-01 00:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 953
+      },
+      "features": {
+        "n_rows_after_featuring": 22587,
+        "n_expected_columns": 27,
+        "n_present": 27,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 18295,
+          "fit_span_days": 760
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 18987,
+          "fit_span_days": 790
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 19707,
+          "fit_span_days": 820
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 20427,
+          "fit_span_days": 850
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 21147,
+          "fit_span_days": 880
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 21867,
+          "fit_span_days": 910
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 21867,
+          "fit_span_days": 910
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 5883,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4604,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "FR/biomass": {
+      "country_code": "FR",
+      "forecast_type": "biomass",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\FR\\biomass\\model.joblib",
+      "served": true,
+      "algorithm": "xgboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20251226_134331",
+      "n_feature_columns_on_artifact": 23,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 31608,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 1318
+      },
+      "features": {
+        "n_rows_after_featuring": 31272,
+        "n_expected_columns": 27,
+        "n_present": 27,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 26980,
+          "fit_span_days": 1125
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 27672,
+          "fit_span_days": 1155
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 28392,
+          "fit_span_days": 1185
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 29112,
+          "fit_span_days": 1215
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 29832,
+          "fit_span_days": 1245
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 30552,
+          "fit_span_days": 1275
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 30552,
+          "fit_span_days": 1275
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 5740,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4579,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "BE/hydro_total": {
+      "country_code": "BE",
+      "forecast_type": "hydro_total",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\BE\\hydro_total\\model.joblib",
+      "served": true,
+      "algorithm": "xgboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20251226_155416",
+      "n_feature_columns_on_artifact": 23,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 22778,
+        "first": "2024-01-01 00:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 953
+      },
+      "features": {
+        "n_rows_after_featuring": 22442,
+        "n_expected_columns": 27,
+        "n_present": 27,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 18150,
+          "fit_span_days": 760
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 18842,
+          "fit_span_days": 790
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 19562,
+          "fit_span_days": 820
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 20282,
+          "fit_span_days": 850
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 21002,
+          "fit_span_days": 880
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 21722,
+          "fit_span_days": 910
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 21722,
+          "fit_span_days": 910
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 5738,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4604,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    },
+    "FR/hydro_total": {
+      "country_code": "FR",
+      "forecast_type": "hydro_total",
+      "artifact_path": "C:\\Code\\able\\energy-forecast\\models\\FR\\hydro_total\\model.joblib",
+      "served": true,
+      "algorithm": "xgboost",
+      "training_source": "energy_renewable",
+      "incumbent_version": "20251226_134329",
+      "n_feature_columns_on_artifact": 23,
+      "hyperparams": {
+        "identical": true,
+        "differing_fields": {},
+        "fields_only_on_artifact": {}
+      },
+      "data": {
+        "n_rows": 31518,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-11 23:00:00",
+        "span_days": 1318
+      },
+      "features": {
+        "n_rows_after_featuring": 31182,
+        "n_expected_columns": 27,
+        "n_present": 27,
+        "missing": []
+      },
+      "windows": [
+        {
+          "window": "W1",
+          "start": "2026-02-13",
+          "end": "2026-03-14",
+          "n_holdout": 692,
+          "n_train_strictly_before": 26890,
+          "fit_span_days": 1125
+        },
+        {
+          "window": "W2",
+          "start": "2026-03-15",
+          "end": "2026-04-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 27582,
+          "fit_span_days": 1155
+        },
+        {
+          "window": "W3",
+          "start": "2026-04-14",
+          "end": "2026-05-13",
+          "n_holdout": 720,
+          "n_train_strictly_before": 28302,
+          "fit_span_days": 1185
+        },
+        {
+          "window": "W4",
+          "start": "2026-05-14",
+          "end": "2026-06-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 29022,
+          "fit_span_days": 1215
+        },
+        {
+          "window": "W5",
+          "start": "2026-06-13",
+          "end": "2026-07-12",
+          "n_holdout": 720,
+          "n_train_strictly_before": 29742,
+          "fit_span_days": 1245
+        },
+        {
+          "window": "W6",
+          "start": "2026-07-13",
+          "end": "2026-08-11",
+          "n_holdout": 720,
+          "n_train_strictly_before": 30462,
+          "fit_span_days": 1275
+        }
+      ],
+      "fit_length_ablation_W6": [
+        {
+          "fit_start": "2023-01-01",
+          "n_train": 30462,
+          "fit_span_days": 1275
+        },
+        {
+          "fit_start": "2025-11-01",
+          "n_train": 5650,
+          "fit_span_days": 254
+        },
+        {
+          "fit_start": "2026-01-01",
+          "n_train": 4579,
+          "fit_span_days": 193
+        },
+        {
+          "fit_start": "2026-03-01",
+          "n_train": 3216,
+          "fit_span_days": 134
+        }
+      ]
+    }
+  },
+  "discovered_pairs": [
+    "AT/solar",
+    "AT/wind_onshore",
+    "BE/biomass",
+    "BE/hydro_total",
+    "BE/solar",
+    "BE/wind_offshore",
+    "BE/wind_onshore",
+    "DE/solar",
+    "DE/wind_onshore",
+    "FR/biomass",
+    "FR/hydro_total",
+    "FR/solar",
+    "FR/wind_offshore",
+    "FR/wind_onshore"
+  ],
+  "candidate_not_on_disk": [],
+  "on_disk_not_candidate": []
+}
