@@ -1438,7 +1438,13 @@ def main() -> int:
                            for c, b in sorted(not_evaluable)],
                        "not_evaluable_declared_by":
                            "experiments/ABL348/config.json -> not_evaluable.pairs",
-                       "not_evaluable_causes": NOT_EVALUABLE_CAUSES,
+                       # Scoped to the countries this scope actually declares, so
+                       # a record cannot carry a cause for a country it never
+                       # declined to score.
+                       "not_evaluable_causes": {
+                           country: NOT_EVALUABLE_CAUSES[country]
+                           for country in sorted({c for c, _ in not_evaluable})
+                           if country in NOT_EVALUABLE_CAUSES},
                        "gate_basis": list(gate_basis),
                        # ABL-376: what the fit was allowed to see, recorded beside
                        # what it was scored on. Two reads of this gate are not

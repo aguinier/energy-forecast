@@ -78,6 +78,19 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _rel(path: Path) -> str:
+    """Repo-relative where possible, absolute otherwise.
+
+    `--results` takes an arbitrary path, so a bare `relative_to(ROOT)` raises for
+    anything outside the tree -- which is exactly the case a reviewer
+    re-generating the pack against a copy would hit.
+    """
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def night_floor(screen: dict, country: str, source: str, window: str) -> dict:
     for entry in screen["countries"]:
         if entry["country"] != country:
@@ -131,11 +144,11 @@ def main() -> int:
 
     record: dict = {
         "generated_from": {
-            "results": results_path.relative_to(ROOT).as_posix(),
+            "results": _rel(results_path),
             "results_sha256": _sha256(results_path),
-            "night_screen": NIGHT_SCREEN.relative_to(ROOT).as_posix(),
+            "night_screen": _rel(NIGHT_SCREEN),
             "night_screen_sha256": _sha256(NIGHT_SCREEN),
-            "registration": REGISTRATION.relative_to(ROOT).as_posix(),
+            "registration": _rel(REGISTRATION),
         },
         "scope": meta["scope"],
         "training_source": source,
@@ -278,8 +291,8 @@ def main() -> int:
         "the only quantitative statement this tranche makes about them, which is exactly what "
         "makes it worth printing.")
     lines.append("")
-    lines.append("| band | status | n | all-hours WAPE `A` (measured) | implied daylight-only `W` | `[W(1-f), W(1-f)+f]` |")
-    lines.append("|---|:---:|---:|---:|---:|---:|")
+    lines.append("| band | status | n | all-hours WAPE `A` (measured) | implied daylight-only `W` | `[W(1-f), W(1-f)+f]` | clamped variant `[A, A+f]` |")
+    lines.append("|---|:---:|---:|---:|---:|---:|---:|")
     for cell in sorted(list(cells) + list(declared_cells),
                        key=lambda r: (r["country"], r["horizon_band"])):
         if cell["country"] != "EE":
@@ -293,25 +306,48 @@ def main() -> int:
             lines.append(f"| {band} | {status} | {cell['gate']['n']:,} | not measured | — | — |")
             continue
         low, high = implied_daylight(chal, ee_f)
-        # The forward band, re-derived from the midpoint of the implied W so the
-        # printed interval is the one ABL-421 names rather than a paraphrase of
-        # it. `all_hours_band(W, f)` returns to `[A - something, A + something]`
-        # bracketing the measured A by construction, which is the check.
-        band_low, band_high = all_hours_band(low, ee_f)
+        # The forward band ABL-421 names, evaluated across the *whole* implied
+        # range of W rather than at one end of it. For a known W the band
+        # `[W(1-f), W(1-f)+f]` has width exactly `f`; W here is bounded and not
+        # measured, so the envelope over W in [low, high] is `[A-f, A+f]` and
+        # contains the measured A by construction. Taking only `all_hours_band(low)`
+        # would print `[A-f, A]` and make A look like a ceiling it is not.
+        band_low = all_hours_band(low, ee_f)[0]
+        band_high = all_hours_band(high, ee_f)[1]
+        # A clamped variant of this same challenger keeps its daylight behaviour
+        # and takes the upper end, so it scores in `[A, A+f]` -- the serving-side
+        # question, reported because `f` makes it free. It gates nothing here.
+        clamped_low, clamped_high = chal, chal + ee_f
         record["ee_band"][band] = {
             "status": status, "n": cell["gate"]["n"], "all_hours_wape_pct": chal,
             "f_pct": ee_f, "implied_daylight_low_pct": low, "implied_daylight_high_pct": high,
             "forward_band_low_pct": band_low, "forward_band_high_pct": band_high,
+            "clamped_variant_low_pct": clamped_low, "clamped_variant_high_pct": clamped_high,
         }
         lines.append(
             f"| {band} | {status} | {cell['gate']['n']:,} | {chal:.2f}% | "
-            f"{low:.2f}%–{high:.2f}% | {band_low:.2f}%–{band_high:.2f}% |")
+            f"{low:.2f}%–{high:.2f}% | {band_low:.2f}%–{band_high:.2f}% | "
+            f"{clamped_low:.2f}%–{clamped_high:.2f}% |")
+    lines.append("")
     lines.append("")
     lines.append(
-        f"The band's full width is `f` = {ee_f:.4f} WAPE points. That is **two orders of "
-        "magnitude below the {:.2f}pp readability floor** ABL-418 registers for solar, so on EE "
-        "the night floor cannot move a grade — it is bounded here so that the statement is "
-        "measured rather than assumed.".format(10.65))
+        f"**For a known `W` the band `[W(1-f), W(1-f)+f]` has width exactly `f` = {ee_f:.4f} "
+        "WAPE points.** `W` is bounded here rather than measured — the harness scores all "
+        "hours — so the printed envelope is that band taken across the whole implied `W` range, "
+        "which is `[A-f, A+f]` and contains the measured `A` by construction. The last column "
+        "answers the separate serving-side question: the ABL-337 clamp forces a zero on this "
+        "same night predicate, so a served version of this challenger would score in `[A, A+f]`. "
+        "It gates nothing here.")
+    lines.append("")
+    lines.append(
+        f"**The widest of these intervals is the `[A-f, A+f]` envelope at {2 * ee_f:.4f}pp, "
+        f"against the 10.65pp readability floor ABL-418 registers for solar — a factor of "
+        f"{10.65 / (2 * ee_f):.0f}.** (The band at a known `W`, and the clamped column, are half "
+        f"that at {ee_f:.4f}pp.) So on EE the night floor cannot move a grade in either "
+        "direction, and that is now measured rather than assumed. "
+        "ABL-425 (open, PR #59) independently registers `EE: False` in "
+        "`NIGHT_GENERATION_POSSIBLE` — EE's floor is contamination, not real generation — which "
+        "is consistent with bounding it here rather than adjusting for it.")
     lines.append("")
 
     # --------------------------------------------------------- 4. NL denominator
