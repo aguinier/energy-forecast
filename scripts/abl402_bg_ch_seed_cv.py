@@ -87,7 +87,7 @@ from src.evaluation.model_free_reference import (  # noqa: E402
 )
 from src.evaluation.scorecard import score_predictions  # noqa: E402
 from src.evaluation.solar_retrain import (  # noqa: E402
-    ALGORITHM, FEATURE_COLUMNS, PRIMARY_BANDS,
+    ALGORITHM, PRIMARY_BANDS,
     attach_baselines, build_vintage_frame, finite_training_rows,
     scored_with_comparators, select_latest_challenger_per_band,
 )
@@ -108,6 +108,7 @@ from src.wind_features import RenewableFeatureBuilder  # noqa: E402
 # `attest_net_position_serve_faithfulness.py` and `backtest_gate_challengers.py`
 # already use to import a sibling script.
 from scripts.abl385_read_margin import cv_interval, delta_min  # noqa: E402
+from scripts.evaluate_solar_retrain import LEGACY_FEATURE_COLUMNS  # noqa: E402
 
 logger = logging.getLogger("abl402.seed_cv")
 
@@ -127,6 +128,26 @@ CONTROL_SEED = 42
 
 #: ABL-381's scope `abl316-t1b`.  Registered in `scripts/evaluate_solar_retrain.py`.
 COUNTRIES = ("BG", "CH")
+
+#: **ABL-381's challenger is a 25-feature fit, and this pins it.**
+#:
+#: ABL-395 added ABL-338's two geometry features to the solar gate's
+#: `FEATURE_COLUMNS`, so that constant is now 27 and, in ABL-395's own words, "a
+#: re-run of `abl253` or `abl316-t1b` no longer reproduces its published read".
+#: Importing `FEATURE_COLUMNS` here would therefore have measured the spread of a
+#: *different challenger* than the one whose margins this issue exists to
+#: re-read -- and it would have changed answer silently the moment `origin/main`
+#: was merged, which happened mid-run.
+#:
+#: `LEGACY_FEATURE_COLUMNS` is ABL-395's own anchor for exactly this, derived by
+#: subtraction from the live list rather than hand-copied, and pinned at 25 by
+#: `tests/test_gate_feature_list_contract.py`.  Note that `features_for` is
+#: *not* what is called here: `SCOPE_FEATURES` does not carry an `abl316-t1b`
+#: row, so `features_for("abl316-t1b")` returns the 27 (ABL-404).
+#:
+#: The empirical check that this is the right vector is the seed-42 control
+#: reproducing all six published cells, not this comment.
+FEATURE_COLUMNS = LEGACY_FEATURE_COLUMNS
 
 #: ABL-348's registration, unchanged and deliberately not re-derived here.
 #:
@@ -354,6 +375,12 @@ def main() -> int:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    # The measurement is of ABL-381's challenger, and that is a 25-feature fit.
+    # Loud and at the top rather than buried in the JSON: if this ever reads 27,
+    # every margin below belongs to a different model and the seed-42 control
+    # will stop reproducing the published cells.
+    if len(FEATURE_COLUMNS) != 25:
+        raise SystemExit(f"expected ABL-381's 25-feature challenger, got {len(FEATURE_COLUMNS)}")
     replica = str(args.replica_db or config.DATABASE_PATH)
     seeds = SEEDS[:args.seeds]
     provenance = _git_provenance()
@@ -388,6 +415,12 @@ def main() -> int:
             "source_table": SOURCE, "primary_bands": list(PRIMARY_BANDS),
             "gate_basis": list(GATE_BASIS), "algorithm": ALGORITHM,
             "exclude_impossible_night": False,
+            # ABL-395/ABL-404.  Recorded because it is the one registered
+            # property that moved after ABL-381's read, and a CV attaches to the
+            # challenger it was measured on.
+            "feature_columns": list(FEATURE_COLUMNS),
+            "n_features": len(FEATURE_COLUMNS),
+            "feature_set": "legacy25 (ABL-381's challenger), pinned via LEGACY_FEATURE_COLUMNS",
         },
         "seeds": list(seeds), "control_seed": CONTROL_SEED,
         "git": provenance,
