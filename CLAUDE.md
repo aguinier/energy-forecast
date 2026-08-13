@@ -152,10 +152,14 @@ not depend on the codepage of the box.
 script**. That last group is not decoration — `test_model_runner_launches`
 starts each runner with `--help` through a pipe, and two of them
 (`src/chronos_forecaster.py`, `src/tso_correction_forecaster.py`) live under
-`src/`, outside the `scripts/` glob. Both are ASCII-clean in their help text
-today; an em dash added to one of those docstrings would stop the runner from
-starting, and per the bullet above `forecast_daily` books a runner that cannot
-start as a failed *result* and still prints `[DONE]`.
+`src/`, outside the `scripts/` glob. Both are ASCII-clean today. Note that
+neither passes `description=__doc__` — they use short literals
+(`tso_correction_forecaster.py:375`) — so unlike the `scripts/` entry points
+above, **their module docstrings are not help text** and an em dash in one is
+harmless. What is swept, and what matters, is their `help=`/`description=`
+literals: a non-ASCII character there stops the runner from starting, and per
+the bullet above `forecast_daily` books a runner that cannot start as a failed
+*result* and still prints `[DONE]`.
 
 Report bodies are the deliberate exception and keep `Δ`, `→`, `·`. They are
 printed from one known place, so they re-encode the stream there
