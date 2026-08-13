@@ -31,11 +31,11 @@ FEATURE_COLUMNS = (
 COUNTRIES = ("BE", "DE", "FR")
 ALGORITHM = "catboost"
 
-# ABL-389's `attach_constant_references` and `constant_reference_levels` are
-# deliberately *not* re-exported here. They live in
-# `src.evaluation.constant_reference`, which both harnesses import directly, so
+# ABL-389's `attach_model_free_references` and the two level functions behind it
+# are deliberately *not* re-exported here. They live in
+# `src.evaluation.model_free_reference`, which both harnesses import directly, so
 # that the two gates cannot end up computing the same named reference by two
-# routes. This module re-exports the shared *protocol*; the constant reference
+# routes. This module re-exports the shared *protocol*; the model-free reference
 # is shared code, not a solar protocol constant.
 __all__ = (
     "ALGORITHM", "COUNTRIES", "FEATURE_COLUMNS", "INTENDED_N", "PRIMARY_BANDS",

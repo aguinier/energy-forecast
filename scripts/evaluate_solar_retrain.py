@@ -23,9 +23,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 from src import db
 from src.data_quality import find_suspect_constant_runs
-from src.evaluation.constant_reference import (
-    CONSTANT_COMPARATORS, attach_constant_references, comparator_wape,
-    levels_table, lost_to_the_oracle_constant, reference_prose,
+from src.evaluation.model_free_reference import (
+    MODEL_FREE_COMPARATORS, attach_model_free_references, comparator_wape,
+    levels_table, lost_to_a_model_free_reference, reference_prose,
 )
 from src.evaluation.gate_artifacts import save_gate_artifact
 from src.evaluation.gate_registration import (
@@ -114,16 +114,25 @@ GATE_BASIS = {
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.
 #:
-#: ABL-389 adds the two constant predictors, identically to the wind harness and
+#: ABL-389 adds four model-free predictors, identically to the wind harness and
 #: from the same module, so the two gates cannot drift into computing the same
 #: named reference differently.  They are *reported references and not gate
 #: criteria*: deliberately absent from every `GATE_BASIS` entry above, pinned by
-#: `test_gate_constant_reference.py`.  A pair that clears its D-7 bar while
-#: losing to a constant still reads PASS — beside the number that qualifies it.
-#: See `src/evaluation/constant_reference.py` for the ABL-380 measurement that
-#: motivated this, and for why moving the bar instead would have been wrong.
+#: `test_gate_model_free_reference.py`.  A pair that clears its D-7 bar while
+#: losing to one still reads PASS — beside the number that qualifies it.
+#:
+#: The climatology columns matter most on this harness.  Measured on ABL-381's
+#: six solar cells, the flat line scores 63-95% WAPE on every one of them: a
+#: constant cannot represent a diurnal cycle, and on solar the diurnal cycle is
+#: the signal, so the constant alone would certify a PASS against a comparator
+#: it cannot lose to.  The hour-of-day form is what carries information here --
+#: CH's challenger at 8.16% beats a hindsight climatology at 9.02% by 0.86pp,
+#: which is the actual worth of that PASS.
+#:
+#: See `src/evaluation/model_free_reference.py` for both measurements, and for
+#: why moving the bar instead would have been wrong.
 REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistence",
-                        *CONSTANT_COMPARATORS)
+                        *MODEL_FREE_COMPARATORS)
 
 # ABL-387: the three tables above are one registration in three views.  Checked
 # at import, so a scope registered in one and not the others fails before any fit
@@ -255,8 +264,8 @@ def render_markdown(result: dict) -> str:
         # windows are exactly what they were.
         *reference_prose(),
         "",
-        "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant oracle WAPE | incumbent WAPE | MAE | bias | slope | corr | gate |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|",
+        "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | MAE | bias | slope | corr | gate |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|",
     ]
     for row in cells:
         scores = row["scores"]
@@ -269,6 +278,8 @@ def render_markdown(result: dict) -> str:
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
             f"{skill} | {_fmt(comparator_wape(scores, 'constant_causal'), '%')} | "
             f"{_fmt(comparator_wape(scores, 'constant_oracle'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'climatology_causal'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'climatology_oracle'), '%')} | "
             f"{_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(scores['challenger']['mae'])} MW | "
             f"{_fmt(scores['challenger']['bias_pct'], '%')} | {_fmt(scores['challenger']['slope'])} | "
             f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} |"
@@ -289,8 +300,8 @@ def render_markdown(result: dict) -> str:
         f"Gate-basis values (actual, {basis_names}) share one finite intersection; each comparator outside the basis is "
         "scored on its own intersection with it, and its n is given in `comparator_n` in the JSON. A comparator showing "
         "`Not measured` had no finite rows at all.", "",
-        "| country | n | challenger WAPE | D-7 WAPE | persistence WAPE | constant causal WAPE | constant oracle WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| country | n | challenger WAPE | D-7 WAPE | persistence WAPE | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ])
     for row in result["country_d2"]:
         scores, tso = row["scores"], row["tso"]
@@ -298,6 +309,7 @@ def render_markdown(result: dict) -> str:
             f"| {row['country']} | {row['n']:,} | {_fmt(scores['challenger']['wape_pct'], '%')} | "
             f"{_fmt(scores['seasonal_naive']['wape_pct'], '%')} | {_fmt(scores['persistence']['wape_pct'], '%')} | "
             f"{_fmt(comparator_wape(scores, 'constant_causal'), '%')} | {_fmt(comparator_wape(scores, 'constant_oracle'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'climatology_causal'), '%')} | {_fmt(comparator_wape(scores, 'climatology_oracle'), '%')} | "
             f"{_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(tso['wape_pct'], '%')} (n={tso['n']:,}) |"
         )
     lines.extend([
@@ -336,7 +348,7 @@ def render_markdown(result: dict) -> str:
     ])
     # ABL-389: a reader who sees PASS will not otherwise compare two numbers in
     # a fourteen-column table. Reporting only; changes no verdict above.
-    lines.extend(lost_to_the_oracle_constant(
+    lines.extend(lost_to_a_model_free_reference(
         cells, lambda row: f"{row['country']} solar {row['horizon_band']}"))
     lines.extend([
         "", "## Recommendation to the CEO", "", result["recommendation"], "",
@@ -430,7 +442,7 @@ def main() -> int:
         # ABL-389: from the same ABL-188-filtered series the baselines and the
         # gate actuals come from, so the reference is arithmetic on data already
         # loaded -- no refit, no second read, no additional upstream fetch.
-        selected, constant_levels = attach_constant_references(
+        selected, reference_levels = attach_model_free_references(
             selected, builder._actuals, fit_start, gate_start, gate_end)
         inc = incumbent[incumbent["country_code"] == country][
             ["target_ts", "horizon_band", "forecast_value"]
@@ -442,7 +454,7 @@ def main() -> int:
         scored_frames.append(selected)
         training.append({"country": country, "algorithm": ALGORITHM, "params": params,
                          "audit": audit, "gate_build_audit": gate_audit,
-                         "constant_reference_mw": constant_levels,
+                         "model_free_reference_mw": reference_levels,
                          "constant_runs": _constant_runs(str(replica), country,
                                                           fit_start - pd.Timedelta(days=14), gate_end,
                                                           source),

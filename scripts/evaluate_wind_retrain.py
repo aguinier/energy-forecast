@@ -26,9 +26,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 from src import db
 from src.data_quality import find_suspect_constant_runs
-from src.evaluation.constant_reference import (
-    CONSTANT_COMPARATORS, attach_constant_references, comparator_wape,
-    levels_table, lost_to_the_oracle_constant, reference_prose,
+from src.evaluation.model_free_reference import (
+    MODEL_FREE_COMPARATORS, attach_model_free_references, comparator_wape,
+    levels_table, lost_to_a_model_free_reference, reference_prose,
 )
 from src.evaluation.gate_artifacts import save_gate_artifact
 from src.evaluation.gate_registration import (
@@ -180,22 +180,32 @@ GATE_BASIS = {
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.
 #:
-#: ABL-389 adds the two constant predictors.  They are *reported references and
-#: not gate criteria* -- deliberately absent from every `GATE_BASIS` entry above,
-#: pinned by `test_gate_constant_reference.py`.  ABL-380 passed 6/6 and reported
-#: against its own pass that CH wind_onshore scored 47.42% while a flat line at
-#: the gate-window median scored 40.29%, and that BG's registered D-7 bar of
-#: 93.75% is cleared outright by a constant at the fit-window mean (82.77%) with
-#: no model at all.  The registered D-7 bar was set on pairs that had incumbents
-#: and real seasonal structure; on a low-capacity-factor onshore pair it
-#: certifies close to nothing, and 33 more such pairs are queued behind this.
-#: So every read now prints what its PASS is worth beside the PASS.
+#: ABL-389 adds four model-free predictors -- a flat line and an hour-of-day
+#: climatology, each in a causal and an oracle form.  They are *reported
+#: references and not gate criteria* -- deliberately absent from every
+#: `GATE_BASIS` entry above, pinned by `test_gate_model_free_reference.py`.
+#: ABL-380 passed 6/6 and reported against its own pass that CH wind_onshore
+#: scored 47.42% while a flat line at the gate-window median scored 40.29%, and
+#: that BG's registered D-7 bar of 93.75% is cleared outright by a constant at
+#: the fit-window mean (82.77%) with no model at all.  The registered D-7 bar was
+#: set on pairs that had incumbents and real seasonal structure; on a
+#: low-capacity-factor onshore pair it certifies close to nothing, and 33 more
+#: such pairs are queued behind this.  So every read now prints what its PASS is
+#: worth beside the PASS.
 #:
-#: A pair that clears D-7 but loses to a constant still reads PASS.  Moving a bar
-#: after seeing a result is what the pre-registration apparatus exists to
+#: The climatology is here because the constant alone was measured and found
+#: insufficient: on solar it scores 63-95% on every cell, since a flat line
+#: cannot represent a diurnal cycle at all.  On wind it is merely loose -- CH's
+#: oracle climatology is 38.20% against the constant's 40.29%, which widens the
+#: ABL-380 finding from 7.1pp to 9.2pp.  Both are kept because the gap between
+#: them is the read: the constant asks whether the model predicts the level, the
+#: climatology whether it predicts the level and the daily shape.
+#:
+#: A pair that clears D-7 but loses to one of these still reads PASS.  Moving a
+#: bar after seeing a result is what the pre-registration apparatus exists to
 #: prevent, and a conservative direction does not exempt it.
 REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistence",
-                        *CONSTANT_COMPARATORS)
+                        *MODEL_FREE_COMPARATORS)
 
 # ABL-387: the three tables above are one registration in three views.  Checked
 # at import, so a scope registered in one and not the others fails before any fit
@@ -277,17 +287,17 @@ def render_markdown(result: dict) -> str:
         "does not exist for a pair reads Not measured instead of emptying the cell.",
         f"Strict full PASS requires challenger WAPE < D-7 in all {meta['registered_cells']} country × primary D+2-band cells and ≥95% of intended pairs. Result: **{sum(c['gate']['pass'] for c in cells)}/{meta['registered_cells']} cells pass**.",
         "",
-        # ABL-389.  These two columns are references, not criteria: they are in
+        # ABL-389.  These four columns are references, not criteria: they are in
         # `REPORTED_COMPARATORS` and in no `GATE_BASIS` entry, so the PASS rule,
         # the bands, the bars and the windows are exactly what they were.  What
         # they add is the number that qualifies a PASS — ABL-380's CH cleared
         # all 3 cells at 47.42% while a flat line at the gate-window median
-        # scored 40.29%, and BG's 93.75% D-7 bar is cleared by a causal constant
-        # at 82.77% with no model at all.
+        # scored 40.29% and an hour-of-day median scored 38.20%, and BG's 93.75%
+        # D-7 bar is cleared by a causal constant at 82.77% with no model at all.
         *reference_prose(),
         "",
-        "| type | country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant oracle WAPE | incumbent WAPE | MAE | bias | slope | corr | gate |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|",
+        "| type | country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | MAE | bias | slope | corr | gate |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|",
     ]
     for row in cells:
         scores = row["scores"]
@@ -300,6 +310,8 @@ def render_markdown(result: dict) -> str:
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
             f"{skill} | {_fmt(comparator_wape(scores, 'constant_causal'), '%')} | "
             f"{_fmt(comparator_wape(scores, 'constant_oracle'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'climatology_causal'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'climatology_oracle'), '%')} | "
             f"{_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(scores['challenger']['mae'])} MW | "
             f"{_fmt(scores['challenger']['bias_pct'], '%')} | {_fmt(scores['challenger']['slope'])} | "
             f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} |"
@@ -310,14 +322,15 @@ def render_markdown(result: dict) -> str:
                   f"Gate-basis values (actual, {basis_names}) share one finite intersection; each comparator outside the basis is "
                   "scored on its own intersection with it, and its n is given in `comparator_n` in the JSON. A comparator showing "
                   "`Not measured` had no finite rows at all.", "",
-                  "| type | country | n | challenger WAPE | D-7 WAPE | persistence WAPE | constant causal WAPE | constant oracle WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
-                  "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"])
+                  "| type | country | n | challenger WAPE | D-7 WAPE | persistence WAPE | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
+                  "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"])
     for row in result["country_d2"]:
         s = row["scores"]
         tso = row["tso"]
         lines.append(f"| {row['forecast_type']} | {row['country']} | {row['n']:,} | {_fmt(s['challenger']['wape_pct'], '%')} | "
                      f"{_fmt(s['seasonal_naive']['wape_pct'], '%')} | {_fmt(s['persistence']['wape_pct'], '%')} | "
                      f"{_fmt(comparator_wape(s, 'constant_causal'), '%')} | {_fmt(comparator_wape(s, 'constant_oracle'), '%')} | "
+                     f"{_fmt(comparator_wape(s, 'climatology_causal'), '%')} | {_fmt(comparator_wape(s, 'climatology_oracle'), '%')} | "
                      f"{_fmt(s['incumbent']['wape_pct'], '%')} | {_fmt(tso['wape_pct'], '%')} (n={tso['n']:,}) |")
     # ABL-322 criterion 3.  The protocol-count sentence this replaces was a
     # measured ABL-195 fact (210/570/720/720/510 by band) rendered for every
@@ -389,10 +402,12 @@ def render_markdown(result: dict) -> str:
                 f"({tso:.1f}% vs {chal:.1f}% WAPE over the same n={row['n']:,}). The gate is against D-7 and this pair clears it, "
                 "but clearing D-7 is not evidence the model is good — it bounds how uninformative D-7 is. Treat the TSO series as "
                 "a feature to ingest, not merely as context.")
-    # ABL-389: the same service for the constant reference. ABL-380 reported
-    # 6/6 PASS on a pair whose challenger was 7.1pp worse than a flat line; the
-    # number was in the evidence pack only because a human went looking.
-    lines.extend(lost_to_the_oracle_constant(
+    # ABL-389: the same service for the model-free references. ABL-380 reported
+    # 6/6 PASS on a pair whose challenger was 7.1pp worse than a flat line and
+    # 9.2pp worse than an hour-of-day median; the first number was in the
+    # evidence pack only because a human went looking, and the second was in no
+    # evidence pack at all.
+    lines.extend(lost_to_a_model_free_reference(
         cells, lambda row: f"{row['country']} {row['forecast_type']} {row['horizon_band']}"))
     lines.extend([
         "- This is one 30-day summer holdout. It is out-of-sample by target timestamp, but not a year-round robustness claim.",
@@ -501,7 +516,7 @@ def main() -> int:
         # ABL-389: from the same ABL-188-filtered series the baselines and the
         # gate actuals come from, so the reference is arithmetic on data already
         # loaded -- no refit, no second read, no extra fetch.
-        selected, constant_levels = attach_constant_references(
+        selected, reference_levels = attach_model_free_references(
             selected, builder._actuals, fit_start, gate_start, gate_end)
         inc = incumbent[(incumbent["forecast_type"] == forecast_type) &
                         (incumbent["country_code"] == country)][
@@ -516,7 +531,7 @@ def main() -> int:
         training.append({"forecast_type": forecast_type, "country": country,
                          "algorithm": algorithm, "params": params,
                          "audit": audit, "gate_build_audit": gate_audit,
-                         "constant_reference_mw": constant_levels,
+                         "model_free_reference_mw": reference_levels,
                          "constant_runs": _constant_runs(str(replica), country, forecast_type,
                                                            fit_start - pd.Timedelta(days=14), gate_end,
                                                            source=args.renewable_source),
