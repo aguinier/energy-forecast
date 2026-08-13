@@ -1,0 +1,180 @@
+{
+  "experiment": "ABL385",
+  "issue": "ABL-385",
+  "title": "Seed-variance protocol for renewable gate reads, and a registered minimum decision margin",
+  "status": "frozen-before-first-registered-fit",
+  "parent_issue": "ABL-375",
+  "owner_role": "Forecasting Scientist",
+
+  "why": [
+    "ABL-375 registered a DE solar algorithm A/B and returned AMBIGUOUS, because DE CatBoost's daylight MAE moved 13.79% of its own mean across three seeds while the cross-algorithm gap it was reading was 4.5%.",
+    "The noise floor everything upstream quoted (~1.5%, ABL-338) was a perturbation estimate on a different question and does not survive a reseeded fit.",
+    "Every solar arm in ABL-338 and ABL-253 is a single fit. Their decision margins were set without knowing the spread. This registration replaces the remembered floor with a measured one and turns it into a number future registrations cite."
+  ],
+
+  "deliverable": "A registered minimum decision margin delta_min(k) as an explicit function of the measured per-arm seed spread and the number of seeds k, plus the per-(pair, algorithm) spreads it is computed from.",
+
+  "protocol": {
+    "harness": "scripts/abl338_solar_holdout.py",
+    "harness_changes_for_this_issue": [
+      "--type: fit an individual renewable type other than solar. Bands are solar-only; every other type reports the all-hours metric alone. Geometry arms and --drop-impossible-night are refused for non-solar rather than silently ignored.",
+      "No change to the solar path. Verified by reproducing ABL-375's published summer DE cell bit-identically (geometry@42 = 3694.8 MW, geometry@1337 = 3668.0 MW daylight MAE)."
+    ],
+    "control_is_a_refit": "Every arm is refitted on the identically truncated window. The live artifacts are fitted through roughly today; scoring them on any recent holdout would be in-sample and would flatter the incumbent.",
+    "forced_algorithm_is_the_serving_configuration": {
+      "claim": "--force-algorithm drops the incumbent's hyperparameters and falls back to config.get_default_params(algorithm), so a forced arm only stands in for a serving model where the artifact carries those defaults field for field.",
+      "measured": "All 14 served individual-renewable artifacts are field-identical to their algorithm's config defaults. Extends ABL-375's solar-only finding to wind, biomass and hydro.",
+      "evidence": "reports/abl_385_probe.json, key pairs.*.hyperparams.identical"
+    },
+    "interpreter": "C:\\Code\\able\\energy-forecast\\.venv\\Scripts\\python.exe (Python 3.14.3, xgboost 3.3.0, catboost 1.2.10)",
+    "replica": "C:\\Code\\able\\data\\energy_dashboard.db, 9432453120 bytes, read-only. Not the 3.0 GB energy-data-gathering partial snapshot.",
+    "writes": "Reports only. No model is written to models/. Nothing touches the serving registry or the sidecar."
+  },
+
+  "scope": {
+    "pairs_primary": [
+      {"country": "AT", "type": "solar", "arm": "geometry", "incumbent_algorithm": "xgboost"},
+      {"country": "BE", "type": "solar", "arm": "geometry", "incumbent_algorithm": "catboost"},
+      {"country": "DE", "type": "solar", "arm": "geometry", "incumbent_algorithm": "catboost"},
+      {"country": "FR", "type": "solar", "arm": "geometry", "incumbent_algorithm": "catboost"},
+      {"country": "AT", "type": "wind_onshore", "arm": "control", "incumbent_algorithm": "xgboost"},
+      {"country": "BE", "type": "wind_onshore", "arm": "control", "incumbent_algorithm": "catboost"},
+      {"country": "DE", "type": "wind_onshore", "arm": "control", "incumbent_algorithm": "catboost"},
+      {"country": "FR", "type": "wind_onshore", "arm": "control", "incumbent_algorithm": "catboost"},
+      {"country": "BE", "type": "wind_offshore", "arm": "control", "incumbent_algorithm": "xgboost"},
+      {"country": "FR", "type": "wind_offshore", "arm": "control", "incumbent_algorithm": "xgboost"}
+    ],
+    "pairs_secondary": [
+      {"country": "BE", "type": "biomass", "arm": "control", "incumbent_algorithm": "xgboost"},
+      {"country": "FR", "type": "biomass", "arm": "control", "incumbent_algorithm": "xgboost"},
+      {"country": "BE", "type": "hydro_total", "arm": "control", "incumbent_algorithm": "xgboost"},
+      {"country": "FR", "type": "hydro_total", "arm": "control", "incumbent_algorithm": "xgboost"}
+    ],
+    "why_this_split": "Primary is the 10 solar + wind served pairs, which are the pairs every renewable gate read to date (ABL-195, ABL-253, ABL-322, ABL-348, ABL-375, ABL-380, ABL-381) has concerned. Biomass and hydro_total are served but have never been gated; they are measured to make the fleet margin general, and their absence would not invalidate the primary.",
+    "solar_second_arm": {
+      "arms": ["control", "geometry"],
+      "why": "Both arms exist for solar and only for solar. Fitting both at matched seeds is what allows the seed-pairing question below to be answered; a cross-algorithm comparison cannot answer it, because two algorithms' RNG draws are unrelated by construction."
+    },
+    "algorithms": ["catboost", "xgboost"],
+    "why_both_algorithms": "Two distinct consumers. A cross-algorithm read (ABL-375) needs the spread of both. A challenger-vs-incumbent gate read (ABL-253, ABL-322, ABL-348, ABL-380) compares two arms of the *same* algorithm and needs that algorithm's spread. Registering both covers both.",
+    "seeds": [42, 1337, 2718, 7, 13, 101, 271, 314, 577, 863, 1024, 1729],
+    "n_seeds": 12,
+    "why_12_seeds": "The issue asks for 10+. 12 gives a per-cell sd with ~21% relative standard error, and there are 6 windows per (pair, algorithm) to pool across. The first three are ABL-375's, so its cells remain directly comparable.",
+    "windows": [
+      {"window": "W1", "start": "2026-02-13", "end": "2026-03-14"},
+      {"window": "W2", "start": "2026-03-15", "end": "2026-04-13"},
+      {"window": "W3", "start": "2026-04-14", "end": "2026-05-13"},
+      {"window": "W4", "start": "2026-05-14", "end": "2026-06-12"},
+      {"window": "W5", "start": "2026-06-13", "end": "2026-07-12"},
+      {"window": "W6", "start": "2026-07-13", "end": "2026-08-11"}
+    ],
+    "window_design": "Six contiguous, non-overlapping 30-day rolling-origin holdouts ending at the replica's last full day. No holdout row is scored twice. Each window's fit frame is every featured row strictly before it (an expanding fit, which is what a retrain actually gets); the harness enforces this by bounding its own read at holdout_end + 1 day.",
+    "window_design_caveat": "An expanding fit confounds fit length with season across windows. The ablation below is what separates them, by moving the fit start with the window held fixed.",
+    "fit_length_ablation": {
+      "scored_window": "W6 (2026-07-13 .. 2026-08-11)",
+      "pairs": ["AT/solar", "BE/solar", "DE/solar", "FR/solar"],
+      "fit_starts": ["2023-01-01", "2025-11-01", "2026-01-01", "2026-03-01"],
+      "measured_fit_rows": {
+        "AT/solar": [5423, 5423, 4604, 3216],
+        "BE/solar": [22053, 6069, 4604, 3216],
+        "DE/solar": [5531, 5531, 4605, 3216],
+        "FR/solar": [30876, 6064, 4579, 3216]
+      },
+      "why": "ABL-375 left two competing explanations for DE that its protocol could not separate: 'DE prefers XGBoost' and 'DE CatBoost is unstable on a 156-day fit'. They differ in what the spread does when the fit gets longer. AT and DE cannot be given a long fit (their energy_renewable solar history begins 2025-09-08 and 2025-11-xx), but BE and FR span 134 to 910/1275 days at fixed season, so the fit-length effect is identified off BE and FR and then checked against DE."
+    }
+  },
+
+  "metric": {
+    "solar": "daylight MAE (MW), the ABL-375 primary. Night is reported in MW and never enters a spread: its denominator is ~0.",
+    "other_types": "all-hours MAE (MW).",
+    "also_recorded": "all-hours MAE, RMSE, bias, WAPE and negative-prediction counts for every cell."
+  },
+
+  "estimator": {
+    "per_cell": "For one (pair, type, algorithm, arm, window) cell with the 12 registered seeds: mean m_bar, sample sd s (ddof=1), and the seed spread as a coefficient of variation CV = s / m_bar.",
+    "why_cv_not_range": "ABL-375 quoted max-minus-min over 3 seeds. Range is a consistent estimator of sigma only through a sample-size-dependent constant d2(n), so a range is not comparable across seed counts: d2(3) = 1.693 and d2(12) = 3.258. A 13.79% range over 3 seeds corresponds to CV ~ 8.15%; the same underlying spread would read ~26.5% as a range over 12. This registration reports CV and converts ABL-375's ranges rather than comparing them directly.",
+    "pooling_across_windows": "Per (pair, algorithm, arm), pool the 6 window CVs as the root mean square (variances add), and also report the maximum across windows as the conservative value.",
+    "fleet_value": "The 80th and 90th percentiles of the per-(pair, algorithm) pooled CV distribution, reported separately for solar and for wind."
+  },
+
+  "decision_margin": {
+    "model": "Two arms A and B scored on the same holdout window, each reported as the mean of k independent seeds. For the relative gap g = (M_A - M_B) / M_B, the delta method gives Var(g) ~ (c_A^2 + c_B^2) / k, where c is the per-fit CV of each arm.",
+    "formula": "delta_min(k) = z * sqrt(c_A^2 + c_B^2) / sqrt(k), with z = 1.96 for a two-sided 95% call.",
+    "inverse": "k >= z^2 * (c_A^2 + c_B^2) / delta^2 seeds are needed to read a target margin delta.",
+    "single_seed": "At k = 1 the formula still evaluates, but a single-seed read carries no internal estimate of c at all: its margin has to be imported from a registration like this one. That is the defect ABL-385 was filed on.",
+    "independence_assumption": "c_A and c_B are treated as independent. That is exact for two different algorithms, whose RNG draws are unrelated. For two arms of the same algorithm at matched seeds it is conservative if the arms are positively correlated, and the solar control-vs-geometry cells are registered to measure that correlation rather than assume it.",
+    "what_will_be_registered": "One margin table giving delta_min(k) for k in {1, 3, 5, 10, 12, 20}, per stream (solar, wind) at the fleet 90th-percentile CV, and per (pair, algorithm) where a pair-specific value exists."
+  },
+
+  "pre_specified_predictions": [
+    {
+      "id": "P1",
+      "statement": "DE CatBoost solar CV exceeds DE XGBoost solar CV on a majority of the six windows.",
+      "basis": "ABL-375 measured ranges of 13.79 / 6.98 / 4.62 percent for CatBoost against 4.73 / 4.03 / 4.12 for XGBoost on three windows.",
+      "refuted_if": "XGBoost's CV is greater than or equal to CatBoost's on 4 or more of the 6 windows."
+    },
+    {
+      "id": "P2",
+      "statement": "If DE CatBoost's instability is a short-fit artefact, CV falls as fit length rises in the W6 ablation. If it is a property of CatBoost on solar, CV is roughly flat in fit length.",
+      "read_as": "Fit the per-pair CV against log(fit rows) across the 4 ablation points for BE and FR solar, where the fit-length span is widest (134 to 910 and 1275 days). Declare 'short-fit artefact' only if CV at the longest fit is below half its value at the shortest, for CatBoost, on both BE and FR.",
+      "refuted_if": "CV at the longest fit is within 25% of CV at the shortest on both BE and FR."
+    },
+    {
+      "id": "P3",
+      "statement": "If the instability is DE-specific rather than a fit-length effect, BE and FR CatBoost solar CV at a matched 134-day fit will be materially below DE's at its own 134-day fit.",
+      "read_as": "Compare the 2026-03-01 ablation point across AT, BE, DE, FR. Material means a factor of 2."
+    }
+  ],
+
+  "abl375_re_read": {
+    "scope_item": 5,
+    "what_will_be_done": "Apply the measured DE CatBoost and XGBoost geometry CVs to ABL-375's registered read (holdout 2026-04-30 .. 2026-06-12, k = 3, observed gap +4.5% favouring XGBoost) and state (a) whether AMBIGUOUS was the correct disposition under the margin registered here, and (b) how many seeds would have been needed to call a 4.5% gap.",
+    "what_will_not_be_done": "No verdict on whether DE solar should move to XGBoost. That is ABL-375's registered question and the CEO's decision; this issue supplies the error bar, not the call."
+  },
+
+  "contamination": {
+    "ABL-337": "Physically impossible night solar actuals. Dropped from the fit and never from the score, identically on every arm, via --drop-impossible-night. Counted per (pair, window) in reports/abl_385_probe.json: AT 0, BE 0, DE 0-4, FR 430-517 rows in the fit frame. Solar only.",
+    "ABL-188": "The constant-run screen is applied by db.load_renewable_type_data to whatever table is read, so it is identical across arms and seeds by construction. It fires for BE/wind_offshore (319 rows) and BE/hydro_total (127 rows) in this scope.",
+    "ABL-332": "Sub-hourly rows are aggregated to hourly means at the read. FR pairs aggregate 74,688 sub-hourly rows to 31,596 hourly. Identical across arms and seeds.",
+    "ABL-67": "Net position only. Does not touch this scope.",
+    "ABL-109_ABL-111": "Load only. Does not touch this scope.",
+    "ABL-71": "Provenance caveat. Known wrong-write modes are load and net position; that is not proof renewable ingest is clean.",
+    "why_this_matters_less_here_than_usual": "Every quantity this issue reports is a spread *within* a fixed (pair, window, arm, algorithm) cell, across seeds only. Contamination that is identical across the seeds of a cell shifts the cell's level and cancels out of its CV. It is still recorded, because the fit-length and cross-window comparisons do not have that protection."
+  },
+
+  "fits_run_before_this_registration_was_frozen": [
+    {
+      "what": "DE/solar/catboost/geometry, holdout 2026-06-13..2026-08-11, seeds 42 and 1337",
+      "why": "timing calibration, to size the sweep before freezing it",
+      "new_information": false,
+      "note": "ABL-375 has already published this cell at these seeds (its report section 3, summer). Seed 42 reproduced its published maximum, 3694.8 MW, exactly. Re-run a second time after the --type change as a regression check, with identical output."
+    },
+    {
+      "what": "FR/solar/{catboost,xgboost}/geometry, holdout 2026-01-01..2026-01-30, seeds 7 and 8",
+      "why": "timing calibration on the largest pair",
+      "new_information": false,
+      "note": "Deliberately on a window outside the registered scope. Only wall-clock was read; output was discarded to a scratch directory."
+    },
+    {
+      "what": "DE/wind_onshore/catboost/control, holdout 2026-01-01..2026-01-30, seeds 7 and 8",
+      "why": "smoke test of the new --type path",
+      "new_information": false,
+      "note": "Window outside the registered scope. MAE values were seen (4524.1 and 4865.1 MW) and are disclosed here rather than hidden; they inform no registered quantity."
+    }
+  ],
+
+  "boundaries": [
+    "Evidence only. No promotion, no serving change, no ingest change, no registry change.",
+    "The replica is opened read-only. Nothing is written to it.",
+    "No model artifact is written. models/ is untouched.",
+    "This registration does not change any pre-registered gate. It supplies an error bar that future registrations may cite."
+  ],
+
+  "reproduce": [
+    ".venv\\Scripts\\python.exe scripts/abl385_variance_probe.py --discover --out reports/abl_385_probe.json",
+    ".venv\\Scripts\\python.exe scripts/abl385_run_sweep.py --out reports/abl_385_sweep",
+    ".venv\\Scripts\\python.exe scripts/abl385_read_margin.py --sweep reports/abl_385_sweep --out reports/abl_385_decision_margin"
+  ],
+
+  "corrections_after_the_fit": []
+}
