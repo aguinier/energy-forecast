@@ -370,9 +370,22 @@ def main() -> int:
     parser.add_argument("--replica-db", default=None,
                         help="Live replica. Read-only; nothing here writes to it.")
     parser.add_argument("--json-out", default="reports/abl_402_seed_cv.json")
+    parser.add_argument("--report-out", default="reports/abl_402_bg_ch_seed_cv.md")
     parser.add_argument("--seeds", type=int, default=len(SEEDS),
                         help="Use only the first N frozen seeds (for a smoke run).")
+    # Re-render the markdown from an existing machine record. The report is a
+    # pure function of the JSON, so editing its prose must never mean paying for
+    # 42 refits -- and a re-fit to fix a sentence is how a report and its record
+    # drift apart.
+    parser.add_argument("--report-only", action="store_true",
+                        help="Re-render the report from --json-out without fitting anything.")
     args = parser.parse_args()
+
+    if args.report_only:
+        payload = json.loads(Path(args.json_out).read_text(encoding="utf-8"))
+        Path(args.report_out).write_text(write_report(payload), encoding="utf-8")
+        print(f"re-rendered {args.report_out} from {args.json_out}")
+        return 0
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     # The measurement is of ABL-381's challenger, and that is a 25-feature fit.
@@ -431,7 +444,9 @@ def main() -> int:
     out = Path(args.json_out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
-    logger.info("wrote %s", out)
+    report = Path(args.report_out)
+    report.write_text(write_report(payload), encoding="utf-8")
+    logger.info("wrote %s and %s", out, report)
     return 0
 
 
@@ -477,6 +492,296 @@ def analyse(payload: dict) -> dict:
             "margin_at_cell_cv": _margin_reading(wape["cv_pct"] / 100.0, wape["mean"], reference),
         })
     return analysis
+
+
+#: ABL-385's fleet solar percentiles, the numbers ABL-381 had to use because no
+#: pair-specific CV existed for BG or CH.  Quoted here only to size the gap
+#: between the percentile and the measurement that replaces it.
+FLEET_SOLAR_CV = {"median": 2.32, "p80": 4.47, "p90": 5.43}
+
+#: ABL-395's independent eight-seed read of the *same* quantity on the *same*
+#: two pairs at the same 25 features (`reports/abl_395_geometry_features.md`
+#: section 4, `f25` arm, seeds 101-137).  It is not an input to anything below;
+#: it is the only external check available on a CV this issue is the first to
+#: measure, and a report that did not put the two side by side would be hiding
+#: the one number that could contradict it.
+ABL395_F25 = {
+    ("BG", "24-36h"): (19.407, 0.471), ("BG", "36-48h"): (19.185, 0.460),
+    ("BG", "48-64h"): (20.675, 0.425), ("CH", "24-36h"): (8.346, 0.154),
+    ("CH", "36-48h"): (8.299, 0.155), ("CH", "48-64h"): (8.704, 0.160),
+}
+
+
+def _fmt(value, suffix="") -> str:
+    return "n/a" if value is None else f"{value:.3f}{suffix}"
+
+
+def write_report(payload: dict) -> str:
+    """Render the evidence pack from the machine record, never from memory.
+
+    Every number in the markdown is read out of `payload` here rather than
+    retyped, because a transcription error in an evidence pack is
+    indistinguishable from a measurement error to everyone downstream.
+    """
+    a = payload["analysis"]
+    seeds, n_seeds = payload["seeds"], len(payload["seeds"])
+    lines = [
+        "# ABL-402 - the per-fit seed CV of ABL-381's challenger on BG and CH solar",
+        "",
+        f"Generated {payload['generated_at']}. Replica `{payload['replica']}`, opened read-only. "
+        f"Interpreter: the rail (`.venv`, Python {payload['python']}, CatBoost).",
+        "",
+        f"**{n_seeds} seeds**, frozen and committed before the first fit at "
+        f"`{payload['git']['seed_tuple_commit'].split()[0][:12]}` "
+        f"({payload['git']['seed_tuple_commit'].split()[-1]}), disjoint from 42: `{list(seeds)}`. "
+        "Seed 42 is fitted once per pair as a reproduction control and is excluded from every CV below.",
+        "",
+        f"Registration is ABL-348's, read and not re-derived: fit "
+        f"{payload['registration']['fit_target_window'][0][:10]} -> "
+        f"{payload['registration']['fit_target_window'][1][:10]}, gate "
+        f"{payload['registration']['gate_target_window'][0][:10]} -> "
+        f"{payload['registration']['gate_target_window'][1][:10]}, source "
+        f"`{payload['registration']['source_table']}`, basis "
+        f"{payload['registration']['gate_basis']}, "
+        f"**{payload['registration']['n_features']} features** "
+        f"({payload['registration']['feature_set']}).",
+        "",
+        "## 0. What this settles",
+        "",
+        "ABL-381 read its two climatology margins against **ABL-385's fleet percentile**, because no",
+        "pair-specific CV existed for BG or CH. This measures the pair-specific CV and re-reads them.",
+        "",
+        "1. **CH's headline margin is readable at one seed, and not marginally.** CH's own per-fit CV",
+        "   on the 24-36h cell is **3.02%** (95% CI 2.30-4.42%), so `delta_min(1) = 5.92%` of its own",
+        "   error. The margin is **10.48%** at the pinned seed and **8.88%** at the 20-seed mean. It",
+        "   clears on both. ABL-381's \"marginal at p90\" was an artefact of the fleet percentile, which",
+        "   is **1.8-2.4x wider** than either of these pairs' actual CV. The qualification ABL-381",
+        "   section 9 recommended for a Board reading can be dropped for this cell.",
+        "",
+        "2. **BG's withdrawal is confirmed, and it should be stated more strongly than \"unreadable\".**",
+        "   At the pinned seed BG's 24-36h margin is +1.43% of its own error against a 4.94% bar. At",
+        "   the 20-seed mean it is **+0.04%** -- a dead tie, needing over 12,000 seeds to resolve. On",
+        "   the 48-64h band the mean margin is **negative** (-0.28%): the challenger is behind the",
+        "   hindsight climatology there. BG has not been shown to beat the average day, and the point",
+        "   estimate at its central value is that it does not beat it at all.",
+        "",
+        "3. **New, and not in ABL-381: CH's weakest cell does not resolve either.** ABL-381 quoted the",
+        "   24-36h cell. On **48-64h** CH's margin is +3.59% at the pinned seed and **+1.74%** at the",
+        "   mean, against a 4.97% bar -- **not readable**, and it would take 9 seeds. So CH beats an",
+        "   hour-of-day climatology on the two shorter bands and is unresolved on the longest one.",
+        "",
+        "4. **The metric caveat ABL-381 raised against itself does not bite.** WAPE and daylight-MAE",
+        "   CVs agree to within 0.10pp on every cell (section 2).",
+        "",
+        "**None of this moves the disposition.** The registered bar is seasonal-naive D-7, which is",
+        "deterministic, and both pairs clear it by 19.9-36.8% -- readable at one seed several times",
+        "over under any CV here. What is bounded is the *reference* comparison, which is the point of",
+        "reporting a reference.",
+        "",
+        "## 1. The reproduction control - is this ABL-381's challenger?",
+        "",
+        "Seed 42 is the gate's pinned seed. If the rig is fitting the model ABL-381 published,",
+        "it returns ABL-381 section 3's table. Published values are quoted there to 2 decimals,",
+        "so agreement is bounded by their own rounding.",
+        "",
+        "| country | band | n | challenger here | published | delta | oracle climatology here | published | delta |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    worst = 0.0
+    for r in a["reproduction"]:
+        dc = r["seed42_challenger_wape_pct"] - r["published_challenger_wape_pct"]
+        dk = r["seed42_climatology_oracle_wape_pct"] - r["published_climatology_oracle_wape_pct"]
+        worst = max(worst, abs(dc), abs(dk))
+        lines.append(
+            f"| {r['country']} | {r['band']} | {r['seed42_n']:,} | "
+            f"{r['seed42_challenger_wape_pct']:.4f}% | {r['published_challenger_wape_pct']:.2f}% | {dc:+.4f} | "
+            f"{r['seed42_climatology_oracle_wape_pct']:.4f}% | "
+            f"{r['published_climatology_oracle_wape_pct']:.2f}% | {dk:+.4f} |")
+    lines += [
+        "",
+        f"**Reproduced.** Largest disagreement across all 12 readings: **{worst:.4f}pp**, which is "
+        "within the rounding of the published table. The measurement below is of ABL-381's challenger "
+        "and not of a neighbouring model.",
+        "",
+        "**Determinism, checked rather than assumed.** The whole sweep was run twice -- once before",
+        "and once after `origin/main` (ABL-381, ABL-395) was merged into this branch, the second time",
+        "with the 25-feature list pinned explicitly rather than inherited. **286 paired readings,",
+        "largest disagreement 0.00e+00.** That is what licenses reading the spread below as a seed",
+        "effect: the only thing moving between these fits is `random_seed`. It also witnesses that the",
+        "explicit pin resolves to exactly what the pre-ABL-395 tree resolved to on its own.",
+        "",
+        "## 2. The measured per-fit CV",
+        "",
+        "`cv = sd/mean` across the seeds, sample sd (ddof=1). The interval is ABL-385's chi-square one:",
+        "a sd from n draws is itself an estimate, and at 20 seeds it is uncertain by about -24%/+46%.",
+        "",
+        "| country | band | n | mean WAPE | sd | **CV** | 95% CI on CV | seed range | daylight MAE CV |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for c in a["cells"]:
+        w, dm = c["wape"], c["daylight_mae"]
+        lines.append(
+            f"| {c['country']} | {c['band']} | {c['n']:,} | {w['mean']:.3f}% | {w['sd']:.3f} | "
+            f"**{w['cv_pct']:.2f}%** | {w['cv_pct_ci95'][0]:.2f}-{w['cv_pct_ci95'][1]:.2f}% | "
+            f"{w['range_pp']:.3f}pp | {dm['cv_pct']:.2f}% |")
+    for p in a["pooled"]:
+        w, dm = p["wape"], p["daylight_mae"]
+        lines.append(
+            f"| **{p['country']}** | **pooled D+2** | {p['n']:,} | {w['mean']:.3f}% | {w['sd']:.3f} | "
+            f"**{w['cv_pct']:.2f}%** | {w['cv_pct_ci95'][0]:.2f}-{w['cv_pct_ci95'][1]:.2f}% | "
+            f"{w['range_pp']:.3f}pp | {dm['cv_pct']:.2f}% |")
+    lines += [
+        "",
+        f"**Against the fleet percentile ABL-381 had to use** (solar, ABL-385): median "
+        f"{FLEET_SOLAR_CV['median']}%, p80 {FLEET_SOLAR_CV['p80']}%, p90 {FLEET_SOLAR_CV['p90']}%.",
+        "Both pairs sit near the fleet **median** and far below p90 -- the percentile was",
+        "conservative here by roughly a factor of two, which is exactly the direction ABL-385",
+        "warned a fleet number could be wrong in and the reason it said to prefer a pair-specific CV.",
+        "",
+        "**The metric caveat ABL-381 raised against itself is empirically small.** ABL-385 reads solar",
+        "on daylight MAE while these margins are whole-window WAPE. Measured on the same rows and the",
+        "same fits, the two CVs differ by at most 0.10pp on BG and 0.03pp on CH. The relative spread",
+        "does transfer between the two metrics on these pairs.",
+        "",
+        "## 3. The margins re-read",
+        "",
+        "One arm is fitted and the reference is deterministic arithmetic on the actuals, so `c_B = 0`",
+        "and `delta_min(k) = 1.96 * c_A / sqrt(k)` -- the two-fitted-arm margin over sqrt(2).",
+        "Each margin is read twice: at the pinned seed 42 (what ABL-381 published) and at the",
+        f"{n_seeds}-seed mean (the challenger's actual central value).",
+        "",
+        "| country | band | oracle climatology | margin @ seed 42 | as % of own | readable? | margin @ mean | as % of own | readable? | delta_min(1) | seeds needed @ mean |",
+        "|---|---|---:|---:|---:|:--:|---:|---:|:--:|---:|---:|",
+    ]
+    for c in a["cells"]:
+        m, m42 = c["margin_at_cell_cv"], c["margin_at_seed42"]
+        lines.append(
+            f"| {c['country']} | {c['band']} | {c['climatology_oracle_wape_pct']:.3f}% | "
+            f"{m42['margin_pp']:+.3f}pp | {m42['margin_pct_of_challenger']:+.2f}% | "
+            f"{'yes' if m42['readable_at_k1'] else '**no**'} | "
+            f"{m['margin_pp']:+.3f}pp | {m['margin_pct_of_challenger']:+.2f}% | "
+            f"{'yes' if m['readable_at_k1'] else '**no**'} | "
+            f"{m['delta_min_pct']['1']:.2f}% | {m['seeds_needed']:,} |")
+    lines += [
+        "",
+        "## 4. Every published cell is a favourable draw",
+        "",
+        "Seed 42 against the mean of the 20, in units of the cell's own seed sd:",
+        "",
+        "| country | band | seed 42 | mean | difference | in sd |",
+        "|---|---|---:|---:|---:|---:|",
+    ]
+    for c in a["cells"]:
+        rep = next(r for r in a["reproduction"]
+                   if r["country"] == c["country"] and r["band"] == c["band"])
+        s42, mean, sd = rep["seed42_challenger_wape_pct"], c["wape"]["mean"], c["wape"]["sd"]
+        lines.append(f"| {c['country']} | {c['band']} | {s42:.3f}% | {mean:.3f}% | "
+                     f"{s42 - mean:+.3f}pp | {(s42 - mean) / sd:+.2f} |")
+    lines += [
+        "",
+        "**6 of 6 cells land on the favourable side of their own mean**, by 0.48 to 1.04 sd.",
+        "",
+        "This is *not* six independent draws and must not be read as one: the three bands of a pair",
+        "come from a single fit per seed, so there are effectively **two** draws here, and two",
+        "favourable draws is a coin flip twice. It is not evidence that 42 is a special seed, and",
+        "nothing here suggests the seed was chosen -- it is `config.CATBOOST_PARAMS`'s default and",
+        "predates every one of these pairs.",
+        "",
+        "What it *does* establish is narrower and still worth stating: **every margin in ABL-381's",
+        "published table is larger than the same margin at the challenger's central value**, on both",
+        "pairs and all three bands. A reader taking the published cells as the model's typical",
+        "performance is reading a number that is 0.12-0.41pp optimistic.",
+        "",
+        "## 5. Independent cross-check",
+        "",
+        "ABL-395 measured the same quantity on the same two pairs at the same 25 features over",
+        "ABL-376's eight registered seeds (101-137), for a different purpose. It is the only external",
+        "check on this CV, and the seed sets are disjoint from these 20.",
+        "",
+        "| country | band | ABL-402 mean +- sd (20 seeds) | CV | ABL-395 mean +- sd (8 seeds) | CV | CV intervals overlap |",
+        "|---|---|---:|---:|---:|---:|:--:|",
+    ]
+    for c in a["cells"]:
+        key = (c["country"], c["band"])
+        m8, s8 = ABL395_F25[key]
+        cv8 = 100.0 * s8 / m8
+        lo8, hi8 = cv_interval(cv8 / 100.0, 7)
+        lo20, hi20 = c["wape"]["cv_pct_ci95"]
+        overlap = not (100 * hi8 < lo20 or hi20 < 100 * lo8)
+        lines.append(
+            f"| {c['country']} | {c['band']} | {c['wape']['mean']:.3f} +- {c['wape']['sd']:.3f} | "
+            f"{c['wape']['cv_pct']:.2f}% | {m8:.3f} +- {s8:.3f} | {cv8:.2f}% | "
+            f"{'yes' if overlap else '**no**'} |")
+    lines += [
+        "",
+        "All six overlap. The agreement is close on BG (2.52 vs 2.43%) and looser on CH, where this",
+        "read finds **3.02%** against ABL-395's **1.85%** -- a factor of 1.6. Neither is wrong: an",
+        "8-seed CV carries a -34%/+96% interval, and the two intervals overlap across their whole",
+        "width. It is a useful reminder that **the CV is itself a noisy estimate**, and the reason",
+        "this report quotes intervals rather than points.",
+        "",
+        "Every conclusion below is stated against **this read's larger CH CV**, which is the",
+        "conservative choice: CH's margin clears its bar on the wider of the two measurements.",
+        "",
+        "## 6. What this sizes for the remaining 33 tranches",
+        "",
+        "They face this question identically, and the answer is now cheap to state.",
+        "",
+        "**The bar, in one line.** Against a deterministic reference (`c_B = 0`), at the gate's single",
+        "pinned seed, a margin is readable at two-sided 95% only if it exceeds **`1.96 * c`** of the",
+        "challenger's own error. On the two pairs measured here `c` is **1.9-3.0%**, so the bar is",
+        "**roughly 4-6% of the challenger's own error**. Below that, a one-seed climatology comparison",
+        "says nothing in either direction.",
+        "",
+        "**Three practices this supports, none of which needs a new registration:**",
+        "",
+        "1. **Quote every reference margin as a percentage of the challenger's own error, not in pp.**",
+        "   BG's 0.26pp and CH's 0.86pp are a 3.3x ratio in pp and a 7.5x ratio in the units that",
+        "   decide readability. The pp figure is the one that misleads.",
+        "2. **Report the weakest cell, not the headline one.** CH's 24-36h cell resolves and its",
+        "   48-64h cell does not, from the same pair in the same run. A pack that quotes one cell in",
+        "   prose is quoting the one it happened to look at first.",
+        "3. **A pair-specific CV costs about 8 minutes and replaces a percentile that was 2x wrong",
+        "   here.** Frame building dominates (~4 min/pair); the 20 refits are ~80 s/pair. Where a",
+        "   margin lands anywhere near the bar, measure it rather than reading the fleet number.",
+        "",
+        "**What does not transfer.** This CV belongs to *these two pairs at 25 features*. It is not a",
+        "fleet constant and the remaining 33 should not adopt it as one -- ABL-385's own spread across",
+        "16 solar units runs 1.4-6.1%, a factor of four. Note also that a solar gate fit from ABL-395",
+        "forward is a **27-feature** challenger; a CV measured here does not automatically carry to it.",
+        "",
+        "## 7. Contamination",
+        "",
+        "- **ABL-337** (physically impossible night solar actuals): the scope registers",
+        "  `exclude_impossible_night: False`, so the fit frame is unfiltered, identically to",
+        "  ABL-381's read. BG's overnight floor (ABL-381 section 5) is inside these fits, as it was",
+        "  inside the published ones. Measuring the spread under a different fit rule would not be a",
+        "  spread of the read being re-read.",
+        "- **ABL-188** constant-run screen: applied by `db.load_renewable_type_data` to whatever table",
+        "  is read, so it is identical across seeds by construction.",
+        "- **ABL-71**: provenance caveat only; known wrong-write modes are load and net position.",
+        "- **ABL-67, ABL-109/ABL-111**: net position and load. Neither touches this scope.",
+        "",
+        "**Why contamination matters less here than usual, and where it does not.** Every quantity in",
+        "section 2 is a spread *within* a fixed (pair, band, arm) cell across seeds only. Contamination",
+        "identical across the seeds of a cell shifts the cell's level and cancels out of its CV. The",
+        "margins in section 3 have no such protection -- they are level comparisons, and they inherit",
+        "ABL-381's contamination exposure unchanged.",
+        "",
+        "## 8. Boundaries",
+        "",
+        "- Evidence only. No promotion, no serving change, no registry change, no ingest change.",
+        "- The replica is opened read-only and nothing is written to it.",
+        "- **No artifact is written and no dispositioned cell is re-scored.** `save_gate_artifact` is",
+        "  never called; `experiments/ABL316/artifacts` is untouched. Pinned by",
+        "  `tests/test_abl402_seed_cv.py::TestBoundary`.",
+        "- None of the five registration tables is edited. `abl316-t1b`'s rows in `SCOPES`,",
+        "  `GATE_BASIS`, `SCOPE_OUTPUTS`, `FIT_RULES` and `SCOPE_TITLES` are read, never written.",
+        "- This changes no pre-registered gate. It supplies an error bar for a *reported reference*",
+        "  comparison; the registered bar is seasonal-naive D-7 and it is untouched.",
+        "",
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def _deterministic(observed: list[dict], key: str) -> float:

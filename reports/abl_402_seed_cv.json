@@ -1,7 +1,7 @@
 {
   "issue": "ABL-402",
   "parent": "ABL-381",
-  "generated_at": "2026-08-13 18:48 UTC",
+  "generated_at": "2026-08-13 19:00 UTC",
   "replica": "C:/Code/able/data/energy_dashboard.db",
   "interpreter": "C:\\Code\\able\\energy-forecast\\.venv\\Scripts\\python.exe",
   "python": "3.14.3",
@@ -26,7 +26,36 @@
       "seasonal_naive"
     ],
     "algorithm": "catboost",
-    "exclude_impossible_night": false
+    "exclude_impossible_night": false,
+    "feature_columns": [
+      "hour",
+      "day_of_week",
+      "month",
+      "is_weekend",
+      "hour_sin",
+      "hour_cos",
+      "day_sin",
+      "day_cos",
+      "month_sin",
+      "month_cos",
+      "target_value_lag_1d",
+      "target_value_lag_7d",
+      "target_value_lag_14d",
+      "target_value_roll_24h_mean",
+      "target_value_roll_24h_std",
+      "target_value_roll_24h_min",
+      "target_value_roll_24h_max",
+      "target_value_roll_168h_mean",
+      "target_value_roll_168h_std",
+      "target_value_roll_168h_min",
+      "target_value_roll_168h_max",
+      "shortwave_radiation_wm2",
+      "direct_radiation_wm2",
+      "diffuse_radiation_wm2",
+      "temperature_c"
+    ],
+    "n_features": 25,
+    "feature_set": "legacy25 (ABL-381's challenger), pinned via LEGACY_FEATURE_COLUMNS"
   },
   "seeds": [
     211,
@@ -52,11 +81,11 @@
   ],
   "control_seed": 42,
   "git": {
-    "head": "bf8e1cc01d98a63bf3539814103d2f29fc63332f",
+    "head": "341b47992c8486240fbfc8451c30fcf0aab47a8e",
     "seed_tuple_commit": "bf8e1cc01d98a63bf3539814103d2f29fc63332f 2026-08-13T20:37:57+02:00",
-    "file_commit": "bf8e1cc01d98a63bf3539814103d2f29fc63332f 2026-08-13T20:37:57+02:00",
+    "file_commit": "341b47992c8486240fbfc8451c30fcf0aab47a8e 2026-08-13T20:50:34+02:00",
     "seed_line_dirty": false,
-    "working_tree_dirty": true
+    "working_tree_dirty": false
   },
   "countries": [
     {
