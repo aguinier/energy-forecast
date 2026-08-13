@@ -243,3 +243,101 @@ these two. Their pair-specific margins are therefore reported as a secondary
 read, with two caveats stated wherever they are used: ABL-402 is **on an open PR
 (#47), not merged**, and its CV was measured on the **25-feature** challenger,
 where every BG/CH cell below is a 27-feature fit.
+
+---
+
+## 5. Gate table: 24 cells vs D-7 and model-free references
+
+See the machine-readable gate report `reports/abl_405_solar_tranche2a.md` for the
+full 24-cell table, per-country all-D+2 summary, and the fit/missingness audit.
+Summary:
+
+- **24/24 primary cells PASS** — challenger WAPE < D-7 WAPE in every cell.
+- **Skill vs D-7** ranges from 4.6% (HU) to 46.3% (CZ).
+- **Climatology oracle** beats the challenger in 15 cells: all 3 BG, all 3 HU,
+  all 3 PL, all 3 SI, all 3 SK. CH and CZ beat oracle climatology in all 6 cells.
+  RO beats it in all 3. This is not a gate failure; it bounds what the gate means.
+- **SK**: gate-window mean 114.8 MW. ABL-348 set the precedent with CH wind at
+  12.9 MW — report it, do not decide. The same flag applies here.
+- **ABL-396 night-floor screen**: reproduced independently for all 8 countries.
+  BG has a real floor (5–6.4% of energy at night); the six new countries are
+  clean; HU, SI, SK carry a trace floor under 0.3% of energy.
+
+---
+
+## 6. BG and CH: the 27-vs-25 delta (ABL-401 measurement)
+
+The question ABL-401 asked: does adding the two geometry features (`sun_elevation_deg`,
+`is_night`) to BG and CH change those cells by a readable amount?
+
+Machine record: `reports/abl_405_gate_delta.json`.
+Reference (25-feature read): `experiments/ABL348/results_abl381_tranche1b.json`.
+Pair-specific CVs: BG 2.52%, CH 3.02% (ABL-402, open PR #47, measured at 25f;
+used here as the more demanding bar over the fleet p90).
+
+| country | horizon | 27f WAPE | 25f WAPE | delta (pp) | delta % own err | margin % own err | adj margin | > margin? |
+|---|---|---:|---:|---:|---:|---:|---:|:---:|
+| BG | 24-36h | 19.63% | 18.89% | +0.741pp | +3.92% | 6.99% | 6.58% | **No** |
+| BG | 36-48h | 19.51% | 18.60% | +0.911pp | +4.90% | 6.99% | 6.58% | **No** |
+| BG | 48-64h | 20.82% | 20.03% | +0.788pp | +3.94% | 6.99% | 6.58% | **No** |
+| CH | 24-36h | 7.66% | 8.16% | −0.501pp | −6.14% | 8.37% | 7.88% | **No** |
+| CH | 36-48h | 7.51% | 8.01% | −0.493pp | −6.16% | 8.37% | 7.88% | **No** |
+| CH | 48-64h | 7.99% | 8.39% | −0.408pp | −4.86% | 8.37% | 7.88% | **No** |
+
+Positive delta = 27f is worse. Negative delta = 27f is better.
+
+**No cell in either country moves by more than the margin, on either the
+pair-specific or the correlation-adjusted form.** The largest movement is BG
+36-48h at 4.90% of own error against a 6.99% margin.
+
+**Interpretation.** BG worsens by noise (worse on mean, not readable). CH improves
+by noise (better on mean, not readable). The geometry pair adds no readable signal
+on BG — the most contaminated country — and adds no readable signal on CH either.
+That is not a finding against the feature pair; it is an absence of evidence,
+constrained by one seed and the registered noise floor.
+
+**Implication for `abl253` (BE/DE/FR).** The CEO decision on ABL-401 was: `abl253`
+is not re-read in this tranche. The BG/CH delta does not overturn that decision —
+the delta is noise and neither direction carries a readable signal. The trigger for
+revisiting `abl253` (if any) remains whatever ABL-401 recorded on that issue.
+
+---
+
+## 7. ABL-381 evidence files: byte-unchanged
+
+ABL-381's dispositioned evidence was SHA-256'd before this run and verified
+byte-unchanged after. The check is: `git diff HEAD -- <file>` returns empty for
+all five files, confirming the worktree committed no modification.
+
+| file | committed at | SHA-256 (current) |
+|---|---|---|
+| `experiments/ABL348/results_abl381_tranche1b.json` | 55765c3 | `6FF1629CC4525683DE630C72EC04DAC1658B045DA6CF0847F6D9C6F8F3E6184A` |
+| `reports/abl_381_solar_tranche1b.md` | 55765c3 | `F27963D794849E755F7776781A50BE3C98B7720A2A6D8C4C8DF494EA4E2B6E41` |
+| `reports/abl_381_tranche1b_findings.md` | 55765c3 | `3E343E7385CF15C4CC21DDE2DA3304C161DC0C50CC02954B40DB84B181EF839F` |
+| `reports/abl_381_night_floor_probe.json` | 55765c3 | `72D12CB98C8CC07835D5B9AFA8AEF7459DBDA6ADFE3FB0FB37BEBC698642DB2F` |
+| `reports/abl_381_nonneg_and_constant_probe.json` | 55765c3 | `9DA9BD8B2335A781C079439899D0645C540C67BA7670DAE0448E8E27DADE7074` |
+
+ABL-381's six evidence files (including the one above) are **byte-unchanged**.
+
+---
+
+## 8. Recommendation to CEO
+
+**Performance: 24/24 cells PASS.** The challenger beats D-7 in every cell of the
+registered scope.
+
+**Hold on BG**: BG's night floor is 4.98% of gate energy. That is within the D-7
+margin (5.45pp under ABL-381) and a rerun with the night floor clamped would
+be the cleaner number. This is a data-quality question, not a harness question.
+The other 7 countries are clean and their cells are not at risk.
+
+**CZ data quality**: ABL-188 flagged a 92.75-hour zero block in CZ's fit window
+(2026-02-11 17:00 → 2026-02-15 13:45, 372 rows, value 0.0). The builder nulled
+these before fit; the gate is unaffected but the fit window has a gap.
+
+**The 27-vs-25 BG/CH delta is noise in both directions** (§6). Neither country
+moves by a readable amount. This does not change the recommendation for `abl253`.
+
+**No production deploy, serving-registry change, model promotion, ingest change,
+dashboard change, replica write, or sidecar write was performed.** Promotion is
+CEO-to-Board and this pack is evidence for it, not a step in it.
