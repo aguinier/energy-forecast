@@ -24,7 +24,6 @@ table's size. So:
   * the default scope still reproduces ABL-195's registered pair set exactly.
 """
 import ast
-import subprocess
 import sys
 from pathlib import Path
 
@@ -70,13 +69,11 @@ def test_every_scope_is_reachable(scopes):
 
 def test_default_scope_reproduces_abl195(scopes):
     """The unflagged run is still the ABL-195 gate: same pairs, same 15 cells."""
-    main_source = subprocess.run(
-        ["git", "show", "origin/main:scripts/evaluate_wind_retrain.py"],
-        cwd=REPO, capture_output=True, text=True, check=True).stdout
-    main_pairs_dict = _module_const(main_source, "PAIRS")
-    main_pairs = {(t, c) for t, spec in main_pairs_dict.items() for c in spec["countries"]}
-
-    assert scopes["abl195"] == main_pairs, (
+    # Baseline is the literal ABL-195 registration, not a mutable git ref.
+    # Reading origin/main was guaranteed to break the moment ABL-322 merged (PAIRS
+    # was replaced by SCOPES), and any git-ref baseline is non-deterministic by
+    # definition. The expected pairs are inlined from the ABL-195 registration.
+    assert scopes["abl195"] == SERVING_PAIRS, (
         "the default scope no longer reproduces main's registered pair set")
     assert len(scopes["abl195"]) * len(PRIMARY_BANDS) == 15
 
