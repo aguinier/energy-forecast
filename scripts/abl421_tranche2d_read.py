@@ -48,7 +48,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.evaluation.gate_grading import cell_grade, pair_grade  # noqa: E402
+from src.evaluation.gate_grading import (  # noqa: E402
+    cell_grade, comparator_wape as comparator, pair_grade,
+)
 
 ROOT = Path(__file__).parent.parent
 
@@ -72,6 +74,47 @@ STREAM = "solar"
 #: as one wherever it is printed.
 SK_REFERENCE_MW = 114.8
 SK_REFERENCE = "SK/solar, 114.8 MW, graded A in tranche 2a"
+
+#: ABL-418's ladder grades a **margin**. `grade_cell` is handed a cell's `scores`
+#: and nothing else -- it never sees `gate.enough_pairs` or `gate.n` -- so a cell
+#: that beats D-7 readably while falling short of its registered minimum n grades
+#: `A` on the strength of a margin the registration does not consider readable.
+#:
+#: That combination had never occurred before this tranche: every cell in 2a, 2b
+#: and 2c met its minimum. Here it is EE and FI, whose single gated band (48-64h)
+#: clears D-7 by +29.0% and +36.8% and still misses 456 rows, FI by **three**.
+#:
+#: This is **not** a change to the ladder. Editing `gate_grading.py` after seeing
+#: a result is exactly the shopping the pre-registration apparatus exists to
+#: prevent, and that module is shared with the wind harness. A is defined as
+#: promotion-eligible *subject to any named data hold*, so the hold is named here
+#: in the ladder's own vocabulary and the ladder grade is always printed beside
+#: it. A hold only ever removes eligibility; it never upgrades a grade.
+COVERAGE_HOLD = "no band meets the registered minimum n"
+
+
+def decidable_bands(cells: list[dict]) -> list[dict]:
+    """The pair's gated cells that actually met their registered minimum n.
+
+    `gate_cell` keeps `beats_d7` and `enough_pairs` separate precisely so that a
+    coverage shortfall is not read as a loss to D-7. A pair with no decidable
+    band has no cell a promotion decision could rest on, whatever its margin.
+    """
+    return [cell for cell in cells if (cell.get("gate") or {}).get("enough_pairs")]
+
+
+def held_for_coverage(ladder_label: str, cells: list[dict]) -> tuple[str, str]:
+    """Returns (reported grade, named hold) for one pair.
+
+    The ladder grade survives verbatim in the caller's output; what this decides
+    is whether the pair may be *reported* as eligible. With no decidable band the
+    reported grade is `—`: not a letter on the ladder, because the ladder has no
+    letter for "the margin is good and the cell is not readable at the registered
+    n", and inventing one would be a registration change.
+    """
+    if not cells or decidable_bands(cells):
+        return ladder_label, ""
+    return "—", COVERAGE_HOLD
 
 
 def _sha256(path: Path) -> str:
@@ -414,22 +457,30 @@ def main() -> int:
         "solar — the one it states explicitly is `CH_wind_onshore_is_not_decision_grade` at "
         "12.9 MW — so this is a **comparison, not a registered bar**.")
     lines.append("")
-    lines.append("| pair | pre-committed D-7 bar | gate-window mean | vs SK line | bands read | band grades | pair grade | failed conditions | bar weaker than a flat line? |")
-    lines.append("|---|---:|---:|:---:|:---:|---|:---:|---|:---:|")
+    lines.append("| pair | pre-committed D-7 bar | gate-window mean | vs SK line | bands gated | bands decidable | band grades | ladder grade | **reported** | failed conditions / hold | bar weaker than a flat line? |")
+    lines.append("|---|---:|---:|:---:|:---:|:---:|---|:---:|:---:|---|:---:|")
     for country in COUNTRIES:
-        grades = [cell_grade(cell, STREAM) for cell in cells if cell["country"] == country]
+        own_cells = [cell for cell in cells if cell["country"] == country]
+        grades = [cell_grade(cell, STREAM) for cell in own_cells]
         if not grades:
             continue
         pair = pair_grade(grades)
         failed = [name for name, _ in pair.failed]
+        reported, hold = held_for_coverage(pair.label, own_cells)
+        if hold:
+            failed.append(hold)
         bar = bars.get(f"{country}/solar", {}).get("d7_wape_pct")
         level = bars.get(f"{country}/solar", {}).get("mean_actual_mw")
-        n_bands = len([c for c in cells if c["country"] == country])
+        n_bands = len(own_cells)
+        n_decidable = len(decidable_bands(own_cells))
         below = level is not None and level < SK_REFERENCE_MW
         record["pair_grades"][country] = {
-            "bands_read": n_bands,
+            "bands_gated": n_bands,
+            "bands_decidable": n_decidable,
             "bands": [grade.label for grade in grades],
-            "pair_grade": pair.label,
+            "ladder_pair_grade": pair.label,
+            "reported_grade": reported,
+            "coverage_hold": hold or None,
             "failed_conditions": failed,
             "bar_weaker_than_a_flat_line": pair.bar_weak,
             "precommitted_d7_bar_pct": bar,
@@ -441,9 +492,27 @@ def main() -> int:
         }
         lines.append(
             f"| {country} | {bar}% | {level:.1f} MW | {'**below**' if below else 'above'} | "
-            f"{n_bands}/3 | {' / '.join(grade.label for grade in grades)} | "
-            f"{pair.label} | {', '.join(failed) or '—'} | "
+            f"{n_bands}/3 | {n_decidable}/3 | {' / '.join(grade.label for grade in grades)} | "
+            f"{pair.label} | **{reported}** | {', '.join(failed) or '—'} | "
             f"{'yes' if pair.bar_weak else ('no' if pair.bar_weak is not None else '—')} |")
+    lines.append("")
+    held = sorted(c for c, r in record["pair_grades"].items() if r["coverage_hold"])
+    lines.append("")
+    lines.append(
+        f"**{' and '.join(held)} grade `A` on the margin and are reported `—`, and the gap "
+        "between those two things is the finding of this tranche.** ABL-418's ladder is handed "
+        "a cell's `scores` and nothing else — it never sees `gate.enough_pairs` or `gate.n` — so "
+        "it grades a *margin*. Both pairs clear D-7 readably on their single gated band (EE "
+        "+29.0%, FI +36.8%, against a 10.65pp floor) while missing the registered minimum of 456 "
+        "rows, **FI by three**. A margin the registration does not consider readable cannot "
+        "carry a promotion, so the hold is named in the ladder's own vocabulary — `A` is defined "
+        "as promotion-eligible *subject to any named data hold* — and the ladder grade is printed "
+        "beside it rather than replaced. This is deliberately **not** a change to "
+        "`gate_grading.py`: editing the ladder after seeing a result is the shopping the "
+        "pre-registration exists to prevent, and that module is shared with the wind harness. "
+        "The combination had not arisen before — every cell in 2a, 2b and 2c met its minimum — "
+        "so this is a gap the ladder has never been exercised against, and it is a candidate for "
+        "its own pre-registered issue rather than a patch here.")
     lines.append("")
     below_line = sorted(c for c, r in record["pair_grades"].items()
                         if r["below_sk_reference_line"])
@@ -460,6 +529,68 @@ def main() -> int:
         "periodic, and these run 23.92-47.85%. ABL-348 registered that reading in advance under "
         "`reading_caveats_not_band_changes`. A pass against a loose bar and a pass against a "
         "tight one are not the same evidence, which is what the grade ladder exists to say.")
+    lines.append("")
+
+    # ------------------------------------------------- 6. all four references
+    lines.append("## 6. Which references each pair actually beats")
+    lines.append("")
+    lines.append(
+        "ABL-417's lesson, re-run here: of its five A-graded pairs only two beat all four "
+        "model-free references. The two oracles are hindsight and **gate nothing** — that is "
+        "registered, and losing to one bounds what a verdict means rather than voiding it — but "
+        "an A that loses to the average day in hindsight is a different object from one that "
+        "does not.")
+    lines.append("")
+    lines.append(
+        "**On solar the constant is a formality and the climatology is the real test.** A flat "
+        "line scores 80.4-103.2% here (NL's causal constant is *above 100%*: worse than "
+        "predicting zero), because a constant cannot represent a diurnal cycle and on solar the "
+        "diurnal cycle is the signal. So `bar weaker than a flat line? no` in section 5 is "
+        "uninformative on this stream, exactly as CLAUDE.md records — read the climatology "
+        "columns instead.")
+    lines.append("")
+    lines.append("| pair | worst-band challenger | clim causal | clim oracle | const causal | beats all four? |")
+    lines.append("|---|---:|---:|---:|---:|:---:|")
+    record["reference_sweep"] = {}
+    for country in COUNTRIES:
+        own = [cell for cell in cells if cell["country"] == country]
+        if not own:
+            continue
+
+        def _worst(name):
+            vals = [comparator(cell["scores"], name) for cell in own]
+            vals = [v for v in vals if v is not None]
+            return max(vals) if name == "challenger" else min(vals)
+
+        chal = _worst("challenger")
+        clim_c, clim_o = _worst("climatology_causal"), _worst("climatology_oracle")
+        const_c = _worst("constant_causal")
+        beats = all(chal is not None and ref is not None and chal < ref
+                    for ref in (clim_c, clim_o, const_c))
+        record["reference_sweep"][country] = {
+            "worst_band_challenger_wape_pct": chal, "climatology_causal_wape_pct": clim_c,
+            "climatology_oracle_wape_pct": clim_o, "constant_causal_wape_pct": const_c,
+            "beats_all_four": beats}
+        mark = lambda v: ("—" if v is None else
+                          (f"{v:.2f}%" if chal is not None and chal < v else f"**{v:.2f}%**"))
+        lines.append(
+            f"| {country} | {chal:.2f}% | {mark(clim_c)} | {mark(clim_o)} | {mark(const_c)} | "
+            f"{'yes' if beats else '**no**'} |")
+    lines.append("")
+    lines.append(
+        "Bold is a reference the challenger's **worst** band does not beat. Compared on the "
+        "toughest band per pair, which is the conservative direction and matches the ladder's "
+        "worst-band rule.")
+    lines.append("")
+    losers = sorted(c for c, r in record["reference_sweep"].items() if not r["beats_all_four"])
+    winners = sorted(c for c, r in record["reference_sweep"].items() if r["beats_all_four"])
+    lines.append(
+        f"**{len(winners)} of {len(record['reference_sweep'])} beat all four "
+        f"({', '.join(winners) or 'none'}); {', '.join(losers)} do not.** Every one of the "
+        "shortfalls is against the **oracle** climatology, which is causally unavailable and "
+        "gates nothing — so this qualifies the reads rather than overturning them. NL is the "
+        "exception and the serious one: it is the only pair that loses to the *causal* "
+        "climatology, on all three bands, which is what G3 caught and why it grades B.")
     lines.append("")
 
     Path(args.md_out).write_text("\n".join(lines) + "\n", encoding="utf-8")

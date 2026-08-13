@@ -211,6 +211,78 @@ def test_the_declared_table_is_not_in_the_import_time_check():
     assert "SCOPE_NOT_EVALUABLE" not in named
 
 
+@pytest.fixture(scope="module")
+def read_script():
+    spec = importlib.util.spec_from_file_location(
+        "abl421_read", ROOT / "scripts" / "abl421_tranche2d_read.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _cell(enough: bool, beats: bool = True) -> dict:
+    return {"gate": {"enough_pairs": enough, "beats_d7": beats, "pass": enough and beats}}
+
+
+def test_a_coverage_short_cell_is_not_a_decidable_band(read_script):
+    """`beats_d7` and `enough_pairs` are separate, and only the second decides this."""
+    cells = [_cell(enough=False, beats=True), _cell(enough=True, beats=True)]
+    assert read_script.decidable_bands(cells) == [cells[1]]
+    assert read_script.decidable_bands([_cell(enough=False, beats=True)]) == []
+
+
+def test_a_pair_with_no_decidable_band_is_reported_held_not_graded(read_script):
+    """EE and FI: grade A on the margin, reported `—` with the hold named.
+
+    The ladder is handed a cell's `scores` and never sees `n`, so it grades a
+    margin. A margin the registration does not consider readable cannot carry a
+    promotion, and reporting a bare `A` for such a pair would say it could.
+    """
+    reported, hold = read_script.held_for_coverage("A", [_cell(enough=False)])
+    assert reported == "—"
+    assert hold == read_script.COVERAGE_HOLD
+    assert "minimum n" in hold
+
+
+def test_the_hold_does_not_bind_when_any_band_is_decidable(read_script):
+    """One readable band is enough for the pair to keep its ladder grade.
+
+    The worst-band rule already accounts for the other bands, so the hold must
+    not double-penalise a pair that has something to decide on.
+    """
+    for label in ("A", "B", "C", "U(+)"):
+        reported, hold = read_script.held_for_coverage(
+            label, [_cell(enough=False), _cell(enough=True)])
+        assert (reported, hold) == (label, "")
+
+
+def test_the_hold_never_upgrades_a_grade(read_script):
+    """It only ever removes eligibility -- it cannot turn a C into anything better."""
+    for label in ("A", "B", "C", "U(+)", "U"):
+        reported, _ = read_script.held_for_coverage(label, [_cell(enough=False)])
+        assert reported == "—", f"{label} was not held"
+    # And with no cells at all there is nothing to hold: the label passes through
+    # rather than being silently downgraded by an empty list.
+    assert read_script.held_for_coverage("A", []) == ("A", "")
+
+
+def test_the_read_script_does_not_reimplement_the_ladder(read_script):
+    """The grades must come from `gate_grading`, not from a second copy here.
+
+    ABL-419 established this and it is the reason the pack and the machine
+    record cannot disagree about a grade.
+    """
+    source = (ROOT / "scripts" / "abl421_tranche2d_read.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    imported = {alias.asname or alias.name
+                for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
+                and node.module == "src.evaluation.gate_grading"
+                for alias in node.names}
+    assert {"cell_grade", "pair_grade"} <= imported
+    defined = {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
+    assert not defined & {"grade_cell", "cell_grade", "pair_grade", "readability_floor_pct"}
+
+
 def test_the_report_renders_nothing_for_a_scope_that_declares_none(harness):
     """Every already-published report is byte-unchanged by this function."""
     assert harness.not_evaluable_table({"meta": {}, "not_evaluable_cells": []}) == []

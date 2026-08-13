@@ -726,10 +726,57 @@ raises on `import`, so even `--help` exits non-zero. That is deliberately louder
 than a failing test: the tables disagreeing is **not** a textual conflict, so
 GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
 platform will show it. **Registering a new scope means editing every one of these
-tables** — three on the wind harness, and **five on solar** since ABL-376 added
-`FIT_RULES` and `SCOPE_TITLES` to the same import-time check. Count them in the
+tables** — three on the wind harness, and **seven on solar**. Count them in the
 `check_registration_tables(...)` call in the harness you are editing rather than
 from this sentence; that call is the list.
+
+**But the call is not the whole list, and that asymmetry is deliberate.** It
+names three — `SCOPES`, `GATE_BASIS`, `SCOPE_OUTPUTS`. The solar harness carries
+four more that it does *not* check: `FIT_RULES` and `SCOPE_TITLES` (ABL-376),
+`SCOPE_FEATURES` (ABL-395) and `SCOPE_NOT_EVALUABLE` (ABL-421). An earlier
+version of this sentence said ABL-376 added its two "to the same import-time
+check"; it did not, and the harness comment over the call has always said so.
+The three are strict because omitting an entry fails *destructively and
+silently* — a missing `SCOPE_OUTPUTS` row sends a run's results over another
+scope's dispositioned evidence. The others degrade self-documentingly, and
+`SCOPE_FEATURES` **cannot** join the call: `abl316-t2a` is deliberately absent
+from it, so requiring it would raise `KeyError` at import for a scope whose
+absence is correct and published. Adding a required table is also a tax on every
+branch already in flight.
+
+**`SCOPE_NOT_EVALUABLE` is the exception to watch, because it defaults toward
+scoring (ABL-421).** ABL-348 `not_evaluable` declares `EE/solar` and `FI/solar`
+unscorable on 24-36h and 36-48h, before any fit existed, with a rule the harness
+had no way to obey: *"It is not a FAIL and must not be counted as one; a gate
+read that scores it has misread this registration."* `gate_cell` builds a cell
+for every country-band that yields rows and marks it `pass: False` when `n` falls
+under the registered minimum — so those four cells arrive as ordinary *failed*
+cells and are counted into the bar. Tranches 2a-2c dodged this by excluding both
+pairs; tranche 2d is the one they belong to. A declared cell is now subtracted
+from `registered_cells` and routed to a `not_evaluable_cells` list that `passed`,
+`disposition` and `attach_grades` never read — still measured and printed, so the
+declaration is auditable, but carrying no gate outcome and no grade. Three things
+follow:
+
+- **The table is a transcription, not a discretion.** A scope that could declare
+  its own cells unscorable is a scope that can drop whatever scores badly.
+  `tests/test_abl421_not_evaluable.py` derives the declaration from
+  `experiments/ABL348/config.json` and compares, so it can only ever mirror the
+  pre-registration.
+- **Only the bands the registration names.** ABL-348's `note_48_64h` says the
+  48-64h band scales proportionally rather than being hard-bounded by
+  `n_d7_scorable`, and that a declared pair "may still clear 456 in that band and
+  should be reported if it does" — so 48-64h stays on the bar for both pairs.
+  Where such a cell falls short it is a **coverage shortfall**
+  (`enough_pairs: False`), not a loss to D-7; the cell dict carries the two flags
+  separately.
+- **Only one of the two shortfalls is ours.** EE's is an ABL-188 bit-identical
+  zero run present in *both* source tables, so reverting the source would not
+  recover it. FI's is `energy_generation` holding 663 of 720 gate hours against
+  `energy_renewable`'s 717 — `source_dependent: true`, a cost of ABL-348's source
+  change and a finding for whoever owns that decision rather than a fact about
+  FI's model. The `source_dependent` flag is asserted by the same test for
+  exactly this reason.
 
 **What the fit was allowed to see is part of the registration too (ABL-376).**
 `FIT_RULES` (`evaluate_solar_retrain.py`) carries `exclude_impossible_night` per
