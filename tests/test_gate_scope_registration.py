@@ -24,7 +24,7 @@ table's size. So:
   * the default scope still reproduces ABL-195's registered pair set exactly.
 """
 import ast
-import subprocess
+import json
 import sys
 from pathlib import Path
 
@@ -69,15 +69,26 @@ def test_every_scope_is_reachable(scopes):
 
 
 def test_default_scope_reproduces_abl195(scopes):
-    """The unflagged run is still the ABL-195 gate: same pairs, same 15 cells."""
-    main_source = subprocess.run(
-        ["git", "show", "origin/main:scripts/evaluate_wind_retrain.py"],
-        cwd=REPO, capture_output=True, text=True, check=True).stdout
-    main_pairs_dict = _module_const(main_source, "PAIRS")
-    main_pairs = {(t, c) for t, spec in main_pairs_dict.items() for c in spec["countries"]}
+    """The unflagged run is still the ABL-195 gate: same pairs, same 15 cells.
 
-    assert scopes["abl195"] == main_pairs, (
-        "the default scope no longer reproduces main's registered pair set")
+    ABL-379: this read `git show origin/main:scripts/evaluate_wind_retrain.py`
+    and pulled the `PAIRS` constant out of it. That constant is exactly what
+    this issue's own change replaced with `SCOPES`, so the test went red the
+    moment ABL-322 merged -- it has been failing on `origin/main` ever since,
+    asserting nothing. A test whose reference is a moving branch stops testing
+    the thing it names as soon as it lands.
+
+    `experiments/ABL195/config.json` is the frozen pre-registration and is the
+    authority for what ABL-195 registered. It does not move.
+    """
+    registered = json.loads(
+        (REPO / "experiments" / "ABL195" / "config.json").read_text(encoding="utf-8"))
+    registered_pairs = {(stream, country)
+                        for stream, spec in registered["pairs"].items()
+                        for country in spec["countries"]}
+
+    assert scopes["abl195"] == registered_pairs == SERVING_PAIRS, (
+        "the default scope no longer reproduces ABL-195's registered pair set")
     assert len(scopes["abl195"]) * len(PRIMARY_BANDS) == 15
 
 

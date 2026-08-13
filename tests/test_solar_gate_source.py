@@ -209,8 +209,15 @@ def _result(source, constant_runs=()):
     return {
         "meta": {"generated_at": "2026-08-12 00:00 UTC", "replica_db": "r.db",
                  "replica_bytes": 1, "training_source": source,
+                 # ABL-379: the report is rendered per registered scope. These
+                 # runs are ABL-253's default scope, so this fixture says so.
+                 "scope": "abl253",
+                 "registered_pairs": [["solar", "BE"], ["solar", "DE"], ["solar", "FR"]],
+                 "registered_cells": 9,
+                 "gate_basis": ["challenger", "incumbent", "seasonal_naive", "persistence"],
                  "fit_window": {"start": "2026-01-14", "end_exclusive": "2026-07-11"},
-                 "gate_window": {"start": "2026-07-11", "end_exclusive": "2026-08-10"}},
+                 "gate_window": {"start": "2026-07-11", "end_exclusive": "2026-08-10"},
+                 "screen_window": {"start": "2025-12-31", "end_exclusive": "2026-08-10"}},
         "verdict": "PASS", "recommendation": "-",
         "gate_cells": [], "country_d2": [],
         "training": [{"country": COUNTRY, "algorithm": "catboost",

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Fit and read the pre-registered ABL-195 serve-faithful wind gate."""
+"""Fit and read a pre-registered serve-faithful wind gate (see SCOPES).
+
+The default scope is `abl195`, so an unflagged run reproduces that gate exactly;
+`--scope` selects any other registered pair set.
+"""
 
 from __future__ import annotations
 
@@ -28,8 +32,8 @@ from src.evaluation.scorecard import (
 )
 from src.evaluation.wind_retrain import (
     FEATURE_COLUMNS, INTENDED_N, PRIMARY_BANDS, SCHEDULE_N, attach_baselines,
-    build_vintage_frame, common_scores, finite_training_rows, gate_cell,
-    select_latest_challenger_per_band,
+    build_vintage_frame, finite_training_rows, gate_cell, gate_verdict,
+    scores_with_comparators, select_latest_challenger_per_band,
 )
 from src.wind_features import RenewableFeatureBuilder
 
@@ -59,6 +63,20 @@ SCOPES = {
     # `energy_generation`.  2 pairs x 3 bands = 6 cells.  No onshore pair -- no
     # currently-serving model is refitted by this scope.
     "abl322-pilot": (("wind_offshore", "DE"), ("wind_offshore", "NL")),
+}
+
+# ABL-379: output paths are keyed off the scope so one scope cannot overwrite
+# another's artifacts.  These defaulted to ABL-195's three paths for every
+# invocation, so a pilot or tranche run that forgot three flags overwrote a
+# dispositioned gate read in place -- the same hazard the solar harness carried
+# against ABL-253.
+SCOPE_OUTPUTS = {
+    "abl195": {"artifact_dir": "experiments/ABL195/artifacts",
+               "json_out": "experiments/ABL195/results.json",
+               "report_out": "reports/abl_195_wind_retrain.md"},
+    "abl322-pilot": {"artifact_dir": "experiments/ABL322/artifacts",
+                     "json_out": "experiments/ABL322/results.json",
+                     "report_out": "reports/abl_322_pilot_gate.md"},
 }
 COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw"}
 
@@ -274,9 +292,13 @@ def main() -> int:
     parser.add_argument("--fit-start", default="2026-01-14")
     parser.add_argument("--gate-start", default="2026-07-11")
     parser.add_argument("--gate-end", default="2026-08-10")
-    parser.add_argument("--artifact-dir", default="experiments/ABL195/artifacts")
-    parser.add_argument("--json-out", default="experiments/ABL195/results.json")
-    parser.add_argument("--report-out", default="reports/abl_195_wind_retrain.md")
+    # ABL-379: default to the *scope's* registered paths, resolved after parsing.
+    parser.add_argument("--artifact-dir", default=None,
+                        help="Override the scope's registered artifact directory")
+    parser.add_argument("--json-out", default=None,
+                        help="Override the scope's registered results.json path")
+    parser.add_argument("--report-out", default=None,
+                        help="Override the scope's registered report path")
     # ABL-322: the pilot gates DE/NL wind_offshore off `energy_generation`.
     # Both stay opt-in so an unflagged run reproduces ABL-195 exactly.
     parser.add_argument("--scope", default="abl195", choices=sorted(SCOPES),
@@ -288,6 +310,7 @@ def main() -> int:
                              f"contamination audit (default: {db.RENEWABLE_TYPE_SOURCE_TABLE})")
     args = parser.parse_args()
     registered_pairs = SCOPES[args.scope]
+    outputs = SCOPE_OUTPUTS[args.scope]
     registered_cells = len(registered_pairs) * len(PRIMARY_BANDS)
     fit_start, gate_start, gate_end = map(pd.Timestamp, (args.fit_start, args.gate_start, args.gate_end))
     if not fit_start < gate_start < gate_end:
@@ -300,7 +323,7 @@ def main() -> int:
                           models={"wind_offshore": "xgboost", "wind_onshore": "catboost"})
     incumbent_raw, vintage_counts = _load_forecasts(cfg)
     incumbent = select_latest_per_band(incumbent_raw)
-    artifact_dir = Path(args.artifact_dir)
+    artifact_dir = Path(args.artifact_dir or outputs["artifact_dir"])
     training, scored_frames, tso_by_type = [], [], {}
     for forecast_type, country in registered_pairs:
         if forecast_type not in tso_by_type:
@@ -370,21 +393,7 @@ def main() -> int:
     gate_basis = GATE_BASIS[args.scope]
 
     def scored(group):
-        """Score on the scope's registered gate basis; report the rest beside it.
-
-        Each comparator outside the basis is scored on its own intersection
-        *with* the basis, so a comparator that is absent for this pair costs its
-        own row and nothing else. Returns the basis scores, the basis
-        intersection, and each comparator's own n.
-        """
-        scores, common = common_scores(group, gate_basis)
-        comparator_n = {name: len(common) for name in gate_basis}
-        for name in REPORTED_COMPARATORS:
-            if name in scores:
-                continue
-            sub_scores, sub_common = common_scores(group, (*gate_basis, name))
-            scores[name], comparator_n[name] = sub_scores[name], len(sub_common)
-        return scores, common, comparator_n
+        return scores_with_comparators(group, gate_basis, REPORTED_COMPARATORS)
 
     all_scored = pd.concat(scored_frames, ignore_index=True)
     gate_cells, country_d2 = [], []
@@ -406,41 +415,38 @@ def main() -> int:
                            "n": len(common), "scores": scores,
                            "comparator_n": comparator_n, "tso": tso_score})
 
-    passed = sum(row["gate"]["pass"] for row in gate_cells)
     contaminated = any(row["constant_runs"] for row in training)
-    performance_pass = len(gate_cells) == registered_cells and passed == registered_cells
-    if performance_pass and contaminated:
-        verdict = "PERFORMANCE PASS — HOLD FOR CONTAMINATION ADJUDICATION"
+    # ABL-379 moved this classification into `gate_verdict` so the solar harness
+    # gates on the same four outcomes rather than on a second copy of them.
+    # Each harness still owns its own recommendation prose.
+    disposition = gate_verdict(gate_cells, registered_cells, contaminated)
+    verdict, passed = disposition["verdict"], disposition["passed"]
+    if verdict.startswith("PERFORMANCE PASS"):
         recommendation = (
             "The challenger clears the pre-registered D-7 performance bar in every served D+2 country-band cell. "
             "Do not promote yet: hand the constant runs tabulated below to the CEO/ingest owner for adjudication, "
             "then return these experiment artifacts and this evidence to the CEO for Board review. This issue does not promote them."
         )
-    elif performance_pass:
-        verdict = "PASS"
+    elif verdict == "PASS":
         recommendation = (
             "The challenger clears the pre-registered D-7 bar in every served D+2 country-band cell. Preserve these "
             "experiment artifacts and ask the CEO to initiate Board review; do not promote from this issue."
         )
-    else:
+    elif verdict == "UNREADABLE":
         # A cell scoring no rows did not lose a race -- it never ran one.
         # Calling that FAIL reads as a model-quality verdict and is how this
         # harness first reported the ABL-322 pilot.
-        unreadable = [row for row in gate_cells if row["gate"]["n"] == 0]
-        if unreadable:
-            verdict = "UNREADABLE"
-            recommendation = (
-                f"No disposition: {len(unreadable)}/{registered_cells} primary cells scored zero rows, so the challenger was "
-                "never compared to the baseline in them. This is not a model-quality result and must not be reported as one. "
-                "Fix the cause of the empty intersection and re-read the gate; the registered windows, bands, metric, baseline "
-                "and minimum n are untouched by a run that produced no score."
-            )
-        else:
-            verdict = "FAIL"
-            recommendation = (
-                f"Do not promote these artifacts: only {passed}/{registered_cells} primary cells clear the registered bar. Treat the losing "
-                "country/bands as a model-quality finding and move next to stronger wind features/model selection on a fresh pre-registered split."
-            )
+        recommendation = (
+            f"No disposition: {disposition['unreadable']}/{registered_cells} primary cells scored zero rows, so the challenger was "
+            "never compared to the baseline in them. This is not a model-quality result and must not be reported as one. "
+            "Fix the cause of the empty intersection and re-read the gate; the registered windows, bands, metric, baseline "
+            "and minimum n are untouched by a run that produced no score."
+        )
+    else:
+        recommendation = (
+            f"Do not promote these artifacts: only {passed}/{registered_cells} primary cells clear the registered bar. Treat the losing "
+            "country/bands as a model-quality finding and move next to stronger wind features/model selection on a fresh pre-registered split."
+        )
     result = {"meta": {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
                        "replica_db": str(replica), "replica_bytes": replica.stat().st_size,
                        "fit_window": {"start": str(fit_start), "end_exclusive": str(gate_start)},
@@ -451,10 +457,12 @@ def main() -> int:
                        "registered_intended_n": INTENDED_N, "schedule_implied_n": SCHEDULE_N,
                        "vintage_counts": vintage_counts,
                        "selection": "latest vintage per country + target + model + horizon band"},
-              "verdict": verdict, "recommendation": recommendation,
+              "verdict": verdict, "disposition": disposition,
+              "recommendation": recommendation,
               "training": training, "gate_cells": sorted(gate_cells, key=lambda r: (r["forecast_type"], r["country"], r["horizon_band"])),
               "country_d2": sorted(country_d2, key=lambda r: (r["forecast_type"], r["country"]))}
-    json_path, report_path = Path(args.json_out), Path(args.report_out)
+    json_path = Path(args.json_out or outputs["json_out"])
+    report_path = Path(args.report_out or outputs["report_out"])
     json_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")

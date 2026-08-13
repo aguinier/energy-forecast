@@ -10,7 +10,9 @@ from src.evaluation.wind_retrain import (
     common_scores,
     finite_training_rows,
     gate_cell,
+    gate_verdict,
     schedule_vintages,
+    scores_with_comparators,
     select_latest_challenger_per_band,
 )
 
@@ -27,12 +29,20 @@ FEATURE_COLUMNS = (
     "diffuse_radiation_wm2", "temperature_c",
 )
 
-COUNTRIES = ("BE", "DE", "FR")
 ALGORITHM = "catboost"
 
+# ABL-379: `COUNTRIES = ("BE", "DE", "FR")` used to live here and was iterated
+# directly by the harness, which made reading a gate for any other country an
+# edit to this file. The registered pair set is now `SCOPES` in
+# `scripts/evaluate_solar_retrain.py`, alongside the gate basis and cell count
+# that have to move with it -- exactly as the wind harness carries its own.
+# A second "registered countries" constant next to that table would be a second
+# source of truth for the same fact, so it is gone rather than left dangling.
+
 __all__ = (
-    "ALGORITHM", "COUNTRIES", "FEATURE_COLUMNS", "INTENDED_N", "PRIMARY_BANDS",
+    "ALGORITHM", "FEATURE_COLUMNS", "INTENDED_N", "PRIMARY_BANDS",
     "RUN_TIMES", "SCHEDULE_N", "attach_baselines", "build_vintage_frame",
-    "common_scores", "finite_training_rows", "gate_cell", "schedule_vintages",
+    "common_scores", "finite_training_rows", "gate_cell", "gate_verdict",
+    "schedule_vintages", "scores_with_comparators",
     "select_latest_challenger_per_band",
 )
