@@ -14,6 +14,27 @@ Machine record: `reports/abl_403_night_rule_interaction.json`.
 Probe: `scripts/abl403_night_rule_interaction_probe.py`.
 Statistics guard: `tests/test_abl403_interaction_stats.py`.
 
+> **Correction, 2026-08-14, after merge (`905df5a`).** Three transcription errors
+> in the published text, all in the *reporting* of the night-negative axis. No
+> fit was re-run, the machine record is unchanged and is what the corrections were
+> taken from, and **no verdict, effect size or recommendation moves**.
+>
+> 1. **§5c quoted a rate change of "20.09% to 12.97% ... 8/8 seeds, p = 0.0078".**
+>    Those statistics belong to `exclusion_at_f27` (21.63% → 9.85%); the
+>    `exclusion_at_f25` contrast whose endpoints were quoted is **7/8, p = 0.070**.
+>    §5c now states each contrast against its own control.
+> 2. **§5c omitted that neither contrast clears its null.** The single-seed null on
+>    this metric is 14.06pp, wider than both effects, so `outside_the_null` is
+>    False for both — including the 8/8 one. §5c said the *interaction* was
+>    unreadable and left the simple effects looking readable. This strengthens the
+>    section's own finding rather than weakening it, and it is the version now
+>    carried in `CLAUDE.md`.
+> 3. Two §4a cells were double-rounded by hand: 9.86 → **9.85** and 19.63 →
+>    **19.62** (0.01pp each, from 9.854875 and 19.624750).
+>
+> The headline block above and §4a's effect columns were checked cell by cell
+> against the machine record and are otherwise exact.
+
 ---
 
 ## 1. Why this ran, and what it was asked
@@ -118,9 +139,9 @@ up when geometry is present.
 | **night MAE (MW)** | 44.84 | 46.70 | 105.88 | 93.56 | **+61.05** | **+46.86** | **−14.19** |
 | night bias, pred − actual (MW) | −2.08 | −1.55 | +88.45 | +73.79 | **+90.53** | **+75.34** | −15.20 |
 | night WAPE (%) | 19.92 | 20.74 | 47.03 | 41.56 | **+27.12** | **+20.82** | **−6.30** |
-| night rows predicted negative (%) | 20.09 | 21.63 | 12.97 | 9.86 | **−7.12** | **−11.78** | −4.66 |
+| night rows predicted negative (%) | 20.09 | 21.63 | 12.97 | 9.85 | **−7.12** | **−11.78** | −4.66 |
 | WAPE 24-36h (%) | 19.41 | 19.87 | 20.85 | 21.77 | **+1.45** | **+1.90** | +0.45 |
-| WAPE 36-48h (%) | 19.18 | 19.63 | 20.55 | 21.51 | **+1.37** | **+1.89** | +0.52 |
+| WAPE 36-48h (%) | 19.18 | 19.62 | 20.55 | 21.51 | **+1.37** | **+1.89** | +0.52 |
 | WAPE 48-64h (%) | 20.68 | 20.91 | 22.23 | 22.83 | **+1.55** | **+1.92** | +0.37 |
 | daylight WAPE 24-36h (%) | 19.43 | 19.87 | 19.51 | 20.77 | +0.08 | +0.90 | +0.82 |
 | daylight WAPE 36-48h (%) | 19.17 | 19.59 | 19.20 | 20.50 | +0.03 | +0.91 | +0.88 |
@@ -190,15 +211,34 @@ On the axis the issue was originally framed around, the **night-negative rate,
 no interaction is readable at all** (−4.66pp, 6/8, p = 0.29, inside a 19.28pp
 null).
 
-**5c. The night-negative rate would have called this a success. That is the
-methodological finding.** On BG the rule *improves* the night-negative rate from
-20.09% to 12.97% (and to 9.86% with geometry, 8/8 seeds, p = 0.0078) while
-**doubling night MAE and pushing night bias from −2.1 MW to +88.5 MW**. A read
-that dispositioned this on the sign metric alone — which is the metric ABL-381
-§4 and ABL-395 both reported — would have adopted a rule that made the forecast
-substantially worse and shown a number moving the right way. **Never disposition
-a night-floor change on the negative-prediction rate alone; it cannot see the
-level.**
+**5c. The night-negative rate would have called this a success — and it could
+not have read it either way. That is the methodological finding.** On BG the rule
+*improves* the night-negative rate in both arms, each quoted against its own
+control:
+
+| contrast | endpoints | effect | seeds | sign p | null (single-seed) | readable |
+|---|---|---:|---:|---:|---:|---|
+| `exclusion_at_f25` | 20.09% → 12.97% | −7.12pp | 7/8 down | 0.070 | 14.06pp | **no** |
+| `exclusion_at_f27` | 21.63% → 9.85% | −11.78pp | **8/8 down** | **0.0078** | 14.06pp | **no** |
+
+— while **roughly doubling night MAE and pushing night bias from −2.1 MW to
++88.5 MW** on the identical fits. A read that dispositioned this on the sign
+metric alone — which is the metric ABL-381 §4 and ABL-395 both reported — would
+have adopted a rule that made the forecast substantially worse, and shown a
+number moving the right way while doing it.
+
+**Neither improvement is readable, including the 8/8 one.** The control-vs-control
+single-seed null on this metric is **14.06pp**, wider than either effect, so
+`outside_the_null` is False for both simple effects *and* for the diagonal. On the
+same eight paired fits, night MAE's +61.05 MW clears its 6.96 MW null comfortably
+and night bias its 14.35 MW. So the negative rate is not merely blind to the
+level — at eight seeds on BG it resolves nothing at all, on runs where the level
+metric is decisive. An 8/8 sign test is not readability when the null is wider
+than the effect.
+
+**Never disposition a night-floor change on the negative-prediction rate alone; it
+cannot see the level, and check `outside_the_null` before believing it can see
+anything.**
 
 **5d. The rule costs BG half its gate margin.** The D-7 bar is identical across
 arms by construction (it does not depend on the fit):
