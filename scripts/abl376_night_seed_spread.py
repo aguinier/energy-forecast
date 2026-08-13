@@ -71,7 +71,7 @@ from src.evaluation.solar_retrain import (  # noqa: E402
 )
 from src.solar_features import (  # noqa: E402
     IMPOSSIBLE_NIGHT_THRESHOLD_MW, NIGHT_ELEVATION_THRESHOLD_DEG,
-    SOLAR_BANDS, exclude_impossible_night_rows, solar_bands,
+    SOLAR_BANDS, SOLAR_GEOMETRY_FEATURES, exclude_impossible_night_rows, solar_bands,
 )
 from src.wind_features import RenewableFeatureBuilder  # noqa: E402
 
@@ -116,29 +116,31 @@ def _band_metrics(actual: np.ndarray, predicted: np.ndarray) -> dict:
     return out
 
 
-def _fit_predict(fit: pd.DataFrame, gate_x: pd.DataFrame, seed: int) -> np.ndarray:
+def _fit_predict(fit: pd.DataFrame, gate_x: pd.DataFrame, seed: int,
+                 feature_columns: tuple = FEATURE_COLUMNS) -> np.ndarray:
     """One fit at one seed. Everything but `random_seed` is the gate's own config."""
     params = dict(config.get_default_params(ALGORITHM))
     params["random_seed"] = seed
     model = CatBoostRegressor(**params)
-    model.fit(fit[list(FEATURE_COLUMNS)], fit["actual"])
+    model.fit(fit[list(feature_columns)], fit["actual"])
     return np.asarray(model.predict(gate_x), dtype=float)
 
 
 def sweep_country(country: str, replica: str, source: str,
                   fit_start: pd.Timestamp, gate_start: pd.Timestamp,
-                  gate_end: pd.Timestamp, seeds: tuple) -> dict:
+                  gate_end: pd.Timestamp, seeds: tuple,
+                  feature_columns: tuple = FEATURE_COLUMNS) -> dict:
     """Build once, fit `2 * len(seeds)` times, score every fit on the same rows."""
     builder = RenewableFeatureBuilder(country, "solar", fit_start - pd.Timedelta(days=14),
                                       gate_end, actuals_source=source, db_path=replica)
 
     started = time.monotonic()
-    fit_raw = build_vintage_frame(builder, fit_start, gate_start, FEATURE_COLUMNS)
-    fit_all, fit_audit = finite_training_rows(fit_raw, FEATURE_COLUMNS)
+    fit_raw = build_vintage_frame(builder, fit_start, gate_start, feature_columns)
+    fit_all, fit_audit = finite_training_rows(fit_raw, feature_columns)
     fit_clean, night_audit = exclude_impossible_night_rows(fit_all, country)
 
-    gate_raw = build_vintage_frame(builder, gate_start, gate_end, FEATURE_COLUMNS)
-    gate_finite, gate_audit = finite_training_rows(gate_raw, FEATURE_COLUMNS)
+    gate_raw = build_vintage_frame(builder, gate_start, gate_end, feature_columns)
+    gate_finite, gate_audit = finite_training_rows(gate_raw, feature_columns)
     # The same selection the gate makes, and it depends only on the schedule --
     # not on any prediction -- so it is taken once and every arm scores the rows
     # it picks. Unfiltered, on purpose: the rule is fit-side only.
@@ -147,7 +149,7 @@ def sweep_country(country: str, replica: str, source: str,
     logger.info("%s: built %d fit rows, %d scored gate rows in %.1f min",
                 country, len(fit_all), len(selected), (time.monotonic() - started) / 60)
 
-    gate_x = selected[list(FEATURE_COLUMNS)]
+    gate_x = selected[list(feature_columns)]
     actual = selected["actual"].to_numpy(dtype=float)
     bands = solar_bands(country, selected["target_ts"]).to_numpy()
     frames = {"control": fit_all, "night_fit": fit_clean}
@@ -156,7 +158,7 @@ def sweep_country(country: str, replica: str, source: str,
     for seed in seeds:
         for arm, drops in ARMS.items():
             began = time.monotonic()
-            predicted = _fit_predict(frames[arm], gate_x, seed)
+            predicted = _fit_predict(frames[arm], gate_x, seed, feature_columns)
             runs.append({
                 "arm": arm, "seed": seed, "drops_impossible_night": drops,
                 "n_fit_rows": int(len(frames[arm])),
@@ -256,6 +258,10 @@ def _render_markdown(payload: dict) -> str:
         "out-of-sample by target timestamp.",
         f"Replica `{meta['replica_db']}` ({meta['replica_bytes']:,} bytes), source table "
         f"`{meta['training_source']}`, opened read-only.",
+        f"Feature set: **{meta.get('feature_set', 'legacy25')}** "
+        f"({len(meta.get('feature_columns', [])) or 25} columns). "
+        + ("This is the registered read." if meta.get("is_registered_read", True)
+           else "**Exploratory — not the registered read.**"),
         f"Night is `solar_geometry.is_night_hour` (sun below {meta['night_threshold_deg']:g} deg "
         f"for the whole hour); the fit drops night rows above "
         f"{meta['impossible_night_threshold_mw']:g} MW and **the score drops nothing**.", "",
@@ -321,6 +327,12 @@ def main() -> int:
     parser.add_argument("--seeds", default=",".join(str(s) for s in SEEDS),
                         help="Comma-separated integer seeds. The default is the registered set; "
                              "overriding it makes the run a probe, not the registered read.")
+    parser.add_argument("--with-geometry", action="store_true",
+                        help="Exploratory, and NOT the registered read: append the ABL-338 "
+                             "solar-geometry features to the gate's 25 legacy columns. The "
+                             "registered gate fits the legacy 25, which carry no night "
+                             "indicator at all; this asks whether the fit rule needs one to "
+                             "do anything.")
     parser.add_argument("--renewable-source", default=None)
     parser.add_argument("--json-out", default="experiments/ABL376/seed_spread.json")
     parser.add_argument("--report-out", default="reports/abl_376_seed_spread.md")
@@ -336,6 +348,9 @@ def main() -> int:
     source = args.renewable_source or db.RENEWABLE_TYPE_SOURCE_TABLE
     seeds = tuple(int(s) for s in args.seeds.split(",") if s.strip())
     countries = [c.strip().upper() for c in args.countries.split(",") if c.strip()]
+    feature_columns = tuple(FEATURE_COLUMNS)
+    if args.with_geometry:
+        feature_columns += SOLAR_GEOMETRY_FEATURES
 
     payload = {
         "meta": {
@@ -344,6 +359,12 @@ def main() -> int:
             "training_source": source, "algorithm": ALGORITHM,
             "seeds": list(seeds), "registered_seeds": list(SEEDS),
             "seeds_are_registered": list(seeds) == list(SEEDS),
+            # The registered read fits the gate's own 25 legacy columns. A run
+            # with geometry is a diagnostic and says so in its own record, so the
+            # two reads can never be mistaken for one another.
+            "feature_set": "legacy25+geometry" if args.with_geometry else "legacy25",
+            "feature_columns": list(feature_columns),
+            "is_registered_read": (list(seeds) == list(SEEDS)) and not args.with_geometry,
             "night_threshold_deg": NIGHT_ELEVATION_THRESHOLD_DEG,
             "impossible_night_threshold_mw": IMPOSSIBLE_NIGHT_THRESHOLD_MW,
             "fit_window": {"start": str(fit_start), "end_exclusive": str(gate_start)},
@@ -358,7 +379,8 @@ def main() -> int:
 
     for country in countries:
         payload["countries"].append(
-            sweep_country(country, str(replica), source, fit_start, gate_start, gate_end, seeds)
+            sweep_country(country, str(replica), source, fit_start, gate_start, gate_end,
+                          seeds, feature_columns)
         )
         # Written after every country: the sweep is long enough that a run
         # interrupted at the third country should still leave the first two
