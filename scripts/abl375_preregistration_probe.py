@@ -9,7 +9,7 @@ the one ABL-375 registers has never been fitted or scored for any arm of this
 comparison, while ABL-348's gate window has.
 
 Everything here is a **read**. No model is fitted, and none exists for the
-registered window when these numbers are taken — which is the whole point of
+registered window when these numbers are taken -- which is the whole point of
 taking them now.
 
 What it measures, per country
@@ -22,7 +22,7 @@ What it measures, per country
 - ABL-188 suspect-constant exclusions and ABL-337 impossible-night rows inside
   the fit and holdout windows, so the contamination statement in the
   registration is measured rather than asserted
-- the literal seasonal-naive D-7 bar per band — the free baseline every arm is
+- the literal seasonal-naive D-7 bar per band -- the free baseline every arm is
   quoted against, fixed before a challenger exists
 
 Usage
