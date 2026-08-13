@@ -12,7 +12,7 @@ Creates features for D+2 forecasting including:
 
 import numpy as np
 import pandas as pd
-from typing import List, Optional, Dict
+from typing import Iterable, List, Optional, Dict
 import logging
 import holidays
 
@@ -529,6 +529,58 @@ def get_feature_columns(forecast_type: str, include_holidays: bool = True) -> Li
     )
 
     return all_features
+
+
+def select_feature_columns(
+    forecast_type: str,
+    available: Iterable[str],
+    context: str = "",
+) -> List[str]:
+    """The columns a fit will actually train on, and a warning for each one it drops.
+
+    Every training site narrows `get_feature_columns()` to the columns its frame
+    actually carries, because a declared name that `create_all_features` did not
+    produce would raise on `df[cols]`. That narrowing is the whole of ABL-394:
+    until this function existed it was a bare comprehension repeated at four call
+    sites, and it discarded names without saying so.
+
+    That silence is why 66 of 66 serving artifacts carry a shorter feature list
+    than the one their own next fit would build. Before ABL-338 threaded
+    `country_code` into `create_all_features` (5cf2296), `create_holiday_features`
+    never ran on a training frame, so the four holiday names were declared, never
+    produced, and dropped here without a word. Measured 2026-08-13: dropping
+    exactly those four reproduces the served list length for all eight forecast
+    types that have an artifact — 23/23/26/25/27/25/24/24
+    (`reports/abl_386_feature_drift.json`, and `tests/feature_list_manifest.json`
+    for the frozen copy).
+
+    The selection is unchanged, deliberately: this is not the place to decide
+    that a missing feature should abort a retrain. What is new is that the next
+    such gap is found by reading a log line rather than by re-deriving it from
+    joblib artifacts two issues later.
+
+    Args:
+        forecast_type: 'load', 'price', 'solar', ... — as passed to the fit.
+        available: the column names the training frame carries.
+        context: optional caller tag, e.g. "DE walk-forward", used in the warning.
+
+    Returns:
+        The declared names present in `available`, in declared order.
+    """
+    present = set(available)
+    declared = get_feature_columns(forecast_type)
+    selected = [col for col in declared if col in present]
+    dropped = [col for col in declared if col not in present]
+
+    if dropped:
+        where = f" ({context})" if context else ""
+        logger.warning(
+            f"{forecast_type}{where}: fitting {len(selected)} of {len(declared)} "
+            f"declared features. Not in the training frame, so NOT fitted: "
+            f"{dropped}. The artifact will record only the {len(selected)} it used."
+        )
+
+    return selected
 
 
 # ============================================================================
