@@ -305,6 +305,32 @@ reproduces ABL-195 exactly) is 5 pairs → 15 cells; `abl322-pilot` is DE/NL
 pre-registration and belongs in review. `tests/test_gate_scope_registration.py`
 pins all of this, including that `--countries` is not reintroduced.
 
+A scope also registers its **gate basis** (`GATE_BASIS`): the columns that must
+be *simultaneously finite* for a row to enter a gate cell. This is not a detail.
+`common_scores` intersects on every column it is handed, and the harness handed
+it `challenger, incumbent, seasonal_naive, persistence` — so a pair with **no
+incumbent** has an empty intersection, and every cell scores `n=0` with every
+score `None`. ABL-322 hit exactly this: DE and NL `wind_offshore` have 0 rows in
+`forecasts`, so the first pilot run returned 0/6 cells and the harness rendered
+`FAIL` — a model-quality verdict on a comparison that never happened. **Every
+new country in the ABL-316 tranches is in that position**, so this would have
+mis-dispositioned all 37 remaining pairs. `abl322-pilot` therefore gates on
+`(challenger, seasonal_naive)` — the two columns its registered bar actually
+names — and reports the incumbent and persistence on their own intersection with
+that basis, each carrying its own n, so an absent comparator reads *Not measured*
+instead of emptying the cell.
+
+`abl195` deliberately **keeps** the four-way basis it was published under: its
+48-64h cells scored 480 rows against the 510 the same report records as selected,
+so the incumbent conjunct did drop rows there, and re-basing it would silently
+move numbers that have already been dispositioned. Re-reading ABL-195 under the
+narrower basis is a separate decision for whoever owns that gate.
+
+Relatedly, a run in which any cell scores zero rows now returns verdict
+`UNREADABLE`, not `FAIL`. A cell that scored nothing did not lose a race; saying
+`FAIL` invites exactly the wrong next move (feature work on a model that was
+never measured).
+
 The **solar** harness still hardcodes `len(gate_cells) == 9` against its
 `COUNTRIES` and has no scope argument. That is correct while every solar run is
 the full ABL-253 scope; the ABL-348 tranche will need the same `SCOPES`

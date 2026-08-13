@@ -90,6 +90,49 @@ def test_pilot_scope_is_offshore_only(scopes):
     assert len(pilot) * len(PRIMARY_BANDS) == 6
 
 
+@pytest.fixture(scope="module")
+def gate_basis():
+    return {name: tuple(cols) for name, cols
+            in _module_const(HARNESS.read_text(encoding="utf-8"), "GATE_BASIS").items()}
+
+
+def test_every_scope_registers_a_gate_basis(scopes, gate_basis):
+    """The basis is a registered property of the scope, like the pair list."""
+    assert set(gate_basis) == set(scopes), (
+        "every registered scope needs a registered gate basis")
+
+
+def test_gate_basis_always_contains_the_two_columns_the_bar_names(gate_basis):
+    """The bar is `challenger WAPE < seasonal-naive D-7 WAPE`. Both must be in it."""
+    for name, basis in gate_basis.items():
+        assert {"challenger", "seasonal_naive"} <= set(basis), (
+            f"scope {name!r} gates on a basis missing the columns its bar names")
+
+
+def test_pilot_does_not_gate_on_the_incumbent(gate_basis):
+    """The defect this pins: DE/NL wind_offshore have 0 rows in `forecasts`.
+
+    With `incumbent` in the basis the intersection is empty for those pairs, so
+    all 6 cells scored n=0 with every score None and the harness rendered FAIL —
+    a model-quality verdict on a comparison that never happened. Every new
+    country in ABL-316's remaining 37 pairs is in exactly that position.
+    """
+    assert "incumbent" not in gate_basis["abl322-pilot"]
+    assert gate_basis["abl322-pilot"] == ("challenger", "seasonal_naive")
+
+
+def test_abl195_keeps_the_basis_it_was_published_under(gate_basis):
+    """ABL-195's read is dispositioned; this pilot must not restate it.
+
+    Its published 48-64h cells scored 480 rows against the 510 the same report
+    records as selected, so the incumbent conjunct did drop rows there — the
+    four-way basis is not a no-op for it, and re-basing would move numbers the
+    Board has already seen.
+    """
+    assert gate_basis["abl195"] == (
+        "challenger", "incumbent", "seasonal_naive", "persistence")
+
+
 def test_scope_is_a_choice_not_a_country_filter():
     """The harness must not reintroduce a bare `--countries` filter.
 
