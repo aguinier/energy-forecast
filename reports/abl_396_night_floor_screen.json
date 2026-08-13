@@ -1,0 +1,4292 @@
+{
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 9432453120,
+  "night_mw_threshold": 1.0,
+  "night_definition": "solar_features.night_mask -- sun below NIGHT_ELEVATION_THRESHOLD_DEG for the whole hour",
+  "windows": {
+    "fit": [
+      "2026-01-14 00:00:00",
+      "2026-07-11 00:00:00"
+    ],
+    "gate": [
+      "2026-07-11 00:00:00",
+      "2026-08-10 00:00:00"
+    ]
+  },
+  "countries": [
+    {
+      "country": "AT",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1498,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 880.78,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2774,
+              "daylight_mean_mw": 1356.41,
+              "daylight_max_mw": 5370.0
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 180,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1411.51,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 540,
+              "daylight_mean_mw": 1882.02,
+              "daylight_max_mw": 5268.0
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17088,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4244,
+              "n_missing_rows": 0,
+              "n_night_rows": 1487,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 901.32,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2757,
+              "daylight_mean_mw": 1387.46,
+              "daylight_max_mw": 5536.0
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 180,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1411.51,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 540,
+              "daylight_mean_mw": 1882.02,
+              "daylight_max_mw": 5268.0
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16976,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4244,
+          "n_common_rows_finite_in_both": 4244,
+          "night": {
+            "n": 1487,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 2757,
+            "rel_energy_diff_pct": 1.7726,
+            "agree_within_threshold_pct": 37.43,
+            "max_abs_diff_mw": 947.0,
+            "sum_mwh": {
+              "energy_generation": 3758594.0,
+              "energy_renewable": 3825218.0
+            }
+          },
+          "verdict": "no_floor"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 180,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 540,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 1016290.0,
+              "energy_renewable": 1016290.0
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "BE",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1402,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1550.45,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2870,
+              "daylight_mean_mw": 2307.85,
+              "daylight_max_mw": 8537.16
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 165,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 2164.52,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 555,
+              "daylight_mean_mw": 2808.03,
+              "daylight_max_mw": 8140.26
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 4272,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            },
+            "gate": {
+              "raw_rows": 720,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4244,
+              "n_missing_rows": 0,
+              "n_night_rows": 1390,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1557.0,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2854,
+              "daylight_mean_mw": 2315.32,
+              "daylight_max_mw": 8537.16
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 165,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 2164.52,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 555,
+              "daylight_mean_mw": 2808.03,
+              "daylight_max_mw": 8140.26
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 4244,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            },
+            "gate": {
+              "raw_rows": 720,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4244,
+          "n_common_rows_finite_in_both": 4244,
+          "night": {
+            "n": 1390,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 2854,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 6607920.2,
+              "energy_renewable": 6607920.2
+            }
+          },
+          "verdict": "no_floor"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 165,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 555,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 1558454.3,
+              "energy_renewable": 1558454.3
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "BG",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1529,
+              "n_night_above_threshold": 1168,
+              "pct_of_night_rows_above_threshold": 76.39,
+              "night_mean_mw": 152.33,
+              "night_median_mw": 9.09,
+              "night_max_mw": 1097.37,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 855.24,
+              "pct_of_total_energy_at_night": 6.37,
+              "wape_floor_pct_if_clamped": 6.375,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2743,
+              "daylight_mean_mw": 1247.06,
+              "daylight_max_mw": 3923.25
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 210,
+              "n_night_above_threshold": 179,
+              "pct_of_night_rows_above_threshold": 85.24,
+              "night_mean_mw": 245.71,
+              "night_median_mw": 37.98,
+              "night_max_mw": 1087.86,
+              "night_min_mw": 0.21,
+              "series_mean_mw": 1439.2,
+              "pct_of_total_energy_at_night": 4.98,
+              "wape_floor_pct_if_clamped": 4.98,
+              "n_night_negative": 0,
+              "n_daylight_rows": 510,
+              "daylight_mean_mw": 1930.63,
+              "daylight_max_mw": 4408.1
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 4272,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            },
+            "gate": {
+              "raw_rows": 720,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4239,
+              "n_missing_rows": 0,
+              "n_night_rows": 1517,
+              "n_night_above_threshold": 1156,
+              "pct_of_night_rows_above_threshold": 76.2,
+              "night_mean_mw": 152.53,
+              "night_median_mw": 9.09,
+              "night_max_mw": 1097.37,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 856.38,
+              "pct_of_total_energy_at_night": 6.37,
+              "wape_floor_pct_if_clamped": 6.374,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2722,
+              "daylight_mean_mw": 1248.64,
+              "daylight_max_mw": 3923.25
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 210,
+              "n_night_above_threshold": 179,
+              "pct_of_night_rows_above_threshold": 85.24,
+              "night_mean_mw": 245.71,
+              "night_median_mw": 37.98,
+              "night_max_mw": 1087.86,
+              "night_min_mw": 0.21,
+              "series_mean_mw": 1439.2,
+              "pct_of_total_energy_at_night": 4.98,
+              "wape_floor_pct_if_clamped": 4.98,
+              "n_night_negative": 0,
+              "n_daylight_rows": 510,
+              "daylight_mean_mw": 1930.63,
+              "daylight_max_mw": 4408.1
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 4239,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            },
+            "gate": {
+              "raw_rows": 720,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4239,
+          "n_common_rows_finite_in_both": 4239,
+          "night": {
+            "n": 1517,
+            "rel_energy_diff_pct": 0.0309,
+            "agree_within_threshold_pct": 99.6,
+            "max_abs_diff_mw": 40.268,
+            "sum_mwh": {
+              "energy_generation": 231463.8,
+              "energy_renewable": 231392.2
+            }
+          },
+          "daylight": {
+            "n": 2722,
+            "rel_energy_diff_pct": 0.1785,
+            "agree_within_threshold_pct": 99.01,
+            "max_abs_diff_mw": 935.579,
+            "sum_mwh": {
+              "energy_generation": 3404867.2,
+              "energy_renewable": 3398790.5
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 210,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 51599.2,
+              "energy_renewable": 51599.2
+            }
+          },
+          "daylight": {
+            "n": 510,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 984622.6,
+              "energy_renewable": 984622.6
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "CH",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1465,
+              "n_night_above_threshold": 673,
+              "pct_of_night_rows_above_threshold": 45.94,
+              "night_mean_mw": 1.32,
+              "night_median_mw": 0.83,
+              "night_max_mw": 5.84,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 833.37,
+              "pct_of_total_energy_at_night": 0.05,
+              "wape_floor_pct_if_clamped": 0.054,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2807,
+              "daylight_mean_mw": 1267.63,
+              "daylight_max_mw": 4398.42
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 186,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1330.98,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 534,
+              "daylight_mean_mw": 1794.58,
+              "daylight_max_mw": 4476.96
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 4272,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            },
+            "gate": {
+              "raw_rows": 720,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4244,
+              "n_missing_rows": 0,
+              "n_night_rows": 1454,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 803.5,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2790,
+              "daylight_mean_mw": 1222.24,
+              "daylight_max_mw": 4398.42
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 186,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1330.98,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 534,
+              "daylight_mean_mw": 1794.58,
+              "daylight_max_mw": 4476.96
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 4244,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            },
+            "gate": {
+              "raw_rows": 720,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4244,
+          "n_common_rows_finite_in_both": 4244,
+          "night": {
+            "n": 1454,
+            "rel_energy_diff_pct": 100.0,
+            "agree_within_threshold_pct": 53.92,
+            "max_abs_diff_mw": 5.836,
+            "sum_mwh": {
+              "energy_generation": 1921.5,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 2790,
+            "rel_energy_diff_pct": 4.0179,
+            "agree_within_threshold_pct": 30.25,
+            "max_abs_diff_mw": 1353.686,
+            "sum_mwh": {
+              "energy_generation": 3552805.8,
+              "energy_renewable": 3410056.3
+            }
+          },
+          "verdict": "series_differ"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 186,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 534,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 958306.3,
+              "energy_renewable": 958306.3
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "CZ",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1411,
+              "n_night_above_threshold": 2,
+              "pct_of_night_rows_above_threshold": 0.14,
+              "night_mean_mw": 0.01,
+              "night_median_mw": 0.0,
+              "night_max_mw": 6.81,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 681.93,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2861,
+              "daylight_mean_mw": 1018.24,
+              "daylight_max_mw": 3449.65
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 176,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 958.04,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 544,
+              "daylight_mean_mw": 1268.0,
+              "daylight_max_mw": 3166.6
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17088,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4244,
+              "n_missing_rows": 93,
+              "n_night_rows": 1353,
+              "n_night_above_threshold": 2,
+              "pct_of_night_rows_above_threshold": 0.15,
+              "night_mean_mw": 0.01,
+              "night_median_mw": 0.0,
+              "night_max_mw": 6.81,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 697.34,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2798,
+              "daylight_mean_mw": 1034.55,
+              "daylight_max_mw": 3449.65
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 176,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 958.04,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 544,
+              "daylight_mean_mw": 1268.0,
+              "daylight_max_mw": 3166.6
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16976,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4244,
+          "n_common_rows_finite_in_both": 4151,
+          "night": {
+            "n": 1353,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 11.5,
+              "energy_renewable": 11.5
+            }
+          },
+          "daylight": {
+            "n": 2798,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 2894659.7,
+              "energy_renewable": 2894659.7
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 176,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 544,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 689791.9,
+              "energy_renewable": 689791.9
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "DE",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1413,
+              "n_night_above_threshold": 1240,
+              "pct_of_night_rows_above_threshold": 87.76,
+              "night_mean_mw": 12.61,
+              "night_median_mw": 10.97,
+              "night_max_mw": 101.66,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 10937.08,
+              "pct_of_total_energy_at_night": 0.04,
+              "wape_floor_pct_if_clamped": 0.038,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2859,
+              "daylight_mean_mw": 16336.27,
+              "daylight_max_mw": 56877.88
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 160,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 16879.86,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 560,
+              "daylight_mean_mw": 21702.67,
+              "daylight_max_mw": 54457.05
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17088,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4245,
+              "n_missing_rows": 0,
+              "n_night_rows": 1402,
+              "n_night_above_threshold": 4,
+              "pct_of_night_rows_above_threshold": 0.29,
+              "night_mean_mw": 0.02,
+              "night_median_mw": 0.0,
+              "night_max_mw": 1.75,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 10936.13,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2843,
+              "daylight_mean_mw": 16329.17,
+              "daylight_max_mw": 56877.88
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 160,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 16879.86,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 560,
+              "daylight_mean_mw": 21702.67,
+              "daylight_max_mw": 54457.05
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16978,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4245,
+          "n_common_rows_finite_in_both": 4245,
+          "night": {
+            "n": 1402,
+            "rel_energy_diff_pct": 99.8653,
+            "agree_within_threshold_pct": 12.34,
+            "max_abs_diff_mw": 101.658,
+            "sum_mwh": {
+              "energy_generation": 17663.3,
+              "energy_renewable": 23.8
+            }
+          },
+          "daylight": {
+            "n": 2843,
+            "rel_energy_diff_pct": 0.4606,
+            "agree_within_threshold_pct": 24.09,
+            "max_abs_diff_mw": 2429.163,
+            "sum_mwh": {
+              "energy_generation": 46638641.3,
+              "energy_renewable": 46423836.3
+            }
+          },
+          "verdict": "source_mapping"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 160,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 560,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 12153497.1,
+              "energy_renewable": 12153497.1
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "EE",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1153,
+              "n_night_above_threshold": 937,
+              "pct_of_night_rows_above_threshold": 81.27,
+              "night_mean_mw": 6.19,
+              "night_median_mw": 3.52,
+              "night_max_mw": 58.23,
+              "night_min_mw": 0.2,
+              "series_mean_mw": 172.03,
+              "pct_of_total_energy_at_night": 0.97,
+              "wape_floor_pct_if_clamped": 0.971,
+              "n_night_negative": 0,
+              "n_daylight_rows": 3119,
+              "daylight_mean_mw": 233.34,
+              "daylight_max_mw": 975.42
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 45,
+              "n_night_rows": 86,
+              "n_night_above_threshold": 68,
+              "pct_of_night_rows_above_threshold": 79.07,
+              "night_mean_mw": 12.64,
+              "night_median_mw": 7.83,
+              "night_max_mw": 76.0,
+              "night_min_mw": 0.24,
+              "series_mean_mw": 224.3,
+              "pct_of_total_energy_at_night": 0.72,
+              "wape_floor_pct_if_clamped": 0.718,
+              "n_night_negative": 0,
+              "n_daylight_rows": 589,
+              "daylight_mean_mw": 255.2,
+              "daylight_max_mw": 771.57
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17088,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4234,
+              "n_missing_rows": 0,
+              "n_night_rows": 1138,
+              "n_night_above_threshold": 777,
+              "pct_of_night_rows_above_threshold": 68.28,
+              "night_mean_mw": 6.63,
+              "night_median_mw": 3.08,
+              "night_max_mw": 67.07,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 147.43,
+              "pct_of_total_energy_at_night": 1.21,
+              "wape_floor_pct_if_clamped": 1.21,
+              "n_night_negative": 0,
+              "n_daylight_rows": 3096,
+              "daylight_mean_mw": 199.18,
+              "daylight_max_mw": 862.82
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 45,
+              "n_night_rows": 86,
+              "n_night_above_threshold": 68,
+              "pct_of_night_rows_above_threshold": 79.07,
+              "night_mean_mw": 12.64,
+              "night_median_mw": 7.83,
+              "night_max_mw": 76.0,
+              "night_min_mw": 0.24,
+              "series_mean_mw": 224.3,
+              "pct_of_total_energy_at_night": 0.72,
+              "wape_floor_pct_if_clamped": 0.718,
+              "n_night_negative": 0,
+              "n_daylight_rows": 589,
+              "daylight_mean_mw": 255.2,
+              "daylight_max_mw": 771.57
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16935,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4234,
+          "n_common_rows_finite_in_both": 4234,
+          "night": {
+            "n": 1138,
+            "rel_energy_diff_pct": 6.582,
+            "agree_within_threshold_pct": 48.24,
+            "max_abs_diff_mw": 52.625,
+            "sum_mwh": {
+              "energy_generation": 7084.1,
+              "energy_renewable": 7550.4
+            }
+          },
+          "daylight": {
+            "n": 3096,
+            "rel_energy_diff_pct": 15.2083,
+            "agree_within_threshold_pct": 16.54,
+            "max_abs_diff_mw": 794.321,
+            "sum_mwh": {
+              "energy_generation": 727254.6,
+              "energy_renewable": 616651.9
+            }
+          },
+          "verdict": "series_differ"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 675,
+          "night": {
+            "n": 86,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 1086.9,
+              "energy_renewable": 1086.9
+            }
+          },
+          "daylight": {
+            "n": 589,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 150312.7,
+              "energy_renewable": 150312.7
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "ES",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1573,
+              "n_night_above_threshold": 1562,
+              "pct_of_night_rows_above_threshold": 99.3,
+              "night_mean_mw": 262.44,
+              "night_median_mw": 177.0,
+              "night_max_mw": 900.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 7222.73,
+              "pct_of_total_energy_at_night": 1.34,
+              "wape_floor_pct_if_clamped": 1.338,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2699,
+              "daylight_mean_mw": 11279.24,
+              "daylight_max_mw": 27944.0
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 211,
+              "n_night_above_threshold": 211,
+              "pct_of_night_rows_above_threshold": 100.0,
+              "night_mean_mw": 515.55,
+              "night_median_mw": 548.0,
+              "night_max_mw": 992.0,
+              "night_min_mw": 32.0,
+              "series_mean_mw": 11173.23,
+              "pct_of_total_energy_at_night": 1.35,
+              "wape_floor_pct_if_clamped": 1.352,
+              "n_night_negative": 0,
+              "n_daylight_rows": 509,
+              "daylight_mean_mw": 15591.24,
+              "daylight_max_mw": 29334.0
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17087,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4245,
+              "n_missing_rows": 0,
+              "n_night_rows": 1562,
+              "n_night_above_threshold": 1551,
+              "pct_of_night_rows_above_threshold": 99.3,
+              "night_mean_mw": 263.94,
+              "night_median_mw": 179.0,
+              "night_max_mw": 900.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 7244.7,
+              "pct_of_total_energy_at_night": 1.34,
+              "wape_floor_pct_if_clamped": 1.341,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2683,
+              "daylight_mean_mw": 11308.78,
+              "daylight_max_mw": 27944.0
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 211,
+              "n_night_above_threshold": 211,
+              "pct_of_night_rows_above_threshold": 100.0,
+              "night_mean_mw": 515.55,
+              "night_median_mw": 548.0,
+              "night_max_mw": 992.0,
+              "night_min_mw": 32.0,
+              "series_mean_mw": 11173.23,
+              "pct_of_total_energy_at_night": 1.35,
+              "wape_floor_pct_if_clamped": 1.352,
+              "n_night_negative": 0,
+              "n_daylight_rows": 509,
+              "daylight_mean_mw": 15591.24,
+              "daylight_max_mw": 29334.0
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16969,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4245,
+          "n_common_rows_finite_in_both": 4245,
+          "night": {
+            "n": 1562,
+            "rel_energy_diff_pct": 0.0023,
+            "agree_within_threshold_pct": 99.87,
+            "max_abs_diff_mw": 7.333,
+            "sum_mwh": {
+              "energy_generation": 412270.0,
+              "energy_renewable": 412279.3
+            }
+          },
+          "daylight": {
+            "n": 2683,
+            "rel_energy_diff_pct": 0.0357,
+            "agree_within_threshold_pct": 99.7,
+            "max_abs_diff_mw": 4676.0,
+            "sum_mwh": {
+              "energy_generation": 30352317.0,
+              "energy_renewable": 30341469.7
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 211,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 108780.0,
+              "energy_renewable": 108780.0
+            }
+          },
+          "daylight": {
+            "n": 509,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 7935943.0,
+              "energy_renewable": 7935943.0
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "FI",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1047,
+              "n_night_above_threshold": 646,
+              "pct_of_night_rows_above_threshold": 61.7,
+              "night_mean_mw": 2.64,
+              "night_median_mw": 1.2,
+              "night_max_mw": 81.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 227.15,
+              "pct_of_total_energy_at_night": 0.29,
+              "wape_floor_pct_if_clamped": 0.285,
+              "n_night_negative": 0,
+              "n_daylight_rows": 3225,
+              "daylight_mean_mw": 300.04,
+              "daylight_max_mw": 1367.97
+            },
+            {
+              "window": "gate",
+              "n_rows": 663,
+              "n_missing_rows": 0,
+              "n_night_rows": 6,
+              "n_night_above_threshold": 2,
+              "pct_of_night_rows_above_threshold": 33.33,
+              "night_mean_mw": 0.81,
+              "night_median_mw": 0.65,
+              "night_max_mw": 2.3,
+              "night_min_mw": 0.1,
+              "series_mean_mw": 438.84,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.002,
+              "n_night_negative": 0,
+              "n_daylight_rows": 657,
+              "daylight_mean_mw": 442.84,
+              "daylight_max_mw": 1427.65
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17088,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2652,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4241,
+              "n_missing_rows": 0,
+              "n_night_rows": 1034,
+              "n_night_above_threshold": 645,
+              "pct_of_night_rows_above_threshold": 62.38,
+              "night_mean_mw": 2.67,
+              "night_median_mw": 1.2,
+              "night_max_mw": 81.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 227.98,
+              "pct_of_total_energy_at_night": 0.29,
+              "wape_floor_pct_if_clamped": 0.285,
+              "n_night_negative": 0,
+              "n_daylight_rows": 3207,
+              "daylight_mean_mw": 300.63,
+              "daylight_max_mw": 1367.97
+            },
+            {
+              "window": "gate",
+              "n_rows": 717,
+              "n_missing_rows": 0,
+              "n_night_rows": 17,
+              "n_night_above_threshold": 2,
+              "pct_of_night_rows_above_threshold": 11.76,
+              "night_mean_mw": 0.29,
+              "night_median_mw": 0.0,
+              "night_max_mw": 2.3,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 405.78,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.002,
+              "n_night_negative": 0,
+              "n_daylight_rows": 700,
+              "daylight_mean_mw": 415.63,
+              "daylight_max_mw": 1427.65
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16964,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2868,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4241,
+          "n_common_rows_finite_in_both": 4241,
+          "night": {
+            "n": 1034,
+            "rel_energy_diff_pct": 0.0019,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.052,
+            "sum_mwh": {
+              "energy_generation": 2757.7,
+              "energy_renewable": 2757.6
+            }
+          },
+          "daylight": {
+            "n": 3207,
+            "rel_energy_diff_pct": 0.0006,
+            "agree_within_threshold_pct": 99.91,
+            "max_abs_diff_mw": 1.901,
+            "sum_mwh": {
+              "energy_generation": 964112.4,
+              "energy_renewable": 964106.6
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 663,
+          "n_common_rows_finite_in_both": 663,
+          "night": {
+            "n": 6,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 4.9,
+              "energy_renewable": 4.9
+            }
+          },
+          "daylight": {
+            "n": 657,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 290942.8,
+              "energy_renewable": 290942.8
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "FR",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4032,
+              "n_missing_rows": 0,
+              "n_night_rows": 1452,
+              "n_night_above_threshold": 105,
+              "pct_of_night_rows_above_threshold": 7.23,
+              "night_mean_mw": 16.23,
+              "night_median_mw": 0.0,
+              "night_max_mw": 285.86,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 4201.51,
+              "pct_of_total_energy_at_night": 0.14,
+              "wape_floor_pct_if_clamped": 0.139,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2580,
+              "daylight_mean_mw": 6556.95,
+              "daylight_max_mw": 20317.48
+            },
+            {
+              "window": "gate",
+              "n_rows": 442,
+              "n_missing_rows": 0,
+              "n_night_rows": 115,
+              "n_night_above_threshold": 13,
+              "pct_of_night_rows_above_threshold": 11.3,
+              "night_mean_mw": 25.54,
+              "night_median_mw": 0.0,
+              "night_max_mw": 365.54,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 6263.99,
+              "pct_of_total_energy_at_night": 0.11,
+              "wape_floor_pct_if_clamped": 0.106,
+              "n_night_negative": 0,
+              "n_daylight_rows": 327,
+              "daylight_mean_mw": 8457.93,
+              "daylight_max_mw": 22238.94
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16128,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 1767,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4244,
+              "n_missing_rows": 0,
+              "n_night_rows": 1500,
+              "n_night_above_threshold": 114,
+              "pct_of_night_rows_above_threshold": 7.6,
+              "night_mean_mw": 16.9,
+              "night_median_mw": 0.0,
+              "night_max_mw": 285.86,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 4379.9,
+              "pct_of_total_energy_at_night": 0.14,
+              "wape_floor_pct_if_clamped": 0.136,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2744,
+              "daylight_mean_mw": 6764.93,
+              "daylight_max_mw": 21826.3
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 184,
+              "n_night_above_threshold": 24,
+              "pct_of_night_rows_above_threshold": 13.04,
+              "night_mean_mw": 28.7,
+              "night_median_mw": 0.0,
+              "night_max_mw": 365.54,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 6431.75,
+              "pct_of_total_energy_at_night": 0.11,
+              "wape_floor_pct_if_clamped": 0.114,
+              "n_night_negative": 0,
+              "n_daylight_rows": 536,
+              "daylight_mean_mw": 8629.8,
+              "daylight_max_mw": 22238.94
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16976,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4004,
+          "n_common_rows_finite_in_both": 4004,
+          "night": {
+            "n": 1440,
+            "rel_energy_diff_pct": 0.2646,
+            "agree_within_threshold_pct": 99.93,
+            "max_abs_diff_mw": 61.81,
+            "sum_mwh": {
+              "energy_generation": 23363.0,
+              "energy_renewable": 23301.2
+            }
+          },
+          "daylight": {
+            "n": 2564,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.535,
+            "sum_mwh": {
+              "energy_generation": 16869782.1,
+              "energy_renewable": 16869782.2
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 442,
+          "n_common_rows_finite_in_both": 442,
+          "night": {
+            "n": 115,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 2937.5,
+              "energy_renewable": 2937.5
+            }
+          },
+          "daylight": {
+            "n": 327,
+            "rel_energy_diff_pct": 0.0106,
+            "agree_within_threshold_pct": 99.69,
+            "max_abs_diff_mw": 292.489,
+            "sum_mwh": {
+              "energy_generation": 2765744.6,
+              "energy_renewable": 2766037.1
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "GR",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1576,
+              "n_night_above_threshold": 15,
+              "pct_of_night_rows_above_threshold": 0.95,
+              "night_mean_mw": 0.07,
+              "night_median_mw": 0.0,
+              "night_max_mw": 14.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1439.96,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.002,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2696,
+              "daylight_mean_mw": 2281.68,
+              "daylight_max_mw": 7874.5
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 210,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 2673.42,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 510,
+              "daylight_mean_mw": 3774.24,
+              "daylight_max_mw": 8619.75
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 9105,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4235,
+              "n_missing_rows": 0,
+              "n_night_rows": 1559,
+              "n_night_above_threshold": 75,
+              "pct_of_night_rows_above_threshold": 4.81,
+              "night_mean_mw": 0.25,
+              "night_median_mw": 0.0,
+              "night_max_mw": 2.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1840.62,
+              "pct_of_total_energy_at_night": 0.01,
+              "wape_floor_pct_if_clamped": 0.005,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2676,
+              "daylight_mean_mw": 2912.8,
+              "daylight_max_mw": 8509.5
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 210,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 2803.56,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 510,
+              "daylight_mean_mw": 3957.96,
+              "daylight_max_mw": 8651.75
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 9041,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4235,
+          "n_common_rows_finite_in_both": 4235,
+          "night": {
+            "n": 1559,
+            "rel_energy_diff_pct": 268.2243,
+            "agree_within_threshold_pct": 94.29,
+            "max_abs_diff_mw": 14.0,
+            "sum_mwh": {
+              "energy_generation": 107.0,
+              "energy_renewable": 394.0
+            }
+          },
+          "daylight": {
+            "n": 2676,
+            "rel_energy_diff_pct": 27.3699,
+            "agree_within_threshold_pct": 8.48,
+            "max_abs_diff_mw": 3636.0,
+            "sum_mwh": {
+              "energy_generation": 6119695.5,
+              "energy_renewable": 7794651.5
+            }
+          },
+          "verdict": "series_differ"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 210,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 510,
+            "rel_energy_diff_pct": 4.8677,
+            "agree_within_threshold_pct": 73.73,
+            "max_abs_diff_mw": 1319.75,
+            "sum_mwh": {
+              "energy_generation": 1924864.0,
+              "energy_renewable": 2018560.2
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "HR",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1513,
+              "n_night_above_threshold": 5,
+              "pct_of_night_rows_above_threshold": 0.33,
+              "night_mean_mw": 0.01,
+              "night_median_mw": 0.0,
+              "night_max_mw": 2.4,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 97.72,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.003,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2759,
+              "daylight_mean_mw": 151.3,
+              "daylight_max_mw": 461.2
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 184,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.4,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 158.42,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 536,
+              "daylight_mean_mw": 212.8,
+              "daylight_max_mw": 468.8
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17088,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4245,
+              "n_missing_rows": 0,
+              "n_night_rows": 1502,
+              "n_night_above_threshold": 5,
+              "pct_of_night_rows_above_threshold": 0.33,
+              "night_mean_mw": 0.01,
+              "night_median_mw": 0.0,
+              "night_max_mw": 2.4,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 98.39,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.003,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2743,
+              "daylight_mean_mw": 152.27,
+              "daylight_max_mw": 493.2
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 184,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.4,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 158.42,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 536,
+              "daylight_mean_mw": 212.8,
+              "daylight_max_mw": 468.8
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16979,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4245,
+          "n_common_rows_finite_in_both": 4245,
+          "night": {
+            "n": 1502,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 13.5,
+              "energy_renewable": 13.5
+            }
+          },
+          "daylight": {
+            "n": 2743,
+            "rel_energy_diff_pct": 0.3158,
+            "agree_within_threshold_pct": 98.65,
+            "max_abs_diff_mw": 75.2,
+            "sum_mwh": {
+              "energy_generation": 416354.3,
+              "energy_renewable": 417669.3
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 184,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.4,
+              "energy_renewable": 0.4
+            }
+          },
+          "daylight": {
+            "n": 536,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 114058.5,
+              "energy_renewable": 114058.5
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "HU",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1463,
+              "n_night_above_threshold": 439,
+              "pct_of_night_rows_above_threshold": 30.01,
+              "night_mean_mw": 1.57,
+              "night_median_mw": 0.19,
+              "night_max_mw": 20.23,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 939.53,
+              "pct_of_total_energy_at_night": 0.06,
+              "wape_floor_pct_if_clamped": 0.057,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2809,
+              "daylight_mean_mw": 1428.04,
+              "daylight_max_mw": 4312.07
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 185,
+              "n_night_above_threshold": 102,
+              "pct_of_night_rows_above_threshold": 55.14,
+              "night_mean_mw": 2.73,
+              "night_median_mw": 1.29,
+              "night_max_mw": 20.04,
+              "night_min_mw": 0.04,
+              "series_mean_mw": 1326.83,
+              "pct_of_total_energy_at_night": 0.05,
+              "wape_floor_pct_if_clamped": 0.053,
+              "n_night_negative": 0,
+              "n_daylight_rows": 535,
+              "daylight_mean_mw": 1784.7,
+              "daylight_max_mw": 4242.82
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17088,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4245,
+              "n_missing_rows": 0,
+              "n_night_rows": 1450,
+              "n_night_above_threshold": 480,
+              "pct_of_night_rows_above_threshold": 33.1,
+              "night_mean_mw": 1.78,
+              "night_median_mw": 0.23,
+              "night_max_mw": 21.44,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 940.48,
+              "pct_of_total_energy_at_night": 0.06,
+              "wape_floor_pct_if_clamped": 0.065,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2795,
+              "daylight_mean_mw": 1427.46,
+              "daylight_max_mw": 4307.26
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 185,
+              "n_night_above_threshold": 102,
+              "pct_of_night_rows_above_threshold": 55.14,
+              "night_mean_mw": 2.73,
+              "night_median_mw": 1.29,
+              "night_max_mw": 20.04,
+              "night_min_mw": 0.04,
+              "series_mean_mw": 1326.56,
+              "pct_of_total_energy_at_night": 0.05,
+              "wape_floor_pct_if_clamped": 0.053,
+              "n_night_negative": 0,
+              "n_daylight_rows": 535,
+              "daylight_mean_mw": 1784.33,
+              "daylight_max_mw": 4242.82
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16978,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4245,
+          "n_common_rows_finite_in_both": 4245,
+          "night": {
+            "n": 1450,
+            "rel_energy_diff_pct": 13.3316,
+            "agree_within_threshold_pct": 94.28,
+            "max_abs_diff_mw": 10.037,
+            "sum_mwh": {
+              "energy_generation": 2278.0,
+              "energy_renewable": 2581.7
+            }
+          },
+          "daylight": {
+            "n": 2795,
+            "rel_energy_diff_pct": 0.2906,
+            "agree_within_threshold_pct": 39.5,
+            "max_abs_diff_mw": 199.465,
+            "sum_mwh": {
+              "energy_generation": 4001373.5,
+              "energy_renewable": 3989747.3
+            }
+          },
+          "verdict": "source_mapping"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 185,
+            "rel_energy_diff_pct": 0.1116,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.169,
+            "sum_mwh": {
+              "energy_generation": 505.1,
+              "energy_renewable": 505.6
+            }
+          },
+          "daylight": {
+            "n": 535,
+            "rel_energy_diff_pct": 0.0207,
+            "agree_within_threshold_pct": 91.78,
+            "max_abs_diff_mw": 8.649,
+            "sum_mwh": {
+              "energy_generation": 954815.7,
+              "energy_renewable": 954618.5
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "IT",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1524,
+              "n_night_above_threshold": 2,
+              "pct_of_night_rows_above_threshold": 0.13,
+              "night_mean_mw": 0.01,
+              "night_median_mw": 0.0,
+              "night_max_mw": 3.5,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 4542.37,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2748,
+              "daylight_mean_mw": 7061.5,
+              "daylight_max_mw": 19360.5
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 206,
+              "n_night_above_threshold": 2,
+              "pct_of_night_rows_above_threshold": 0.97,
+              "night_mean_mw": 0.05,
+              "night_median_mw": 0.0,
+              "night_max_mw": 7.5,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 6444.33,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 514,
+              "daylight_mean_mw": 9027.06,
+              "daylight_max_mw": 19425.0
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17085,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4245,
+              "n_missing_rows": 0,
+              "n_night_rows": 1513,
+              "n_night_above_threshold": 4,
+              "pct_of_night_rows_above_threshold": 0.26,
+              "night_mean_mw": 0.01,
+              "night_median_mw": 0.0,
+              "night_max_mw": 3.5,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 4563.33,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2732,
+              "daylight_mean_mw": 7090.53,
+              "daylight_max_mw": 19342.0
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 206,
+              "n_night_above_threshold": 2,
+              "pct_of_night_rows_above_threshold": 0.97,
+              "night_mean_mw": 0.05,
+              "night_median_mw": 0.0,
+              "night_max_mw": 7.5,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 6444.33,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 514,
+              "daylight_mean_mw": 9027.06,
+              "daylight_max_mw": 19425.0
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16978,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4245,
+          "n_common_rows_finite_in_both": 4245,
+          "night": {
+            "n": 1513,
+            "rel_energy_diff_pct": 58.0645,
+            "agree_within_threshold_pct": 99.87,
+            "max_abs_diff_mw": 2.75,
+            "sum_mwh": {
+              "energy_generation": 7.8,
+              "energy_renewable": 12.2
+            }
+          },
+          "daylight": {
+            "n": 2732,
+            "rel_energy_diff_pct": 0.1263,
+            "agree_within_threshold_pct": 22.88,
+            "max_abs_diff_mw": 3571.75,
+            "sum_mwh": {
+              "energy_generation": 19346912.9,
+              "energy_renewable": 19371340.5
+            }
+          },
+          "verdict": "source_mapping"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 206,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 10.0,
+              "energy_renewable": 10.0
+            }
+          },
+          "daylight": {
+            "n": 514,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 4639909.2,
+              "energy_renewable": 4639909.2
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "LT",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4271,
+              "n_missing_rows": 0,
+              "n_night_rows": 1317,
+              "n_night_above_threshold": 8,
+              "pct_of_night_rows_above_threshold": 0.61,
+              "night_mean_mw": 0.13,
+              "night_median_mw": 0.0,
+              "night_max_mw": 24.29,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 297.96,
+              "pct_of_total_energy_at_night": 0.01,
+              "wape_floor_pct_if_clamped": 0.013,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2954,
+              "daylight_mean_mw": 430.75,
+              "daylight_max_mw": 1911.61
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 127,
+              "n_night_above_threshold": 5,
+              "pct_of_night_rows_above_threshold": 3.94,
+              "night_mean_mw": 0.57,
+              "night_median_mw": 0.0,
+              "night_max_mw": 14.45,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 543.57,
+              "pct_of_total_energy_at_night": 0.02,
+              "wape_floor_pct_if_clamped": 0.018,
+              "n_night_negative": 0,
+              "n_daylight_rows": 593,
+              "daylight_mean_mw": 659.86,
+              "daylight_max_mw": 1837.35
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17084,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2879,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4244,
+              "n_missing_rows": 0,
+              "n_night_rows": 1305,
+              "n_night_above_threshold": 8,
+              "pct_of_night_rows_above_threshold": 0.61,
+              "night_mean_mw": 0.13,
+              "night_median_mw": 0.0,
+              "night_max_mw": 24.29,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 299.32,
+              "pct_of_total_energy_at_night": 0.01,
+              "wape_floor_pct_if_clamped": 0.013,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2939,
+              "daylight_mean_mw": 432.17,
+              "daylight_max_mw": 1911.61
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 127,
+              "n_night_above_threshold": 5,
+              "pct_of_night_rows_above_threshold": 3.94,
+              "night_mean_mw": 0.57,
+              "night_median_mw": 0.0,
+              "night_max_mw": 14.45,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 543.57,
+              "pct_of_total_energy_at_night": 0.02,
+              "wape_floor_pct_if_clamped": 0.018,
+              "n_night_negative": 0,
+              "n_daylight_rows": 593,
+              "daylight_mean_mw": 659.86,
+              "daylight_max_mw": 1837.35
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16975,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2879,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4244,
+          "n_common_rows_finite_in_both": 4244,
+          "night": {
+            "n": 1305,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 171.5,
+              "energy_renewable": 171.5
+            }
+          },
+          "daylight": {
+            "n": 2939,
+            "rel_energy_diff_pct": 0.0048,
+            "agree_within_threshold_pct": 99.93,
+            "max_abs_diff_mw": 73.702,
+            "sum_mwh": {
+              "energy_generation": 1270213.2,
+              "energy_renewable": 1270152.0
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 127,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 72.2,
+              "energy_renewable": 72.2
+            }
+          },
+          "daylight": {
+            "n": 593,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 391297.3,
+              "energy_renewable": 391297.3
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "LV",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1256,
+              "n_night_above_threshold": 700,
+              "pct_of_night_rows_above_threshold": 55.73,
+              "night_mean_mw": 3.25,
+              "night_median_mw": 1.29,
+              "night_max_mw": 51.23,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 228.41,
+              "pct_of_total_energy_at_night": 0.42,
+              "wape_floor_pct_if_clamped": 0.418,
+              "n_night_negative": 0,
+              "n_daylight_rows": 3016,
+              "daylight_mean_mw": 322.18,
+              "daylight_max_mw": 1349.28
+            },
+            {
+              "window": "gate",
+              "n_rows": 717,
+              "n_missing_rows": 0,
+              "n_night_rows": 116,
+              "n_night_above_threshold": 18,
+              "pct_of_night_rows_above_threshold": 15.52,
+              "night_mean_mw": 0.73,
+              "night_median_mw": 0.0,
+              "night_max_mw": 20.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 292.24,
+              "pct_of_total_energy_at_night": 0.04,
+              "wape_floor_pct_if_clamped": 0.041,
+              "n_night_negative": 0,
+              "n_daylight_rows": 601,
+              "daylight_mean_mw": 348.51,
+              "daylight_max_mw": 1229.0
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 4272,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            },
+            "gate": {
+              "raw_rows": 717,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4242,
+              "n_missing_rows": 0,
+              "n_night_rows": 1243,
+              "n_night_above_threshold": 57,
+              "pct_of_night_rows_above_threshold": 4.59,
+              "night_mean_mw": 0.26,
+              "night_median_mw": 0.0,
+              "night_max_mw": 24.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 196.12,
+              "pct_of_total_energy_at_night": 0.04,
+              "wape_floor_pct_if_clamped": 0.038,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2999,
+              "daylight_mean_mw": 277.3,
+              "daylight_max_mw": 1297.0
+            },
+            {
+              "window": "gate",
+              "n_rows": 717,
+              "n_missing_rows": 0,
+              "n_night_rows": 116,
+              "n_night_above_threshold": 18,
+              "pct_of_night_rows_above_threshold": 15.52,
+              "night_mean_mw": 0.73,
+              "night_median_mw": 0.0,
+              "night_max_mw": 20.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 292.24,
+              "pct_of_total_energy_at_night": 0.04,
+              "wape_floor_pct_if_clamped": 0.041,
+              "n_night_negative": 0,
+              "n_daylight_rows": 601,
+              "daylight_mean_mw": 348.51,
+              "daylight_max_mw": 1229.0
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 4242,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            },
+            "gate": {
+              "raw_rows": 717,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4242,
+          "n_common_rows_finite_in_both": 4242,
+          "night": {
+            "n": 1243,
+            "rel_energy_diff_pct": 92.1398,
+            "agree_within_threshold_pct": 44.41,
+            "max_abs_diff_mw": 51.231,
+            "sum_mwh": {
+              "energy_generation": 4058.4,
+              "energy_renewable": 319.0
+            }
+          },
+          "daylight": {
+            "n": 2999,
+            "rel_energy_diff_pct": 14.2495,
+            "agree_within_threshold_pct": 11.37,
+            "max_abs_diff_mw": 952.894,
+            "sum_mwh": {
+              "energy_generation": 969825.8,
+              "energy_renewable": 831630.0
+            }
+          },
+          "verdict": "series_differ"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 717,
+          "n_common_rows_finite_in_both": 717,
+          "night": {
+            "n": 116,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 85.0,
+              "energy_renewable": 85.0
+            }
+          },
+          "daylight": {
+            "n": 601,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 209454.0,
+              "energy_renewable": 209454.0
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "NL",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1390,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": -1.22,
+              "night_median_mw": -1.29,
+              "night_max_mw": -0.12,
+              "night_min_mw": -1.47,
+              "series_mean_mw": 65.28,
+              "pct_of_total_energy_at_night": -0.6,
+              "wape_floor_pct_if_clamped": 0.6,
+              "n_night_negative": 1390,
+              "n_daylight_rows": 2882,
+              "daylight_mean_mw": 97.35,
+              "daylight_max_mw": 420.74
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 154,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": -0.13,
+              "night_median_mw": -0.12,
+              "night_max_mw": -0.12,
+              "night_min_mw": -0.13,
+              "series_mean_mw": 66.35,
+              "pct_of_total_energy_at_night": -0.04,
+              "wape_floor_pct_if_clamped": 0.04,
+              "n_night_negative": 154,
+              "n_daylight_rows": 566,
+              "daylight_mean_mw": 84.44,
+              "daylight_max_mw": 251.29
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17088,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4245,
+              "n_missing_rows": 44,
+              "n_night_rows": 1354,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.29,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 38.76,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.002,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2847,
+              "daylight_mean_mw": 57.2,
+              "daylight_max_mw": 252.33
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 154,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 66.4,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 566,
+              "daylight_mean_mw": 84.47,
+              "daylight_max_mw": 251.29
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16972,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4245,
+          "n_common_rows_finite_in_both": 4201,
+          "night": {
+            "n": 1354,
+            "rel_energy_diff_pct": -100.1944,
+            "agree_within_threshold_pct": 6.72,
+            "max_abs_diff_mw": 1.468,
+            "sum_mwh": {
+              "energy_generation": -1657.6,
+              "energy_renewable": 3.2
+            }
+          },
+          "daylight": {
+            "n": 2847,
+            "rel_energy_diff_pct": 41.9138,
+            "agree_within_threshold_pct": 13.1,
+            "max_abs_diff_mw": 171.277,
+            "sum_mwh": {
+              "energy_generation": 280335.9,
+              "energy_renewable": 162836.5
+            }
+          },
+          "verdict": "no_floor"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 154,
+            "rel_energy_diff_pct": -100.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.135,
+            "sum_mwh": {
+              "energy_generation": -19.3,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 566,
+            "rel_energy_diff_pct": 0.0369,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.511,
+            "sum_mwh": {
+              "energy_generation": 47793.9,
+              "energy_renewable": 47811.6
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "NO",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1109,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 0.98,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 3163,
+              "daylight_mean_mw": 1.32,
+              "daylight_max_mw": 6.61
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 66,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 2.42,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 654,
+              "daylight_mean_mw": 2.66,
+              "daylight_max_mw": 7.5
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17088,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2879,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4242,
+              "n_missing_rows": 0,
+              "n_night_rows": 1098,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 0.98,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 3144,
+              "daylight_mean_mw": 1.33,
+              "daylight_max_mw": 6.61
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 66,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 2.42,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 654,
+              "daylight_mean_mw": 2.66,
+              "daylight_max_mw": 7.5
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16966,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2879,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4242,
+          "n_common_rows_finite_in_both": 4242,
+          "night": {
+            "n": 1098,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 3144,
+            "rel_energy_diff_pct": 0.0001,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.006,
+            "sum_mwh": {
+              "energy_generation": 4168.8,
+              "energy_renewable": 4168.8
+            }
+          },
+          "verdict": "no_floor"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 66,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 654,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 1739.0,
+              "energy_renewable": 1739.0
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "PL",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1378,
+              "n_night_above_threshold": 4,
+              "pct_of_night_rows_above_threshold": 0.29,
+              "night_mean_mw": 0.2,
+              "night_median_mw": 0.0,
+              "night_max_mw": 70.34,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 3024.88,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.002,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2894,
+              "daylight_mean_mw": 4465.11,
+              "daylight_max_mw": 14368.42
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 152,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 4079.77,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 568,
+              "daylight_mean_mw": 5171.54,
+              "daylight_max_mw": 13518.0
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17088,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4245,
+              "n_missing_rows": 0,
+              "n_night_rows": 1365,
+              "n_night_above_threshold": 4,
+              "pct_of_night_rows_above_threshold": 0.29,
+              "night_mean_mw": 0.2,
+              "night_median_mw": 0.0,
+              "night_max_mw": 70.34,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 3035.49,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.002,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2880,
+              "daylight_mean_mw": 4474.08,
+              "daylight_max_mw": 14368.42
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 152,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 4079.77,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 568,
+              "daylight_mean_mw": 5171.54,
+              "daylight_max_mw": 13518.0
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16979,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4245,
+          "n_common_rows_finite_in_both": 4245,
+          "night": {
+            "n": 1365,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 275.7,
+              "energy_renewable": 275.7
+            }
+          },
+          "daylight": {
+            "n": 2880,
+            "rel_energy_diff_pct": 0.0017,
+            "agree_within_threshold_pct": 99.97,
+            "max_abs_diff_mw": 216.842,
+            "sum_mwh": {
+              "energy_generation": 12885141.8,
+              "energy_renewable": 12885358.7
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 152,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 568,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 2937433.5,
+              "energy_renewable": 2937433.5
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "PT",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1580,
+              "n_night_above_threshold": 1444,
+              "pct_of_night_rows_above_threshold": 91.39,
+              "night_mean_mw": 9.35,
+              "night_median_mw": 10.9,
+              "night_max_mw": 12.4,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 770.03,
+              "pct_of_total_energy_at_night": 0.45,
+              "wape_floor_pct_if_clamped": 0.449,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2692,
+              "daylight_mean_mw": 1216.49,
+              "daylight_max_mw": 3763.7
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 211,
+              "n_night_above_threshold": 7,
+              "pct_of_night_rows_above_threshold": 3.32,
+              "night_mean_mw": 0.38,
+              "night_median_mw": 0.1,
+              "night_max_mw": 21.2,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1191.41,
+              "pct_of_total_energy_at_night": 0.01,
+              "wape_floor_pct_if_clamped": 0.009,
+              "n_night_negative": 0,
+              "n_daylight_rows": 509,
+              "daylight_mean_mw": 1685.13,
+              "daylight_max_mw": 3770.6
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 4272,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            },
+            "gate": {
+              "raw_rows": 720,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4244,
+              "n_missing_rows": 0,
+              "n_night_rows": 1569,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.03,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.2,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 763.85,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.001,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2675,
+              "daylight_mean_mw": 1211.87,
+              "daylight_max_mw": 3816.7
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 211,
+              "n_night_above_threshold": 7,
+              "pct_of_night_rows_above_threshold": 3.32,
+              "night_mean_mw": 0.36,
+              "night_median_mw": 0.0,
+              "night_max_mw": 21.2,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1187.78,
+              "pct_of_total_energy_at_night": 0.01,
+              "wape_floor_pct_if_clamped": 0.009,
+              "n_night_negative": 0,
+              "n_daylight_rows": 509,
+              "daylight_mean_mw": 1680.02,
+              "daylight_max_mw": 3770.6
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 4244,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            },
+            "gate": {
+              "raw_rows": 720,
+              "distinct_minute_marks": 1,
+              "sub_hourly": false
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4244,
+          "n_common_rows_finite_in_both": 4244,
+          "night": {
+            "n": 1569,
+            "rel_energy_diff_pct": 99.7026,
+            "agree_within_threshold_pct": 8.67,
+            "max_abs_diff_mw": 12.3,
+            "sum_mwh": {
+              "energy_generation": 14693.6,
+              "energy_renewable": 43.7
+            }
+          },
+          "daylight": {
+            "n": 2675,
+            "rel_energy_diff_pct": 0.7593,
+            "agree_within_threshold_pct": 4.97,
+            "max_abs_diff_mw": 376.4,
+            "sum_mwh": {
+              "energy_generation": 3266547.4,
+              "energy_renewable": 3241745.6
+            }
+          },
+          "verdict": "source_mapping"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 211,
+            "rel_energy_diff_pct": 4.8387,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.1,
+            "sum_mwh": {
+              "energy_generation": 80.6,
+              "energy_renewable": 76.7
+            }
+          },
+          "daylight": {
+            "n": 509,
+            "rel_energy_diff_pct": 0.3036,
+            "agree_within_threshold_pct": 80.94,
+            "max_abs_diff_mw": 239.0,
+            "sum_mwh": {
+              "energy_generation": 857732.2,
+              "energy_renewable": 855128.0
+            }
+          },
+          "verdict": "source_mapping"
+        }
+      ]
+    },
+    {
+      "country": "RO",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1483,
+              "n_night_above_threshold": 2,
+              "pct_of_night_rows_above_threshold": 0.13,
+              "night_mean_mw": 0.01,
+              "night_median_mw": 0.0,
+              "night_max_mw": 8.5,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 510.41,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.001,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2789,
+              "daylight_mean_mw": 781.8,
+              "daylight_max_mw": 2912.0
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 200,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 861.23,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 520,
+              "daylight_mean_mw": 1192.47,
+              "daylight_max_mw": 3108.5
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17083,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2879,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4245,
+              "n_missing_rows": 0,
+              "n_night_rows": 1471,
+              "n_night_above_threshold": 2,
+              "pct_of_night_rows_above_threshold": 0.14,
+              "night_mean_mw": 0.01,
+              "night_median_mw": 0.0,
+              "night_max_mw": 8.5,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 511.94,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.001,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2774,
+              "daylight_mean_mw": 783.41,
+              "daylight_max_mw": 2912.0
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 200,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 861.23,
+              "pct_of_total_energy_at_night": 0.0,
+              "wape_floor_pct_if_clamped": 0.0,
+              "n_night_negative": 0,
+              "n_daylight_rows": 520,
+              "daylight_mean_mw": 1192.47,
+              "daylight_max_mw": 3108.5
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16973,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2879,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4245,
+          "n_common_rows_finite_in_both": 4245,
+          "night": {
+            "n": 1471,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 16.8,
+              "energy_renewable": 16.8
+            }
+          },
+          "daylight": {
+            "n": 2774,
+            "rel_energy_diff_pct": 0.0032,
+            "agree_within_threshold_pct": 99.93,
+            "max_abs_diff_mw": 72.417,
+            "sum_mwh": {
+              "energy_generation": 2173254.7,
+              "energy_renewable": 2173185.7
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 200,
+            "rel_energy_diff_pct": null,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 0.0,
+              "energy_renewable": 0.0
+            }
+          },
+          "daylight": {
+            "n": 520,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 620083.2,
+              "energy_renewable": 620083.2
+            }
+          },
+          "verdict": "no_floor"
+        }
+      ]
+    },
+    {
+      "country": "SE",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4270,
+              "n_missing_rows": 0,
+              "n_night_rows": 1197,
+              "n_night_above_threshold": 336,
+              "pct_of_night_rows_above_threshold": 28.07,
+              "night_mean_mw": 0.81,
+              "night_median_mw": 0.72,
+              "night_max_mw": 4.8,
+              "night_min_mw": 0.15,
+              "series_mean_mw": 400.05,
+              "pct_of_total_energy_at_night": 0.06,
+              "wape_floor_pct_if_clamped": 0.057,
+              "n_night_negative": 0,
+              "n_daylight_rows": 3073,
+              "daylight_mean_mw": 555.57,
+              "daylight_max_mw": 2537.37
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 96,
+              "n_night_above_threshold": 89,
+              "pct_of_night_rows_above_threshold": 92.71,
+              "night_mean_mw": 1.63,
+              "night_median_mw": 1.54,
+              "night_max_mw": 3.61,
+              "night_min_mw": 0.7,
+              "series_mean_mw": 651.85,
+              "pct_of_total_energy_at_night": 0.03,
+              "wape_floor_pct_if_clamped": 0.033,
+              "n_night_negative": 0,
+              "n_daylight_rows": 624,
+              "daylight_mean_mw": 751.89,
+              "daylight_max_mw": 2355.44
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 17080,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4244,
+              "n_missing_rows": 0,
+              "n_night_rows": 1184,
+              "n_night_above_threshold": 331,
+              "pct_of_night_rows_above_threshold": 27.96,
+              "night_mean_mw": 0.81,
+              "night_median_mw": 0.72,
+              "night_max_mw": 4.8,
+              "night_min_mw": 0.15,
+              "series_mean_mw": 402.09,
+              "pct_of_total_energy_at_night": 0.06,
+              "wape_floor_pct_if_clamped": 0.056,
+              "n_night_negative": 0,
+              "n_daylight_rows": 3060,
+              "daylight_mean_mw": 557.36,
+              "daylight_max_mw": 2537.37
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 96,
+              "n_night_above_threshold": 89,
+              "pct_of_night_rows_above_threshold": 92.71,
+              "night_mean_mw": 1.63,
+              "night_median_mw": 1.54,
+              "night_max_mw": 3.61,
+              "night_min_mw": 0.7,
+              "series_mean_mw": 651.85,
+              "pct_of_total_energy_at_night": 0.03,
+              "wape_floor_pct_if_clamped": 0.033,
+              "n_night_negative": 0,
+              "n_daylight_rows": 624,
+              "daylight_mean_mw": 751.89,
+              "daylight_max_mw": 2355.44
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 16976,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4242,
+          "n_common_rows_finite_in_both": 4242,
+          "night": {
+            "n": 1184,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 955.6,
+              "energy_renewable": 955.6
+            }
+          },
+          "daylight": {
+            "n": 3058,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 1705513.2,
+              "energy_renewable": 1705513.2
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 96,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 156.8,
+              "energy_renewable": 156.8
+            }
+          },
+          "daylight": {
+            "n": 624,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 469178.5,
+              "energy_renewable": 469178.5
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "SI",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_missing_rows": 0,
+              "n_night_rows": 1504,
+              "n_night_above_threshold": 569,
+              "pct_of_night_rows_above_threshold": 37.83,
+              "night_mean_mw": 1.63,
+              "night_median_mw": 0.61,
+              "night_max_mw": 27.87,
+              "night_min_mw": 0.02,
+              "series_mean_mw": 219.98,
+              "pct_of_total_energy_at_night": 0.26,
+              "wape_floor_pct_if_clamped": 0.261,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2768,
+              "daylight_mean_mw": 338.62,
+              "daylight_max_mw": 1122.17
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 183,
+              "n_night_above_threshold": 162,
+              "pct_of_night_rows_above_threshold": 88.52,
+              "night_mean_mw": 3.6,
+              "night_median_mw": 2.1,
+              "night_max_mw": 26.63,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 332.11,
+              "pct_of_total_energy_at_night": 0.28,
+              "wape_floor_pct_if_clamped": 0.275,
+              "n_night_negative": 0,
+              "n_daylight_rows": 537,
+              "daylight_mean_mw": 444.06,
+              "daylight_max_mw": 1066.74
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 8022,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4244,
+              "n_missing_rows": 0,
+              "n_night_rows": 1493,
+              "n_night_above_threshold": 507,
+              "pct_of_night_rows_above_threshold": 33.96,
+              "night_mean_mw": 1.51,
+              "night_median_mw": 0.46,
+              "night_max_mw": 27.87,
+              "night_min_mw": 0.02,
+              "series_mean_mw": 222.21,
+              "pct_of_total_energy_at_night": 0.24,
+              "wape_floor_pct_if_clamped": 0.238,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2751,
+              "daylight_mean_mw": 341.99,
+              "daylight_max_mw": 1122.17
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_missing_rows": 0,
+              "n_night_rows": 183,
+              "n_night_above_threshold": 162,
+              "pct_of_night_rows_above_threshold": 88.52,
+              "night_mean_mw": 3.6,
+              "night_median_mw": 2.1,
+              "night_max_mw": 26.63,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 332.11,
+              "pct_of_total_energy_at_night": 0.28,
+              "wape_floor_pct_if_clamped": 0.275,
+              "n_night_negative": 0,
+              "n_daylight_rows": 537,
+              "daylight_mean_mw": 444.06,
+              "daylight_max_mw": 1066.74
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 7994,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2880,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4244,
+          "n_common_rows_finite_in_both": 4244,
+          "night": {
+            "n": 1493,
+            "rel_energy_diff_pct": 8.335,
+            "agree_within_threshold_pct": 96.32,
+            "max_abs_diff_mw": 5.55,
+            "sum_mwh": {
+              "energy_generation": 2453.4,
+              "energy_renewable": 2248.9
+            }
+          },
+          "daylight": {
+            "n": 2751,
+            "rel_energy_diff_pct": 0.6388,
+            "agree_within_threshold_pct": 78.55,
+            "max_abs_diff_mw": 301.05,
+            "sum_mwh": {
+              "energy_generation": 934831.5,
+              "energy_renewable": 940803.0
+            }
+          },
+          "verdict": "source_mapping"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 720,
+          "n_common_rows_finite_in_both": 720,
+          "night": {
+            "n": 183,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 658.2,
+              "energy_renewable": 658.2
+            }
+          },
+          "daylight": {
+            "n": 537,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 238459.3,
+              "energy_renewable": 238459.3
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    },
+    {
+      "country": "SK",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4268,
+              "n_missing_rows": 0,
+              "n_night_rows": 1449,
+              "n_night_above_threshold": 41,
+              "pct_of_night_rows_above_threshold": 2.83,
+              "night_mean_mw": 0.24,
+              "night_median_mw": 0.1,
+              "night_max_mw": 3.6,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 78.61,
+              "pct_of_total_energy_at_night": 0.1,
+              "wape_floor_pct_if_clamped": 0.104,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2819,
+              "daylight_mean_mw": 118.89,
+              "daylight_max_mw": 406.3
+            },
+            {
+              "window": "gate",
+              "n_rows": 719,
+              "n_missing_rows": 0,
+              "n_night_rows": 177,
+              "n_night_above_threshold": 97,
+              "pct_of_night_rows_above_threshold": 54.8,
+              "night_mean_mw": 0.86,
+              "night_median_mw": 1.1,
+              "night_max_mw": 2.9,
+              "night_min_mw": 0.1,
+              "series_mean_mw": 114.82,
+              "pct_of_total_energy_at_night": 0.18,
+              "wape_floor_pct_if_clamped": 0.185,
+              "n_night_negative": 0,
+              "n_daylight_rows": 542,
+              "daylight_mean_mw": 152.04,
+              "daylight_max_mw": 389.32
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 9524,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2876,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4239,
+              "n_missing_rows": 0,
+              "n_night_rows": 1436,
+              "n_night_above_threshold": 41,
+              "pct_of_night_rows_above_threshold": 2.86,
+              "night_mean_mw": 0.24,
+              "night_median_mw": 0.1,
+              "night_max_mw": 3.6,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 79.05,
+              "pct_of_total_energy_at_night": 0.1,
+              "wape_floor_pct_if_clamped": 0.104,
+              "n_night_negative": 0,
+              "n_daylight_rows": 2803,
+              "daylight_mean_mw": 119.43,
+              "daylight_max_mw": 406.3
+            },
+            {
+              "window": "gate",
+              "n_rows": 719,
+              "n_missing_rows": 0,
+              "n_night_rows": 177,
+              "n_night_above_threshold": 97,
+              "pct_of_night_rows_above_threshold": 54.8,
+              "night_mean_mw": 0.86,
+              "night_median_mw": 1.1,
+              "night_max_mw": 2.9,
+              "night_min_mw": 0.1,
+              "series_mean_mw": 114.82,
+              "pct_of_total_energy_at_night": 0.18,
+              "wape_floor_pct_if_clamped": 0.185,
+              "n_night_negative": 0,
+              "n_daylight_rows": 542,
+              "daylight_mean_mw": 152.04,
+              "daylight_max_mw": 389.32
+            }
+          ],
+          "native_resolution": {
+            "fit": {
+              "raw_rows": 9495,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            },
+            "gate": {
+              "raw_rows": 2876,
+              "distinct_minute_marks": 4,
+              "sub_hourly": true
+            }
+          }
+        }
+      ],
+      "source_comparison": [
+        {
+          "window": "fit",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 4239,
+          "n_common_rows_finite_in_both": 4239,
+          "night": {
+            "n": 1436,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 348.6,
+              "energy_renewable": 348.6
+            }
+          },
+          "daylight": {
+            "n": 2803,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 334764.0,
+              "energy_renewable": 334764.0
+            }
+          },
+          "verdict": "upstream"
+        },
+        {
+          "window": "gate",
+          "sources": [
+            "energy_generation",
+            "energy_renewable"
+          ],
+          "n_common_rows": 719,
+          "n_common_rows_finite_in_both": 719,
+          "night": {
+            "n": 177,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 152.5,
+              "energy_renewable": 152.5
+            }
+          },
+          "daylight": {
+            "n": 542,
+            "rel_energy_diff_pct": 0.0,
+            "agree_within_threshold_pct": 100.0,
+            "max_abs_diff_mw": 0.0,
+            "sum_mwh": {
+              "energy_generation": 82405.8,
+              "energy_renewable": 82405.8
+            }
+          },
+          "verdict": "upstream"
+        }
+      ]
+    }
+  ],
+  "countries_screened": [
+    "AT",
+    "BE",
+    "BG",
+    "CH",
+    "CZ",
+    "DE",
+    "EE",
+    "ES",
+    "FI",
+    "FR",
+    "GR",
+    "HR",
+    "HU",
+    "IT",
+    "LT",
+    "LV",
+    "NL",
+    "NO",
+    "PL",
+    "PT",
+    "RO",
+    "SE",
+    "SI",
+    "SK"
+  ]
+}

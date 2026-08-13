@@ -1068,17 +1068,31 @@ command will not find them otherwise.
 - days_from_holiday - Days since last holiday (capped at 7, `src/features.py:185`)
 - is_bridge_day - Workday between holiday and weekend
 
-> **Declared, but in no serving artifact** (ABL-386/ABL-394, measured 2026-08-13).
-> All 66 artifacts that carry a `feature_columns` list at all were fitted before
-> ABL-338 (5cf2296) threaded `country_code` into `create_all_features`, so
-> `create_holiday_features` never ran on a training frame and the fit-site
-> narrowing dropped these four names in silence. Dropping exactly those four
-> reproduces the served list length on all eight types
-> (23/23/26/25/27/25/24/24), so this is one plumbing gap, not eight drifts. They
-> are live for the **next** fit of any country and have never been evaluated on
-> any target — ABL-386's read on solar is MIXED. The frozen lists and the
-> recorded gap are in `tests/feature_list_manifest.json`; the narrowing now warns
-> instead of dropping silently (`select_feature_columns`, `src/features.py:534`).
+> **Declared, but in no serving artifact** (ABL-386/ABL-394, measured 2026-08-13;
+> mechanism corrected by ABL-407). All 66 artifacts that carry a
+> `feature_columns` list carry none of these four, and dropping exactly those
+> four reproduces the served list length on all eight types
+> (23/23/26/25/27/25/24/24) — one plumbing gap, not eight drifts. They are live
+> for the **next** fit of any country and have never been evaluated on any target
+> — ABL-386's read on solar is MIXED. The frozen lists and the recorded gap are
+> in `tests/feature_list_manifest.json`; the narrowing now warns instead of
+> dropping silently (`select_feature_columns`, `src/features.py:534`).
+>
+> **Why they are missing is provenance, not a regression.** Do not repeat the
+> earlier story that ABL-338 (`5cf2296`) threaded `country_code` into
+> `create_all_features` and so made them live; it does not reproduce.
+> `git show 5cf2296 --stat -- scripts/train.py` is empty, and at `5cf2296^` the
+> training site already read
+> `create_all_features(df, forecast_type, country_code=country_code)`. Both the
+> four names and that threading trace to `996c45a` *Initial commit*, 2026-03-05.
+> The one pre-ABL-338 site that omitted `country_code` was
+> `evaluate_against_baselines` — the **validation** frame, which writes no
+> artifact's `feature_columns`; that is **ABL-397**, and it is a different defect.
+> 60 of the 66 artifacts were saved 2025-12-26..2026-02-23, before this repo
+> existed, so no current training path produced them. The remaining **6**
+> (BE/DE/FR × load, price) were saved 2026-04-04, a month *after* the migration,
+> and still carry none of the four — for those the cause is **not established**.
+> Full measurement: `reports/abl_407_holiday_gap_provenance.md`.
 >
 > **This list is not what the two gate harnesses fit.** They declare their own
 > `FEATURE_COLUMNS` and never call `get_feature_columns()`, which is how the solar
