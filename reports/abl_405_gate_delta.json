@@ -1,0 +1,1679 @@
+{
+  "read": "C:\\Code\\able\\energy-forecast-abl405\\experiments\\ABL348\\results_abl405_tranche2a.json",
+  "read_scope": "abl316-t2a",
+  "read_feature_set": "legacy25+geometry",
+  "read_n_features": 27,
+  "fleet_p90_cv_pct": 5.43,
+  "matched_seed_correlation": 0.113,
+  "pair_cv_overrides": {
+    "BG": 2.52,
+    "CH": 3.02
+  },
+  "margin_k1_vs_deterministic_reference_pct": 10.6428,
+  "margin_k1_vs_another_fit_pct": 15.051192101624375,
+  "cells_vs_references": [
+    {
+      "country": "BG",
+      "horizon_band": "24-36h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 19.62602557077348,
+      "challenger_cv_pct": 2.52,
+      "margin_pct_of_own_error": 4.9392,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 24.39922177799024,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 24.320747927307647,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 48.95559007898538,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 149.44220062511616,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 75.28478879491863,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 283.5967120466336,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 73.49208441273984,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 274.4623899919002,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 41.85136043235167,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 113.24419598574012,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 19.15485303500696,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -2.400753703634102,
+          "wins": false,
+          "readable": false
+        }
+      ]
+    },
+    {
+      "country": "BG",
+      "horizon_band": "36-48h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 19.50941347177989,
+      "challenger_cv_pct": 2.52,
+      "margin_pct_of_own_error": 4.9392,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 24.39922177799024,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 25.063840659707125,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 124.70764522188796,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 539.2178083788932,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 75.28478879491863,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 285.8895548234552,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 73.49208441273984,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 276.70063489630365,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 41.85136043235167,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 114.51880392452141,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 19.15485303500696,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -1.8173813235636163,
+          "wins": false,
+          "readable": false
+        }
+      ]
+    },
+    {
+      "country": "BG",
+      "horizon_band": "48-64h",
+      "n": 510,
+      "gate_pass": true,
+      "challenger_wape_pct": 20.815583132752618,
+      "challenger_cv_pct": 2.52,
+      "margin_pct_of_own_error": 4.9392,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 24.990061762850655,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 20.05458412322658,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 40.467468307554796,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 94.40948663062242,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 68.13582557396909,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 227.33085179227893,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 63.81680135280594,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 206.58185718752384,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 41.20565814602159,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 97.95581936489627,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 20.383039287124063,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -2.0779809187663902,
+          "wins": false,
+          "readable": false
+        }
+      ]
+    },
+    {
+      "country": "CH",
+      "horizon_band": "24-36h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 7.660568172116821,
+      "challenger_cv_pct": 3.02,
+      "margin_pct_of_own_error": 5.9192,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 12.671907993243584,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 65.41733861682998,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 45.651826301462094,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 495.93264201508003,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 94.93999383132655,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 1139.3335807243664,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 94.64766673959768,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 1135.5175832009336,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 39.68213556885371,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 418.00512282222104,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 9.017246169293475,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 17.7098873960124,
+          "wins": true,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "CH",
+      "horizon_band": "36-48h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 7.514182861630586,
+      "challenger_cv_pct": 3.02,
+      "margin_pct_of_own_error": 5.9192,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 12.671907993243584,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 68.63986712314006,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 171.68722770497206,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 2184.8422891283717,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 94.93999383132655,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 1163.4772879445798,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 94.64766673959768,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 1159.5869502044436,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 39.68213556885371,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 428.09648500146614,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 9.017246169293475,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 20.00301743171476,
+          "wins": true,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "CH",
+      "horizon_band": "48-64h",
+      "n": 510,
+      "gate_pass": true,
+      "challenger_wape_pct": 7.98678105060767,
+      "challenger_cv_pct": 3.02,
+      "margin_pct_of_own_error": 5.9192,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 12.525699383152688,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 56.830383902907634,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 42.117471059186954,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 427.3397479198766,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 86.32835649354169,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 980.8904857479903,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 87.90777265484515,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 1000.6658639797911,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 39.094278237781644,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 389.48729143898566,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 8.695808361640333,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 8.877510307844455,
+          "wins": true,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "CZ",
+      "horizon_band": "24-36h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 12.872010786156055,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 23.9605713385712,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 86.1447425474579,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 44.748983649042515,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 247.64563511064165,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 93.92036968469498,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 629.648003291817,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 92.7988220301829,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 620.9349306169688,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 29.327556558226735,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 127.83974505186664,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 15.94310438865822,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 23.858693513566266,
+          "wins": true,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "CZ",
+      "horizon_band": "36-48h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 12.856140116322413,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 23.9605713385712,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 86.37453482752866,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 168.13250157664405,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 1207.7992309929762,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 93.92036968469498,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 630.5487404065533,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 92.7988220301829,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 621.8249116028509,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 29.327556558226735,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 128.12100904992383,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 15.94310438865822,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 24.011594805322133,
+          "wins": true,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "CZ",
+      "horizon_band": "48-64h",
+      "n": 510,
+      "gate_pass": true,
+      "challenger_wape_pct": 13.971753620700273,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 24.027514052389126,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 71.97207097032141,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 40.85113938887665,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 192.38376583131566,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 85.80434323456743,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 514.1272281486657,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 89.86827366605691,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 543.2139880631008,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 28.41675341527222,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 103.38716374994274,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 16.059070908628385,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 14.939551215930292,
+          "wins": true,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "HU",
+      "horizon_band": "24-36h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 17.346376077914563,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 18.183444556906508,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 4.825610117249229,
+          "wins": true,
+          "readable": false
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 43.76644858521639,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 152.30888796963134,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 95.69234174268519,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 451.6560998842914,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 94.981647195227,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 447.5590219455567,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 30.921259193092183,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 78.25774706027033,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 14.193851264778578,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -18.173967859199045,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "HU",
+      "horizon_band": "36-48h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 17.346077671313207,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 18.183444556906508,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 4.827413444470684,
+          "wins": true,
+          "readable": false
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 172.68226534441342,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 895.5118881428386,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 95.69234174268519,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 451.66559008864783,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 94.981647195227,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 447.56844166740257,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 30.921259193092183,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 78.26081364912538,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 14.193851264778578,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -18.1725601964054,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "HU",
+      "horizon_band": "48-64h",
+      "n": 510,
+      "gate_pass": true,
+      "challenger_wape_pct": 16.53474344840197,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 17.89779425807508,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 8.243555843044222,
+          "wins": true,
+          "readable": false
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 36.13153830944569,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 118.51889279199966,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 88.61331926851152,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 435.92194850217476,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 91.39800031375106,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 452.7633410156381,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 29.825011660332173,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 80.37783140333312,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 14.291590859961426,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -13.56629811306408,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "PL",
+      "horizon_band": "24-36h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 17.338965938386526,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 26.000594477619526,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 49.95470070136724,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 44.96419944580208,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 159.3245733660298,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 92.59825129014062,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 434.04713763892045,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 92.15349696782513,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 431.482080853551,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 28.103795003955035,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 62.08460818148553,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 15.404351508370818,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -11.157611341358534,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "PL",
+      "horizon_band": "36-48h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 17.372017341577696,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 26.000594477619526,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 49.66940204112298,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 168.32283733544904,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 868.9308617749874,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 92.59825129014062,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 433.0310779077948,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 92.15349696782513,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 430.4709013113149,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 28.103795003955035,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 61.77623157612332,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 15.404351508370818,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -11.326639816882535,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "PL",
+      "horizon_band": "48-64h",
+      "n": 510,
+      "gate_pass": true,
+      "challenger_wape_pct": 16.30344752155682,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 24.51393768859715,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 50.36045386219214,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 39.34869380810728,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 141.35198249376072,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 85.93856402310571,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 427.1189661540949,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 88.09476065630301,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 440.3443691269711,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 27.08726505075177,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 66.1443999187063,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 14.618809008760563,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -10.33302012085963,
+          "wins": false,
+          "readable": false
+        }
+      ]
+    },
+    {
+      "country": "RO",
+      "horizon_band": "24-36h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 18.76474905903332,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 24.29317949017054,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 29.461787172026384,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 47.1307074669285,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 151.16620168304277,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 96.30124524777712,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 413.20294742453723,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 95.80236414523966,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 410.54433951580376,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 43.44817698231057,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 131.5414762309048,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 19.947216757752116,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 6.301537499908945,
+          "wins": true,
+          "readable": false
+        }
+      ]
+    },
+    {
+      "country": "RO",
+      "horizon_band": "36-48h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 18.695875641595094,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 24.29317949017054,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 29.93870924195929,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 175.49209124905022,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 838.6674077923935,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 96.30124524777712,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 415.0935270104358,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 95.80236414523966,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 412.425125101367,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 43.44817698231057,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 132.39444792650355,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 19.947216757752116,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 6.693139921047634,
+          "wins": true,
+          "readable": false
+        }
+      ]
+    },
+    {
+      "country": "RO",
+      "horizon_band": "48-64h",
+      "n": 510,
+      "gate_pass": true,
+      "challenger_wape_pct": 19.16385282113595,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 24.993994379501835,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 30.422596190760657,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 41.375452328083554,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 115.90362185651036,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 92.2518408526864,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 381.38462402999244,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 93.02602880409985,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 385.42445860104283,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 42.39149302674839,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 121.20548212515237,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 20.447771438158636,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 6.699689404870832,
+          "wins": true,
+          "readable": false
+        }
+      ]
+    },
+    {
+      "country": "SI",
+      "horizon_band": "24-36h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 17.91454983266419,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 21.649598471092954,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 20.84924641320614,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 47.242698763903704,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 163.71133634496655,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 94.9875775001701,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 430.2258688464285,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 93.83622901528832,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 423.7989784381499,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 35.05417152040105,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 95.67430858064668,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 13.007528020917478,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -27.391264963854,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "SI",
+      "horizon_band": "36-48h",
+      "n": 720,
+      "gate_pass": true,
+      "challenger_wape_pct": 18.10681091088249,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 21.649598471092954,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 19.566049359256244,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 166.29676760547372,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 818.4210760467301,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 94.9875775001701,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 424.5958438936423,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 93.83622901528832,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 418.23719525833906,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 35.05417152040105,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 93.59660678475919,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 13.007528020917478,
+          "comparator_n": 720,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -28.16223638200286,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "SI",
+      "horizon_band": "48-64h",
+      "n": 510,
+      "gate_pass": true,
+      "challenger_wape_pct": 18.654710318187593,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 21.222427790207888,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 13.764445698826389,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 42.32778361125291,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 126.90131816190693,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 86.6196328788374,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 364.33116034177556,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 90.1119015381771,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 383.0517333218603,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 34.32032470962783,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 83.97672289859626,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 12.763112369197515,
+          "comparator_n": 510,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -31.58236096138146,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "SK",
+      "horizon_band": "24-36h",
+      "n": 715,
+      "gate_pass": true,
+      "challenger_wape_pct": 16.32315864452201,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 18.820877448244097,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 15.30168797667302,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 45.63191464050733,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 179.55321414352133,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 97.11618031792756,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 494.95948322795584,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 95.25416594222129,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 483.5522892144911,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 32.61481861298469,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 99.80703075461501,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 13.112705399329545,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -19.668088236524497,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "SK",
+      "horizon_band": "36-48h",
+      "n": 715,
+      "gate_pass": true,
+      "challenger_wape_pct": 16.370239206217338,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 18.820877448244097,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 14.970082056565296,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 169.34595545957288,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 934.4745322674094,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 97.11618031792756,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 493.2483887043221,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 95.25416594222129,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 481.8740016092387,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 32.61481861298469,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 99.23238873991372,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 13.112705399329545,
+          "comparator_n": 715,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -19.899121606302472,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    },
+    {
+      "country": "SK",
+      "horizon_band": "48-64h",
+      "n": 507,
+      "gate_pass": true,
+      "challenger_wape_pct": 15.067608261744477,
+      "challenger_cv_pct": 5.43,
+      "margin_pct_of_own_error": 10.6428,
+      "comparisons": [
+        {
+          "reference": "seasonal_naive",
+          "reference_wape_pct": 18.34386188749539,
+          "comparator_n": 507,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 21.743687311469824,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "persistence",
+          "reference_wape_pct": 40.86634182702067,
+          "comparator_n": 507,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 171.21983208693604,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_causal",
+          "reference_wape_pct": 89.82482858076499,
+          "comparator_n": 507,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 496.14523433572043,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "constant_oracle",
+          "reference_wape_pct": 93.11232947703853,
+          "comparator_n": 507,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 517.9635670078026,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_causal",
+          "reference_wape_pct": 31.6222695504664,
+          "comparator_n": 507,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": 109.86920419714497,
+          "wins": true,
+          "readable": true
+        },
+        {
+          "reference": "climatology_oracle",
+          "reference_wape_pct": 12.51558710022297,
+          "comparator_n": 507,
+          "scored_on_same_rows": true,
+          "gap_pct_of_own_error": -16.93713505945663,
+          "wins": false,
+          "readable": true
+        }
+      ]
+    }
+  ],
+  "reference": "C:\\Code\\able\\energy-forecast-abl405\\experiments\\ABL348\\results_abl381_tranche1b.json",
+  "reference_scope": "abl316-t1b",
+  "reference_feature_set": "legacy25",
+  "reference_n_features": 25,
+  "reference_feature_set_was_defaulted": true,
+  "cells_vs_reference_read": [
+    {
+      "country": "BG",
+      "horizon_band": "24-36h",
+      "read_wape_pct": 19.62602557077348,
+      "reference_wape_pct": 18.885224767803308,
+      "read_n": 720,
+      "reference_n": 720,
+      "challenger_cv_pct": 2.52,
+      "margin_pct_independent": 6.985083627273191,
+      "margin_pct_correlation_adjusted": 6.578599078782656,
+      "delta_pp": 0.7408008029701705,
+      "delta_pct_of_reference_error": 3.9226475304288315,
+      "moves_more_than_margin": false,
+      "moves_more_than_adjusted_margin": false,
+      "same_row_count": true
+    },
+    {
+      "country": "BG",
+      "horizon_band": "36-48h",
+      "read_wape_pct": 19.50941347177989,
+      "reference_wape_pct": 18.59888047557926,
+      "read_n": 720,
+      "reference_n": 720,
+      "challenger_cv_pct": 2.52,
+      "margin_pct_independent": 6.985083627273191,
+      "margin_pct_correlation_adjusted": 6.578599078782656,
+      "delta_pp": 0.9105329962006294,
+      "delta_pct_of_reference_error": 4.895633354901007,
+      "moves_more_than_margin": false,
+      "moves_more_than_adjusted_margin": false,
+      "same_row_count": true
+    },
+    {
+      "country": "BG",
+      "horizon_band": "48-64h",
+      "read_wape_pct": 20.815583132752618,
+      "reference_wape_pct": 20.027198495225225,
+      "read_n": 510,
+      "reference_n": 510,
+      "challenger_cv_pct": 2.52,
+      "margin_pct_independent": 6.985083627273191,
+      "margin_pct_correlation_adjusted": 6.578599078782656,
+      "delta_pp": 0.7883846375273933,
+      "delta_pct_of_reference_error": 3.9365697489609226,
+      "moves_more_than_margin": false,
+      "moves_more_than_adjusted_margin": false,
+      "same_row_count": true
+    },
+    {
+      "country": "CH",
+      "horizon_band": "24-36h",
+      "read_wape_pct": 7.660568172116821,
+      "reference_wape_pct": 8.161702097980383,
+      "read_n": 720,
+      "reference_n": 720,
+      "challenger_cv_pct": 3.02,
+      "margin_pct_independent": 8.371012918398824,
+      "margin_pct_correlation_adjusted": 7.883876673779214,
+      "delta_pp": -0.5011339258635621,
+      "delta_pct_of_reference_error": -6.1400663715423764,
+      "moves_more_than_margin": false,
+      "moves_more_than_adjusted_margin": false,
+      "same_row_count": true
+    },
+    {
+      "country": "CH",
+      "horizon_band": "36-48h",
+      "read_wape_pct": 7.514182861630586,
+      "reference_wape_pct": 8.007164067544696,
+      "read_n": 720,
+      "reference_n": 720,
+      "challenger_cv_pct": 3.02,
+      "margin_pct_independent": 8.371012918398824,
+      "margin_pct_correlation_adjusted": 7.883876673779214,
+      "delta_pp": -0.4929812059141101,
+      "delta_pct_of_reference_error": -6.156751650841057,
+      "moves_more_than_margin": false,
+      "moves_more_than_adjusted_margin": false,
+      "same_row_count": true
+    },
+    {
+      "country": "CH",
+      "horizon_band": "48-64h",
+      "read_wape_pct": 7.98678105060767,
+      "reference_wape_pct": 8.39433278149978,
+      "read_n": 510,
+      "reference_n": 510,
+      "challenger_cv_pct": 3.02,
+      "margin_pct_independent": 8.371012918398824,
+      "margin_pct_correlation_adjusted": 7.883876673779214,
+      "delta_pp": -0.40755173089211105,
+      "delta_pct_of_reference_error": -4.855081892754024,
+      "moves_more_than_margin": false,
+      "moves_more_than_adjusted_margin": false,
+      "same_row_count": true
+    }
+  ]
+}
