@@ -1,0 +1,801 @@
+{
+  "issue": "ABL-386",
+  "registration": "experiments/ABL386/config.json",
+  "seeds": [
+    42,
+    1337,
+    2718
+  ],
+  "results": {
+    "primary": {
+      "holiday_arm": "geometry",
+      "no_holiday_arm": "geometry_noholiday",
+      "n_features_holiday": 31,
+      "n_features_no_holiday": 27,
+      "cells": [
+        {
+          "country": "AT",
+          "algorithm": "catboost",
+          "hol_mae": [
+            630.1096515618282,
+            637.5191098442448,
+            589.1395347291336
+          ],
+          "hol_mean": 618.9227653784022,
+          "hol_min": 589.1395347291336,
+          "hol_max": 637.5191098442448,
+          "hol_spread_pct": 7.816738666177909,
+          "hol_night_mean": 26.09139871447294,
+          "hol_night_abs_mean": 26.09139871447294,
+          "hol_night_abs_min": 19.100319488126885,
+          "hol_night_abs_max": 31.30444953617119,
+          "hol_trees": [
+            148,
+            133,
+            375
+          ],
+          "nohol_mae": [
+            601.7374172443448,
+            568.8643467084538,
+            619.9609103093221
+          ],
+          "nohol_mean": 596.8542247540403,
+          "nohol_min": 568.8643467084538,
+          "nohol_max": 619.9609103093221,
+          "nohol_spread_pct": 8.560978792086939,
+          "nohol_night_mean": 28.41510124712089,
+          "nohol_night_abs_mean": 28.41510124712089,
+          "nohol_night_abs_min": 26.267819128382378,
+          "nohol_night_abs_max": 31.018794072392247,
+          "nohol_trees": [
+            489,
+            152,
+            118
+          ],
+          "effect_pct": 3.6974758172242574,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": 2.3237025326479497,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 4.750974944009869
+        },
+        {
+          "country": "BE",
+          "algorithm": "catboost",
+          "hol_mae": [
+            573.1055063623362,
+            561.5576248489692,
+            581.8883819548479
+          ],
+          "hol_mean": 572.1838377220511,
+          "hol_min": 561.5576248489692,
+          "hol_max": 581.8883819548479,
+          "hol_spread_pct": 3.5531861904415942,
+          "hol_night_mean": -11.601920285043024,
+          "hol_night_abs_mean": 11.601920285043024,
+          "hol_night_abs_min": 11.061698295419033,
+          "hol_night_abs_max": 12.416336523727773,
+          "hol_trees": [
+            325,
+            277,
+            328
+          ],
+          "nohol_mae": [
+            549.6592785256586,
+            549.9276917422018,
+            556.432150986607
+          ],
+          "nohol_mean": 552.0063737514891,
+          "nohol_min": 549.6592785256586,
+          "nohol_max": 556.432150986607,
+          "nohol_spread_pct": 1.226955481495495,
+          "nohol_night_mean": -12.08510260527197,
+          "nohol_night_abs_mean": 12.08510260527197,
+          "nohol_night_abs_min": 11.363052582675001,
+          "nohol_night_abs_max": 13.085046600039083,
+          "nohol_trees": [
+            250,
+            324,
+            240
+          ],
+          "effect_pct": 3.655295469404439,
+          "d": -1,
+          "disjoint": true,
+          "favours": "no_holidays",
+          "night_abs_increase_from_excluding": 0.4831823202289467,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 1.7219940173640822
+        },
+        {
+          "country": "DE",
+          "algorithm": "catboost",
+          "hol_mae": [
+            4286.412186711549,
+            4224.5404129173385,
+            4838.16137209318
+          ],
+          "hol_mean": 4449.70465724069,
+          "hol_min": 4224.5404129173385,
+          "hol_max": 4838.16137209318,
+          "hol_spread_pct": 13.790150278341272,
+          "hol_night_mean": 230.73537850460062,
+          "hol_night_abs_mean": 230.73537850460062,
+          "hol_night_abs_min": 159.4263427422487,
+          "hol_night_abs_max": 357.4634375529506,
+          "hol_trees": [
+            130,
+            122,
+            173
+          ],
+          "nohol_mae": [
+            3999.698825866246,
+            4524.608052273448,
+            4467.286277998862
+          ],
+          "nohol_mean": 4330.531052046185,
+          "nohol_min": 3999.698825866246,
+          "nohol_max": 4524.608052273448,
+          "nohol_spread_pct": 12.1211283350383,
+          "nohol_night_mean": 287.47309756997316,
+          "nohol_night_abs_mean": 287.47309756997316,
+          "nohol_night_abs_min": 272.1177149872154,
+          "nohol_night_abs_max": 311.7259399857844,
+          "nohol_trees": [
+            153,
+            149,
+            231
+          ],
+          "effect_pct": 2.751939745084952,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": 56.737719065372545,
+          "night_guardrail_pass": false,
+          "night_guardrail_seed_spread_mw": 39.60822499856903
+        },
+        {
+          "country": "FR",
+          "algorithm": "catboost",
+          "hol_mae": [
+            1003.4285760081841,
+            996.6084346995805,
+            1004.8243727050482
+          ],
+          "hol_mean": 1001.6204611376043,
+          "hol_min": 996.6084346995805,
+          "hol_max": 1004.8243727050482,
+          "hol_spread_pct": 0.8202645936502077,
+          "hol_night_mean": 28.862741568167934,
+          "hol_night_abs_mean": 28.862741568167934,
+          "hol_night_abs_min": 19.318517628660167,
+          "hol_night_abs_max": 33.91651374086808,
+          "hol_trees": [
+            388,
+            321,
+            289
+          ],
+          "nohol_mae": [
+            989.1397667691948,
+            983.8193872250654,
+            977.6205221972622
+          ],
+          "nohol_mean": 983.5265587305075,
+          "nohol_min": 977.6205221972622,
+          "nohol_max": 989.1397667691948,
+          "nohol_spread_pct": 1.1712184556359273,
+          "nohol_night_mean": 36.38303840594403,
+          "nohol_night_abs_mean": 36.38303840594403,
+          "nohol_night_abs_min": 33.94784881005458,
+          "nohol_night_abs_max": 37.94662126230984,
+          "nohol_trees": [
+            310,
+            476,
+            334
+          ],
+          "effect_pct": 1.839696370828209,
+          "d": -1,
+          "disjoint": true,
+          "favours": "no_holidays",
+          "night_abs_increase_from_excluding": 7.520296837776094,
+          "night_guardrail_pass": false,
+          "night_guardrail_seed_spread_mw": 3.9987724522552597
+        },
+        {
+          "country": "AT",
+          "algorithm": "xgboost",
+          "hol_mae": [
+            494.00990999283187,
+            499.8634337575578,
+            494.69586492082965
+          ],
+          "hol_mean": 496.18973622373977,
+          "hol_min": 494.00990999283187,
+          "hol_max": 499.8634337575578,
+          "hol_spread_pct": 1.1796946485177777,
+          "hol_night_mean": 4.0525721438573825,
+          "hol_night_abs_mean": 4.0525721438573825,
+          "hol_night_abs_min": 1.6844462816034922,
+          "hol_night_abs_max": 7.05595994013107,
+          "hol_trees": [
+            498,
+            445,
+            408
+          ],
+          "nohol_mae": [
+            510.0521609768494,
+            502.5329928997737,
+            502.4542528700473
+          ],
+          "nohol_mean": 505.01313558222347,
+          "nohol_min": 502.4542528700473,
+          "nohol_max": 510.0521609768494,
+          "nohol_spread_pct": 1.5044971252168637,
+          "nohol_night_mean": 3.568634036108712,
+          "nohol_night_abs_mean": 3.568634036108712,
+          "nohol_night_abs_min": 2.2465977705491893,
+          "nohol_night_abs_max": 4.568594250231563,
+          "nohol_trees": [
+            250,
+            499,
+            298
+          ],
+          "effect_pct": -1.7471623482251226,
+          "d": 1,
+          "disjoint": true,
+          "favours": "holidays",
+          "night_abs_increase_from_excluding": -0.48393810774867063,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 2.3219964796823733
+        },
+        {
+          "country": "BE",
+          "algorithm": "xgboost",
+          "hol_mae": [
+            598.8461327101921,
+            597.5207741609818,
+            622.0584590228441
+          ],
+          "hol_mean": 606.1417886313393,
+          "hol_min": 597.5207741609818,
+          "hol_max": 622.0584590228441,
+          "hol_spread_pct": 4.048175744039709,
+          "hol_night_mean": -0.39937464820071195,
+          "hol_night_abs_mean": 0.8084984813956009,
+          "hol_night_abs_min": 0.05039004711755391,
+          "hol_night_abs_max": 1.8118096943944693,
+          "hol_trees": [
+            136,
+            133,
+            228
+          ],
+          "nohol_mae": [
+            605.7833849364741,
+            619.182174351674,
+            587.7911203770799
+          ],
+          "nohol_mean": 604.252226555076,
+          "nohol_min": 587.7911203770799,
+          "nohol_max": 619.182174351674,
+          "nohol_spread_pct": 5.1950249573028096,
+          "nohol_night_mean": 0.38960194598144754,
+          "nohol_night_abs_mean": 0.789716244426331,
+          "nohol_night_abs_min": 0.05595519730082617,
+          "nohol_night_abs_max": 1.7130220883108418,
+          "nohol_trees": [
+            134,
+            159,
+            139
+          ],
+          "effect_pct": 0.31271081730817873,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": -0.01878223696926984,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 1.6570668910100157
+        },
+        {
+          "country": "DE",
+          "algorithm": "xgboost",
+          "hol_mae": [
+            4362.638108322989,
+            4161.836434451089,
+            4224.2344711511905
+          ],
+          "hol_mean": 4249.569671308423,
+          "hol_min": 4161.836434451089,
+          "hol_max": 4362.638108322989,
+          "hol_spread_pct": 4.72522371447728,
+          "hol_night_mean": -44.54541276527326,
+          "hol_night_abs_mean": 44.54541276527326,
+          "hol_night_abs_min": 24.571401661425305,
+          "hol_night_abs_max": 63.191008372042376,
+          "hol_trees": [
+            171,
+            163,
+            150
+          ],
+          "nohol_mae": [
+            4381.591356867754,
+            4209.532959510025,
+            4332.373750454116
+          ],
+          "nohol_mean": 4307.832688943965,
+          "nohol_min": 4209.532959510025,
+          "nohol_max": 4381.591356867754,
+          "nohol_spread_pct": 3.9940826346231293,
+          "nohol_night_mean": -39.78117175079468,
+          "nohol_night_abs_mean": 39.78117175079468,
+          "nohol_night_abs_min": 33.07961736802469,
+          "nohol_night_abs_max": 51.883134891001276,
+          "nohol_trees": [
+            141,
+            188,
+            150
+          ],
+          "effect_pct": -1.352490262332476,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": -4.764241014478586,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 18.803517522976584
+        },
+        {
+          "country": "FR",
+          "algorithm": "xgboost",
+          "hol_mae": [
+            961.0810286824296,
+            965.3620759712776,
+            997.8699975437073
+          ],
+          "hol_mean": 974.7710340658049,
+          "hol_min": 961.0810286824296,
+          "hol_max": 997.8699975437073,
+          "hol_spread_pct": 3.7741138765510476,
+          "hol_night_mean": 37.22368007159549,
+          "hol_night_abs_mean": 37.22368007159549,
+          "hol_night_abs_min": 22.440554636049786,
+          "hol_night_abs_max": 46.668319743462845,
+          "hol_trees": [
+            99,
+            83,
+            81
+          ],
+          "nohol_mae": [
+            986.9610271453857,
+            959.8492309495879,
+            976.178106713644
+          ],
+          "nohol_mean": 974.3294549362058,
+          "nohol_min": 959.8492309495879,
+          "nohol_max": 986.9610271453857,
+          "nohol_spread_pct": 2.782610754344177,
+          "nohol_night_mean": 32.52192488761011,
+          "nohol_night_abs_mean": 32.52192488761011,
+          "nohol_night_abs_min": 19.495555189112032,
+          "nohol_night_abs_max": 41.270278393576724,
+          "nohol_trees": [
+            101,
+            86,
+            83
+          ],
+          "effect_pct": 0.045321336367479044,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": -4.701755183985377,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 21.774723204464692
+        }
+      ],
+      "sum_d": -1,
+      "n_cells": 8,
+      "n_disjoint": 3,
+      "n_disjoint_favouring_holidays": 1,
+      "n_disjoint_favouring_exclusion": 2,
+      "verdict": "MIXED"
+    },
+    "replicate": {
+      "holiday_arm": "control",
+      "no_holiday_arm": "control_noholiday",
+      "n_features_holiday": 29,
+      "n_features_no_holiday": 25,
+      "cells": [
+        {
+          "country": "AT",
+          "algorithm": "catboost",
+          "hol_mae": [
+            659.9959565171799,
+            647.242039150931,
+            654.3784051042695
+          ],
+          "hol_mean": 653.8721335907935,
+          "hol_min": 647.242039150931,
+          "hol_max": 659.9959565171799,
+          "hol_spread_pct": 1.9505216251088369,
+          "hol_night_mean": 26.609433166982853,
+          "hol_night_abs_mean": 26.609433166982853,
+          "hol_night_abs_min": 15.369580240568439,
+          "hol_night_abs_max": 44.90102558435594,
+          "hol_trees": [
+            139,
+            132,
+            145
+          ],
+          "nohol_mae": [
+            720.0825178057341,
+            627.2148965337607,
+            691.0834581740722
+          ],
+          "nohol_mean": 679.4602908378557,
+          "nohol_min": 627.2148965337607,
+          "nohol_max": 720.0825178057341,
+          "nohol_spread_pct": 13.667851164261062,
+          "nohol_night_mean": 37.51163344038289,
+          "nohol_night_abs_mean": 37.51163344038289,
+          "nohol_night_abs_min": 27.198259608464436,
+          "nohol_night_abs_max": 51.03163827712382,
+          "nohol_trees": [
+            143,
+            144,
+            273
+          ],
+          "effect_pct": -3.7659533003038277,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": 10.902200273400034,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 23.833378668659382
+        },
+        {
+          "country": "BE",
+          "algorithm": "catboost",
+          "hol_mae": [
+            560.0918135540359,
+            576.9308103450521,
+            552.0337112000028
+          ],
+          "hol_mean": 563.0187783663636,
+          "hol_min": 552.0337112000028,
+          "hol_max": 576.9308103450521,
+          "hol_spread_pct": 4.422072602496474,
+          "hol_night_mean": -9.80663088566199,
+          "hol_night_abs_mean": 9.80663088566199,
+          "hol_night_abs_min": 5.8223026713673125,
+          "hol_night_abs_max": 15.199821943683865,
+          "hol_trees": [
+            197,
+            331,
+            267
+          ],
+          "nohol_mae": [
+            563.3990689621832,
+            546.851104630647,
+            564.3798912095683
+          ],
+          "nohol_mean": 558.2100216007995,
+          "nohol_min": 546.851104630647,
+          "nohol_max": 564.3798912095683,
+          "nohol_spread_pct": 3.1401776930936074,
+          "nohol_night_mean": -13.812556606367641,
+          "nohol_night_abs_mean": 13.812556606367641,
+          "nohol_night_abs_min": 11.82074544635496,
+          "nohol_night_abs_max": 15.377990936807771,
+          "nohol_trees": [
+            278,
+            286,
+            277
+          ],
+          "effect_pct": 0.8614601278160259,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": 4.005925720705651,
+          "night_guardrail_pass": false,
+          "night_guardrail_seed_spread_mw": 3.557245490452811
+        },
+        {
+          "country": "DE",
+          "algorithm": "catboost",
+          "hol_mae": [
+            4443.301451456497,
+            4131.48309330511,
+            4815.636238274188
+          ],
+          "hol_mean": 4463.473594345265,
+          "hol_min": 4131.48309330511,
+          "hol_max": 4815.636238274188,
+          "hol_spread_pct": 15.32781880542154,
+          "hol_night_mean": 212.8432197507732,
+          "hol_night_abs_mean": 212.8432197507732,
+          "hol_night_abs_min": 131.84457063788565,
+          "hol_night_abs_max": 321.64253598125333,
+          "hol_trees": [
+            132,
+            124,
+            162
+          ],
+          "nohol_mae": [
+            4144.4516193669415,
+            3758.126669771632,
+            4278.83363165534
+          ],
+          "nohol_mean": 4060.4706402646375,
+          "nohol_min": 3758.126669771632,
+          "nohol_max": 4278.83363165534,
+          "nohol_spread_pct": 12.823808075848348,
+          "nohol_night_mean": 171.22243831512336,
+          "nohol_night_abs_mean": 176.13946096525729,
+          "nohol_night_abs_min": 7.375533975200874,
+          "nohol_night_abs_max": 326.73080915086564,
+          "nohol_trees": [
+            176,
+            130,
+            118
+          ],
+          "effect_pct": 9.925030613061207,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": -36.7037587855159,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 319.35527517566476
+        },
+        {
+          "country": "FR",
+          "algorithm": "catboost",
+          "hol_mae": [
+            1034.078607923198,
+            1000.5411431301919,
+            1021.432729004976
+          ],
+          "hol_mean": 1018.6841600194552,
+          "hol_min": 1000.5411431301919,
+          "hol_max": 1034.078607923198,
+          "hol_spread_pct": 3.2922338551298904,
+          "hol_night_mean": 46.51361202782888,
+          "hol_night_abs_mean": 46.51361202782888,
+          "hol_night_abs_min": 39.88000881430163,
+          "hol_night_abs_max": 52.52046458820448,
+          "hol_trees": [
+            343,
+            202,
+            267
+          ],
+          "nohol_mae": [
+            1023.7110326627998,
+            1025.07425189175,
+            1002.4869513447771
+          ],
+          "nohol_mean": 1017.0907452997757,
+          "nohol_min": 1002.4869513447771,
+          "nohol_max": 1025.07425189175,
+          "nohol_spread_pct": 2.220775348842204,
+          "nohol_night_mean": 51.803810091225536,
+          "nohol_night_abs_mean": 51.803810091225536,
+          "nohol_night_abs_min": 49.469005959827925,
+          "nohol_night_abs_max": 55.762246932019494,
+          "nohol_trees": [
+            303,
+            280,
+            245
+          ],
+          "effect_pct": 0.156663967993331,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": 5.290198063396659,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 6.293240972191569
+        },
+        {
+          "country": "AT",
+          "algorithm": "xgboost",
+          "hol_mae": [
+            524.7473225767043,
+            514.5450986025938,
+            514.2160326616088
+          ],
+          "hol_mean": 517.8361512803023,
+          "hol_min": 514.2160326616088,
+          "hol_max": 524.7473225767043,
+          "hol_spread_pct": 2.0337108347993573,
+          "hol_night_mean": 0.13338900044522353,
+          "hol_night_abs_mean": 1.1512974358570573,
+          "hol_night_abs_min": 0.18398150355770507,
+          "hol_night_abs_max": 1.9270296544534213,
+          "hol_trees": [
+            476,
+            379,
+            493
+          ],
+          "nohol_mae": [
+            527.9094465901602,
+            530.230602902263,
+            522.9527308385764
+          ],
+          "nohol_mean": 527.0309267769999,
+          "nohol_min": 522.9527308385764,
+          "nohol_max": 530.230602902263,
+          "nohol_spread_pct": 1.380919352910389,
+          "nohol_night_mean": 1.0129942260881695,
+          "nohol_night_abs_mean": 1.248633823562303,
+          "nohol_night_abs_min": 0.3534593962112002,
+          "nohol_night_abs_max": 2.7349906507809734,
+          "nohol_trees": [
+            292,
+            279,
+            387
+          ],
+          "effect_pct": -1.744636800145157,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": 0.09733638770524555,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 2.381531254569773
+        },
+        {
+          "country": "BE",
+          "algorithm": "xgboost",
+          "hol_mae": [
+            635.4529237604995,
+            643.0609729097117,
+            627.2008960809693
+          ],
+          "hol_mean": 635.2382642503935,
+          "hol_min": 627.2008960809693,
+          "hol_max": 643.0609729097117,
+          "hol_spread_pct": 2.4967130793762786,
+          "hol_night_mean": 0.4808000177185147,
+          "hol_night_abs_mean": 4.309796567560688,
+          "hol_night_abs_min": 0.016821717566425174,
+          "hol_night_abs_max": 7.169073160352378,
+          "hol_trees": [
+            152,
+            226,
+            97
+          ],
+          "nohol_mae": [
+            604.3269131352765,
+            624.1871952987873,
+            612.105827486394
+          ],
+          "nohol_mean": 613.5399786401526,
+          "nohol_min": 604.3269131352765,
+          "nohol_max": 624.1871952987873,
+          "nohol_spread_pct": 3.2369988680328547,
+          "nohol_night_mean": 1.3788331554367625,
+          "nohol_night_abs_mean": 2.070840098477643,
+          "nohol_night_abs_min": 1.038010414561321,
+          "nohol_night_abs_max": 2.858645235670024,
+          "nohol_trees": [
+            136,
+            110,
+            118
+          ],
+          "effect_pct": 3.5365724102173193,
+          "d": -1,
+          "disjoint": true,
+          "favours": "no_holidays",
+          "night_abs_increase_from_excluding": -2.238956469083045,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 1.8206348211087031
+        },
+        {
+          "country": "DE",
+          "algorithm": "xgboost",
+          "hol_mae": [
+            3856.8014371115455,
+            3958.1316343321955,
+            3928.737166647675
+          ],
+          "hol_mean": 3914.556746030472,
+          "hol_min": 3856.8014371115455,
+          "hol_max": 3958.1316343321955,
+          "hol_spread_pct": 2.58854843076175,
+          "hol_night_mean": -38.23533028399038,
+          "hol_night_abs_mean": 38.23533028399038,
+          "hol_night_abs_min": 25.73328162991164,
+          "hol_night_abs_max": 53.33668953435201,
+          "hol_trees": [
+            135,
+            144,
+            150
+          ],
+          "nohol_mae": [
+            3909.061013264781,
+            3967.564385127254,
+            4032.2332460118455
+          ],
+          "nohol_mean": 3969.619548134627,
+          "nohol_min": 3909.061013264781,
+          "nohol_max": 4032.2332460118455,
+          "nohol_spread_pct": 3.1028724857258534,
+          "nohol_night_mean": -44.219465279341705,
+          "nohol_night_abs_mean": 44.219465279341705,
+          "nohol_night_abs_min": 35.45202202755108,
+          "nohol_night_abs_max": 59.473192278916635,
+          "nohol_trees": [
+            154,
+            259,
+            132
+          ],
+          "effect_pct": -1.3871052738550207,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": 5.984134995351326,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 24.021170251365554
+        },
+        {
+          "country": "FR",
+          "algorithm": "xgboost",
+          "hol_mae": [
+            979.8325732012493,
+            982.4232375298477,
+            979.9779731508581
+          ],
+          "hol_mean": 980.7445946273183,
+          "hol_min": 979.8325732012493,
+          "hol_max": 982.4232375298477,
+          "hol_spread_pct": 0.26415280214548614,
+          "hol_night_mean": 37.4179273805033,
+          "hol_night_abs_mean": 37.4179273805033,
+          "hol_night_abs_min": 29.8209710999086,
+          "hol_night_abs_max": 45.62259804901233,
+          "hol_trees": [
+            92,
+            86,
+            99
+          ],
+          "nohol_mae": [
+            978.1710195271561,
+            975.9159094666272,
+            1010.6729125623006
+          ],
+          "nohol_mean": 988.2532805186946,
+          "nohol_min": 975.9159094666272,
+          "nohol_max": 1010.6729125623006,
+          "nohol_spread_pct": 3.51701368271004,
+          "nohol_night_mean": 39.891059372829616,
+          "nohol_night_abs_mean": 39.891059372829616,
+          "nohol_night_abs_min": 32.754068801549366,
+          "nohol_night_abs_max": 46.072315794466206,
+          "nohol_trees": [
+            89,
+            96,
+            85
+          ],
+          "effect_pct": -0.7597936722694533,
+          "d": 0,
+          "disjoint": false,
+          "favours": "overlapping",
+          "night_abs_increase_from_excluding": 2.4731319923263158,
+          "night_guardrail_pass": true,
+          "night_guardrail_seed_spread_mw": 13.31824699291684
+        }
+      ],
+      "sum_d": -1,
+      "n_cells": 8,
+      "n_disjoint": 1,
+      "n_disjoint_favouring_holidays": 0,
+      "n_disjoint_favouring_exclusion": 1,
+      "verdict": "NO_EFFECT"
+    }
+  },
+  "primary_verdict": "MIXED",
+  "replicate_verdict": "NO_EFFECT",
+  "downgraded_by_replicate_disagreement": false,
+  "final_verdict": "MIXED",
+  "recommendation": "REPORT",
+  "recommendation_rationale": "Registered mapping: recommend exclusion on parsimony only if no cell shows disjoint HELP; otherwise name what a further read must measure.",
+  "night_guardrail_failures": [
+    "catboost/DE",
+    "catboost/FR"
+  ]
+}

@@ -28,6 +28,17 @@ from .solar_features import SOLAR_GEOMETRY_FEATURES, solar_geometry_frame
 logger = logging.getLogger("energy_forecast")
 
 
+#: The four features `get_feature_columns` gates on its `include_holidays` flag.
+#:
+#: Named because three places need to talk about them as a set: the list builder
+#: below, and the ABL-386 probes that measure them against what serving artifacts
+#: actually carry. Measured 2026-08-13: **no** serving artifact of any forecast
+#: type carries these four - all 66 that have a feature list at all predate them -
+#: so `include_holidays=True` describes what the *next* fit picks up, not anything
+#: being served today (`reports/abl_386_feature_drift.json`).
+HOLIDAY_FEATURES = ("is_holiday", "days_to_holiday", "days_from_holiday", "is_bridge_day")
+
+
 # ============================================================================
 # TIME FEATURES
 # ============================================================================
@@ -477,14 +488,7 @@ def get_feature_columns(forecast_type: str, include_holidays: bool = True) -> Li
     ]
 
     # Holiday features (high impact for load forecasting)
-    holiday_features = []
-    if include_holidays:
-        holiday_features = [
-            "is_holiday",
-            "days_to_holiday",
-            "days_from_holiday",
-            "is_bridge_day",
-        ]
+    holiday_features = list(HOLIDAY_FEATURES) if include_holidays else []
 
     # Lag features
     lag_features = [f"target_value_lag_{d}d" for d in config.LAG_DAYS]
