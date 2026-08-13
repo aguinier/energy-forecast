@@ -24,11 +24,56 @@ from src.evaluation.scorecard import (
     score_predictions, select_latest_per_band,
 )
 from src.evaluation.solar_retrain import (
-    ALGORITHM, COUNTRIES, FEATURE_COLUMNS, INTENDED_N, PRIMARY_BANDS, SCHEDULE_N,
+    ALGORITHM, FEATURE_COLUMNS, INTENDED_N, PRIMARY_BANDS, SCHEDULE_N,
     attach_baselines, build_vintage_frame, common_scores, finite_training_rows,
     gate_cell, select_latest_challenger_per_band,
 )
 from src.wind_features import RenewableFeatureBuilder
+
+
+# ABL-378, porting the ABL-322 fix from the wind harness.  This harness used to
+# read `COUNTRIES` directly and hardcode its pass bar to the 9 cells that set
+# produces, so it could not be pointed at any of the 28 solar countries with no
+# model without editing the constant -- at which point `== 9` silently became
+# the wrong denominator.  Each scope now names its countries outright and the
+# registered cell count is derived from *that table*, fixed in the file before
+# the run, rather than from whatever the run turns out to score.  That keeps the
+# property the literal existed to protect: a country that silently yields no
+# gate rows still falls short of its scope's count instead of quietly leaving
+# the denominator.  Adding a scope is a pre-registration and belongs in review.
+#
+# The country tuple is written out here rather than referencing
+# `solar_retrain.COUNTRIES`, deliberately: a registration must not follow a
+# shared mutable constant.  Adding AT to `COUNTRIES` -- it is the one other
+# country with a solar incumbent -- would otherwise silently re-scope a
+# dispositioned gate.  `test_gate_scope_registration` pins the two as equal
+# today, so any divergence surfaces in review instead of applying itself.
+SCOPES = {
+    # ABL-253 as registered: BE/DE/FR solar.  3 countries x 3 primary bands = 9
+    # cells.  Unchanged, and the default, so an unflagged run still reproduces
+    # ABL-253 exactly.
+    "abl253": ("BE", "DE", "FR"),
+}
+
+# The columns that must be *simultaneously finite* for a row to enter a gate
+# cell.  This is a registered property of the scope, not a detail.
+# `common_scores` keeps only rows where every named column is finite, and the
+# incumbent is left-merged, so it is NaN on every row for a country with no rows
+# in `forecasts`.  Naming `incumbent` in the basis therefore empties the
+# intersection for such a country: n=0, all scores None, and the verdict below
+# would render that as FAIL -- a model-quality disposition for a race that was
+# never run.  That is how the ABL-322 pilot first reported, and it would land
+# the same way on all 28 solar countries in ABL-316 that have no incumbent.
+#
+# ABL-253 keeps the four-way basis it was actually read under, so re-reading it
+# does not silently move already-dispositioned numbers.  A new scope registers
+# the basis its own pre-registration names.
+GATE_BASIS = {
+    "abl253": ("challenger", "incumbent", "seasonal_naive", "persistence"),
+}
+#: Always reported, each on its own intersection with the gate basis, so that a
+#: comparator which never exists reads "Not measured" instead of voiding the gate.
+REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistence")
 
 
 def _model():
@@ -89,6 +134,39 @@ def _fmt(value, suffix=""):
     return "Not measured" if value is None else f"{value:.1f}{suffix}"
 
 
+def disposition(gate_cells: list[dict], registered_cells: int,
+                contaminated: bool) -> tuple[str, str]:
+    """Map the scored cells onto a verdict and its recommendation.
+
+    Extracted from `main` so the `UNREADABLE` branch is reachable in a test
+    without training three models. The distinction it encodes is the whole point
+    of ABL-378: a cell that scored no rows did not lose a race, it never ran one,
+    and calling that FAIL reports a model-quality verdict on a comparison that
+    never happened.
+    """
+    performance_pass = len(gate_cells) == registered_cells and gate_cells and all(
+        row["gate"]["pass"] for row in gate_cells)
+    if performance_pass and not contaminated:
+        return "PASS", (
+            "The challenger clears the pre-registered D-7 bar in every served solar D+2 country-band cell. "
+            "Preserve these experiment artifacts and ask the CEO to initiate Board review; do not promote from this issue.")
+    if performance_pass:
+        return "PERFORMANCE PASS — HOLD FOR CONTAMINATION ADJUDICATION", (
+            "The challenger clears the performance bar, but a suspect constant run touches the registered data window. "
+            "Do not promote; send the run to the CEO/ingest owner for adjudication first.")
+    unreadable = [row for row in gate_cells if row["gate"]["n"] == 0]
+    if unreadable:
+        return "UNREADABLE", (
+            f"No disposition: {len(unreadable)}/{registered_cells} primary cells scored zero rows, so the challenger was "
+            "never compared to the baseline in them. This is not a model-quality result and must not be reported as one. "
+            "Fix the cause of the empty intersection and re-read the gate; the registered windows, bands, metric, baseline "
+            "and minimum n are untouched by a run that produced no score.")
+    passed = sum(row["gate"]["pass"] for row in gate_cells)
+    return "FAIL", (
+        f"Do not promote these artifacts: only {passed}/{registered_cells} primary cells clear the registered bar. Report the "
+        "losing country/bands as the finding and pursue country-specific diagnosis/model work on a fresh pre-registered split.")
+
+
 def render_markdown(result: dict) -> str:
     meta, cells = result["meta"], result["gate_cells"]
     passed = sum(cell["gate"]["pass"] for cell in cells)
@@ -106,25 +184,43 @@ def render_markdown(result: dict) -> str:
         # say which table they read, so it is stated, never defaulted silently.
         f"Target series, features, baselines and contamination screen: `{meta['training_source']}`.",
         "", "## Gate read", "",
-        f"Strict full PASS requires challenger WAPE < D-7 in all 9 served-country × primary D+2-band cells and ≥95% of intended pairs. Result: **{passed}/9 cells pass**.",
-        "The exact eight registered run instants imply 210/570/720/720/510 selected rows by band. As in ABL-195, the frozen registered minimum for 48–64h remains 456 (95% of 480), while the schedule offers 510 rows.",
+        f"Registered scope `{meta['scope']}`: {', '.join(meta['registered_countries'])}.",
+        f"Gate basis — the columns that must be simultaneously finite for a row to be scored: {', '.join(f'`{c}`' for c in meta.get('gate_basis', []))}. "
+        "Comparators outside the basis are scored on their own intersection with it and carry their own n, so a comparator that "
+        "does not exist for a country reads Not measured instead of emptying the cell.",
+        f"Strict full PASS requires challenger WAPE < D-7 in all {meta['registered_cells']} country × primary D+2-band cells and ≥95% of intended pairs. Result: **{passed}/{meta['registered_cells']} cells pass**.",
         "",
         "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | incumbent WAPE | MAE | bias | slope | corr | gate |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|",
     ]
     for row in cells:
         scores = row["scores"]
-        skill = 100 * (1 - scores["challenger"]["wape_pct"] / scores["seasonal_naive"]["wape_pct"])
+        chal, naive = scores["challenger"]["wape_pct"], scores["seasonal_naive"]["wape_pct"]
+        # A cell that scored no rows has None on both sides. It renders as
+        # "Not measured", never as a number and never as a crash.
+        skill = "Not measured" if chal is None or naive is None else f"{100 * (1 - chal / naive):+.1f}%"
         lines.append(
             f"| {row['country']} | {row['horizon_band']} | {row['gate']['n']:,} | "
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
-            f"{skill:+.1f}% | {_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(scores['challenger']['mae'])} MW | "
+            f"{skill} | {_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(scores['challenger']['mae'])} MW | "
             f"{_fmt(scores['challenger']['bias_pct'], '%')} | {_fmt(scores['challenger']['slope'])} | "
             f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} |"
         )
+    # The protocol-count sentence below is a measured ABL-253 fact about that
+    # scope's eight registered run instants. Rendering it for every scope would
+    # state another scope's row counts as if they had been measured; the per-cell
+    # `n` column above already carries that truth for whichever scope ran.
+    if meta["scope"] == "abl253":
+        lines.extend([
+            "",
+            "The exact eight registered run instants imply 210/570/720/720/510 selected rows by band. As in ABL-195, the frozen registered minimum for 48–64h remains 456 (95% of 480), while the schedule offers 510 rows.",
+        ])
+    basis_names = ", ".join(meta.get("gate_basis", []))
     lines.extend([
         "", "## Per-country all-D+2 summary", "",
-        "All model and baseline values use the identical finite challenger/incumbent/D-7/persistence/actual intersection.", "",
+        f"Gate-basis values (actual, {basis_names}) share one finite intersection; each comparator outside the basis is "
+        "scored on its own intersection with it, and its n is given in `comparator_n` in the JSON. A comparator showing "
+        "`Not measured` had no finite rows at all.", "",
         "| country | n | challenger WAPE | D-7 WAPE | persistence WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
         "|---|---:|---:|---:|---:|---:|---:|",
     ])
@@ -184,6 +280,10 @@ def main() -> int:
     parser.add_argument("--artifact-dir", default="experiments/ABL253/artifacts")
     parser.add_argument("--json-out", default="experiments/ABL253/results.json")
     parser.add_argument("--report-out", default="reports/abl_253_solar_retrain.md")
+    parser.add_argument("--scope", default="abl253", choices=sorted(SCOPES),
+                        help="Registered country scope. Each scope fixes its countries "
+                             "and its gate basis in the file; the cell count is derived "
+                             "from them (default: abl253, which reproduces ABL-253).")
     # ABL-345: the 19 unmodelled solar pairs have ~9 months in `energy_renewable`
     # against ~5.6 years in `energy_generation`, so this harness cannot gate them
     # on one hardcoded table. Opt-in, so an unflagged run reproduces ABL-253.
@@ -213,8 +313,10 @@ def main() -> int:
     incumbent = select_latest_per_band(incumbent_raw)
     tso = _load_tso(cfg, "solar")
     artifact_dir = Path(args.artifact_dir)
+    registered_countries = SCOPES[args.scope]
+    registered_cells = len(registered_countries) * len(PRIMARY_BANDS)
     training, scored_frames = [], []
-    for country in COUNTRIES:
+    for country in registered_countries:
         # ABL-342 records provenance from the builder rather than from a source
         # string, so passing the source here is also what makes the artifact's
         # `training_source` truthful.
@@ -252,37 +354,51 @@ def main() -> int:
                                                           source),
                          "artifact_path": str(path.resolve()), "artifact_sha256": _sha256(path)})
 
+    gate_basis = GATE_BASIS[args.scope]
+
+    def scored(group):
+        """Score on the scope's registered gate basis; report the rest beside it.
+
+        Each comparator outside the basis is scored on its own intersection
+        *with* the basis, so a comparator that is absent for this country costs
+        its own row and nothing else. Returns the basis scores, the basis
+        intersection, and each comparator's own n.
+        """
+        scores, common = common_scores(group, gate_basis)
+        comparator_n = {name: len(common) for name in gate_basis}
+        for name in REPORTED_COMPARATORS:
+            if name in scores:
+                continue
+            sub_scores, sub_common = common_scores(group, (*gate_basis, name))
+            scores[name], comparator_n[name] = sub_scores[name], len(sub_common)
+        return scores, common, comparator_n
+
     all_scored = pd.concat(scored_frames, ignore_index=True)
     gate_cells, country_d2 = [], []
     for (country, band), group in all_scored.groupby(["country", "horizon_band"]):
-        scores, common = common_scores(group, ("challenger", "incumbent", "seasonal_naive", "persistence"))
+        scores, common, comparator_n = scored(group)
         if band in PRIMARY_BANDS:
             gate_cells.append({"country": country, "horizon_band": band, "scores": scores,
+                               "comparator_n": comparator_n,
                                "gate": gate_cell(scores["challenger"]["wape_pct"],
                                                  scores["seasonal_naive"]["wape_pct"],
                                                  len(common), INTENDED_N[band])})
     for country, group in all_scored[all_scored["horizon_band"].isin(PRIMARY_BANDS)].groupby("country"):
-        scores, common = common_scores(group, ("challenger", "incumbent", "seasonal_naive", "persistence"))
+        scores, common, comparator_n = scored(group)
         tso_valid = np.isfinite(common[["actual", "tso"]].to_numpy(dtype=float)).all(axis=1)
         country_d2.append({"country": country, "n": len(common), "scores": scores,
+                           "comparator_n": comparator_n,
                            "tso": score_predictions(common.loc[tso_valid, "actual"], common.loc[tso_valid, "tso"])})
 
     passed = sum(row["gate"]["pass"] for row in gate_cells)
-    performance_pass = len(gate_cells) == 9 and passed == 9
     contaminated = any(row["constant_runs"] for row in training)
-    if performance_pass and not contaminated:
-        verdict = "PASS"
-        recommendation = "The challenger clears the pre-registered D-7 bar in every served solar D+2 country-band cell. Preserve these experiment artifacts and ask the CEO to initiate Board review; do not promote from this issue."
-    elif performance_pass:
-        verdict = "PERFORMANCE PASS — HOLD FOR CONTAMINATION ADJUDICATION"
-        recommendation = "The challenger clears the performance bar, but a suspect constant run touches the registered data window. Do not promote; send the run to the CEO/ingest owner for adjudication first."
-    else:
-        verdict = "FAIL"
-        recommendation = f"Do not promote these artifacts: only {passed}/9 primary cells clear the registered bar. Report the losing country/bands as the finding and pursue country-specific diagnosis/model work on a fresh pre-registered split."
+    verdict, recommendation = disposition(gate_cells, registered_cells, contaminated)
 
     result = {"meta": {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
                        "replica_db": str(replica), "replica_bytes": replica.stat().st_size,
                        "training_source": source,
+                       "scope": args.scope, "registered_countries": list(registered_countries),
+                       "registered_cells": registered_cells, "gate_basis": list(gate_basis),
                        "fit_window": {"start": str(fit_start), "end_exclusive": str(gate_start)},
                        "gate_window": {"start": str(gate_start), "end_exclusive": str(gate_end)},
                        "registered_intended_n": INTENDED_N, "schedule_implied_n": SCHEDULE_N,
@@ -296,7 +412,7 @@ def main() -> int:
     report_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
     report_path.write_text(render_markdown(result), encoding="utf-8")
-    print(f"{verdict}: {passed}/9 cells passed; wrote {report_path} and {json_path}")
+    print(f"{verdict}: {passed}/{registered_cells} cells passed; wrote {report_path} and {json_path}")
     return 0
 
 
