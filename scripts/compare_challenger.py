@@ -21,7 +21,7 @@ Write under `reports/head_to_head/`, not `reports/net_position_eval/`: the
 latter is gitignored because the scheduled eval rewrites it every run, and a
 promotion verdict has to survive in the repo that cites it.
 
-Rows are paired per *run*, not per `generated_at` — on the live sidecar the
+Rows are paired per *run*, not per `generated_at` -- on the live sidecar the
 champion and the challengers are separate processes and never share a stamp
 (ABL-82). Exit status is **1 when nothing paired**, so a gate script cannot read
 an empty comparison as "no difference".

@@ -1,0 +1,152 @@
+{
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 9432453120,
+  "night_mw_threshold": 1.0,
+  "night_definition": "solar_features.night_mask -- sun below NIGHT_ELEVATION_THRESHOLD_DEG for the whole hour",
+  "windows": {
+    "fit": [
+      "2026-01-14 00:00:00",
+      "2026-07-11 00:00:00"
+    ],
+    "gate": [
+      "2026-07-11 00:00:00",
+      "2026-08-10 00:00:00"
+    ]
+  },
+  "countries": [
+    {
+      "country": "BG",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_night_rows": 1529,
+              "n_night_above_threshold": 1168,
+              "pct_of_night_rows_above_threshold": 76.39,
+              "night_mean_mw": 152.33,
+              "night_median_mw": 9.09,
+              "night_max_mw": 1097.37,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 855.24,
+              "pct_of_total_energy_at_night": 6.37
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_night_rows": 210,
+              "n_night_above_threshold": 179,
+              "pct_of_night_rows_above_threshold": 85.24,
+              "night_mean_mw": 245.71,
+              "night_median_mw": 37.98,
+              "night_max_mw": 1087.86,
+              "night_min_mw": 0.21,
+              "series_mean_mw": 1439.2,
+              "pct_of_total_energy_at_night": 4.98
+            }
+          ]
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4239,
+              "n_night_rows": 1517,
+              "n_night_above_threshold": 1156,
+              "pct_of_night_rows_above_threshold": 76.2,
+              "night_mean_mw": 152.53,
+              "night_median_mw": 9.09,
+              "night_max_mw": 1097.37,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 856.38,
+              "pct_of_total_energy_at_night": 6.37
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_night_rows": 210,
+              "n_night_above_threshold": 179,
+              "pct_of_night_rows_above_threshold": 85.24,
+              "night_mean_mw": 245.71,
+              "night_median_mw": 37.98,
+              "night_max_mw": 1087.86,
+              "night_min_mw": 0.21,
+              "series_mean_mw": 1439.2,
+              "pct_of_total_energy_at_night": 4.98
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "country": "CH",
+      "sources": [
+        {
+          "source": "energy_generation",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4272,
+              "n_night_rows": 1465,
+              "n_night_above_threshold": 673,
+              "pct_of_night_rows_above_threshold": 45.94,
+              "night_mean_mw": 1.32,
+              "night_median_mw": 0.83,
+              "night_max_mw": 5.84,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 833.37,
+              "pct_of_total_energy_at_night": 0.05
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_night_rows": 186,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1330.98,
+              "pct_of_total_energy_at_night": 0.0
+            }
+          ]
+        },
+        {
+          "source": "energy_renewable",
+          "windows": [
+            {
+              "window": "fit",
+              "n_rows": 4244,
+              "n_night_rows": 1454,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 803.5,
+              "pct_of_total_energy_at_night": 0.0
+            },
+            {
+              "window": "gate",
+              "n_rows": 720,
+              "n_night_rows": 186,
+              "n_night_above_threshold": 0,
+              "pct_of_night_rows_above_threshold": 0.0,
+              "night_mean_mw": 0.0,
+              "night_median_mw": 0.0,
+              "night_max_mw": 0.0,
+              "night_min_mw": 0.0,
+              "series_mean_mw": 1330.98,
+              "pct_of_total_energy_at_night": 0.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1823,6 +1823,7 @@ def create_solar_clamp_log_table():
                 model_name TEXT NOT NULL,
                 renewable_type TEXT NOT NULL,
                 night_threshold_deg REAL NOT NULL,
+                zeroed_night_mw_threshold REAL,
                 rows_total INTEGER NOT NULL,
                 hours_zeroed_night INTEGER NOT NULL,
                 hours_raised_floor INTEGER NOT NULL,
@@ -1835,6 +1836,15 @@ def create_solar_clamp_log_table():
                 target_end TIMESTAMP
             )
         """)
+
+        # Migrate tables created before ABL-377 added zeroed_night_mw_threshold.
+        # Old rows will carry NULL, which correctly signals "old definition (!=0.0)".
+        try:
+            cursor.execute(
+                "ALTER TABLE forecast_clamp_log ADD COLUMN zeroed_night_mw_threshold REAL"
+            )
+        except Exception:
+            pass  # column already exists
 
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_forecast_clamp_log_lookup
@@ -1863,10 +1873,11 @@ def save_solar_clamp_stats(stats: List['SolarClampStats']) -> int:
             cursor.execute("""
                 INSERT INTO forecast_clamp_log
                 (clamped_at, generated_at, country_code, model_name, renewable_type,
-                 night_threshold_deg, rows_total, hours_zeroed_night, hours_raised_floor,
+                 night_threshold_deg, zeroed_night_mw_threshold,
+                 rows_total, hours_zeroed_night, hours_raised_floor,
                  mw_removed_night, mw_added_floor, mw_removed_total,
                  min_forecast_mw, max_night_forecast_mw, target_start, target_end)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 clamped_at,
                 s.generated_at.isoformat() if s.generated_at is not None else None,
@@ -1874,6 +1885,7 @@ def save_solar_clamp_stats(stats: List['SolarClampStats']) -> int:
                 s.model_name,
                 s.renewable_type,
                 s.night_threshold_deg,
+                s.zeroed_night_mw_threshold,
                 s.rows_total,
                 s.hours_zeroed_night,
                 s.hours_raised_floor,

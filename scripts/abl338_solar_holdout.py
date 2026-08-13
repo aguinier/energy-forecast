@@ -24,14 +24,14 @@ What this is not
 ----------------
 Not a serve-faithful backtest. Features are built by the training-time pipeline
 (`features.create_all_features`), whose lags and rolling windows are anchored at
-the target hour — at serving they are anchored at the generation instant
+the target hour -- at serving they are anchored at the generation instant
 (`wind_features.RenewableFeatureBuilder`, ABL-183). Every arm carries that
 identically, so the *comparison* is sound, but the absolute MW are optimistic
 against what the rail would produce. The serve-faithful check is the clamp
 counter in `scripts/abl338_retrain_solar.py`, which runs the real serve path.
 
 The two ABL-338 geometry features are the exception and are the same number in
-both paths by construction — both call `solar_features.solar_geometry_frame`.
+both paths by construction -- both call `solar_features.solar_geometry_frame`.
 
 Usage
 -----
@@ -55,6 +55,29 @@ today's behaviour, so a run without them produces the same arm keys as before:
     seed, and that spread is measurable rather than assumable - so ABL-375
     registers a seed set in advance and derives its noise floor from the observed
     spread instead of quoting a remembered percentage.
+
+ABL-385 turns that spread into a registered decision margin, which means
+measuring it per (country, *type*, algorithm) rather than on DE solar alone, and
+added one more flag for it:
+
+``--type``
+    The individual renewable type to fit. Defaults to ``solar``, so every
+    existing invocation is unchanged.
+
+    Only the solar path has bands: night / shoulder / daylight come from
+    `src/solar_features`, and they exist because the incumbent was emitting
+    garbage at night and a headline had to be stopped from quoting it. No other
+    renewable type has an equivalent - wind at 03:00 is not structurally zero -
+    so a non-solar run reports the all-hours metric alone rather than inventing
+    a band structure to fill the same table.
+
+    Two things are solar-only and are **refused** rather than silently ignored
+    for another type: the geometry arms (`src/features` appends the ABL-338
+    geometry pair for solar and nothing else, so a `geometry` arm on wind would
+    fit the identical feature list as `control` and report a spurious null
+    result), and ``--drop-impossible-night`` (whose predicate is the solar night
+    mask). Both would otherwise pass through the `c in train_frame.columns`
+    filter without comment.
 """
 
 import argparse
@@ -137,11 +160,16 @@ ARM_SPECS = {
 ARM_NIGHT_WEIGHT = {"geometry_nightw100": 100.0}
 
 #: Arms that drop the four holiday features. Every other arm keeps whatever
-#: `get_feature_columns('solar')` returns, which is what a routine retrain would
+#: `get_feature_columns(type)` returns, which is what a routine retrain would
 #: pick up (ABL-386). Kept as a lookup beside `ARM_NIGHT_WEIGHT` rather than as a
 #: fifth `ARM_SPECS` field so the existing arm tuples keep their arity.
 #:
-#: With geometry, this is the whole 2x2 ABL-386 needs:
+#: Unlike the geometry arms these are *not* solar-only: `create_holiday_features`
+#: runs for every forecast type, so dropping the four names is a real change on
+#: any type and `control_noholiday` never collapses into `control`.
+#:
+#: With geometry, this is the whole 2x2 ABL-386 needs. Counts are for solar and
+#: are re-measured by the suite, not asserted here:
 #:
 #:   control_noholiday   25 names  <- exactly the serving solar feature set
 #:   control             29 names     serving + holidays (ABL-338/375's control)
@@ -151,9 +179,24 @@ ARM_HOLIDAYS = {"control_noholiday": False, "geometry_noholiday": False}
 
 ARMS = tuple(ARM_SPECS)
 
+#: Arms that only mean anything for solar (ABL-385). `create_all_features`
+#: appends `SOLAR_GEOMETRY_FEATURES` for `forecast_type='solar'` and for nothing
+#: else, so on any other type the geometry columns are simply absent from the
+#: frame and the `c in train_frame.columns` filter below would quietly drop them
+#: — producing an arm labelled `geometry` that is byte-identical to `control`
+#: and a "no effect" result that measured nothing. Refused at argparse instead.
+SOLAR_ONLY_ARMS = tuple(a for a, spec in ARM_SPECS.items() if spec[0] or a in ARM_NIGHT_WEIGHT)
 
-def _legacy_feature_columns(include_holidays: bool = True) -> list:
-    """`get_feature_columns('solar')` minus the ABL-338 geometry pair.
+#: Bands are a solar concept. Night / shoulder / daylight exist because the
+#: incumbent emitted garbage at night and a headline had to be kept away from
+#: it; no other renewable type has a structurally-zero band to protect. A
+#: non-solar run reports `all` alone rather than three copies of it.
+def _band_names(forecast_type: str) -> tuple:
+    return ("daylight", "shoulder", "night") if forecast_type == "solar" else ()
+
+
+def _legacy_feature_columns(forecast_type: str = "solar", include_holidays: bool = True) -> list:
+    """`get_feature_columns(type)` minus the ABL-338 geometry pair.
 
     This used to be documented as "the 25 names every live solar artifact
     carries". Measured under ABL-375: it returns **29**. The four holiday
@@ -174,10 +217,17 @@ def _legacy_feature_columns(include_holidays: bool = True) -> list:
     (`reports/abl_386_feature_drift.json:solar_reconstruction_check`). So
     `control_noholiday` is the first arm in this lineage that is genuinely the
     serving feature set.
+
+    For a non-solar type the geometry subtraction is a no-op — `get_feature_columns`
+    only names the geometry pair for solar — so `control` there *is* the full
+    current feature list for that type. The holiday subtraction is *not* a no-op
+    anywhere: `create_holiday_features` runs for every forecast type, so the four
+    names are present in the frame whatever the type, and `control_noholiday`
+    remains a real arm rather than a silent copy of `control`.
     """
     return [
         c
-        for c in get_feature_columns("solar", include_holidays=include_holidays)
+        for c in get_feature_columns(forecast_type, include_holidays=include_holidays)
         if c not in SOLAR_GEOMETRY_FEATURES
     ]
 
@@ -242,9 +292,11 @@ def evaluate_country(
     force_algorithm: str = None,
     arms: tuple = ARMS,
     seeds: tuple = (None,),
+    forecast_type: str = "solar",
 ) -> dict:
-    live_path = LIVE_MODELS_DIR / country_code / "solar" / "model.joblib"
-    incumbent = Forecaster.load(country_code, "solar", path=str(live_path))
+    bands = _band_names(forecast_type)
+    live_path = LIVE_MODELS_DIR / country_code / forecast_type / "model.joblib"
+    incumbent = Forecaster.load(country_code, forecast_type, path=str(live_path))
     algorithm = force_algorithm or incumbent.algorithm
     # Incumbent hyperparameters only transfer when the algorithm does; a forced
     # algorithm takes that algorithm's own defaults rather than a foreign dict.
@@ -256,18 +308,23 @@ def evaluate_country(
     )
 
     raw = load_training_data(
-        country_code, "solar", start_date,
+        country_code, forecast_type, start_date,
         (pd.Timestamp(holdout_end) + pd.Timedelta(days=1)).strftime("%Y-%m-%d"),
         source=training_source,
     )
     if raw.empty:
-        raise ValueError(f"No solar training data for {country_code}")
+        raise ValueError(f"No {forecast_type} training data for {country_code}")
 
-    featured = create_all_features(raw, "solar", country_code=country_code)
+    featured = create_all_features(raw, forecast_type, country_code=country_code)
     timestamps = pd.to_datetime(featured["timestamp_utc"])
     featured = featured.reset_index(drop=True)
-    band = _bands(country_code, timestamps)
-    featured["band"] = band.to_numpy()
+    # A non-solar type has no band structure; one constant label keeps the
+    # `band` column present for the code below without asserting three bands
+    # that do not exist. Nothing reads it when `bands` is empty.
+    if forecast_type == "solar":
+        featured["band"] = _bands(country_code, timestamps).to_numpy()
+    else:
+        featured["band"] = "all"
 
     is_holdout = (timestamps >= pd.Timestamp(holdout_start)) & (
         timestamps <= pd.Timestamp(holdout_end) + pd.Timedelta(hours=23)
@@ -282,13 +339,19 @@ def evaluate_country(
     # would be measured against a target nobody believes.
     night_rows = train_frame["band"] == "night"
     impossible = night_rows & (train_frame["target_value"] > 1.0)
-    contamination = {
-        "train_night_rows": int(night_rows.sum()),
-        "train_night_rows_above_1mw": int(impossible.sum()),
-        "train_night_max_mw": float(train_frame.loc[night_rows, "target_value"].max())
-        if night_rows.any() else 0.0,
-        "dropped_from_fit": bool(drop_impossible_night),
-    }
+    if bands:
+        contamination = {
+            "train_night_rows": int(night_rows.sum()),
+            "train_night_rows_above_1mw": int(impossible.sum()),
+            "train_night_max_mw": float(train_frame.loc[night_rows, "target_value"].max())
+            if night_rows.any() else 0.0,
+            "dropped_from_fit": bool(drop_impossible_night),
+        }
+    else:
+        # ABL-337's predicate is "the sun never clears the night threshold in
+        # this hour", which says nothing about wind or hydro. Reporting a zero
+        # here would read as "checked, none found" rather than "not applicable".
+        contamination = {"abl337_night_screen": "not applicable to " + forecast_type}
     if drop_impossible_night and impossible.any():
         train_frame = train_frame.loc[~impossible.to_numpy()].reset_index(drop=True)
         logger.warning(
@@ -301,6 +364,7 @@ def evaluate_country(
 
     results = {
         "country_code": country_code,
+        "forecast_type": forecast_type,
         "algorithm": algorithm,
         "training_source": training_source,
         "incumbent_version": incumbent.model_version,
@@ -312,7 +376,7 @@ def evaluate_country(
         "n_holdout": int(len(holdout_frame)),
         "negative_targets_in_train": negative_targets,
         "contamination": contamination,
-        "bands": {b: int((holdout_frame["band"] == b).sum()) for b in ("daylight", "shoulder", "night")},
+        "bands": {b: int((holdout_frame["band"] == b).sum()) for b in bands},
         "arms": {},
     }
 
@@ -323,7 +387,7 @@ def evaluate_country(
     results["baseline_seasonal_naive_d7"] = {
         b: _band_metrics(actual[(holdout_frame["band"] == b).to_numpy()],
                          baseline_pred[(holdout_frame["band"] == b).to_numpy()])
-        for b in ("daylight", "shoulder", "night")
+        for b in bands
     }
     results["baseline_seasonal_naive_d7"]["all"] = _band_metrics(actual, baseline_pred)
 
@@ -333,7 +397,7 @@ def evaluate_country(
         # without `--seeds` writes the same keys it always did.
         arm_key = arm if seed is None else f"{arm}@{seed}"
         include_holidays = ARM_HOLIDAYS.get(arm, True)
-        feature_columns = _legacy_feature_columns(include_holidays=include_holidays)
+        feature_columns = _legacy_feature_columns(forecast_type, include_holidays=include_holidays)
         if use_geometry:
             feature_columns = feature_columns + list(SOLAR_GEOMETRY_FEATURES)
         feature_columns = [c for c in feature_columns if c in train_frame.columns]
@@ -349,7 +413,7 @@ def evaluate_country(
             arm_hyperparams[SEED_PARAM[algorithm]] = seed
 
         forecaster = Forecaster(
-            country_code, "solar", algorithm=algorithm,
+            country_code, forecast_type, algorithm=algorithm,
             hyperparams=arm_hyperparams or None,
             training_source=training_source, nonneg_objective=nonneg,
         )
@@ -417,23 +481,35 @@ def evaluate_country(
             or forecaster.hyperparams.get("loss_function"),
             "n_trees": int(n_trees) if n_trees is not None else None,
         }
-        for b in ("daylight", "shoulder", "night"):
+        for b in bands:
             in_band = (holdout_frame["band"] == b).to_numpy()
             arm_result[b] = _band_metrics(actual[in_band], predicted[in_band])
         arm_result["all"] = _band_metrics(actual, predicted)
         results["arms"][arm_key] = arm_result
-        logger.info(
-            f"{country_code}/{arm_key}: daylight MAE {arm_result['daylight']['mae_mw']:.1f} MW, "
-            f"night mean pred {arm_result['night']['mean_pred_mw']:.2f} MW, "
-            f"{arm_result['all']['n_negative_pred']} negative predictions"
-        )
+        if bands:
+            logger.info(
+                f"{country_code}/{forecast_type}/{arm_key}: daylight MAE "
+                f"{arm_result['daylight']['mae_mw']:.1f} MW, night mean pred "
+                f"{arm_result['night']['mean_pred_mw']:.2f} MW, "
+                f"{arm_result['all']['n_negative_pred']} negative predictions"
+            )
+        else:
+            logger.info(
+                f"{country_code}/{forecast_type}/{arm_key}: MAE "
+                f"{arm_result['all']['mae_mw']:.1f} MW, "
+                f"{arm_result['all']['n_negative_pred']} negative predictions"
+            )
 
     return results
 
 
 def _render_markdown(payload: dict) -> str:
+    forecast_type = payload.get("forecast_type", "solar")
+    title = ("# ABL-338 — solar non-negativity and solar geometry: held-out A/B"
+             if forecast_type == "solar"
+             else f"# Held-out A/B — {forecast_type} (ABL-385 reuse of the ABL-338 harness)")
     lines = [
-        "# ABL-338 — solar non-negativity and solar geometry: held-out A/B",
+        title,
         "",
         f"Generated {payload['generated_at']} against replica `{payload['replica_db']}`.",
         "",
@@ -443,54 +519,81 @@ def _render_markdown(payload: dict) -> str:
         "Every arm is a **refit** on the identical truncated window — the live artifacts",
         "were fitted through roughly today, so scoring them here would be in-sample.",
         "Features come from the training-time pipeline, so these MW are optimistic",
-        "against the serve path; the arms carry that identically. Night hours are",
-        "reported in MW, never as a percentage: their denominator is ~0.",
+        "against the serve path; the arms carry that identically."
+        + (" Night hours are reported in MW, never as a percentage: their denominator is ~0."
+           if forecast_type == "solar"
+           else f" `{forecast_type}` has no band structure, so one all-hours row is the result."),
         "",
     ]
     for country, result in payload["countries"].items():
+        banded = bool(result.get("bands"))
+        header = f"## {country} — {result['algorithm']}, source `{result['training_source']}`"
+        if result.get("forecast_type", "solar") != "solar":
+            header = (f"## {country} / {result['forecast_type']} — {result['algorithm']}, "
+                      f"source `{result['training_source']}`")
+        counts = (
+            f"(daylight {result['bands']['daylight']:,} / shoulder {result['bands']['shoulder']:,} "
+            f"/ night {result['bands']['night']:,}) " if banded else ""
+        )
         lines += [
-            f"## {country} — {result['algorithm']}, source `{result['training_source']}`",
+            header,
             "",
             f"n_train {result['n_train']:,} · n_holdout {result['n_holdout']:,} "
-            f"(daylight {result['bands']['daylight']:,} / shoulder {result['bands']['shoulder']:,} "
-            f"/ night {result['bands']['night']:,}) · incumbent version {result['incumbent_version']}",
+            f"{counts}· incumbent version {result['incumbent_version']}",
             "",
-            "| arm | daylight MAE | daylight WAPE | shoulder MAE | shoulder mean pred | night mean pred | night max pred | negative preds |",
-            "|---|---:|---:|---:|---:|---:|---:|---:|",
         ]
         base = result["baseline_seasonal_naive_d7"]
-        lines.append(
-            f"| _seasonal-naive D-7_ | {base['daylight']['mae_mw']:,.1f} | "
-            f"{base['daylight'].get('wape_pct', float('nan')):.1f}% | "
-            f"{base['shoulder']['mae_mw']:,.1f} | {base['shoulder']['mean_pred_mw']:,.1f} | "
-            f"{base['night']['mean_pred_mw']:,.2f} | {base['night']['max_pred_mw']:,.1f} | "
-            f"{base['all']['n_negative_pred']} |"
-        )
-        # The arms this payload actually holds, in fit order — not the global
-        # ARMS, which `--arms` and `--seeds` both make wrong.
-        for arm in result["arms"]:
-            a = result["arms"][arm]
-            lines.append(
-                f"| {arm} | {a['daylight']['mae_mw']:,.1f} | "
-                f"{a['daylight'].get('wape_pct', float('nan')):.1f}% | "
-                f"{a['shoulder']['mae_mw']:,.1f} | {a['shoulder']['mean_pred_mw']:,.1f} | "
-                f"{a['night']['mean_pred_mw']:,.2f} | {a['night']['max_pred_mw']:,.1f} | "
-                f"{a['all']['n_negative_pred']} |"
-            )
+        if banded:
+            lines += [
+                "| arm | daylight MAE | daylight WAPE | shoulder MAE | shoulder mean pred | night mean pred | night max pred | negative preds |",
+                "|---|---:|---:|---:|---:|---:|---:|---:|",
+            ]
+            rows = [("_seasonal-naive D-7_", base)] + list(result["arms"].items())
+            for name, a in rows:
+                lines.append(
+                    f"| {name} | {a['daylight']['mae_mw']:,.1f} | "
+                    f"{a['daylight'].get('wape_pct', float('nan')):.1f}% | "
+                    f"{a['shoulder']['mae_mw']:,.1f} | {a['shoulder']['mean_pred_mw']:,.1f} | "
+                    f"{a['night']['mean_pred_mw']:,.2f} | {a['night']['max_pred_mw']:,.1f} | "
+                    f"{a['all']['n_negative_pred']} |"
+                )
+        else:
+            # No bands for this type, so the all-hours row is the whole result.
+            lines += [
+                "| arm | MAE | WAPE | RMSE | bias | mean pred | negative preds |",
+                "|---|---:|---:|---:|---:|---:|---:|",
+            ]
+            rows = [("_seasonal-naive D-7_", base)] + list(result["arms"].items())
+            for name, a in rows:
+                m = a["all"]
+                lines.append(
+                    f"| {name} | {m['mae_mw']:,.1f} | "
+                    f"{m.get('wape_pct', float('nan')):.1f}% | {m['rmse_mw']:,.1f} | "
+                    f"{m['bias_mw']:,.1f} | {m['mean_pred_mw']:,.1f} | "
+                    f"{m['n_negative_pred']} |"
+                )
         c = result["contamination"]
-        lines += [
-            "",
-            f"Training-target contamination: {c['train_night_rows_above_1mw']:,} of "
-            f"{c['train_night_rows']:,} night rows read above 1 MW "
-            f"(max {c['train_night_max_mw']:,.1f} MW); dropped from fit: {c['dropped_from_fit']}.",
-            "",
-        ]
+        if banded:
+            lines += [
+                "",
+                f"Training-target contamination: {c['train_night_rows_above_1mw']:,} of "
+                f"{c['train_night_rows']:,} night rows read above 1 MW "
+                f"(max {c['train_night_max_mw']:,.1f} MW); dropped from fit: {c['dropped_from_fit']}.",
+                "",
+            ]
+        else:
+            lines += ["", f"ABL-337 night screen: {c['abl337_night_screen']}.", ""]
     return "\n".join(lines)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--countries", default="AT,BE,DE,FR")
+    parser.add_argument("--type", dest="forecast_type", default="solar",
+                        choices=sorted(config.RENEWABLE_TYPES),
+                        help="Individual renewable type to fit (default: solar). "
+                             "Only solar has night/shoulder/daylight bands; every "
+                             "other type reports the all-hours metric alone.")
     parser.add_argument("--start", default="2023-01-01")
     parser.add_argument("--holdout", required=True, help="START:END, both YYYY-MM-DD, inclusive")
     parser.add_argument("--drop-impossible-night", action="store_true",
@@ -525,9 +628,29 @@ def main() -> int:
     if args.seeds:
         seeds = tuple(int(s) for s in args.seeds.split(",") if s.strip())
 
+    # Solar-only options, refused rather than ignored (ABL-385). Both would
+    # otherwise run to completion and report a number that measured something
+    # other than what was asked for.
+    if args.forecast_type != "solar":
+        solar_only = [a for a in arms if a in SOLAR_ONLY_ARMS]
+        if solar_only:
+            parser.error(
+                f"arm(s) {solar_only} are solar-only: `create_all_features` appends the "
+                f"ABL-338 geometry pair for solar and for no other type, so on "
+                f"--type {args.forecast_type} they would fit the identical feature list as "
+                f"`control` and report a spurious null result. Available here: "
+                f"{[a for a in ARMS if a not in SOLAR_ONLY_ARMS]}"
+            )
+        if args.drop_impossible_night:
+            parser.error(
+                "--drop-impossible-night is solar-only: its predicate is the solar night "
+                f"mask, which says nothing about {args.forecast_type}."
+            )
+
     payload = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "replica_db": str(config.DATABASE_PATH),
+        "forecast_type": args.forecast_type,
         "start_date": args.start,
         "holdout_start": holdout_start,
         "holdout_end": holdout_end,
@@ -542,11 +665,16 @@ def main() -> int:
         payload["countries"][country] = evaluate_country(
             country, args.start, holdout_start, holdout_end, args.drop_impossible_night,
             force_algorithm=args.force_algorithm, arms=arms, seeds=seeds,
+            forecast_type=args.forecast_type,
         )
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     tag = args.tag or f"{holdout_start}_{holdout_end}"
+    # A non-solar tag has to carry its type, or two types written to one
+    # --out with the same window would silently overwrite each other.
+    if args.forecast_type != "solar":
+        tag += f"_{args.forecast_type}"
     if args.force_algorithm:
         tag += f"_{args.force_algorithm}"
     if args.drop_impossible_night:

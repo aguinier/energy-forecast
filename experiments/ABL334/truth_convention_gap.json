@@ -1,0 +1,289 @@
+{
+  "window": {
+    "start": "2026-07-11",
+    "end_exclusive": "2026-08-10"
+  },
+  "what": "hourly mean scored as a forecast of the :00 sample -- the floor this harness charges a perfect hourly-mean predictor",
+  "pairs": [
+    {
+      "country": "AT",
+      "stream": "solar",
+      "sources": {
+        "energy_renewable": {
+          "table": "energy_renewable",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 1410.12,
+          "wape_mean_vs_00_pct": 9.3422,
+          "median_abs_diff_mw": 65.0,
+          "p90_abs_diff_mw": 359.1,
+          "max_abs_diff_mw": 518.0
+        },
+        "energy_generation": {
+          "table": "energy_generation",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 1410.12,
+          "wape_mean_vs_00_pct": 9.3422,
+          "median_abs_diff_mw": 65.0,
+          "p90_abs_diff_mw": 359.1,
+          "max_abs_diff_mw": 518.0
+        }
+      }
+    },
+    {
+      "country": "BE",
+      "stream": "solar",
+      "sources": {
+        "energy_renewable": {
+          "table": "energy_renewable",
+          "sub_hourly": false,
+          "n_rows": 720,
+          "n_common_hours": 720,
+          "mean_level_mw": 2164.52,
+          "wape_mean_vs_00_pct": 0.0,
+          "median_abs_diff_mw": 0.0,
+          "p90_abs_diff_mw": 0.0,
+          "max_abs_diff_mw": 0.0
+        },
+        "energy_generation": {
+          "table": "energy_generation",
+          "sub_hourly": false,
+          "n_rows": 720,
+          "n_common_hours": 720,
+          "mean_level_mw": 2164.52,
+          "wape_mean_vs_00_pct": 0.0,
+          "median_abs_diff_mw": 0.0,
+          "p90_abs_diff_mw": 0.0,
+          "max_abs_diff_mw": 0.0
+        }
+      }
+    },
+    {
+      "country": "DE",
+      "stream": "solar",
+      "sources": {
+        "energy_renewable": {
+          "table": "energy_renewable",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 16885.01,
+          "wape_mean_vs_00_pct": 8.7643,
+          "median_abs_diff_mw": 1158.95,
+          "p90_abs_diff_mw": 3753.95,
+          "max_abs_diff_mw": 5477.11
+        },
+        "energy_generation": {
+          "table": "energy_generation",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 16885.01,
+          "wape_mean_vs_00_pct": 8.7643,
+          "median_abs_diff_mw": 1158.95,
+          "p90_abs_diff_mw": 3753.95,
+          "max_abs_diff_mw": 5477.11
+        }
+      }
+    },
+    {
+      "country": "FR",
+      "stream": "solar",
+      "sources": {
+        "energy_renewable": {
+          "table": "energy_renewable",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 6424.01,
+          "wape_mean_vs_00_pct": 9.0779,
+          "median_abs_diff_mw": 312.96,
+          "p90_abs_diff_mw": 1610.76,
+          "max_abs_diff_mw": 2880.07
+        },
+        "energy_generation": {
+          "table": "energy_generation",
+          "sub_hourly": true,
+          "n_rows": 1767,
+          "n_common_hours": 441,
+          "mean_level_mw": 6245.54,
+          "wape_mean_vs_00_pct": 9.1809,
+          "median_abs_diff_mw": 268.74,
+          "p90_abs_diff_mw": 1621.73,
+          "max_abs_diff_mw": 2653.45
+        }
+      }
+    },
+    {
+      "country": "AT",
+      "stream": "wind_onshore",
+      "sources": {
+        "energy_renewable": {
+          "table": "energy_renewable",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 741.64,
+          "wape_mean_vs_00_pct": 8.1402,
+          "median_abs_diff_mw": 39.0,
+          "p90_abs_diff_mw": 135.0,
+          "max_abs_diff_mw": 571.0
+        },
+        "energy_generation": {
+          "table": "energy_generation",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 741.64,
+          "wape_mean_vs_00_pct": 8.1402,
+          "median_abs_diff_mw": 39.0,
+          "p90_abs_diff_mw": 135.0,
+          "max_abs_diff_mw": 571.0
+        }
+      }
+    },
+    {
+      "country": "BE",
+      "stream": "wind_onshore",
+      "sources": {
+        "energy_renewable": {
+          "table": "energy_renewable",
+          "sub_hourly": false,
+          "n_rows": 720,
+          "n_common_hours": 720,
+          "mean_level_mw": 454.57,
+          "wape_mean_vs_00_pct": 0.0,
+          "median_abs_diff_mw": 0.0,
+          "p90_abs_diff_mw": 0.0,
+          "max_abs_diff_mw": 0.0
+        },
+        "energy_generation": {
+          "table": "energy_generation",
+          "sub_hourly": false,
+          "n_rows": 720,
+          "n_common_hours": 720,
+          "mean_level_mw": 454.57,
+          "wape_mean_vs_00_pct": 0.0,
+          "median_abs_diff_mw": 0.0,
+          "p90_abs_diff_mw": 0.0,
+          "max_abs_diff_mw": 0.0
+        }
+      }
+    },
+    {
+      "country": "DE",
+      "stream": "wind_onshore",
+      "sources": {
+        "energy_renewable": {
+          "table": "energy_renewable",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 8469.29,
+          "wape_mean_vs_00_pct": 4.2657,
+          "median_abs_diff_mw": 249.39,
+          "p90_abs_diff_mw": 808.39,
+          "max_abs_diff_mw": 2090.48
+        },
+        "energy_generation": {
+          "table": "energy_generation",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 8469.29,
+          "wape_mean_vs_00_pct": 4.2657,
+          "median_abs_diff_mw": 249.39,
+          "p90_abs_diff_mw": 808.39,
+          "max_abs_diff_mw": 2090.48
+        }
+      }
+    },
+    {
+      "country": "FR",
+      "stream": "wind_onshore",
+      "sources": {
+        "energy_renewable": {
+          "table": "energy_renewable",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 3374.82,
+          "wape_mean_vs_00_pct": 4.351,
+          "median_abs_diff_mw": 101.39,
+          "p90_abs_diff_mw": 322.73,
+          "max_abs_diff_mw": 2109.83
+        },
+        "energy_generation": {
+          "table": "energy_generation",
+          "sub_hourly": true,
+          "n_rows": 1767,
+          "n_common_hours": 441,
+          "mean_level_mw": 2842.7,
+          "wape_mean_vs_00_pct": 4.6255,
+          "median_abs_diff_mw": 89.32,
+          "p90_abs_diff_mw": 288.22,
+          "max_abs_diff_mw": 1359.81
+        }
+      }
+    },
+    {
+      "country": "BE",
+      "stream": "wind_offshore",
+      "sources": {
+        "energy_renewable": {
+          "table": "energy_renewable",
+          "sub_hourly": false,
+          "n_rows": 720,
+          "n_common_hours": 720,
+          "mean_level_mw": 474.16,
+          "wape_mean_vs_00_pct": 0.0,
+          "median_abs_diff_mw": 0.0,
+          "p90_abs_diff_mw": 0.0,
+          "max_abs_diff_mw": 0.0
+        },
+        "energy_generation": {
+          "table": "energy_generation",
+          "sub_hourly": false,
+          "n_rows": 720,
+          "n_common_hours": 720,
+          "mean_level_mw": 478.22,
+          "wape_mean_vs_00_pct": 0.0,
+          "median_abs_diff_mw": 0.0,
+          "p90_abs_diff_mw": 0.0,
+          "max_abs_diff_mw": 0.0
+        }
+      }
+    },
+    {
+      "country": "FR",
+      "stream": "wind_offshore",
+      "sources": {
+        "energy_renewable": {
+          "table": "energy_renewable",
+          "sub_hourly": true,
+          "n_rows": 2880,
+          "n_common_hours": 720,
+          "mean_level_mw": 579.3,
+          "wape_mean_vs_00_pct": 6.2424,
+          "median_abs_diff_mw": 24.63,
+          "p90_abs_diff_mw": 78.39,
+          "max_abs_diff_mw": 522.2
+        },
+        "energy_generation": {
+          "table": "energy_generation",
+          "sub_hourly": true,
+          "n_rows": 1767,
+          "n_common_hours": 441,
+          "mean_level_mw": 436.6,
+          "wape_mean_vs_00_pct": 7.786,
+          "median_abs_diff_mw": 24.07,
+          "p90_abs_diff_mw": 70.42,
+          "max_abs_diff_mw": 522.2
+        }
+      }
+    }
+  ]
+}

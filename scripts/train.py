@@ -49,7 +49,7 @@ from src.deployment import auto_promote_if_better
 from src.validation import WalkForwardValidator, TimeSeriesValidator, format_validation_report
 from src.hyperopt import OptunaOptimizer, compare_algorithms as optuna_compare_algorithms
 from src.feature_selection import FeatureSelector
-from src.features import create_all_features, get_feature_columns
+from src.features import create_all_features, select_feature_columns
 from datetime import timedelta
 import pytz
 
@@ -259,7 +259,7 @@ Examples:
     parser.add_argument(
         '--cascade',
         action='store_true',
-        help='Use cascade architecture for price: Stage 1 (load+renewable) → Stage 2 (price)'
+        help='Use cascade architecture for price: Stage 1 (load+renewable) -> Stage 2 (price)'
     )
 
     # Backtest exclusion (for fair Chronos-2 comparison)
@@ -474,7 +474,7 @@ def train_model(
         if feature_selection:
             features_enabled.append("feature-selection")
         if cascade:
-            features_enabled.append("cascade (load+renewable→price)")
+            features_enabled.append("cascade (load+renewable->price)")
         if features_enabled:
             logger.info(f"  Enabled: {', '.join(features_enabled)}")
 
@@ -483,7 +483,7 @@ def train_model(
             if forecast_type != 'price':
                 logger.warning(f"  Cascade only applies to 'price', skipping for '{forecast_type}'")
             else:
-                logger.info("  Using CASCADE architecture: Stage 1 (load+renewable) → Stage 2 (price)")
+                logger.info("  Using CASCADE architecture: Stage 1 (load+renewable) -> Stage 2 (price)")
                 cascade_forecaster = CascadeForecaster(
                     country_code=country_code,
                     algorithm=algorithm,
@@ -548,7 +548,9 @@ def train_model(
                 df = _exclude_backtest_weeks(df, logger)
 
             df = create_all_features(df, forecast_type, country_code=country_code)
-            feature_cols = [c for c in get_feature_columns(forecast_type) if c in df.columns]
+            feature_cols = select_feature_columns(
+                forecast_type, df.columns, f"{country_code} renewable train"
+            )
 
             X = df[feature_cols].values
             y = df['target_value'].values
