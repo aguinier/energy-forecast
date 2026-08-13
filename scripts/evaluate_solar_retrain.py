@@ -54,6 +54,24 @@ SCOPES = {
     # cells.  Unchanged, and the default, so an unflagged run still reproduces
     # ABL-253 exactly.
     "abl253": ("BE", "DE", "FR"),
+    # ABL-381 -- ABL-316 tranche 1b: BG and CH solar, fitted on
+    # `energy_generation` under the frozen registration at
+    # `experiments/ABL348/config.json`.  2 countries x 3 bands = 6 cells.
+    #
+    # This entry *is* the tranche's pre-registration, in the sense the comment
+    # above describes: the country list is fixed here, in the file, and committed
+    # before the first fit, so the cell bar cannot follow what the run turned out
+    # to score.  Windows, metric, baseline, minimum n and source table are
+    # ABL-348's and are deliberately not restated here -- thirty-seven tranches
+    # must not become thirty-seven chances to shop a window.  The solar
+    # counterpart of `abl380-tranche1a` on the wind harness.
+    #
+    # Neither country serves a solar model: measured on the live replica
+    # (9,432,453,120 bytes, mode=ro) on 2026-08-13, `forecasts` holds solar rows
+    # for BE/DE/FR/AT only, and zero for both BG and CH.  So this scope refits no
+    # live pair -- the property `abl253` protects, reached by the same route as
+    # `abl322-pilot` on the wind side.
+    "abl316-t1b": ("BG", "CH"),
 }
 
 # The columns that must be *simultaneously finite* for a row to enter a gate
@@ -71,6 +89,15 @@ SCOPES = {
 # the basis its own pre-registration names.
 GATE_BASIS = {
     "abl253": ("challenger", "incumbent", "seasonal_naive", "persistence"),
+    # ABL-381: BG and CH hold zero solar rows in `forecasts` -- verified against
+    # the live replica, not assumed -- which is the normal condition of all 37
+    # remaining ABL-316 pairs rather than a fault of these two.  Under the
+    # four-way basis every one of the 6 cells would intersect to n=0 and the run
+    # would render UNREADABLE, having compared nothing.  Gates on the two columns
+    # the registered bar names; the incumbent is still reported, on its own
+    # intersection, where it reads "Not measured" by construction rather than by
+    # omission -- which is what ABL-348's `incumbent` field already anticipated.
+    "abl316-t1b": ("challenger", "seasonal_naive"),
 }
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.
