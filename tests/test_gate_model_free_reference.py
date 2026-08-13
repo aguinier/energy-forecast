@@ -614,13 +614,15 @@ def test_a_challenger_beaten_by_an_oracle_reference_is_named():
 def test_a_cell_can_beat_the_constant_and_still_lose_to_the_climatology():
     """The case that makes reporting the two oracles separately worth a column.
 
-    Constructed, not measured — none of the four cells read so far lands in this
-    quadrant, and the nearest real one is ABL-381's BG solar, where the
-    challenger clears every flat line by 55pp and then beats the hindsight
-    hour-of-day median by 0.26pp. It is the quadrant that matters most on solar,
-    where a constant is 63-95% on every cell: collapsed into one "beaten by a
-    model-free reference" bullet, an easy win over the flat line would mask a
-    loss to the average day and the report would say nothing at all.
+    Constructed, but no longer hypothetical. The nearest real case is ABL-381's
+    BG solar, where the challenger clears every flat line by 55pp and then, at
+    the pinned seed, edged the hindsight hour-of-day median by 0.26pp. ABL-402
+    refit it at 20 pre-committed seeds: at the seed mean that 24-36h margin is
+    +0.009pp — a tie — and on **48-64h it is negative (-0.058pp)**, so BG's
+    central estimate does land in this quadrant. It is the one that matters most
+    on solar, where a constant is 63-95% on every cell: collapsed into one
+    "beaten by a model-free reference" bullet, an easy win over the flat line
+    would mask a loss to the average day and the report would say nothing at all.
     """
     note = "\n".join(lost_to_a_model_free_reference(
         [{"country": "XX", "scores": {"challenger": {"wape_pct": 40.00},

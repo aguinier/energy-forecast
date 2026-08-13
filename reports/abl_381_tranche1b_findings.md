@@ -248,6 +248,50 @@ it by 19.9–36.8%, and D-7 is deterministic — a margin that large is readable
 one seed under every CV above. What the seed spread bounds is the *reference*
 comparison, which is the whole point of reporting a reference.
 
+#### Superseded by ABL-402 — that measurement was run, and the fleet percentile was ~2× too wide
+
+**The "recommended and cheap" measurement above was carried out.** Everything before this
+point reads the two margins against ABL-385's *fleet percentile*, because no
+pair-specific CV existed for BG or CH. One exists now: ABL-402
+(`reports/abl_402_bg_ch_seed_cv.md`) refit this exact challenger 20 times per pair
+at seeds frozen and committed before the first fit, and reproduced §3's published
+table at seed 42 to within 0.0049pp. Its numbers replace the three-percentile
+table above. The correction runs **against** the caution expressed here, not for
+it: both pairs sit near the fleet *median* and far below p90.
+
+| country | band | measured CV | delta_min(1) | margin @ seed 42 | margin @ 20-seed mean | readable? |
+|---|---|---:|---:|---:|---:|:--:|
+| BG | 24–36h | 2.52% | 4.94% | +1.43% | **+0.04%** | **no** |
+| BG | 36–48h | 2.36% | 4.63% | +2.99% | +1.16% | **no** |
+| BG | 48–64h | 1.94% | 3.80% | +1.78% | **−0.28%** | **no** |
+| CH | 24–36h | 3.02% | 5.92% | **+10.48%** | **+8.88%** | **yes** |
+| CH | 36–48h | 3.02% | 5.92% | +12.61% | +9.34% | **yes** |
+| CH | 48–64h | 2.53% | 4.97% | +3.59% | +1.74% | **no** |
+
+Margins are % of the challenger's own error. Three corrections to this section:
+
+1. **CH's margin is readable, and not marginally.** "Marginal at p90", and the
+   quotation "at the edge of what one seed can resolve", were artefacts of the
+   fleet percentile. Against CH's own 3.02% the margin clears by 1.8× at the
+   pinned seed and 1.5× at the seed mean. **That qualification should be dropped
+   for the 24–36h cell**, and §9's bullet is corrected accordingly.
+2. **BG's withdrawal holds and should be stated harder.** "The read is silent" is
+   right but generous: at the seed mean BG's 24–36h margin is +0.04% — a dead tie
+   needing ~12,000 seeds — and on 48–64h it is *negative*. The point estimate at
+   BG's central value is that it does not beat the average day at all. Seed 42 was
+   a favourable draw on every published cell.
+3. **CH's 48–64h cell does not resolve either — this section never said so**,
+   because it only ever quoted 24–36h. +1.74% at the mean against a 4.97% bar.
+   So CH beats an hour-of-day climatology on the two shorter bands and is
+   unresolved on the longest.
+
+The WAPE-vs-daylight-MAE caveat raised above does not bite: measured on the same
+fits, the two CVs differ by at most **0.10pp** on BG and **0.03pp** on CH.
+
+The verdict is unchanged, for the reason given in the paragraph above — D-7 is
+deterministic and both pairs clear it by 19.9–36.8%. What ABL-402 bounds is the
+*reference* comparison.
+
 ## 4. ABL-338 non-negativity — the issue's premise is refuted by ABL-338's own evidence
 
 The issue asks me to confirm ABL-338's non-negativity constraint is **active** in
@@ -570,12 +614,23 @@ the case that mattered.
   hindsight hour-of-day climatology by 0.86pp — about 10% of its own error, and
   the only one of the two margins here that survives the registered solar seed
   spread. That combination should be in front of the decision, not behind it.
+  **Amended by ABL-402:** (b) is now *measured* rather than percentile-bounded and
+  is comfortably readable — CH's own CV is 3.02%, so the 10.48% margin clears a
+  5.92% bar. Drop "at the edge of what one seed can resolve" for the 24–36h cell.
+  What survives, and is new, is that **CH's 48–64h cell does not resolve** (+1.74%
+  at the seed mean against a 4.97% bar). (a) is untouched and remains the stronger
+  qualification.
 - **Withdrawn: that BG beats an hour-of-day climatology.** Its 0.26pp margin is
   ~1.4% of its own error, well inside the 3.7–5.4% single-seed spread ABL-376 §5
   registered for this harness. BG still PASSes on the D-7 bar, which is
-  deterministic; it has simply not been shown to beat the average day. **Measure
-  the seed spread on BG and CH before either goes to the Board** — minutes of
-  compute under ABL-376's protocol (§3).
+  deterministic; it has simply not been shown to beat the average day.
+  **Strengthened by ABL-402:** at BG's 20-seed mean the 24–36h margin is +0.04% —
+  a dead tie — and the 48–64h margin is negative. Not merely unresolved: the
+  central estimate is that BG does not beat the average day.
+- **Done — the seed spread this section asked for was measured.** ABL-402 refit
+  both pairs 20 times at pre-committed seeds; the table is in
+  `reports/abl_402_bg_ch_seed_cv.md` and the two amendments above are its result.
+  Nothing further is owed before a Board reading on this point.
 - **Three handoffs to the Founding Engineer**, none of which I should land inside a
   tranche read: the geometry features missing from the harness `FEATURE_COLUMNS`
   (§4), the depth-guard proxy (§7b), and `saved_at` making the artifact SHA-256
