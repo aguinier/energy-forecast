@@ -122,6 +122,43 @@ def night_mask(country_code: str, hour_starts: Sequence) -> np.ndarray:
     return np.asarray(is_night_hour(country_code, index), dtype=bool)
 
 
+#: The three bands a solar evaluation reports separately, brightest first.
+SOLAR_BANDS: Tuple[str, ...] = ("daylight", "shoulder", "night")
+
+
+def solar_bands(country_code: str, hour_starts: Sequence) -> pd.Series:
+    """
+    Label each hour `daylight` / `shoulder` / `night` on the shared geometry.
+
+    `night` is `night_mask`, i.e. the serving clamp's own predicate, so the
+    three bands and the fit rule cannot disagree about which hours are dark.
+    `shoulder` is the band ABL-337 flagged as the clamp's blind spot: not dark
+    enough to be zeroed, but the sun is below the horizon at the hour's midpoint
+    and the fleet should be at ~0. `daylight` is everything else.
+
+    Reporting the three separately is ABL-338's rule and the reason a night-hour
+    change can be read at all: the night error moves by orders of magnitude
+    because the incumbent was emitting garbage there, so a combined metric is
+    dominated by the band whose baseline was worst. `scripts/abl338_solar_holdout.py`
+    still carries its own copy of this split; ABL-385 is rewriting that file, so
+    it is left to that branch to retire rather than conflicted with here.
+
+    Args:
+        country_code: ISO 2-letter code with a representative point in
+            `solar_geometry.SOLAR_REPRESENTATIVE_POINTS`.
+        hour_starts: UTC timestamps labelling the start of each hourly row.
+
+    Returns:
+        Series of band labels, indexed 0..n-1 in the order given.
+    """
+    night = night_mask(country_code, hour_starts)
+    if len(night) == 0:
+        return pd.Series(dtype=object)
+    elevation = solar_geometry_frame(country_code, hour_starts)["sun_elevation_deg"].to_numpy()
+    labels = np.where(night, "night", np.where(elevation <= 0.0, "shoulder", "daylight"))
+    return pd.Series(labels, index=pd.RangeIndex(len(labels)))
+
+
 #: A night actual at or below this many MW is treated as a real zero; above it,
 #: the row is physically impossible and is dropped **from the fit only**.
 #:
@@ -245,9 +282,11 @@ def exclude_impossible_night_rows(
 
 __all__ = [
     "SOLAR_GEOMETRY_FEATURES",
+    "SOLAR_BANDS",
     "NIGHT_ELEVATION_THRESHOLD_DEG",
     "IMPOSSIBLE_NIGHT_THRESHOLD_MW",
     "solar_geometry_frame",
+    "solar_bands",
     "night_mask",
     "impossible_night_mask",
     "exclude_impossible_night_rows",
