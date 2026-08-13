@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.solar_clamp import clamp_solar_forecasts, solar_row_mask
+from src.solar_clamp import ZEROED_NIGHT_MW_THRESHOLD, clamp_solar_forecasts, solar_row_mask
 
 # 2026-08-14 UTC at DE's representative point: 00-02 and 20-23 are night,
 # 04-18 are day, 03 and 19 straddle dawn/dusk (see test_solar_geometry).
@@ -75,6 +75,27 @@ def test_a_night_zero_is_not_counted_as_a_zeroed_hour():
     assert list(out["forecast_value"]) == [0.0]
     assert stats[0].hours_zeroed_night == 0
     assert stats[0].mw_removed_total == pytest.approx(0.0)
+
+
+def test_near_zero_night_prediction_below_threshold_is_not_counted():
+    # ABL-377: log-link models emit exp(margin) which is never exactly 0.0.
+    # A well-fitted model still predicts ~0.006 MW/hour at night.  The clamp
+    # zeros the row (mw_removed_night still accumulates), but hours_zeroed_night
+    # should not count it because the magnitude is below ZEROED_NIGHT_MW_THRESHOLD.
+    tiny = ZEROED_NIGHT_MW_THRESHOLD * 0.5   # clearly sub-threshold
+    df = _frame([("DE", "solar", "solar", NIGHT_HOUR, tiny, "catboost")])
+    out, stats = clamp_solar_forecasts(df)
+
+    assert list(out["forecast_value"]) == [0.0]          # row still zeroed
+    s = stats[0]
+    assert s.hours_zeroed_night == 0                      # but NOT counted
+    assert s.mw_removed_night == pytest.approx(tiny)     # MW still recorded
+    assert s.zeroed_night_mw_threshold == pytest.approx(ZEROED_NIGHT_MW_THRESHOLD)
+
+    # Just above the threshold: must count.
+    df2 = _frame([("DE", "solar", "solar", NIGHT_HOUR, ZEROED_NIGHT_MW_THRESHOLD + 0.01, "catboost")])
+    _, stats2 = clamp_solar_forecasts(df2)
+    assert stats2[0].hours_zeroed_night == 1
 
 
 def test_negative_at_night_counts_once_as_a_night_hour():
