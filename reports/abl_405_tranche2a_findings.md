@@ -113,10 +113,19 @@ see §7.
 
 ## 3. The night floor, measured for all eight
 
-ABL-396 — the fleet-wide overnight-floor screen — has **not landed** (`todo`), so
-this tranche is not blocked on it. But `scripts/abl381_night_floor_probe.py` is
-already on `origin/main`, is read-only and fits nothing, so the six new countries
-were screened rather than merely declared unscreened.
+ABL-396 — the fleet-wide overnight-floor screen — **has been run, and is
+published on PR #49, which is open and not merged.** Its record is not on
+`origin/main`, so this tranche did not wait on it: `scripts/abl381_night_floor_probe.py`
+is already on `origin/main`, is read-only and fits nothing, so the six new
+countries were screened here rather than merely declared unscreened.
+
+That turns out to be worth more than a duplicate. **The two screens were run
+independently and agree on every one of the sixteen (country, window) rows below
+— every count, mean, max and energy share, to the published decimal.** ABL-396's
+machine record was read off its branch and diffed against this tranche's probe
+output cell by cell; the comparison is in §7. So the screen is not being taken on
+faith from an unmerged branch, and it is not being re-derived on this one either:
+it is reproduced.
 
 This is load-bearing here rather than optional. CLAUDE.md is explicit: *screen a
 country's night floor before reading its solar gate — the geometry pair is a
@@ -168,6 +177,22 @@ Three findings.
 3. **CZ, PL and RO are as clean as CH** — 0.0–0.3% of night hours, 0.00% of
    energy — so they are the countries where the geometry pair should behave as it
    did on CH rather than as it did on BG.
+
+**The energy share is a bound, not a description — this is ABL-396's
+contribution and it is what makes the screen decision-relevant.** A challenger
+that predicts zero at night scores `W(1-f) + f`; one that reproduces the floor
+perfectly scores `W(1-f)`. So `f` is *exactly* the width, in WAPE points, of the
+interval an all-hours read of a cell can occupy relative to the same
+challenger's daylight-only read. ABL-396 carries it as
+`wape_floor_pct_if_clamped` and it agrees with the energy share to 0.01pp on
+every row here.
+
+Applied to this tranche: **no cell outside BG can be displaced by more than 0.28
+WAPE points** (SI, the worst), against D-7 bars of 18.35% (HU), 19.14% (SK) and
+22.28% (SI). The six new countries are screened and no verdict below is at risk
+from a night floor. **BG is the exception and is not marginal about it**: its
+gate band is **4.98pp wide**, which is comparable to its own 5.45pp D-7 margin
+under ABL-381, and that is carried into §6 rather than left here.
 
 **A defect in the probe, for whoever picks up ABL-396.**
 `scripts/abl381_night_floor_probe.py` crashes with
