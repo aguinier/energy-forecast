@@ -268,6 +268,16 @@ def pool_across_windows(stats, cells, windows):
             "cv_rms": math.sqrt(_mean([c ** 2 for c in cvs])),
             "cv_max": max(cvs),
             "cv_min": min(cvs),
+            # The margin's own error bar. dof = one per seed per window, less
+            # one mean per window.
+            "cv_rms_dof": sum(
+                len(cells[(country, ftype, algorithm, arm, t)]) - 1 for t in by_window
+            ),
+            "cv_rms_ci95": cv_interval(
+                math.sqrt(_mean([c ** 2 for c in cvs])),
+                sum(len(cells[(country, ftype, algorithm, arm, t)]) - 1
+                    for t in by_window),
+            ),
             "mean_mw_by_window": {t: by_window[t]["mean_mw"] for t in sorted(by_window)},
             "n_holdout_total": sum(by_window[t]["n_holdout"] for t in by_window),
             **_variance_split(logs),
@@ -301,6 +311,35 @@ def _variance_split(logs_by_window):
         "sd_window_log": sd_window,
         "seed_share_of_variance": (sd_seed ** 2 / total ** 2) if total else float("nan"),
     }
+
+
+def _chi2_quantile(p, dof):
+    """Chi-square quantile by Wilson-Hilferty, to keep this reader dependency-free.
+
+    The cube-root transform of a chi-square is very nearly normal. Accurate to
+    better than 1% for dof >= 10, which is the only range used here (a cell has
+    dof 11, a pooled pair 66). Checked against scipy in
+    `tests/test_abl385_margin.py` so the approximation cannot drift unnoticed.
+    """
+    z = Z if p > 0.5 else -Z
+    return dof * (1 - 2 / (9 * dof) + z * math.sqrt(2 / (9 * dof))) ** 3
+
+
+def cv_interval(cv, dof):
+    """A 95% interval for a CV estimated from `dof` degrees of freedom.
+
+    **The margin is itself an estimate, and this is its error bar.** A sd from
+    n draws is chi-square distributed, so s * sqrt(dof / chi2_q) brackets sigma.
+    Quoting delta_min as an exact number would repeat the mistake ABL-385 was
+    filed on - ABL-338's ~1.5% was a point estimate carried around as if it had
+    no uncertainty. At 12 seeds a single cell's CV is uncertain by roughly
+    -29%/+70%; pooling 6 windows takes that to about -14%/+19%, which is the
+    quantitative reason the registration pools rather than reading one window.
+    """
+    if dof < 1 or math.isnan(cv):
+        return (float("nan"), float("nan"))
+    return (cv * math.sqrt(dof / _chi2_quantile(0.975, dof)),
+            cv * math.sqrt(dof / _chi2_quantile(0.025, dof)))
 
 
 def delta_min(c_a, c_b, k, rho=0.0):
@@ -421,6 +460,8 @@ def pair_margins(pooled):
     for (country, ftype, algorithm, arm), p in pooled.items():
         out[f"{country}/{ftype}/{algorithm}/{arm}"] = {
             "cv_rms": p["cv_rms"],
+            "cv_rms_ci95": p["cv_rms_ci95"],
+            "cv_rms_dof": p["cv_rms_dof"],
             "cv_max": p["cv_max"],
             "delta_min_pct": {
                 str(k): 100 * delta_min(p["cv_rms"], p["cv_rms"], k)
@@ -704,6 +745,21 @@ def render_markdown(payload):
         "with c the per-fit CV of each arm. **This is the number a future "
         "registration cites instead of a remembered noise floor.**",
         "",
+        "**The margin is itself an estimate, and it carries its own error bar.** "
+        "A sd from n draws is chi-square distributed. At the 12 registered seeds a "
+        "*single cell's* CV has a 95% interval of about -29%/+70% of its point "
+        "estimate - so a one-window, 12-seed spread is not a number to hang a "
+        "decision on either. Pooling the registered windows takes the interval to "
+        "roughly -14%/+19%, and that is the quantitative reason this registration "
+        "reads six rolling-origin windows rather than one. The per-pair intervals "
+        "are in section 2. Quoting delta_min without them would repeat, one level "
+        "up, exactly the mistake this issue was filed on.",
+        "",
+        "The fleet percentile below carries a further uncertainty that is *not* in "
+        "those intervals: it is a percentile over a modest number of units, and no "
+        "parametric interval is claimed for it. Prefer a pair-specific CV where one "
+        "exists.",
+        "",
     ]
     for stream in ("solar", "wind", "other"):
         fleet = payload["fleet_margin"].get(stream)
@@ -741,14 +797,17 @@ def render_markdown(payload):
               "percentile above is for a pair this sweep did not measure.",
               "",
               f"| pair / algorithm / arm | CV (RMS over {payload['n_windows_read']} "
-              f"windows) | CV (worst window) | "
+              f"windows) | 95% CI on that CV | CV (worst window) | "
               "delta_min at k=1 | at k=3 | at k=10 |",
-              "|---|---:|---:|---:|---:|---:|"]
+              "|---|---:|---:|---:|---:|---:|---:|"]
     for label in sorted(payload["pair_margins"],
                         key=lambda x: -payload["pair_margins"][x]["cv_rms"]):
         m = payload["pair_margins"][label]
+        low, high = m["cv_rms_ci95"]
         lines.append(
-            f"| {label} | {100 * m['cv_rms']:.2f}% | {100 * m['cv_max']:.2f}% | "
+            f"| {label} | {100 * m['cv_rms']:.2f}% | "
+            f"{_or_dash(100 * low, '.2f')}-{_or_dash(100 * high, '.2f')}% | "
+            f"{100 * m['cv_max']:.2f}% | "
             f"{m['delta_min_pct']['1']:.1f}% | {m['delta_min_pct']['3']:.1f}% | "
             f"{m['delta_min_pct']['10']:.1f}% |"
         )

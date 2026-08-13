@@ -35,7 +35,9 @@ from scripts.abl385_read_margin import (  # noqa: E402
     Z,
     _percentile,
     _sd,
+    _chi2_quantile,
     _variance_split,
+    cv_interval,
     delta_min,
     parse_filename,
     range_to_cv,
@@ -306,3 +308,53 @@ class TestRegistrationProvenance:
         )
         prov = reader.registration_provenance(tmp_path)
         assert prov["ordering"].startswith("UNKNOWN")
+
+
+class TestMarginPrecision:
+    """The margin is an estimate. Section 1 of the pack quotes an interval for
+    it, and that interval rests on a chi-square quantile computed by hand.
+
+    The reader is deliberately dependency-free - the arithmetic behind a number
+    a gate cites should be visible in one file - so the quantile is a
+    Wilson-Hilferty approximation. That is a defensible choice only while it is
+    actually close, so it is pinned against scipy's exact values here. scipy is
+    in the rail venv but not imported by the reader.
+    """
+
+    #: scipy.stats.chi2.ppf, rail venv, scipy 1.18.0. The two dof that matter:
+    #: 11 for a single 12-seed cell, 66 for a pair pooled over six windows.
+    EXACT = {
+        (0.975, 11): 21.9200492610212,
+        (0.025, 11): 3.8157482522360993,
+        (0.975, 66): 90.34890415884094,
+        (0.025, 66): 45.43136314545968,
+    }
+
+    @pytest.mark.parametrize("p,dof", list(EXACT))
+    def test_quantile_tracks_scipy_within_one_percent(self, p, dof):
+        approx = _chi2_quantile(p, dof)
+        exact = self.EXACT[(p, dof)]
+        assert abs(approx - exact) / exact < 0.01
+
+    def test_pooling_windows_tightens_the_interval(self):
+        """The stated reason the registration reads six windows, not one.
+
+        If this ever stopped holding, the pack's claim that pooling buys
+        precision would be decoration rather than a result.
+        """
+        cell_low, cell_high = cv_interval(0.03, 11)
+        pooled_low, pooled_high = cv_interval(0.03, 66)
+        assert (cell_high - cell_low) > (pooled_high - pooled_low)
+        # The figures quoted in section 1 of the pack.
+        assert cell_low / 0.03 == pytest.approx(0.71, abs=0.02)
+        assert cell_high / 0.03 == pytest.approx(1.70, abs=0.03)
+        assert pooled_low / 0.03 == pytest.approx(0.86, abs=0.02)
+        assert pooled_high / 0.03 == pytest.approx(1.19, abs=0.02)
+
+    def test_the_interval_brackets_the_point_estimate(self):
+        low, high = cv_interval(0.042, 66)
+        assert low < 0.042 < high
+
+    def test_a_degenerate_dof_is_not_an_interval(self):
+        low, high = cv_interval(0.03, 0)
+        assert math.isnan(low) and math.isnan(high)
