@@ -193,7 +193,10 @@ def generate_forecast(
             logger.info(f"[OK] {country_code} {forecast_type}: {len(forecast_df)} forecasts generated")
 
     except FileNotFoundError as e:
+        # The one place that knows a result is "no model to run" rather than a
+        # failure. Flagged, not inferred from the error text (ABL-370).
         result['error'] = f"Model not found: {e}"
+        result['skipped'] = True
         logger.warning(f"[SKIP] {country_code} {forecast_type}: Model not trained yet")
 
     except Exception as e:
@@ -329,8 +332,12 @@ def run_external_model(
         result['error'] = 'Subprocess timed out after 300s'
         logger.warning(f"[{runner_name}] Timeout: {country_code} {forecast_type} D+{horizon_days}")
     except FileNotFoundError as e:
+        # `cmd[0]`, not `python_exe`: the interpreter name is local to
+        # build_runner_command, and naming it here raised NameError *inside the
+        # handler*, which no sibling `except` catches — a missing runner
+        # interpreter killed the whole daily job instead of failing one result.
         result['error'] = f'Executable not found: {e}'
-        logger.warning(f"[{runner_name}] Not found: {python_exe}")
+        logger.warning(f"[{runner_name}] Not found: {cmd[0]}")
     except Exception as e:
         result['error'] = str(e)
         logger.error(f"[{runner_name}] Error: {e}")

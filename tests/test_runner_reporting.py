@@ -42,6 +42,7 @@ from src.runner_report import (  # noqa: E402
     STATUS_UNREPORTED,
     emit_record_count,
     format_runner_summary,
+    is_skip,
     parse_record_count,
     status_for_count,
     summarize_by_runner,
@@ -179,6 +180,36 @@ def test_runner_name_is_carried_into_the_result(tmp_path):
     assert result["runner"] == "fake-runner"
 
 
+def test_a_missing_interpreter_fails_one_result_not_the_job(tmp_path):
+    """A runner whose `python_executable` does not exist must not kill main().
+
+    `chronos-bolt-small` points at a venv that is absent on this box, so
+    `subprocess.run` raises FileNotFoundError on every default daily run. The
+    handler logged `python_exe`, a name local to `build_runner_command` — a
+    NameError raised *inside* an except clause, which the sibling
+    `except Exception` does not catch. The job died at the first missing
+    interpreter and never reached the summary this module is about.
+    """
+    script = tmp_path / "never_runs.py"
+    script.write_text("print('unreachable')", encoding="utf-8")
+    runner = {
+        "name": "missing-interpreter",
+        "script": str(script),
+        "python_executable": str(tmp_path / "no-such-python.exe"),
+    }
+
+    result = forecast_daily.run_external_model(
+        runner, "BE", "price", 2, date(2026, 8, 13), True, LOGGER
+    )
+
+    assert result["status"] == STATUS_FAILED
+    assert "not found" in result["error"].lower()
+    assert not is_skip(result), (
+        "a runner whose interpreter is missing cannot run at all; counting it "
+        "as a skip is the ABL-370 defect one layer down."
+    )
+
+
 # --- every configured runner honours the contract ----------------------------
 
 RUNNERS = [r for r in config.MODEL_RUNNERS if r.get("script")]
@@ -280,18 +311,31 @@ def test_configured_runner_scripts_import_the_contract():
 
 # --- the per-runner summary --------------------------------------------------
 
-def _result(runner, status, records, error=None):
+def _result(runner, status, records, error=None, skipped=False):
     return {
         "country_code": "BE", "forecast_type": "solar", "horizon_days": 2,
         "runner": runner, "status": status, "records": records, "error": error,
+        "skipped": skipped,
     }
+
+
+def test_an_untrained_model_is_still_a_skip():
+    """The flag has to actually be set where the skip happens."""
+    result = forecast_daily.generate_forecast(
+        "ZZ", "load", date(2026, 8, 13), 1, LOGGER
+    )
+    assert result["status"] == STATUS_FAILED
+    assert is_skip(result), (
+        "a country with no trained model must still count as skipped, not as a "
+        "failure — that distinction predates ABL-370."
+    )
 
 
 def test_summary_splits_rows_by_runner():
     """The zero has to survive being added to the builtin models' thousands."""
     results = [
         _result("builtin", STATUS_SUCCESS, 2400),
-        _result("builtin", STATUS_FAILED, 0, "Model not found: price"),
+        _result("builtin", STATUS_FAILED, 0, "Model not found: price", skipped=True),
         _result("tso-correction", STATUS_EMPTY, 0),
         _result("tso-correction", STATUS_EMPTY, 0),
     ]
@@ -341,7 +385,7 @@ def test_summary_names_a_runner_that_produced_nothing():
 
 def test_a_runner_with_only_skips_is_not_called_out():
     """Nothing to run is not the same as ran and produced nothing."""
-    results = [_result("builtin", STATUS_FAILED, 0, "Model not trained yet")]
+    results = [_result("builtin", STATUS_FAILED, 0, "Model not found: load", skipped=True)]
     assert "Runners that produced no forecasts:" not in "\n".join(
         format_runner_summary(results)
     )

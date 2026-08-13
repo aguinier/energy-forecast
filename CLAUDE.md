@@ -181,6 +181,28 @@ Adding a runner: call `emit_record_count(len(df))` on every path that exits 0,
 that statically for each configured runner and would otherwise report your
 runner as `unreported` forever.
 
+### Skipped is a flag, not a phrase
+
+`failed` is reported net of `skipped` — "there was no model to run" is not a
+failure — but the two used to be told apart by looking for `not found` in the
+error text. `chronos-bolt-small` points at a venv that does not exist on this
+box, so it fails with `Executable not found: [WinError 2]`, and a runner that
+could not run *at all* was counted as benign. `generate_forecast` now sets
+`result['skipped'] = True` at the one place that knows (the `FileNotFoundError`
+from `Forecaster.load`), and `is_skip` reads only that.
+
+Consequence worth knowing: a default run on this box now ends
+`Skipped: 1, Failed: 1` and exits 1 for BE/price, where it used to exit 0.
+`chronos-bolt-small` is genuinely unrunnable here; fix the path in
+`config.MODEL_RUNNERS` or set `enabled: False`, but do not read the exit 0 that
+preceded it as the job having been fine.
+
+That same handler used to log `python_exe`, a name local to
+`build_runner_command` since ABL-354 — a `NameError` raised *inside* an
+`except` clause, which the sibling `except Exception` does not catch. A missing
+runner interpreter killed the whole daily job before it printed any summary.
+`--countries BE --types price` reproduces it on the pre-fix file.
+
 ## Database
 
 Two files, and pointing at the wrong one is the trap this section exists to

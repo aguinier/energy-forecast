@@ -129,12 +129,17 @@ def summarize_by_runner(results: List[dict]) -> List[dict]:
 def is_skip(result: dict) -> bool:
     """A 'failed' result that is really "there was no model to run".
 
-    Kept here so the summary and the per-runner breakdown classify a result the
-    same way; `forecast_daily` has counted these separately from real failures
-    since before this module existed.
+    `forecast_daily` has counted these separately from real failures for a long
+    time, but it decided by looking for `not found` in the error text, and that
+    text is not only produced by a missing model. A runner whose configured
+    `python_executable` does not exist fails with `Executable not found:
+    [WinError 2]` — a runner that cannot run at all, counted as benign. Same
+    species of defect as ABL-370, one layer down.
+
+    So the skip is a flag the one place that knows sets, not a phrase anyone can
+    trip over.
     """
-    error = str(result.get("error") or "").lower()
-    return "not found" in error or "not trained" in error
+    return bool(result.get("skipped"))
 
 
 def format_runner_summary(results: List[dict]) -> List[str]:
