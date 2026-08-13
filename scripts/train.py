@@ -259,7 +259,7 @@ Examples:
     parser.add_argument(
         '--cascade',
         action='store_true',
-        help='Use cascade architecture for price: Stage 1 (load+renewable) → Stage 2 (price)'
+        help='Use cascade architecture for price: Stage 1 (load+renewable) -> Stage 2 (price)'
     )
 
     # Backtest exclusion (for fair Chronos-2 comparison)
@@ -474,7 +474,7 @@ def train_model(
         if feature_selection:
             features_enabled.append("feature-selection")
         if cascade:
-            features_enabled.append("cascade (load+renewable→price)")
+            features_enabled.append("cascade (load+renewable->price)")
         if features_enabled:
             logger.info(f"  Enabled: {', '.join(features_enabled)}")
 
@@ -483,7 +483,7 @@ def train_model(
             if forecast_type != 'price':
                 logger.warning(f"  Cascade only applies to 'price', skipping for '{forecast_type}'")
             else:
-                logger.info("  Using CASCADE architecture: Stage 1 (load+renewable) → Stage 2 (price)")
+                logger.info("  Using CASCADE architecture: Stage 1 (load+renewable) -> Stage 2 (price)")
                 cascade_forecaster = CascadeForecaster(
                     country_code=country_code,
                     algorithm=algorithm,

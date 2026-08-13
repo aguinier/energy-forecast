@@ -125,6 +125,51 @@ Two consequences worth knowing:
   it — `src.evaluation` always resolves to the directory. `src/__init__.py:44`
   already has its re-export commented out.
 
+### Help text is ASCII; report bodies are not
+
+`--help` output must be plain ASCII. `scripts/train.py:262` held a literal `→`,
+and `python scripts/train.py --help > /dev/null` exited **1** with
+`UnicodeEncodeError` — CPython takes stdout's encoding from what stdout *is*, so
+a console writes through `WriteConsoleW` and survives, while a pipe or a file
+falls back to the locale codepage (cp1252 here) and `argparse` raises inside the
+`--help` action itself (ABL-364). Interactively it looked fine; every harness,
+CI step and agent that captures stdout saw a traceback instead of usage.
+
+**A module docstring is help text.** 18 of the 38 entry points pass
+`description=__doc__`, so an em dash in a docstring is the same defect one
+codepage over (cp1252 encodes `—`, cp850 does not). Nine scripts beyond
+`train.py` were carrying one.
+
+`tests/test_help_text_encoding.py` holds the line: it reads every entry point's
+parser out of the AST — `help=`, `description=`, `epilog=`, and `__doc__` where
+it is passed as one — and rejects any character above U+007F. Write `->` and
+`--`. It is a static sweep because `--help` on an arbitrary script means
+executing that script to module scope, and it runs `scripts/train.py --help`
+under `PYTHONIOENCODING=ascii` as the one end-to-end case, so the assertion does
+not depend on the codepage of the box.
+
+"Entry point" there means the same set as `test_script_imports.py`: every
+`scripts/*.py`, the repo-root runners, **and every `config.MODEL_RUNNERS`
+script**. That last group is not decoration — `test_model_runner_launches`
+starts each runner with `--help` through a pipe, and two of them
+(`src/chronos_forecaster.py`, `src/tso_correction_forecaster.py`) live under
+`src/`, outside the `scripts/` glob. Both are ASCII-clean today. Note that
+neither passes `description=__doc__` — they use short literals
+(`tso_correction_forecaster.py:375`) — so unlike the `scripts/` entry points
+above, **their module docstrings are not help text** and an em dash in one is
+harmless. What is swept, and what matters, is their `help=`/`description=`
+literals: a non-ASCII character there stops the runner from starting, and per
+the bullet above `forecast_daily` books a runner that cannot start as a failed
+*result* and still prints `[DONE]`.
+
+Report bodies are the deliberate exception and keep `Δ`, `→`, `·`. They are
+printed from one known place, so they re-encode the stream there
+(`evaluate_net_position.py:125-132`, `compare_challenger.py:127-133`) — which is
+not available to `--help`, since argparse prints before any line of `main()`
+runs. Do not "fix" this the other way by forcing UTF-8 on stdout at import time:
+that is a runtime change in 38 scripts, forgettable in the 39th, and it
+re-encodes the log files the `scripts/workstation/*.ps1` jobs capture.
+
 ## What a runner reports (ABL-370)
 
 The exit code says whether a runner crashed. It does not say whether it

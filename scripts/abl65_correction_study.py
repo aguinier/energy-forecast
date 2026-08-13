@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ABL-65 — measure whether a residual/bias correction layer helps the champion.
+"""ABL-65 -- measure whether a residual/bias correction layer helps the champion.
 
 Design + offline measurement only. Nothing here writes to the shared database,
 touches a serving path, or promotes anything: it produces the evidence pack the
@@ -7,19 +7,19 @@ issue asks for.
 
 Two cohorts, for two different jobs:
 
-* **`--cohort recon`** — the 198-day serve-faithful reconstruction
+* **`--cohort recon`** -- the 198-day serve-faithful reconstruction
   (`forecasts_recon.db`, built by `reconstruct_v010_vintages.py` with the
   post-1c5a24f context). ~4,752 residual hours per country. This is where the
   *structure* is measured, because 166 pairs per country cannot separate a real
   correction from a fitted one.
-* **`--cohort live`** — the live post-fix vintages the gate reads. This is where
+* **`--cohort live`** -- the live post-fix vintages the gate reads. This is where
   the *verdict* is taken, per the acceptance criteria, against the same
   serve-faithful persistence+climatology ensemble the report uses.
 
 The reconstruction is a reconstruction: LT, RO and BG reproduce the as-served
 2026-08-06 vintage 38.8%, 5.9% and 1.4% away from it, so their recon numbers
 describe a model close to but not identical with what production ran. Reported,
-never silently pooled — `--flag-unverified` names them in the output.
+never silently pooled -- `--flag-unverified` names them in the output.
 
 Usage:
     python scripts/abl65_correction_study.py --cohort recon --out reports/...

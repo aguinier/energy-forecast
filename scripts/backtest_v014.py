@@ -3,7 +3,7 @@
 
 Replays each held-out backtest week one run day at a time: for target day T the
 run is `T - 2` at 06:00Z, and every feature is bounded by what that run held.
-Nothing is fitted here — the models come from `scripts/train_v014.py`, which
+Nothing is fitted here -- the models come from `scripts/train_v014.py`, which
 excluded these same target days.
 
 Writes a `compare_experiments`-style JSON so it can be handed straight to
