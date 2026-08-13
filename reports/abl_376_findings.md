@@ -266,9 +266,11 @@ night level to zero.
 The daylight axis is unmoved by the feature either: +0.19% paired, 5/8 seeds,
 inside a 5.19% null.
 
-(DE was requested in the same probe as a near-clean comparator; it excludes 4
-hours and carries no information about this mechanism. Whatever it returns does
-not bear on the FR read above.)
+DE ran in the same probe as a near-clean comparator and behaves like one: it
+excludes 4 hours, and its night level moves +24.78 MW paired, 3 seeds of 8,
+inside a 56.19 MW null. That is noise around nothing, which is the expected
+result when the rule has 4 hours to act on, and it carries no information about
+the mechanism either way.
 
 ### What this changes about the recommendation
 

@@ -14,6 +14,7 @@ Mean challenger prediction over the gate's night hours, MW. Both arms scored on 
 | country | night rows | control (mean ± sd) | night-fit (mean ± sd) | paired change | seeds moved down |
 |---|---:|---:|---:|---:|---:|
 | FR | 462 | 58.39 ± 7.38 | 49.59 ± 19.87 | -8.81 MW | 7/8 |
+| DE | 420 | -5.64 ± 19.11 | 19.14 ± 53.30 | +24.78 MW | 3/8 |
 
 ## Daylight MAE — the effect against its own null
 
@@ -22,9 +23,11 @@ Mean challenger prediction over the gate's night hours, MW. Both arms scored on 
 | country | daylight rows | control MAE | paired change | as % | single-seed null (max) | verdict |
 |---|---:|---:|---:|---:|---:|---|
 | FR | 1,243 | 1,599.5 MW | +3.1 MW | +0.19% | 83.0 MW (5.19%) | inside the null |
+| DE | 1,278 | 3,741.6 MW | +13.9 MW | +0.37% | 142.1 MW (3.80%) | inside the null |
 
 ## What the rule removed from each fit
 
 | country | night fit rows | excluded rows | excluded hours | max excluded actual |
 |---|---:|---:|---:|---:|
 | FR | 11,648 | 904 | 113 | 285.9 MW |
+| DE | 10,952 | 32 | 4 | 1.7 MW |
