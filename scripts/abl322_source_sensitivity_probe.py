@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
-"""ABL-322 source-sensitivity probe — how much does the ABL-345 defect move *this* gate?
+"""ABL-322 source-sensitivity probe -- how much does the ABL-345 defect move *this* gate?
 
 Read-only, no fitting, no model, no writes to either database.
 
 ABL-345 (a first-class blocker on ABL-322) is filed on the finding that both gate
 harnesses construct `RenewableFeatureBuilder` with no `actuals_source`, so a run
 fits `energy_renewable` whatever the intent. The CEO triage sizes the damage to
-this pilot at "13-16% of the window §1 pre-registers", derived from whole-table
+this pilot at "13-16% of the window section 1 pre-registers", derived from whole-table
 spans: 337 d (DE) / 275 d (NL) of `energy_renewable` against 2,049 d of
 `energy_generation`.
 
-That ratio is a property of the *tables*, not of the *registered window*. §1 of
+That ratio is a property of the *tables*, not of the *registered window*. Section 1 of
 `reports/abl_322_preregistration.md` does not register a 2,049-day fit; it
 inherits ABL-195's frozen 178-day fit window (2026-01-14 -> 2026-07-11) plus a
 14-day lag warm-up, opening 2025-12-31. Both source tables begin before that.
 
 This probe measures the two questions that actually decide the damage:
 
-1. **Coverage** — how many rows does each table carry inside the *registered*
+1. **Coverage** -- how many rows does each table carry inside the *registered*
    builder / fit / gate windows, and does either truncate?
-2. **Bar movement** — the harness computes its baseline from `builder._actuals`
+2. **Bar movement** -- the harness computes its baseline from `builder._actuals`
    (`evaluate_wind_retrain.py:200`), so the source defect moves the D-7 bar as
-   well as the fit. §2 registered the bar from `energy_generation`. This
+   well as the fit. Section 2 registered the bar from `energy_generation`. This
    recomputes it from `energy_renewable` by the identical method and reports the
    delta in percentage points.
 

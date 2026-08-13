@@ -24,14 +24,14 @@ What this is not
 ----------------
 Not a serve-faithful backtest. Features are built by the training-time pipeline
 (`features.create_all_features`), whose lags and rolling windows are anchored at
-the target hour — at serving they are anchored at the generation instant
+the target hour -- at serving they are anchored at the generation instant
 (`wind_features.RenewableFeatureBuilder`, ABL-183). Every arm carries that
 identically, so the *comparison* is sound, but the absolute MW are optimistic
 against what the rail would produce. The serve-faithful check is the clamp
 counter in `scripts/abl338_retrain_solar.py`, which runs the real serve path.
 
 The two ABL-338 geometry features are the exception and are the same number in
-both paths by construction — both call `solar_features.solar_geometry_frame`.
+both paths by construction -- both call `solar_features.solar_geometry_frame`.
 
 Usage
 -----
