@@ -107,6 +107,50 @@ SCOPE_OUTPUTS = {
     "abl253": {"artifact_dir": "experiments/ABL253/artifacts",
                "json_out": "experiments/ABL253/results.json",
                "report_out": "reports/abl_253_solar_retrain.md"},
+    # ABL-381, registered on merging ABL-387 in -- the same sequence the wind
+    # twin records, and the same check working: `abl316-t1b` landed in `SCOPES`
+    # and `GATE_BASIS` at 776bfe7, before `SCOPE_OUTPUTS` existed, and merging
+    # ABL-387 raised `SCOPE_OUTPUTS is missing 'abl316-t1b'` at import.  The
+    # merge itself was textually clean, so the tables disagreeing is the only
+    # thing that could have caught it.
+    #
+    # These are the paths the run *actually wrote*, measured rather than
+    # assigned: the two `model.joblib` files under
+    # `experiments/ABL316/artifacts/t1b` hash to 9bbe1e74...aa5e (BG) and
+    # 9ff1a53d...dd5e (CH), the two SHA-256 values published in the gate
+    # report's fit-audit table.  The `json_out` sits under ABL348 because the
+    # registration these fits are read under is `experiments/ABL348/config.json`,
+    # frozen at ABL-348 and shared with the wind tranche; the artifacts sit
+    # under ABL316 because they belong to that rollout, not to the registration.
+    #
+    # The run wrote its artifacts to `experiments/ABL316/artifacts/t1b`, one
+    # level deeper, to keep the 33 remaining tranches from sharing a directory.
+    # `test_experiment_outputs_stay_one_directory_deep` rejects that, so the two
+    # files were **moved** here and the registration names where they now live.
+    # They were not refitted: ABL-375 measured 4.6-13.8% of daylight MAE moving
+    # across seeds on solar CatBoost, so a second draw to tidy a path would be a
+    # second look at the result, which is the thing pre-registration exists to
+    # prevent.  The move is content-preserving and checkable -- the SHA-256
+    # values below are unchanged across it and are the artifacts' binding
+    # identity.  The absolute `training[].artifact_path` recorded inside
+    # `results_abl381_tranche1b.json` is therefore the **write-time** path and
+    # still says `t1b`; the SHA in the adjacent field is what resolves it.
+    #
+    # Depth here is a proxy for the property that actually matters, and on this
+    # path the proxy and the property disagreed: `.gitignore:56`
+    # `experiments/*/artifacts/` matches on the *directory name*, so
+    # `experiments/ABL316/artifacts/` is ignored and everything beneath it is
+    # too -- `git check-ignore -v` confirmed the `t1b/` layout was ignored by
+    # that same line.  Conforming anyway rather than loosening another issue's
+    # freshly-landed guard; ABL-381's evidence pack reports the distinction, as
+    # it decides whether the remaining 33 tranches can group per tranche.
+    #
+    # The `json_out` is deliberately not named `results.json`: at that name the
+    # `.gitignore` glob would swallow it, and it is the machine record this
+    # tranche's evidence cites for a PASS the Board has been asked to review.
+    "abl316-t1b": {"artifact_dir": "experiments/ABL316/artifacts",
+                   "json_out": "experiments/ABL348/results_abl381_tranche1b.json",
+                   "report_out": "reports/abl_381_solar_tranche1b.md"},
 }
 
 # The columns that must be *simultaneously finite* for a row to enter a gate
