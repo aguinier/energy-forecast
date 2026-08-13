@@ -39,9 +39,12 @@ energy_forecast/
 │   │                       # suspect constant-value runs from energy_renewable)
 │   ├── features.py         # Feature engineering (incl. holiday features)
 │   ├── solar_geometry.py   # Sun elevation per (country, timestamp) — one
-│   │                       # capacity-weighted point per country (ABL-337)
+│   │                       # capacity-weighted point per country (ABL-337);
+│   │                       # also NIGHT_GENERATION_POSSIBLE, the per-country
+│   │                       # night-generation fact, no default (ABL-425)
 │   ├── solar_clamp.py      # Serving-path night mask + non-negativity floor
-│   │                       # for solar, with per-run telemetry (ABL-337)
+│   │                       # for solar, with per-run telemetry (ABL-337).
+│   │                       # ES is exempt from the night mask (ABL-425)
 │   ├── metrics.py          # Evaluation metrics
 │   ├── forecaster.py       # Forecaster class (XGBoost/LightGBM/CatBoost)
 │   ├── hyperopt.py         # Optuna Bayesian hyperparameter optimization
@@ -720,29 +723,35 @@ against it after parsing, so an explicit path still overrides. `abl195` and
 `abl253` keep their historical paths byte-for-byte. The three tables are one
 registration in three views and are cross-checked at **import** by
 `check_registration_tables` (`src/evaluation/gate_registration.py:39`, called at
-`evaluate_wind_retrain.py:184` and `evaluate_solar_retrain.py:118`), so a scope
+`evaluate_wind_retrain.py:285` and `evaluate_solar_retrain.py:536`), so a scope
 added to one and not the others fails before any fit rather than mid-run — it
 raises on `import`, so even `--help` exits non-zero. That is deliberately louder
 than a failing test: the tables disagreeing is **not** a textual conflict, so
 GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
-platform will show it. **Registering a new scope means editing every one of these
-tables** — three on the wind harness, and **seven on solar**. Count them in the
-`check_registration_tables(...)` call in the harness you are editing rather than
-from this sentence; that call is the list.
+platform will show it.
 
-**But the call is not the whole list, and that asymmetry is deliberate.** It
-names three — `SCOPES`, `GATE_BASIS`, `SCOPE_OUTPUTS`. The solar harness carries
-four more that it does *not* check: `FIT_RULES` and `SCOPE_TITLES` (ABL-376),
-`SCOPE_FEATURES` (ABL-395) and `SCOPE_NOT_EVALUABLE` (ABL-421). An earlier
-version of this sentence said ABL-376 added its two "to the same import-time
-check"; it did not, and the harness comment over the call has always said so.
-The three are strict because omitting an entry fails *destructively and
-silently* — a missing `SCOPE_OUTPUTS` row sends a run's results over another
-scope's dispositioned evidence. The others degrade self-documentingly, and
-`SCOPE_FEATURES` **cannot** join the call: `abl316-t2a` is deliberately absent
-from it, so requiring it would raise `KeyError` at import for a scope whose
-absence is correct and published. Adding a required table is also a tax on every
-branch already in flight.
+**Registering a new scope means editing every registration table — but only
+three of them are import-checked, and that is true on both harnesses.** The call
+is `check_registration_tables(SCOPES=..., GATE_BASIS=..., SCOPE_OUTPUTS=...)` and
+nothing else. Solar carries **seven** tables: `FIT_RULES`, `SCOPE_FEATURES`,
+`SCOPE_TITLES` and `SCOPE_NOT_EVALUABLE` are **not** in that call, so a scope
+missing from any of them resolves through a module-level default **silently, at
+run time**. That is not hypothetical — it is exactly how ABL-404 happened, and it
+is why the rows that depend on it each carry a comment saying so. Adding a table
+to the check is not free: it raises on `import` for every branch already in
+flight, and `SCOPE_FEATURES` must stay absent-able because inheriting the current
+`FEATURE_COLUMNS` is the intended path for a new tranche (`abl316-t2a` does
+exactly that). Read the `check_registration_tables(...)` call in the harness you
+are editing rather than this sentence; that call is the list, and it is shorter
+than the set of tables you must still edit by hand.
+
+> **Count the tables the same way you are told to count the call.** This
+> paragraph said **five** when the file already carried six — `SCOPES`,
+> `GATE_BASIS`, `SCOPE_OUTPUTS`, `FIT_RULES`, `SCOPE_FEATURES`, `SCOPE_TITLES`.
+> ABL-421 added the seventh and re-counted against the source instead of
+> incrementing the sentence. `grep -E "^[A-Z_]+ = \{"` in the harness is the
+> count; it is the one number in this section that cannot be checked by reading
+> the call site, which is exactly why it drifted.
 
 **`SCOPE_NOT_EVALUABLE` is the exception to watch, because it defaults toward
 scoring (ABL-421).** ABL-348 `not_evaluable` declares `EE/solar` and `FI/solar`
@@ -796,9 +805,17 @@ every other test, so the call site is pinned by AST in
 
 The rule is stated over countries, not for FR — the predicate is the sun's, so a
 country whose data is clean loses nothing, and a `0` in the report's per-country
-table means the rule ran and found nothing rather than that it was off. It is
-conservative by construction: `is_night_hour` requires the sun below threshold
-for the *whole* hour, so shoulder contamination survives it. The threshold and
+table means the rule ran and found nothing rather than that it was off. There is
+one country it may not run for at all: **`exclude_impossible_night_rows` raises
+`IncoherentNightExclusionError` for any country registered `True` in
+`solar_geometry.NIGHT_GENERATION_POSSIBLE`** (ES, ABL-425). The rule's warrant is
+"the sun says this row cannot exist", which is false by measurement for a fleet
+that dispatches stored heat after sunset, and no evidence can make the
+combination coherent — so it is refused at the one choke point that drops rows
+rather than resolved to one side. That guard changed no registered rule value;
+ABL-403's are as they were. It is conservative by construction: `is_night_hour`
+requires the sun below threshold for the *whole* hour, so shoulder contamination
+survives it. The threshold and
 the per-country row count are printed in the scorecard so a later run can tell a
 data fix from a rule change. `abl253` registers the rule **off** and keeps its
 report heading character-for-character, so the dispositioned read still
@@ -830,10 +847,23 @@ Three things follow, and the first is the general rule:
   ES is the strictly stronger case: its overnight MW is real CSP dispatch, so
   the rule would delete generation rather than noise.
 - **Never disposition a night-floor change on the negative-prediction rate.** It
-  cannot see the level. The same BG run that doubles night MAE *improves* the
-  night-negative rate 20.09% -> 9.86% at 8/8 seeds, p = 0.0078. That is the
-  metric ABL-381 §4 and ABL-395 both reported, and on its own it would have
-  adopted this. Report night MAE and night bias beside it.
+  cannot see the level, and on BG it cannot be read at all. Over the same eight
+  paired fits, night MAE rises **+61.05 MW** (rule at 25 features, 8/8 seeds,
+  p = 0.0078) against a 6.96 MW control-vs-control null — readable — while **not
+  one** negative-rate contrast clears its own null of **14.06pp**: the rule's
+  apparent *improvement* is -7.12pp at 25 features (7/8, p = 0.070) and -11.78pp
+  at 27 (8/8, p = 0.0078), and both sit inside the noise. So the metric moved the
+  way that would have adopted the rule, on fits where the level metric says the
+  rule roughly doubles the error, and it did so without being readable in the
+  first place. That is the metric ABL-381 §4 and ABL-395 both reported. Report
+  night MAE and night bias beside it, and read `outside_the_null` before quoting
+  any of the three — an 8/8 sign test is not readability when the single-seed
+  null is wider than the effect.
+
+  Quote the two factors' contrasts, never the 25-off -> 27-on diagonal. Those
+  endpoints (20.09% -> 9.85%) differ by *both* changes at once, so they are not a
+  measurement of either; the machine record keeps them apart as
+  `exclusion_at_f25` / `exclusion_at_f27` / `both_vs_neither` for that reason.
 - **ABL-376's 27x mechanism is real in structure and useless in direction.** The
   interaction on night MAE is -14.2 MW (7/8 seeds, sign p = 0.070, clearing a
   conservative 4-fit null of 11.3): geometry makes the rule do *less damage*, not
@@ -1160,6 +1190,55 @@ for the whole hour, and floors the rest at zero. `renewable_type='solar'` only,
 **new rows only** — stored history is never rewritten, and no `UPDATE` is issued,
 so the vintage archive stays a faithful record of what the models said.
 
+**The night zero is per-country, and ES is exempt (ABL-425).** The premise "a
+solar fleet cannot generate at night" is false for Spain: it runs ~2.3 GW of
+concentrated solar power with molten-salt storage, and ABL-411 checked Red
+Eléctrica's own `solar fotovoltaica` / `solar térmica` split against the replica
+over 3,196 night hours — the two account for **98.55%** of the MW we book for ES
+when the sun is down, at a **263.5 MW** mean night level, 80.1% of it CSP. So
+the physical fact is registered per country in
+`solar_geometry.NIGHT_GENERATION_POSSIBLE` and the clamp reads it. Three things
+follow and all three are load-bearing:
+
+- **There is no default.** A country reaching the clamp undeclared raises
+  `UndeclaredNightGenerationError` and the save writes nothing. The silent
+  direction is the destructive one — an unregistered ES-like country would
+  inherit "cannot generate at night" and have real MW deleted, logged as a
+  correction. Add a country to `config.SUPPORTED_COUNTRIES` and you add it to
+  that table in the same commit; `tests/test_night_generation_registration.py`
+  fails otherwise.
+- **The `max(0, prediction)` floor is not per-country** — but not because
+  negative solar is impossible. It is not: `energy_generation` is the A75
+  document *net of consumption*, and NL books a structural overnight floor of
+  about −1.1 MW (100% of instants 20Z–02Z, min −1.62 MW — the deepest anywhere
+  in the fleet over ABL-348's registered window). The floor erases that
+  reported MW, and is justified by the size of the excursion, not by physics.
+  `src/solar_geometry.py`'s "Why the non-negativity floor is fleet-wide"
+  carries the measurement, the window the bound holds over, the five
+  full-history instants that exceed it, and the tripwire if NL is ever served.
+  Two premises of the same class have now failed here: ES generates when the
+  code said it could not, NL books a negative when the code said it could not.
+  Both were physical absolutes the A75 semantics never supported.
+- **`energy_renewable` cannot arbitrate the sign of solar, so do not use it to
+  check the floor.** Over ABL-348's gate window it is the *zero-clipped copy*
+  of `energy_generation`: `ren == max(0, gen)` to 1e-9 at 100.0% of instants in
+  28 of 32 countries and 99.0% for NL, NL flipping into that regime between
+  2026-07-01 (41.7%) and 2026-07-02 (99.0%) — which is the same fact `db.py`
+  records as "the gate truth is byte-identical between the two tables for 9 of
+  10 pairs" (ABL-321). So `ren − gen` in that window is `max(0, −gen)`, the
+  floor's own correction, and reads as a clean non-negative "Actual Consumption
+  series" no matter what the data says. Outside the window it is not a
+  consumption series either — it goes to −185.84 MW at NL midday over fit+gate,
+  with only 305 of 8,668 excursions attributable to ABL-188 zero-fill. This
+  retired an ABL-425 finding that had been reported from both sides; see
+  `solar_geometry.py` for the full reproduction.
+- **The registered thing is the *fact*, not the policy.** The clamp and
+  ABL-376's `exclude_impossible_night` fit rule both read this one table and
+  apply their own policy on top, so they cannot come to disagree about which
+  hours are dark-but-real. A single shared *value* would not work: BG's
+  overnight floor is genuine contamination (clamp on) yet ABL-403 measured the
+  fit-side rule costing it 1.4-1.9pp of gate WAPE (rule off).
+
 This is a guard, not a fix. ABL-335 measured what the models emit: 22,718 of
 131,356 stored solar rows negative, DE holding a 155-268 MW floor straight
 through local midnight. The fit defect underneath is ABL-338's. **So the clamp
@@ -1167,7 +1246,9 @@ reports itself**: every run appends one row per country and model to
 `forecast_clamp_log`, in the same database the clamped rows went into —
 
 ```sql
-SELECT clamped_at, country_code, model_name, hours_zeroed_night,
+SELECT clamped_at, country_code, model_name,
+       night_generation_possible, night_mask_applied,
+       night_hours, hours_zeroed_night,
        hours_raised_floor, mw_removed_night, mw_removed_total
 FROM forecast_clamp_log ORDER BY clamped_at DESC;
 ```
@@ -1175,6 +1256,15 @@ FROM forecast_clamp_log ORDER BY clamped_at DESC;
 A retrain that fixes the fit drives `hours_zeroed_night` and `mw_removed_total`
 toward zero; the clamp going quiet is the measurement, and the clamp staying busy
 after a retrain means the retrain did not work.
+
+Read the first two columns before the counts. An exempt country's
+`hours_zeroed_night = 0` means "nothing may be zeroed here", not "the fit is
+clean" — the two are otherwise indistinguishable, which is why ABL-425 added
+them rather than letting ES go quiet in the instrument. `night_mask_applied` is
+also False for a country with no representative point, and
+`night_generation_possible` is what tells those two states apart. Rows written
+before ABL-425 carry `NULL` on all three: that run predates the exemption and
+night-zeroed every country unconditionally.
 
 Sun elevation comes from `src/solar_geometry.py` — one capacity-weighted
 representative point per country, taken from `weather_location`. Import it; do

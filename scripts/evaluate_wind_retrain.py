@@ -128,6 +128,54 @@ SCOPES = {
                          ("wind_onshore", "GR"), ("wind_onshore", "IT"),
                          ("wind_onshore", "NO"), ("wind_onshore", "PL"),
                          ("wind_onshore", "PT"), ("wind_onshore", "SE")),
+    # ABL-417 -- ABL-316 tranche 2e: the eight `wind_onshore` pairs tranche 2b
+    # deliberately left out, fitted on `energy_generation` under the same frozen
+    # registration at `experiments/ABL348/config.json`.  8 pairs x 3 bands = 24
+    # cells.  This closes `wind_onshore`: 2 (1a) + 8 (2b) + 8 here = the 18
+    # registered onshore countries.
+    #
+    # `abl406-tranche2b` above says these are "a build-and-report set of their
+    # own"; this entry is that set, and it is **report-only**.  The distinction
+    # is not decoration.  Their registered D-7 bars run 86.78% (EE) to 125.38%
+    # (HU) -- a baseline whose error is of the same order as the series itself --
+    # and ABL-406 then measured what that does to a gate read: across its eight
+    # pairs the outcome was *fully* predicted by whether a causal constant clears
+    # the bar on its own, five weak bars giving five passes and three strong bars
+    # three failures or ties, no exceptions.  So a PASS in this scope is close to
+    # uninformative about the model, and no cell here recommends serving whatever
+    # it scores.
+    #
+    # What makes the tranche worth fitting anyway is ABL-418's ladder, which the
+    # harness applies to every cell at `attach_grades` below.  G1 (the registered
+    # bar) is the condition these bars weaken; G2 (beats a flat line), G3 (beats
+    # an hour-of-day climatology) and G4 (slope > 0 and corr > 0) are untouched
+    # by bar weakness and stay readable.  ABL-406's NO passed 3/3 while
+    # anti-correlated with its own target -- G4 is the condition that catches
+    # that, and it is why this scope is graded rather than merely tabulated.
+    #
+    # Fleet size is why these are separate rather than alphabetical, and the
+    # precedent chain is published: CH wind at 12.9 MW (ABL-348,
+    # `CH_wind_onshore_is_not_decision_grade`) -> SK solar at 114.8 MW (ABL-405,
+    # `reports/abl_405_tranche2a_findings.md`, the `**SK**:` bullet -- "report
+    # it, do not decide") -> here.  Four of these eight sit *below* that 114.8 MW
+    # line -- LV 34.5, HU 41.5, CZ 63.3, EE 102.4 MW gate-window mean -- and the
+    # other four (NL 224.6, HR 225.4, LT 381.1, RO 491.9) sit far below the
+    # 700 MW at which tranche 2b was cut as decision-grade.
+    #
+    # Nothing here is a migration.  None of the eight serves a wind model, so
+    # this scope refits no live pair -- the property `abl322-pilot`,
+    # `abl380-tranche1a` and `abl406-tranche2b` all hold, reached the same way.
+    #
+    # Windows, bands, metric, baseline, minimum n and source table are ABL-348's
+    # and are deliberately not restated here.  ABL-348 `voids_this_registration`
+    # on a change to any of them, and a report-only *reading* rule is not such a
+    # change: these pairs are fitted and scored identically to tranche 2b, on the
+    # same bar, and the caveat lives in the evidence pack.  That is exactly how
+    # CH was handled in `abl380-tranche1a`.
+    "abl417-tranche2e": (("wind_onshore", "CZ"), ("wind_onshore", "EE"),
+                         ("wind_onshore", "HR"), ("wind_onshore", "HU"),
+                         ("wind_onshore", "LT"), ("wind_onshore", "LV"),
+                         ("wind_onshore", "NL"), ("wind_onshore", "RO")),
 }
 
 # ABL-387: where a scope writes is part of its registration, not a flag default.
@@ -202,6 +250,18 @@ SCOPE_OUTPUTS = {
     "abl406-tranche2b": {"artifact_dir": "experiments/ABL406/artifacts",
                          "json_out": "experiments/ABL348/results_abl406_tranche2b.json",
                          "report_out": "reports/abl_406_wind_onshore_tranche2b.md"},
+    # ABL-417.  Same shape and the same reasoning as tranche 2b's entry directly
+    # above: the `json_out` sits under `ABL348` because that is the registration
+    # these fits are read under, and is deliberately not named `results.json`,
+    # since at that name `.gitignore:53` swallows the machine record this
+    # tranche's evidence pack cites for 24 graded cells.  The artifacts get their
+    # own one-level-deep directory ending `artifacts`, which `.gitignore:56`
+    # keeps out of the commit -- `check_scope_outputs` requires the distinctness,
+    # and eight more CatBoost binaries piling into another tranche's directory is
+    # what it is protecting against.
+    "abl417-tranche2e": {"artifact_dir": "experiments/ABL417/artifacts",
+                         "json_out": "experiments/ABL348/results_abl417_tranche2e.json",
+                         "report_out": "reports/abl_417_wind_onshore_tranche2e.md"},
 }
 COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw"}
 
@@ -247,6 +307,14 @@ GATE_BASIS = {
     # tranche.  Gates on the two columns the registered bar names; the incumbent
     # is reported on its own intersection, where it reads "Not measured".
     "abl406-tranche2b": ("challenger", "seasonal_naive"),
+    # ABL-417: the same condition again, on the last eight onshore pairs. None of
+    # CZ/EE/HR/HU/LT/LV/NL/RO holds a `wind_onshore` row in `forecasts` -- only
+    # BE and AT/DE/FR do, across the whole table -- so under the four-way basis
+    # all 24 cells would intersect to n=0 and render UNREADABLE. Gates on the two
+    # columns the registered bar names; the incumbent is still reported on its
+    # own intersection, where it reads "Not measured" by construction rather than
+    # by omission, exactly as ABL-348 records for all 37 tranche pairs.
+    "abl417-tranche2e": ("challenger", "seasonal_naive"),
 }
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.

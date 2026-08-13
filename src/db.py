@@ -1807,9 +1807,16 @@ def create_solar_clamp_log_table():
     database the clamped rows went into, so it can be read without running
     anything:
 
-        SELECT clamped_at, country_code, model_name, hours_zeroed_night,
+        SELECT clamped_at, country_code, model_name,
+               night_generation_possible, night_mask_applied,
+               night_hours, hours_zeroed_night,
                hours_raised_floor, mw_removed_total
         FROM forecast_clamp_log ORDER BY clamped_at DESC;
+
+    Read the first two columns before the counts (ABL-425). A country registered
+    as able to generate after dark is exempt from the night mask, and its
+    `hours_zeroed_night = 0` means "nothing was zeroed because nothing may be",
+    not "the model already returns zero at night".
     """
     with get_connection(readonly=False) as conn:
         cursor = conn.cursor()
@@ -1824,7 +1831,10 @@ def create_solar_clamp_log_table():
                 renewable_type TEXT NOT NULL,
                 night_threshold_deg REAL NOT NULL,
                 zeroed_night_mw_threshold REAL,
+                night_generation_possible INTEGER,
+                night_mask_applied INTEGER,
                 rows_total INTEGER NOT NULL,
+                night_hours INTEGER,
                 hours_zeroed_night INTEGER NOT NULL,
                 hours_raised_floor INTEGER NOT NULL,
                 mw_removed_night REAL NOT NULL,
@@ -1837,14 +1847,27 @@ def create_solar_clamp_log_table():
             )
         """)
 
-        # Migrate tables created before ABL-377 added zeroed_night_mw_threshold.
-        # Old rows will carry NULL, which correctly signals "old definition (!=0.0)".
-        try:
-            cursor.execute(
-                "ALTER TABLE forecast_clamp_log ADD COLUMN zeroed_night_mw_threshold REAL"
-            )
-        except Exception:
-            pass  # column already exists
+        # Migrate tables created before a column existed. Old rows carry NULL,
+        # which is the honest value: not "0" or "False", but "this run predates
+        # the column and did not measure it".
+        #
+        # - zeroed_night_mw_threshold (ABL-377): NULL signals the old definition
+        #   (threshold != 0.0).
+        # - night_generation_possible / night_mask_applied / night_hours
+        #   (ABL-425): NULL signals a run from before the per-country exemption,
+        #   i.e. one where every country was night-zeroed unconditionally.
+        for column, sql_type in (
+            ("zeroed_night_mw_threshold", "REAL"),
+            ("night_generation_possible", "INTEGER"),
+            ("night_mask_applied", "INTEGER"),
+            ("night_hours", "INTEGER"),
+        ):
+            try:
+                cursor.execute(
+                    f"ALTER TABLE forecast_clamp_log ADD COLUMN {column} {sql_type}"
+                )
+            except Exception:
+                pass  # column already exists
 
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_forecast_clamp_log_lookup
@@ -1874,10 +1897,11 @@ def save_solar_clamp_stats(stats: List['SolarClampStats']) -> int:
                 INSERT INTO forecast_clamp_log
                 (clamped_at, generated_at, country_code, model_name, renewable_type,
                  night_threshold_deg, zeroed_night_mw_threshold,
-                 rows_total, hours_zeroed_night, hours_raised_floor,
+                 night_generation_possible, night_mask_applied,
+                 rows_total, night_hours, hours_zeroed_night, hours_raised_floor,
                  mw_removed_night, mw_added_floor, mw_removed_total,
                  min_forecast_mw, max_night_forecast_mw, target_start, target_end)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 clamped_at,
                 s.generated_at.isoformat() if s.generated_at is not None else None,
@@ -1886,7 +1910,10 @@ def save_solar_clamp_stats(stats: List['SolarClampStats']) -> int:
                 s.renewable_type,
                 s.night_threshold_deg,
                 s.zeroed_night_mw_threshold,
+                int(s.night_generation_possible),
+                int(s.night_mask_applied),
                 s.rows_total,
+                s.night_hours,
                 s.hours_zeroed_night,
                 s.hours_raised_floor,
                 s.mw_removed_night,
