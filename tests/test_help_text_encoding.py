@@ -31,6 +31,12 @@ are printed from one known place, so they re-encode the stream there instead
 (`evaluate_net_position.py:125-132`, `compare_challenger.py:127-133`) -- which
 `--help` cannot do, since argparse prints before any line of `main()` runs.
 
+The set is every `scripts/*.py`, every repo-root runner, and every
+`config.MODEL_RUNNERS` script. That last group matters because
+`test_script_imports.py::test_model_runner_launches` (ABL-354) starts each
+runner with `--help` through a pipe to prove it can start, and two of them live
+under `src/`, outside the `scripts/` glob.
+
 Static, not behavioural, for the set: `--help` on an arbitrary script means
 importing and executing it to module scope, and several of these open databases
 or write reports. So the sweep reads the source, and one script whose `--help`
@@ -52,9 +58,24 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-# The same entry-point set as tests/test_script_imports.py: scripts/ plus the
-# repo-root runners.
-SCRIPTS = sorted((REPO_ROOT / "scripts").glob("*.py")) + sorted(REPO_ROOT.glob("*.py"))
+
+sys.path.insert(0, str(REPO_ROOT))
+
+import config  # noqa: E402
+
+# The same entry-point set as tests/test_script_imports.py: scripts/ and the
+# repo-root runners, plus the config.MODEL_RUNNERS scripts. Two of those live
+# inside src/ and are launched as `-m src.<module>` (ABL-354), so the scripts/
+# glob does not reach them -- see test_model_runners_are_covered.
+_ENTRY_POINTS = (
+    sorted((REPO_ROOT / "scripts").glob("*.py"))
+    + sorted(REPO_ROOT.glob("*.py"))
+    + [REPO_ROOT / r["script"] for r in config.MODEL_RUNNERS if r.get("script")]
+)
+SCRIPTS = sorted({p.resolve() for p in _ENTRY_POINTS if p.is_file()})
+#: Repo-relative paths, not bare names: two entry points could share a file name
+#: across scripts/ and src/, and a name lookup would then sweep the wrong file.
+SCRIPT_IDS = [p.relative_to(REPO_ROOT).as_posix() for p in SCRIPTS]
 
 #: Calls that build the parser. Everything user-visible in `--help` output is a
 #: text keyword on one of these.
@@ -128,18 +149,42 @@ def test_entry_points_are_discovered():
     assert len(SCRIPTS) >= 30, f"only found {len(SCRIPTS)} entry points"
 
 
+def test_model_runners_are_covered():
+    """The `config.MODEL_RUNNERS` scripts are held to the rule too (ABL-354).
+
+    `tests/test_script_imports.py::test_model_runner_launches` starts each of
+    these with `--help` through `subprocess(..., capture_output=True)` -- a
+    pipe, which is exactly the stream this file's rule exists for. Two of them
+    (`src/chronos_forecaster.py`, `src/tso_correction_forecaster.py`) sit
+    outside the `scripts/` glob, so without this they would be *launched* that
+    way and swept by nothing.
+
+    The stakes there are higher than a broken `--help`: `forecast_daily` runs a
+    runner as a subprocess and records one that cannot start as a failed
+    *result*, so the job still reports `[DONE]` with those forecasts missing.
+    """
+    runners = [r["script"] for r in config.MODEL_RUNNERS if r.get("script")]
+    assert runners, "config.MODEL_RUNNERS declares no script entry points"
+    missing = [s for s in runners if (REPO_ROOT / s).resolve() not in set(SCRIPTS)]
+    assert not missing, (
+        "MODEL_RUNNERS entry points not swept for non-ASCII help text:\n  "
+        + "\n  ".join(missing)
+        + "\n(If one is simply gone, test_model_runner_script_exists says so.)"
+    )
+
+
 def test_a_parser_is_actually_found():
     """The sweep is only worth anything if it reads real parsers. Pins that the
     call/keyword names above still match how this repo builds its CLIs -- rename
     `add_argument` upstream and every test below would pass vacuously."""
-    with_parsers = [p.name for p in SCRIPTS if help_text_sites(p)]
+    with_parsers = [s for s in SCRIPT_IDS if help_text_sites(REPO_ROOT / s)]
     assert len(with_parsers) >= 20, f"only {len(with_parsers)} entry points parsed a parser"
-    assert "train.py" in with_parsers
+    assert "scripts/train.py" in with_parsers
 
 
-@pytest.mark.parametrize("script", [p.name for p in SCRIPTS])
+@pytest.mark.parametrize("script", SCRIPT_IDS)
 def test_help_text_is_ascii(script):
-    path = next(p for p in SCRIPTS if p.name == script)
+    path = REPO_ROOT / script
     bad = [(lineno, what, _offenders(text))
            for lineno, what, text in help_text_sites(path) if _offenders(text)]
     assert not bad, (

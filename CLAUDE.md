@@ -147,6 +147,16 @@ executing that script to module scope, and it runs `scripts/train.py --help`
 under `PYTHONIOENCODING=ascii` as the one end-to-end case, so the assertion does
 not depend on the codepage of the box.
 
+"Entry point" there means the same set as `test_script_imports.py`: every
+`scripts/*.py`, the repo-root runners, **and every `config.MODEL_RUNNERS`
+script**. That last group is not decoration — `test_model_runner_launches`
+starts each runner with `--help` through a pipe, and two of them
+(`src/chronos_forecaster.py`, `src/tso_correction_forecaster.py`) live under
+`src/`, outside the `scripts/` glob. Both are ASCII-clean in their help text
+today; an em dash added to one of those docstrings would stop the runner from
+starting, and per the bullet above `forecast_daily` books a runner that cannot
+start as a failed *result* and still prints `[DONE]`.
+
 Report bodies are the deliberate exception and keep `Δ`, `→`, `·`. They are
 printed from one known place, so they re-encode the stream there
 (`evaluate_net_position.py:125-132`, `compare_challenger.py:127-133`) — which is
