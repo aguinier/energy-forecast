@@ -280,6 +280,45 @@ next retrain picks up four never-evaluated features" is here confirmed by
 *execution* rather than inferred from list arithmetic: a fit today produces the
 four columns and keeps them, on both solar and load.
 
+#### The refuted mechanism has since been written into `main` as fact
+
+Recorded 2026-08-13, when `origin/main` (`1bd99e5`) was merged into this branch.
+ABL-394 landed while this branch waited, and it states the mechanism above —
+the one that does not reproduce — as settled, in two places that a future reader
+will treat as authoritative:
+
+- `CLAUDE.md`: "All 66 artifacts ... were fitted before ABL-338 (`5cf2296`)
+  threaded `country_code` into `create_all_features`, so `create_holiday_features`
+  never ran on a training frame".
+- `tests/test_feature_list_contract.py` module docstring, under the heading
+  **"The mechanism, measured rather than assumed"**: "the training sites called
+  `create_all_features(df, forecast_type)` with no `country_code`".
+
+Both are wrong on the same point, and it is checkable in one command:
+
+    git show 5cf2296^:scripts/train.py | grep -n "create_all_features("
+
+At `5cf2296^` that returns two call sites, not one. The **training** site inside
+the per-country fit loop already reads
+`create_all_features(df, forecast_type, country_code=country_code)` — it passed
+`country_code` *before* ABL-338. The site that omits it is the one in
+`evaluate_against_baselines`, the **validation** path, which is the separate
+zero-skill defect in the next section and never writes an artifact's
+`feature_columns`. (Line numbers deliberately omitted: both files have moved
+since. On the merged tree the same grep on `scripts/train.py` shows the training
+site passing `country_code` and the `evaluate_against_baselines` site still not.)
+
+ABL-394's *tests* are sound and none of this makes them red: they assert that
+omitting `country_code` drops the four names, which is true. What is unsupported
+is the antecedent — that the training sites omitted it. The test proves the
+conditional; the docstring asserts the premise.
+
+Nothing in this PR changes `CLAUDE.md` or ABL-394's docstring: the correction
+belongs to whoever owns that text, and rewriting a merged issue's doctrine inside
+this evidence-only branch is how a `CLAUDE.md` cascade starts. Raised as a
+follow-up instead. The merge is otherwise clean and this branch's numbers are
+unaffected — the contradiction is textual, not arithmetic.
+
 ### A live consequence found while checking that: skill scores silently go to zero
 
 `scripts/train.py:715`, inside `evaluate_against_baselines`, builds the
