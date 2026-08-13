@@ -10,11 +10,17 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.solar_clamp import ZEROED_NIGHT_MW_THRESHOLD, clamp_solar_forecasts, solar_row_mask
+from src.solar_geometry import UndeclaredNightGenerationError
 
 # 2026-08-14 UTC at DE's representative point: 00-02 and 20-23 are night,
 # 04-18 are day, 03 and 19 straddle dawn/dusk (see test_solar_geometry).
 NIGHT_HOUR = "2026-08-14 01:00:00"
 DAY_HOUR = "2026-08-14 12:00:00"
+
+# 2026-08-14 UTC at ES's representative point (39.125, -4.129): 01:00 is well
+# below -8 deg, and 12:00 is the middle of the day. Same instants as above, but
+# asserted separately because the two countries' terminators differ.
+ES_NIGHT_HOUR = "2026-08-14 01:00:00"
 
 
 def _frame(rows):
@@ -171,9 +177,26 @@ def test_timestamp_spellings_are_all_understood():
     assert list(out_offset["forecast_value"]) == [0.0]
 
 
-def test_unknown_country_keeps_the_floor_and_drops_only_the_night_mask(caplog):
-    # A country with no representative point must not be masked with someone
-    # else's latitude, and must not take the whole save down with it.
+def test_an_undeclared_country_aborts_the_save_rather_than_being_night_zeroed():
+    # ABL-425. Before the registration this fell through to the fleet-wide hard
+    # zero. An undeclared country is one we have not established the physics
+    # for, and the silent answer ("cannot generate at night") is the destructive
+    # one — so the clamp raises and `save_forecasts` writes nothing, rather than
+    # deleting MW and logging the deletion as a correction.
+    df = _frame([("XX", "solar", "solar", NIGHT_HOUR, 231.0, "catboost")])
+    with pytest.raises(UndeclaredNightGenerationError):
+        clamp_solar_forecasts(df)
+
+
+def test_a_declared_country_without_a_representative_point_keeps_the_floor_only(caplog, monkeypatch):
+    # The ABL-337 degradation survives ABL-425: a country that is declared but
+    # cannot be placed must not be masked with someone else's latitude, and must
+    # not take the whole save down with it. The two states are distinguishable
+    # afterwards — night_mask_applied is False for both, night_generation_possible
+    # tells them apart.
+    from src import solar_geometry
+    monkeypatch.setitem(solar_geometry.NIGHT_GENERATION_POSSIBLE, "XX", False)
+
     df = _frame([
         ("XX", "solar", "solar", NIGHT_HOUR, 231.0, "catboost"),
         ("XX", "solar", "solar", DAY_HOUR, -5.0, "catboost"),
@@ -184,7 +207,70 @@ def test_unknown_country_keeps_the_floor_and_drops_only_the_night_mask(caplog):
     assert list(out["forecast_value"]) == [231.0, 0.0]
     assert stats[0].hours_zeroed_night == 0
     assert stats[0].hours_raised_floor == 1
+    assert stats[0].night_generation_possible is False
+    assert stats[0].night_mask_applied is False
     assert any("XX" in r.message for r in caplog.records)
+
+
+def test_es_night_generation_survives_the_clamp_while_de_is_zeroed():
+    # The ABL-425 headline, both halves in one frame on the same instant. ES
+    # runs ~2.3 GW of CSP with thermal storage and ABL-411 measured a 263.5 MW
+    # mean night level that is real; DE's night floor is the ABL-335 defect.
+    df = _frame([
+        ("ES", "solar", "solar", ES_NIGHT_HOUR, 515.5, "catboost"),
+        ("DE", "solar", "solar", NIGHT_HOUR, 231.0, "catboost"),
+    ])
+    out, stats = clamp_solar_forecasts(df)
+
+    assert list(out["forecast_value"]) == [515.5, 0.0]
+
+    by_country = {s.country_code: s for s in stats}
+    assert by_country["ES"].night_generation_possible is True
+    assert by_country["ES"].night_mask_applied is False
+    assert by_country["ES"].hours_zeroed_night == 0
+    assert by_country["ES"].mw_removed_night == pytest.approx(0.0)
+    assert by_country["ES"].mw_removed_total == pytest.approx(0.0)
+
+    assert by_country["DE"].night_generation_possible is False
+    assert by_country["DE"].night_mask_applied is True
+    assert by_country["DE"].hours_zeroed_night == 1
+    assert by_country["DE"].mw_removed_night == pytest.approx(231.0)
+
+
+def test_an_exempt_country_is_visibly_exempt_in_the_telemetry():
+    # Item 5: "0 night hours zeroed" on its own cannot distinguish an exemption
+    # from a fit that already returns nothing at night. The night hours are
+    # still counted and the peak still reported, so the instrument shows what
+    # the clamp let through rather than going quiet.
+    df = _frame([
+        ("ES", "solar", "solar", ES_NIGHT_HOUR, 663.0, "catboost"),
+        ("ES", "solar", "solar", "2026-08-14 02:00:00", 484.0, "catboost"),
+        ("ES", "solar", "solar", DAY_HOUR, 12000.0, "catboost"),
+    ])
+    out, stats = clamp_solar_forecasts(df)
+
+    assert list(out["forecast_value"]) == [663.0, 484.0, 12000.0]
+    s = stats[0]
+    assert s.rows_total == 3
+    assert s.night_hours == 2
+    assert s.hours_zeroed_night == 0
+    assert s.max_night_forecast_mw == pytest.approx(663.0)
+
+
+def test_an_exempt_country_still_gets_the_non_negativity_floor_at_night():
+    # The floor is not part of the exemption: negative solar is impossible in
+    # every country, CSP or not. A negative night row is raised to zero and
+    # counted as a raised hour rather than a zeroed night hour.
+    df = _frame([("ES", "solar", "solar", ES_NIGHT_HOUR, -42.0, "catboost")])
+    out, stats = clamp_solar_forecasts(df)
+
+    assert list(out["forecast_value"]) == [0.0]
+    s = stats[0]
+    assert s.hours_zeroed_night == 0
+    assert s.hours_raised_floor == 1
+    assert s.mw_added_floor == pytest.approx(42.0)
+    assert s.mw_removed_total == pytest.approx(-42.0)
+    assert s.night_hours == 1
 
 
 def test_input_frame_is_not_mutated():
