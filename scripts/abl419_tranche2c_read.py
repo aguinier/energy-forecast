@@ -65,12 +65,28 @@ OUT_JSON = ROOT / "reports" / "abl_419_tranche2c_tables.json"
 COUNTRIES = ("ES", "GR", "HR", "IT", "PT")
 STREAM = "solar"
 
-#: ABL-419 caps ES at grade B whatever G1-G4 say, with this named as the failed
-#: condition. It is a *hold*, not a measurement: the ABL-337 clamp question is
-#: serving-side and this read changes no serving path, but ES may not reach a
-#: promotion recommendation before ABL-411 settles. Named here so the cap can
-#: never be mistaken for something the ladder produced.
-ES_HOLD = "ABL-411 hold"
+#: ABL-419's ES paragraph originally capped ES at grade B with `ABL-411 hold`
+#: named as the failed condition. **That cap is withdrawn.** PR #56 merged
+#: 2026-08-13 22:37 UTC and ABL-411 is decided: over 3,196 night hours Red
+#: Electrica's own `solFot + solTer` split accounts for 98.55% of the MW the
+#: replica books for ES with the sun down -- MAE 5.55 MW against a 263.5 MW mean
+#: night level -- so ES's overnight output is real generation and the condition
+#: the cap named no longer exists. ES is graded exactly as G1-G4 read it.
+#:
+#: What replaces the cap is a *serving* hold, carried **beside** the grade rather
+#: than inside it. ABL-418's grade A already reads "promotion-eligible, subject
+#: to any named data hold", so a hold binds without corrupting a letter. Capping
+#: would have made the letter mean two different things -- "G2/G3/G4 failed" for
+#: every other cell and "policy says not yet" for ES -- and the ladder's whole
+#: value is that the letter is a measurement. Keep the measurement clean; carry
+#: the policy next to it.
+#:
+#: The hold is ABL-425: `src/solar_clamp.py` hard-zeros every sub-threshold hour
+#: fleet-wide, which would delete ES's real 263.5 MW. ES may not be *promoted to
+#: serving* until that lands. It may be read and graded now, which is all this
+#: tranche does. Section 2's clamped-variant column is that same hazard measured
+#: on this read, and is evidence *for* ABL-425 rather than a qualification here.
+ES_SERVING_HOLD = "ABL-425"
 
 
 def _sha256(path: Path) -> str:
@@ -100,38 +116,44 @@ def implied_daylight(all_hours_wape_pct: float, f_pct: float) -> tuple[float, fl
     return ((all_hours_wape_pct - f_pct) / (1.0 - f), all_hours_wape_pct / (1.0 - f))
 
 
-#: The cap ABL-419 places on ES: "grade ES no higher than B, whatever G1-G4 say".
-CAP = "B"
+def serving_hold(country: str) -> str:
+    """The serving hold carried beside a pair's grade, or `""` if it has none.
 
-
-def capped(country: str, ladder_label: str) -> tuple[str, str]:
-    """ES may not be reported higher than B. Returns (reported grade, failures).
-
-    **"Higher" is ABL-418's severity ordering, not alphabetical**, and getting
-    that wrong is the whole reason this is a named function with tests rather
-    than an inline conditional. `GRADE_SEVERITY` is `{"A": 0, "U": 1, "B": 2,
-    "C": 3}`, so `U` -- and therefore `U(+)` -- is **less severe than `B`**. A
-    reading that treated `U(+)` as already below the cap would leave ES's grade
-    untouched and quietly not apply the cap at all, which is the failure this
-    guards against: ES's ladder grade on this read *is* `U(+)`, so the cap binds.
-
-    The cap only ever moves a grade **down**. A ladder grade already at or below
-    the cap in severity keeps its own letter and gains the hold as an additional
-    named failure -- reporting `B` for a cell the ladder called `C` would be an
-    upgrade wearing a cap's clothing.
-
-    The ladder grade is never discarded: every caller prints it beside the
-    reported one. `U(+)` and `B` are both non-promotion, but they carry
-    *different next steps* -- `U(+)` means re-read at k>1 seeds per ABL-385,
-    `B` means not promotion-eligible with failures named -- and collapsing the
-    two would destroy the only actionable thing ES's read says.
+    A serving hold is **not** a failed G-condition and never enters that column.
+    The two answer different questions: G1-G4 say what the read *measured*, the
+    hold says what policy blocks *downstream* of the read. ABL-418's grade A is
+    already written to accommodate one -- "promotion-eligible, subject to any
+    named data hold" -- so the two compose without either being bent.
     """
-    if country != "ES":
-        return ladder_label, ""
+    return ES_SERVING_HOLD if country == "ES" else ""
+
+
+def reported_grade(country: str, ladder_label: str) -> tuple[str, str]:
+    """Returns `(reported grade, serving hold)`. **The grade is always the ladder's.**
+
+    This function used to cap ES at grade B. It no longer modifies any grade,
+    and the suite pins that it cannot -- `test_no_country_s_grade_is_modified`
+    walks every country against every label the ladder can emit. What survives
+    from the cap is the discipline of routing the policy through one named,
+    tested function rather than an inline conditional: a reader can see there is
+    exactly one place a grade could be bent, and confirm it is not bent there.
+
+    `GRADE_SEVERITY` is consulted only to reject a label the ladder could not
+    have produced. A mistyped grade would otherwise reach the table silently,
+    and the severity ordering (`{"A": 0, "U": 1, "B": 2, "C": 3}` -- `U` is
+    *less* severe than `B`, not alphabetically after it) is the detail that made
+    the old cap subtle enough to be worth a test.
+    """
     letter = ladder_label.split("(")[0]
-    if GRADE_SEVERITY[letter] < GRADE_SEVERITY[CAP]:
-        return CAP, ES_HOLD
-    return ladder_label, ES_HOLD
+    if letter not in GRADE_SEVERITY:
+        raise ValueError(f"{ladder_label!r} is not a grade the ABL-418 ladder produces")
+    return ladder_label, serving_hold(country)
+
+
+def reported_cell(country: str, ladder_label: str) -> str:
+    """How a graded pair prints once its serving hold, if any, sits beside it."""
+    grade, hold = reported_grade(country, ladder_label)
+    return f"{grade} (serving hold: {hold})" if hold else grade
 
 
 def main() -> int:
@@ -279,11 +301,33 @@ def main() -> int:
         "whoever owns serving, not a qualification of the read above — and settling it needs "
         "an actual daylight-only read, which this bound deliberately does not substitute for.")
     lines.append("")
-    lines.append(f"**ES is capped at grade B regardless of G1–G4**, with `{ES_HOLD}` named as the "
-                 "failed condition. The cap is a hold, not a measurement: the ABL-337 clamp "
-                 "question is serving-side and this read changes no serving path, so nothing "
-                 "above depends on it — but ES may not reach a promotion recommendation before "
-                 "ABL-411 settles. The cap only ever moves a grade down.")
+    lines.append(
+        "**ES is graded exactly as G1–G4 read it, and carries a serving hold beside the "
+        f"grade rather than inside it.** The grade-B cap ABL-419 originally placed on ES is "
+        "**withdrawn**: ABL-411 settled on 2026-08-13 (PR #56), and over 3,196 night hours "
+        "Red Eléctrica's own `solFot + solTer` split accounts for **98.55%** of the MW the "
+        "replica books for ES with the sun down — MAE **5.55 MW** against a **263.5 MW** mean "
+        "night level — so the overnight output is real generation and the condition the cap "
+        "named no longer exists. Capping would have made the letter mean two different things: "
+        "\"G2/G3/G4 failed\" for every other cell and \"policy says not yet\" for ES. ABL-418's "
+        "grade A already reads *promotion-eligible, subject to any named data hold*, so the "
+        f"hold binds without bending the measurement. The hold is **`{ES_SERVING_HOLD}`** — "
+        "`src/solar_clamp.py` hard-zeros every sub-threshold hour fleet-wide and would delete "
+        "ES's real 263.5 MW, so ES may not be *promoted to serving* until it lands. It may be "
+        "read and graded now, which is all this tranche does, and the clamped-variant column "
+        f"above is that same hazard measured on this read — evidence *for* {ES_SERVING_HOLD}.")
+    lines.append("")
+    lines.append(
+        "**And ES's night floor is not simply \"CSP\".** ABL-411's confirmation was partial in "
+        "an interesting way: of the 263.5 MW, **80.1%** is CSP dispatch and **18.5%** is REE's "
+        "*own PV* series booking 44–59 MW at sun elevations of −40° to −49°, where photovoltaics "
+        "cannot generate — a TSO-side estimation artifact mirrored faithfully by ENTSO-E and by "
+        "our ingest, real in the data and not in the world. The remaining **1.5%** is explained "
+        "by neither REE series. (The three shares are `share_of_replica_explained_by_csp`, "
+        "`…_by_pv` and the residual, read from ABL-411's machine record; they are shares of the "
+        "night floor itself, not of the 98.55% REE explains, which is why CSP reads 80.1% here "
+        "and not 81.5%.) None of this moves the read — it sits inside the 1.352pp band already "
+        "printed above — but it is the accurate sentence.")
     lines.append("")
 
     # ---------------------------------------------------------------- pair grades
@@ -302,10 +346,8 @@ def main() -> int:
         if not grades:
             continue
         pair = pair_grade(grades)
-        reported, hold = capped(country, pair.label)
+        reported, hold = reported_grade(country, pair.label)
         failed = [name for name, _ in pair.failed]
-        if hold:
-            failed.append(hold)
         weak = pair.bar_weak
         bar = bars.get(f"{country}/solar", {}).get("d7_wape_pct")
         record["pair_grades"][country] = {
@@ -313,6 +355,7 @@ def main() -> int:
             "ladder_pair_grade": pair.label,
             "reported_grade": reported,
             "failed_conditions": failed,
+            "serving_hold": hold or None,
             "bar_weaker_than_a_flat_line": weak,
             "precommitted_d7_bar_pct": bar,
             "skill_pct": dict(pair.skill),
@@ -321,7 +364,8 @@ def main() -> int:
         }
         lines.append(
             f"| {country} | {bar}% | {' / '.join(grade.label for grade in grades)} | "
-            f"{pair.label} | **{reported}** | {', '.join(failed) or '—'} | "
+            f"{pair.label} | **{reported_cell(country, pair.label)}** | "
+            f"{', '.join(failed) or '—'} | "
             f"{'yes' if weak else ('no' if weak is not None else '—')} |")
     lines.append("")
     lines.append(

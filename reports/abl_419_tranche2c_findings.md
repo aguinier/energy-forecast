@@ -82,7 +82,7 @@ existing contamination issue covers.
 |---|---:|:---:|---|:---:|:---:|
 | IT | **7.11%** | 3/3 PASS | +4.8 / +3.6 / +8.1% | U(+) | **U(+)** |
 | GR | 10.37% | 0/3 | **−104.3 / −104.4 / −99.1%** | C — fails G1 | **C** |
-| ES | 11.78% | 3/3 PASS | +2.5 / +2.3 / +1.0% | U(+) | **B** (ABL-411 hold) |
+| ES | 11.78% | 3/3 PASS | +2.5 / +2.3 / +1.0% | U(+) | **U(+)** (serving hold: ABL-425) |
 | PT | 13.09% | 0/3 | **−10.7 / −13.5 / −15.6%** | C — fails G1 | **C** |
 | HR | 16.43% | 3/3 PASS | +7.8 / +7.2 / +8.6% | U(+) | **U(+)** |
 
@@ -132,7 +132,7 @@ not a worse model.**
 
 ---
 
-## 3. ES — the band, and a cap that binds
+## 3. ES — the band, and a serving hold carried beside the grade
 
 ES gate-window `f` = **1.3520%** of energy booked at night (ABL-396 §2),
 reproduced from that issue's committed machine record rather than cited.
@@ -155,22 +155,66 @@ would clear it — and that is worth handing to whoever owns serving, because it
 means ES's PASS is not robust to the clamp. Settling it needs an actual
 daylight-only read, which this bound deliberately does not substitute for.
 
-**ES is reported at grade B with `ABL-411 hold` named**, per this issue's
-ruling. Two things about the cap that matter:
+### The grade-B cap is withdrawn, and ES is graded honestly
 
-- **It binds.** ABL-418 orders grades by *severity* —
-  `{"A": 0, "U": 1, "B": 2, "C": 3}` — so `U(+)` is **less severe than B** and
-  the cap pulls it down. A reading that took `U(+)` for "already below B" would
-  have left ES uncapped on the one read the cap was written for.
-- **It costs information, so the ladder grade is printed beside it.** `U(+)`
-  and `B` are both non-promotion but carry *different next steps*: `U(+)` means
-  re-read at k>1 seeds, `B` means not promotion-eligible with failures named.
-  ES's underlying `U(+)` is what its read actually says once ABL-411 settles.
+**ES is reported `U(+)`, exactly as G1–G4 read it, carrying `serving hold:
+ABL-425` beside the letter.** This issue's original ES paragraph capped ES at
+grade B with `ABL-411 hold` as a failed condition; **that condition no longer
+exists.** ABL-411 settled on 2026-08-13 (PR #56, merged 22:37 UTC): over 3,196
+night hours Red Eléctrica's own `solFot + solTer` split accounts for **98.55%**
+of the MW the replica books for ES with the sun down, MAE **5.55 MW** against a
+**263.5 MW** mean night level. ES's overnight output is real generation.
 
-Nothing in this read depends on whether ES's overnight MW is CSP dispatch: the
-exclusion fit rule is off, and this issue changes no serving path. **ABL-403's
-soft hold is discharged** — the band above bounds the only cell its 2×2 could
-have moved here, and it cost nothing.
+The cap was withdrawn rather than merely satisfied, and the reason is worth
+recording because it is a methodology point, not a bookkeeping one. A cap makes
+the letter mean two different things — "G2/G3/G4 failed" for every other cell
+and "policy says not yet" for ES — which destroys the one property the ladder
+exists to have: **the letter is a measurement.** ABL-418 already wrote grade A
+as *"promotion-eligible, subject to any named data hold"*, so a hold binds
+without bending a grade. Keep the measurement clean; carry the policy beside it.
+
+**The hold is `ABL-425`, and it is a live one.** `src/solar_clamp.py` hard-zeros
+every sub-threshold hour fleet-wide, which would delete ES's real 263.5 MW. ES
+may not be **promoted to serving** until that lands; it may be **read and
+graded** now, which is all this tranche does. Note that the clamped-variant
+column above is that same hazard measured on this read — three bands whose
+served interval straddles the bar — so it is **evidence for ABL-425**, not a
+qualification of anything here. That is the strongest reason to prefer a hold to
+a cap: the cap would have hidden this measurement behind a letter.
+
+**Nothing else moved.** ES's grade change is `B` → `U(+)` in the *reported*
+column only. No verdict, metric, band, bar, n or window changed, the machine
+record was not regenerated, and **the tranche headline is unchanged: no pair
+reaches grade A.** ES was `U(+)` on the ladder before the cap was lifted and is
+`U(+)` after it.
+
+### ES's night floor is not simply "CSP"
+
+ABL-411's confirmation was partial, and the partial falsification is the
+interesting half. Of the 263.5 MW night level:
+
+| component | share of the night floor |
+|---|---:|
+| CSP dispatch (`solar térmica`) | **80.1%** |
+| REE PV-estimation artifact (`solar fotovoltaica`) | **18.5%** |
+| explained by neither REE series | 1.5% |
+
+REE's *own PV* series books **44–59 MW at sun elevations of −40° to −49°**,
+where photovoltaics cannot generate — a TSO-side estimation artifact mirrored
+faithfully by ENTSO-E and by our ingest, **real in the data, not real in the
+world.** So "ES's night floor is CSP" is not the true sentence; *"81.5% CSP
+dispatch, 18.5% TSO PV-estimation artifact"* is closer, and the exact one is the
+table above — the shares are of the night floor itself, not of the 98.55% REE
+explains, which is why CSP reads **80.1% and not 81.5%** and why a third row is
+needed to reach 100%. All three are read from ABL-411's committed machine record
+(`share_of_replica_explained_by_csp` = 0.8009, `…_by_pv` = 0.1846), not from its
+prose. This changes no number in this read — it sits entirely inside the 1.352pp
+band already printed — and per ABL-411 §7 it does not earn a separate mechanism.
+
+Nothing in this read ever depended on the answer: the exclusion fit rule is off
+and this issue changes no serving path. **ABL-403's soft hold is discharged** —
+the band above bounds the only cell its 2×2 could have moved here, and it cost
+nothing.
 
 ---
 
@@ -282,9 +326,13 @@ two tables disagree by **4.877% of level** in the gate window (mean abs diff
 1. **Do not promote anything from this tranche.** No pair reaches grade A. ES,
    HR and IT pass their bars but inside the readability floor; GR and PT fail
    readably.
-2. **ES stays behind `ABL-411 hold`** regardless, per this issue's ruling, and
-   separately its clamped-variant verdict is indeterminate — worth resolving
-   before ES is considered for serving at all.
+2. **ES is graded `U(+)` and carries `serving hold: ABL-425`.** The grade-B cap
+   is withdrawn — ABL-411 settled and ES's overnight MW is real generation — but
+   ES may not be promoted to serving until the fleet-wide clamp in
+   `src/solar_clamp.py` stops zeroing its real 263.5 MW. §3's clamped-variant
+   column is direct evidence for that issue: on all three bands the served
+   interval straddles the bar, so ES's PASS is **not robust to the clamp**.
+   Nothing here changes what may be promoted: no pair reaches grade A.
 3. **The cheapest next step for ES/HR/IT is a k>1 seed re-read**, which is what
    `U(+)` registers. ABL-385's protocol already exists; three pairs × k seeds is
    a bounded spend and would convert three unreadable passes into readable ones

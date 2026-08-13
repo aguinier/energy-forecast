@@ -33,7 +33,9 @@ ES gate-window `f` = **1.3520%**. Every arm of the gate is scored on the same al
 
 **Read the last two columns as answering different questions.** The *registered* verdict is a direct measurement: challenger and D-7 are scored on the identical all-hours rows, so ES's night floor cannot have moved it in either direction, and the band does not qualify it. The *clamped-variant* column is serving-side and is reported because `f` makes it free: the ABL-337 clamp forces a zero on this same night predicate, so a served version of this challenger would score somewhere in `[A, A+f]`. On all three ES bands that interval **straddles the D-7 bar**, so the bound cannot say whether a clamped ES would clear it. That is a finding to hand to whoever owns serving, not a qualification of the read above — and settling it needs an actual daylight-only read, which this bound deliberately does not substitute for.
 
-**ES is capped at grade B regardless of G1–G4**, with `ABL-411 hold` named as the failed condition. The cap is a hold, not a measurement: the ABL-337 clamp question is serving-side and this read changes no serving path, so nothing above depends on it — but ES may not reach a promotion recommendation before ABL-411 settles. The cap only ever moves a grade down.
+**ES is graded exactly as G1–G4 read it, and carries a serving hold beside the grade rather than inside it.** The grade-B cap ABL-419 originally placed on ES is **withdrawn**: ABL-411 settled on 2026-08-13 (PR #56), and over 3,196 night hours Red Eléctrica's own `solFot + solTer` split accounts for **98.55%** of the MW the replica books for ES with the sun down — MAE **5.55 MW** against a **263.5 MW** mean night level — so the overnight output is real generation and the condition the cap named no longer exists. Capping would have made the letter mean two different things: "G2/G3/G4 failed" for every other cell and "policy says not yet" for ES. ABL-418's grade A already reads *promotion-eligible, subject to any named data hold*, so the hold binds without bending the measurement. The hold is **`ABL-425`** — `src/solar_clamp.py` hard-zeros every sub-threshold hour fleet-wide and would delete ES's real 263.5 MW, so ES may not be *promoted to serving* until it lands. It may be read and graded now, which is all this tranche does, and the clamped-variant column above is that same hazard measured on this read — evidence *for* ABL-425.
+
+**And ES's night floor is not simply "CSP".** ABL-411's confirmation was partial in an interesting way: of the 263.5 MW, **80.1%** is CSP dispatch and **18.5%** is REE's *own PV* series booking 44–59 MW at sun elevations of −40° to −49°, where photovoltaics cannot generate — a TSO-side estimation artifact mirrored faithfully by ENTSO-E and by our ingest, real in the data and not in the world. The remaining **1.5%** is explained by neither REE series. (The three shares are `share_of_replica_explained_by_csp`, `…_by_pv` and the residual, read from ABL-411's machine record; they are shares of the night floor itself, not of the 98.55% REE explains, which is why CSP reads 80.1% here and not 81.5%.) None of this moves the read — it sits inside the 1.352pp band already printed above — but it is the accurate sentence.
 
 ## 3. Pair grade against the pre-committed bar
 
@@ -41,7 +43,7 @@ The bar column is ABL-348's, measured before any challenger for these pairs exis
 
 | pair | pre-committed D-7 bar | band grades | ladder pair grade | **reported** | failed conditions | bar weaker than a flat line? |
 |---|---:|---|:---:|:---:|---|:---:|
-| ES | 11.78% | U(+) / U(+) / U(+) | U(+) | **B** | ABL-411 hold | no |
+| ES | 11.78% | U(+) / U(+) / U(+) | U(+) | **U(+) (serving hold: ABL-425)** | — | no |
 | GR | 10.37% | C / C / C | C | **C** | G1 | no |
 | HR | 16.43% | U(+) / U(+) / U(+) | U(+) | **U(+)** | — | no |
 | IT | 7.11% | U(+) / U(+) / U(+) | U(+) | **U(+)** | — | no |

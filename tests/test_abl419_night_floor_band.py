@@ -1,4 +1,4 @@
-"""ABL-419: the night-floor band arithmetic, and the ES grade cap.
+"""ABL-419: the night-floor band arithmetic, and ES's serving hold.
 
 Two small things, both of which decide something a reader would otherwise have
 to take on trust.
@@ -12,15 +12,26 @@ inverted bound is exactly the sort of arithmetic that is wrong by a factor of
 ABL-396 worked by hand and checked against a real gate read (BG), so the test
 fails if the inversion drifts rather than if someone dislikes the number.
 
-**The cap.** ABL-419 caps ES at grade B whatever G1-G4 say, and "higher" here is
-ABL-418's *severity* ordering rather than the alphabet:
-`GRADE_SEVERITY = {"A": 0, "U": 1, "B": 2, "C": 3}`, so `U` and `U(+)` are
-**less severe than `B`** and the cap pulls them down to it. That is not a
-hypothetical -- ES's ladder grade on this read is `U(+)`, so a reading that took
-`U(+)` for "already below B" would silently not apply the cap on the one read it
-was written for. Pinned in both directions, because a cap that could *raise* a
-grade would be an upgrade wearing a cap's clothing: a `C` cell reported as `B`
-is strictly worse than no cap at all.
+**The hold.** ABL-419 originally capped ES at grade B whatever G1-G4 said, with
+`ABL-411 hold` named as the failed condition. **That cap is withdrawn.** ABL-411
+settled on 2026-08-13 (PR #56): Red Electrica's own `solFot + solTer` split
+accounts for 98.55% of the MW the replica books for ES at night over 3,196 night
+hours, MAE 5.55 MW against a 263.5 MW mean level, so ES's overnight output is
+real generation and the condition the cap named no longer exists.
+
+What replaces it is a *serving* hold -- `ABL-425`, the fleet-wide clamp in
+`src/solar_clamp.py` that would zero ES's real 263.5 MW -- carried **beside**
+the grade rather than inside it. ABL-418 writes grade A as "promotion-eligible,
+subject to any named data hold", so a hold binds without bending a letter, and
+the ladder keeps the property it exists for: the letter is a measurement.
+
+These tests pin the *withdrawal*, in both directions. A cap that quietly
+survives its own withdrawal would print a grade nobody measured, and a hold that
+leaked into `failed_conditions` would reintroduce the same conflation through
+the back door. `GRADE_SEVERITY` is still asserted -- `{"A": 0, "U": 1, "B": 2,
+"C": 3}`, so `U` is *less severe* than `B` rather than alphabetically after it --
+because that ordering is what made the old cap subtle, and it is now what
+validates a label rather than what bends one.
 """
 
 import importlib.util
@@ -110,44 +121,74 @@ def test_a_clean_country_has_a_band_of_zero_width():
 
 
 # ---------------------------------------------------------------------------
-# The cap
+# The serving hold that replaced the cap
+#
+# ABL-419 originally capped ES at grade B with `ABL-411 hold` as a failed
+# condition. ABL-411 settled (PR #56, 2026-08-13) and the cap was withdrawn: ES
+# is graded exactly as G1-G4 read it, and the policy is carried beside the
+# letter as a *serving* hold. These tests pin the withdrawal, because a cap that
+# quietly survives its own withdrawal is the failure mode here -- it would print
+# a grade nobody measured.
 # ---------------------------------------------------------------------------
 
-
-@pytest.mark.parametrize("ladder,expected", [("A", "B"), ("B", "B"), ("U(+)", "B"),
-                                             ("U", "B"), ("C", "C")])
-def test_the_es_cap_only_ever_moves_a_grade_down(ladder, expected):
-    reported, hold = reader.capped("ES", ladder)
-    assert reported == expected
-    assert hold == reader.ES_HOLD, "the cap must always name its failed condition"
+ALL_LABELS = ["A", "B", "U(+)", "U", "C"]
 
 
-def test_higher_means_less_severe_and_not_alphabetical():
-    """The trap this file exists for, stated as an assertion rather than a
-    comment. ABL-418 orders `C > B > U > A` by severity, so `U` and `U(+)` are
-    *higher* than the cap and must be pulled down to it. A reading that took
-    `U` for "already below B" would leave ES ungraded by the cap on exactly the
-    read where it binds -- ES's ladder grade here is `U(+)`."""
-    assert GRADE_SEVERITY["U"] < GRADE_SEVERITY["B"]
-    assert reader.capped("ES", "U(+)")[0] == "B"
+@pytest.mark.parametrize("country", ["ES", "GR", "HR", "IT", "PT"])
+@pytest.mark.parametrize("ladder", ALL_LABELS)
+def test_no_country_s_grade_is_modified(country, ladder):
+    """The cap is gone for every country including ES. This is the assertion
+    that would have failed before ABL-411 settled, and it is deliberately the
+    broadest one in the file: no country, at no grade, is reported as anything
+    other than what the ladder returned."""
+    assert reader.reported_grade(country, ladder)[0] == ladder
 
 
-def test_the_cap_never_raises_a_worse_grade():
-    """`C` is more severe than the cap, so it survives it. The cap is a ceiling,
-    never a floor."""
-    assert reader.capped("ES", "C")[0] == "C"
-    assert GRADE_SEVERITY["C"] > GRADE_SEVERITY[reader.CAP]
+@pytest.mark.parametrize("ladder", ALL_LABELS)
+def test_es_carries_the_hold_at_every_grade_including_a(ladder):
+    """The hold is unconditional and orthogonal to the letter. Grade A is the
+    case that matters: ABL-418 writes it as "promotion-eligible, **subject to
+    any named data hold**", so an A must still print its hold rather than the
+    hold being what stops an A from being printed."""
+    grade, hold = reader.reported_grade("ES", ladder)
+    assert grade == ladder
+    assert hold == reader.ES_SERVING_HOLD
+
+
+def test_the_hold_prints_beside_the_grade_not_inside_it():
+    """The rendering ABL-419's correction asked for, pinned literally."""
+    assert reader.reported_cell("ES", "A") == "A (serving hold: ABL-425)"
+    assert reader.reported_cell("ES", "U(+)") == "U(+) (serving hold: ABL-425)"
+    assert reader.reported_cell("GR", "C") == "C"
+
+
+def test_the_hold_is_never_a_failed_condition():
+    """A serving hold and a failed G-condition answer different questions -- what
+    policy blocks downstream versus what the read measured -- and merging them
+    is exactly what capping did wrong. `reported_grade` returns the hold in its
+    own slot; no caller may fold it into `failed_conditions`."""
+    _, hold = reader.reported_grade("ES", "U(+)")
+    assert hold not in GRADE_SEVERITY
+    assert hold == "ABL-425"
+
+
+def test_the_hold_names_the_issue_that_governs_it():
+    """ABL-425, not ABL-411. ABL-411 is *settled*; what still blocks ES from
+    serving is the fleet-wide clamp in `src/solar_clamp.py`, which would zero
+    ES's real 263.5 MW night level."""
+    assert reader.ES_SERVING_HOLD == "ABL-425"
+    assert not hasattr(reader, "CAP"), "the grade cap must not come back"
+    assert not hasattr(reader, "capped"), "the grade cap must not come back"
 
 
 @pytest.mark.parametrize("country", ["GR", "HR", "IT", "PT"])
-@pytest.mark.parametrize("ladder", ["A", "B", "U(+)", "U", "C"])
-def test_the_cap_touches_no_other_country(country, ladder):
-    reported, hold = reader.capped(country, ladder)
-    assert reported == ladder
-    assert hold == ""
+def test_no_other_country_carries_a_hold(country):
+    assert reader.serving_hold(country) == ""
 
 
-def test_the_hold_is_named_and_is_the_issue_that_governs_it():
-    """The cap's whole point is that a reader can tell it from a measurement.
-    An unnamed cap is indistinguishable from the ladder having produced a B."""
-    assert reader.ES_HOLD == "ABL-411 hold"
+def test_a_label_the_ladder_cannot_produce_is_rejected():
+    """The severity table is still consulted, for the one thing it is now for:
+    a mistyped grade must not reach the table silently."""
+    with pytest.raises(ValueError):
+        reader.reported_grade("ES", "D")
+    assert GRADE_SEVERITY["U"] < GRADE_SEVERITY["B"]

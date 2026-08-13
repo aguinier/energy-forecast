@@ -131,10 +131,9 @@
         "U(+)"
       ],
       "ladder_pair_grade": "U(+)",
-      "reported_grade": "B",
-      "failed_conditions": [
-        "ABL-411 hold"
-      ],
+      "reported_grade": "U(+)",
+      "failed_conditions": [],
+      "serving_hold": "ABL-425",
       "bar_weaker_than_a_flat_line": false,
       "precommitted_d7_bar_pct": 11.78,
       "skill_pct": {
@@ -160,6 +159,7 @@
       "failed_conditions": [
         "G1"
       ],
+      "serving_hold": null,
       "bar_weaker_than_a_flat_line": false,
       "precommitted_d7_bar_pct": 10.37,
       "skill_pct": {
@@ -183,6 +183,7 @@
       "ladder_pair_grade": "U(+)",
       "reported_grade": "U(+)",
       "failed_conditions": [],
+      "serving_hold": null,
       "bar_weaker_than_a_flat_line": false,
       "precommitted_d7_bar_pct": 16.43,
       "skill_pct": {
@@ -206,6 +207,7 @@
       "ladder_pair_grade": "U(+)",
       "reported_grade": "U(+)",
       "failed_conditions": [],
+      "serving_hold": null,
       "bar_weaker_than_a_flat_line": false,
       "precommitted_d7_bar_pct": 7.11,
       "skill_pct": {
@@ -231,6 +233,7 @@
       "failed_conditions": [
         "G1"
       ],
+      "serving_hold": null,
       "bar_weaker_than_a_flat_line": false,
       "precommitted_d7_bar_pct": 13.09,
       "skill_pct": {
