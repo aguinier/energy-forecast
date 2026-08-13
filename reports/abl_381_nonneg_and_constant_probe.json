@@ -1,0 +1,156 @@
+{
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 9432453120,
+  "renewable_source": "energy_generation",
+  "artifact_dir": "C:\\Code\\able\\energy-forecast-abl381\\experiments\\ABL316\\artifacts\\t1b",
+  "windows": {
+    "fit": [
+      "2026-01-14 00:00:00",
+      "2026-07-11 00:00:00"
+    ],
+    "gate": [
+      "2026-07-11 00:00:00",
+      "2026-08-10 00:00:00"
+    ]
+  },
+  "countries": [
+    {
+      "country": "BG",
+      "nonneg": {
+        "artifact_nonneg_objective": null,
+        "artifact_loss_function": null,
+        "geometry_features_in_fit": [],
+        "n_selected_rows": 2730,
+        "n_negative": 141,
+        "pct_negative": 5.165,
+        "min_prediction_mw": -33.36,
+        "sum_negative_mwh": 1429.7,
+        "n_night_rows": 690,
+        "n_negative_at_night": 113,
+        "pct_of_night_rows_negative": 16.38,
+        "mean_prediction_at_night_mw": 224.78,
+        "mean_actual_at_night_mw": 225.13
+      },
+      "fit_window_mean_mw": 855.2,
+      "cells": [
+        {
+          "horizon_band": "24-36h",
+          "n": 720,
+          "challenger_wape_pct": 18.89,
+          "d7_wape_pct": 24.4,
+          "daylight_n": 510,
+          "daylight_challenger_wape_pct": 18.9,
+          "daylight_d7_wape_pct": 24.35,
+          "daylight_clears_d7": true,
+          "causal_constant_mw": 855.2,
+          "causal_constant_wape_pct": 75.3,
+          "oracle_constant_mw": 1087.9,
+          "oracle_constant_wape_pct": 73.49,
+          "causal_climatology_wape_pct": 41.98,
+          "oracle_climatology_wape_pct": 19.15
+        },
+        {
+          "horizon_band": "36-48h",
+          "n": 720,
+          "challenger_wape_pct": 18.6,
+          "d7_wape_pct": 24.4,
+          "daylight_n": 510,
+          "daylight_challenger_wape_pct": 18.59,
+          "daylight_d7_wape_pct": 24.35,
+          "daylight_clears_d7": true,
+          "causal_constant_mw": 855.2,
+          "causal_constant_wape_pct": 75.3,
+          "oracle_constant_mw": 1087.9,
+          "oracle_constant_wape_pct": 73.49,
+          "causal_climatology_wape_pct": 41.98,
+          "oracle_climatology_wape_pct": 19.15
+        },
+        {
+          "horizon_band": "48-64h",
+          "n": 510,
+          "challenger_wape_pct": 20.03,
+          "d7_wape_pct": 24.99,
+          "daylight_n": 360,
+          "daylight_challenger_wape_pct": 20.17,
+          "daylight_d7_wape_pct": 25.05,
+          "daylight_clears_d7": true,
+          "causal_constant_mw": 855.2,
+          "causal_constant_wape_pct": 68.17,
+          "oracle_constant_mw": 1347.7,
+          "oracle_constant_wape_pct": 62.57,
+          "causal_climatology_wape_pct": 41.33,
+          "oracle_climatology_wape_pct": 20.38
+        }
+      ]
+    },
+    {
+      "country": "CH",
+      "nonneg": {
+        "artifact_nonneg_objective": null,
+        "artifact_loss_function": null,
+        "geometry_features_in_fit": [],
+        "n_selected_rows": 2730,
+        "n_negative": 701,
+        "pct_negative": 25.678,
+        "min_prediction_mw": -31.97,
+        "sum_negative_mwh": 5765.9,
+        "n_night_rows": 640,
+        "n_negative_at_night": 515,
+        "pct_of_night_rows_negative": 80.47,
+        "mean_prediction_at_night_mw": -5.48,
+        "mean_actual_at_night_mw": 0.0
+      },
+      "fit_window_mean_mw": 833.4,
+      "cells": [
+        {
+          "horizon_band": "24-36h",
+          "n": 720,
+          "challenger_wape_pct": 8.16,
+          "d7_wape_pct": 12.67,
+          "daylight_n": 534,
+          "daylight_challenger_wape_pct": 7.99,
+          "daylight_d7_wape_pct": 12.67,
+          "daylight_clears_d7": true,
+          "causal_constant_mw": 833.4,
+          "causal_constant_wape_pct": 95.08,
+          "oracle_constant_mw": 677.2,
+          "oracle_constant_wape_pct": 94.65,
+          "causal_climatology_wape_pct": 37.53,
+          "oracle_climatology_wape_pct": 9.02
+        },
+        {
+          "horizon_band": "36-48h",
+          "n": 720,
+          "challenger_wape_pct": 8.01,
+          "d7_wape_pct": 12.67,
+          "daylight_n": 534,
+          "daylight_challenger_wape_pct": 7.85,
+          "daylight_d7_wape_pct": 12.67,
+          "daylight_clears_d7": true,
+          "causal_constant_mw": 833.4,
+          "causal_constant_wape_pct": 95.08,
+          "oracle_constant_mw": 677.2,
+          "oracle_constant_wape_pct": 94.65,
+          "causal_climatology_wape_pct": 37.53,
+          "oracle_climatology_wape_pct": 9.02
+        },
+        {
+          "horizon_band": "48-64h",
+          "n": 510,
+          "challenger_wape_pct": 8.39,
+          "d7_wape_pct": 12.53,
+          "daylight_n": 406,
+          "daylight_challenger_wape_pct": 8.29,
+          "daylight_d7_wape_pct": 12.53,
+          "daylight_clears_d7": true,
+          "causal_constant_mw": 833.4,
+          "causal_constant_wape_pct": 85.99,
+          "oracle_constant_mw": 1963.3,
+          "oracle_constant_wape_pct": 79.52,
+          "causal_climatology_wape_pct": 36.56,
+          "oracle_climatology_wape_pct": 8.7
+        }
+      ]
+    }
+  ]
+}

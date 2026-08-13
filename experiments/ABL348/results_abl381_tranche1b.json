@@ -1,0 +1,539 @@
+{
+  "meta": {
+    "generated_at": "2026-08-13 08:59 UTC",
+    "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "replica_bytes": 9432453120,
+    "databases": {
+      "replica": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "features": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "sidecar": "C:\\Code\\able\\data\\forecasts_local.db",
+      "ambient_energy_db_path": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "features_match_replica": true,
+      "ambient_matches_replica": true
+    },
+    "training_source": "energy_generation",
+    "scope": "abl316-t1b",
+    "registered_countries": [
+      "BG",
+      "CH"
+    ],
+    "registered_cells": 6,
+    "gate_basis": [
+      "challenger",
+      "seasonal_naive"
+    ],
+    "fit_window": {
+      "start": "2026-01-14 00:00:00",
+      "end_exclusive": "2026-07-11 00:00:00"
+    },
+    "gate_window": {
+      "start": "2026-07-11 00:00:00",
+      "end_exclusive": "2026-08-10 00:00:00"
+    },
+    "registered_intended_n": {
+      "2-12h": 240,
+      "12-24h": 600,
+      "24-36h": 720,
+      "36-48h": 720,
+      "48-64h": 480
+    },
+    "schedule_implied_n": {
+      "2-12h": 210,
+      "12-24h": 570,
+      "24-36h": 720,
+      "36-48h": 720,
+      "48-64h": 510
+    },
+    "vintage_counts": {
+      "solar/catboost": {
+        "generated_timestamps": 720,
+        "run_days": 31
+      }
+    },
+    "selection": "latest vintage per country + target + model + horizon band"
+  },
+  "verdict": "PASS",
+  "recommendation": "The challenger clears the pre-registered D-7 bar in every served solar D+2 country-band cell. Preserve these experiment artifacts and ask the CEO to initiate Board review; do not promote from this issue.",
+  "training": [
+    {
+      "country": "BG",
+      "algorithm": "catboost",
+      "params": {
+        "iterations": 500,
+        "depth": 8,
+        "learning_rate": 0.05,
+        "l2_leaf_reg": 3,
+        "random_seed": 42,
+        "verbose": 0,
+        "thread_count": -1
+      },
+      "audit": {
+        "intended_rows": 34176,
+        "retained_rows": 34176,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 4272,
+        "degraded_lag_1d_rows": 23674
+      },
+      "gate_build_audit": {
+        "intended_rows": 5760,
+        "retained_rows": 5760,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 720,
+        "degraded_lag_1d_rows": 3990
+      },
+      "constant_runs": [],
+      "artifact_path": "C:\\Code\\able\\energy-forecast-abl381\\experiments\\ABL316\\artifacts\\t1b\\BG\\solar\\model.joblib",
+      "artifact_sha256": "9bbe1e74b555a5a9d42ba929bcc83255d75affce86d12635b52c2bde485aa5ae"
+    },
+    {
+      "country": "CH",
+      "algorithm": "catboost",
+      "params": {
+        "iterations": 500,
+        "depth": 8,
+        "learning_rate": 0.05,
+        "l2_leaf_reg": 3,
+        "random_seed": 42,
+        "verbose": 0,
+        "thread_count": -1
+      },
+      "audit": {
+        "intended_rows": 34176,
+        "retained_rows": 34176,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 4272,
+        "degraded_lag_1d_rows": 23674
+      },
+      "gate_build_audit": {
+        "intended_rows": 5760,
+        "retained_rows": 5760,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 720,
+        "degraded_lag_1d_rows": 3990
+      },
+      "constant_runs": [],
+      "artifact_path": "C:\\Code\\able\\energy-forecast-abl381\\experiments\\ABL316\\artifacts\\t1b\\CH\\solar\\model.joblib",
+      "artifact_sha256": "9ff1a53de87e5f9a306187be4894287bc7bfeb13fdadd099654db40ea580dd9f"
+    }
+  ],
+  "gate_cells": [
+    {
+      "country": "BG",
+      "horizon_band": "24-36h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 18.885224767803308,
+          "mae": 271.79558827184286,
+          "bias_pct": -12.27367296303655,
+          "slope": 0.8030595682814294,
+          "correlation": 0.9497779217210158
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 24.39922177799024,
+          "mae": 351.1528678138889,
+          "bias_pct": -3.273048428481157,
+          "slope": 0.8501606217608132,
+          "correlation": 0.8847259714787825
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 48.95559007898538,
+          "mae": 704.5673836722223,
+          "bias_pct": 19.462355633422327,
+          "slope": 0.6300096610089836,
+          "correlation": 0.7618018402815041
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    },
+    {
+      "country": "BG",
+      "horizon_band": "36-48h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 18.59888047557926,
+          "mae": 267.67452980893256,
+          "bias_pct": -12.482036525278174,
+          "slope": 0.800972157502018,
+          "correlation": 0.9518322243895646
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 24.39922177799024,
+          "mae": 351.1528678138889,
+          "bias_pct": -3.273048428481157,
+          "slope": 0.8501606217608132,
+          "correlation": 0.8847259714787825
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 124.70764522188796,
+          "mae": 1794.7886886083334,
+          "bias_pct": 19.35624130599993,
+          "slope": -0.5539891462235332,
+          "correlation": -0.6722604810247129
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    },
+    {
+      "country": "BG",
+      "horizon_band": "48-64h",
+      "scores": {
+        "challenger": {
+          "n": 510,
+          "wape_pct": 20.027198495225225,
+          "mae": 340.2619658161822,
+          "bias_pct": -12.221653172990887,
+          "slope": 0.7748085379325086,
+          "correlation": 0.9244612505265477
+        },
+        "seasonal_naive": {
+          "n": 510,
+          "wape_pct": 24.990061762850655,
+          "mae": 424.5809788784313,
+          "bias_pct": -3.9148733467117536,
+          "slope": 0.8152417575584564,
+          "correlation": 0.8511008406658227
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 510,
+          "wape_pct": 40.467468307554796,
+          "mae": 687.5420104921568,
+          "bias_pct": 20.341363161145452,
+          "slope": 0.6770086558221848,
+          "correlation": 0.7998961623033968
+        }
+      },
+      "comparator_n": {
+        "challenger": 510,
+        "seasonal_naive": 510,
+        "incumbent": 0,
+        "persistence": 510
+      },
+      "gate": {
+        "pass": true,
+        "n": 510,
+        "intended_n": 480,
+        "minimum_n": 456,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    },
+    {
+      "country": "CH",
+      "horizon_band": "24-36h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 8.161702097980383,
+          "mae": 108.63070656874746,
+          "bias_pct": 1.352715412285374,
+          "slope": 0.9907382204002421,
+          "correlation": 0.9916296847096159
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 12.671907993243584,
+          "mae": 168.66069140416667,
+          "bias_pct": 5.784051337437874,
+          "slope": 1.0252299333149317,
+          "correlation": 0.9813930665871702
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 45.651826301462094,
+          "mae": 607.6171474708333,
+          "bias_pct": -14.940936509511738,
+          "slope": 0.6344998723966504,
+          "correlation": 0.7993307270981367
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    },
+    {
+      "country": "CH",
+      "horizon_band": "36-48h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 8.007164067544696,
+          "mae": 106.57383470103676,
+          "bias_pct": 1.4664648548446502,
+          "slope": 0.9911123577914772,
+          "correlation": 0.9923606444579164
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 12.671907993243584,
+          "mae": 168.66069140416667,
+          "bias_pct": 5.784051337437874,
+          "slope": 1.0252299333149317,
+          "correlation": 0.9813930665871702
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 171.68722770497206,
+          "mae": 2285.1244299930554,
+          "bias_pct": -14.517865573527457,
+          "slope": -0.6225509634984234,
+          "correlation": -0.7798910636438033
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    },
+    {
+      "country": "CH",
+      "horizon_band": "48-64h",
+      "scores": {
+        "challenger": {
+          "n": 510,
+          "wape_pct": 8.39433278149978,
+          "mae": 147.00252837906552,
+          "bias_pct": 0.29244229268335903,
+          "slope": 0.9749568220462331,
+          "correlation": 0.9877990584692639
+        },
+        "seasonal_naive": {
+          "n": 510,
+          "wape_pct": 12.525699383152688,
+          "mae": 219.3514990372549,
+          "bias_pct": 5.381672033864737,
+          "slope": 1.0189577394117943,
+          "correlation": 0.976158225058831
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 510,
+          "wape_pct": 42.117471059186954,
+          "mae": 737.5660336313725,
+          "bias_pct": -8.056471188481307,
+          "slope": 0.5382911518794148,
+          "correlation": 0.7538792368093304
+        }
+      },
+      "comparator_n": {
+        "challenger": 510,
+        "seasonal_naive": 510,
+        "incumbent": 0,
+        "persistence": 510
+      },
+      "gate": {
+        "pass": true,
+        "n": 510,
+        "intended_n": 480,
+        "minimum_n": 456,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    }
+  ],
+  "country_d2": [
+    {
+      "country": "BG",
+      "n": 1950,
+      "scores": {
+        "challenger": {
+          "n": 1950,
+          "wape_pct": 19.12095390154587,
+          "mae": 288.1805577355955,
+          "bias_pct": -12.33180162563664,
+          "slope": 0.7957572265789267,
+          "correlation": 0.9445160361748508
+        },
+        "seasonal_naive": {
+          "n": 1950,
+          "wape_pct": 24.57341992239019,
+          "mae": 370.35714301538457,
+          "bias_pct": -3.4622785291011056,
+          "slope": 0.8418564473350229,
+          "correlation": 0.8770588082228671
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 1950,
+          "wape_pct": 73.16201337658133,
+          "mae": 1102.6578448169232,
+          "bias_pct": 19.684100351555564,
+          "slope": 0.21117039023697745,
+          "correlation": 0.25280992279542625
+        }
+      },
+      "comparator_n": {
+        "challenger": 1950,
+        "seasonal_naive": 1950,
+        "incumbent": 0,
+        "persistence": 1950
+      },
+      "tso": {
+        "n": 1950,
+        "wape_pct": 33.23814322088694,
+        "mae": 500.9471128276923,
+        "bias_pct": -1.1552943887424925,
+        "slope": 1.1074097989219516,
+        "correlation": 0.8880179002123263
+      }
+    },
+    {
+      "country": "CH",
+      "n": 1950,
+      "scores": {
+        "challenger": {
+          "n": 1950,
+          "wape_pct": 8.18293966983427,
+          "mae": 117.90695342952209,
+          "bias_pct": 1.0544867839708918,
+          "slope": 0.9862187127945947,
+          "correlation": 0.9909635091818998
+        },
+        "seasonal_naive": {
+          "n": 1950,
+          "wape_pct": 12.62543324273804,
+          "mae": 181.91828724666667,
+          "bias_pct": 5.6561486254804265,
+          "slope": 1.0237692169635064,
+          "correlation": 0.9802570959326375
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 1950,
+          "wape_pct": 87.5148891627596,
+          "mae": 1260.991083551795,
+          "bias_pct": -12.608303317738985,
+          "slope": 0.1682231378725306,
+          "correlation": 0.21539248770173308
+        }
+      },
+      "comparator_n": {
+        "challenger": 1950,
+        "seasonal_naive": 1950,
+        "incumbent": 0,
+        "persistence": 1950
+      },
+      "tso": {
+        "n": 1950,
+        "wape_pct": 7.131869814387008,
+        "mae": 102.76221944666668,
+        "bias_pct": -5.337766161586807,
+        "slope": 0.9582586522943679,
+        "correlation": 0.9915807562676421
+      }
+    }
+  ]
+}
