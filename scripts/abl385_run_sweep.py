@@ -2,8 +2,8 @@
 frozen registration, so the run cannot drift from what was pre-registered.
 
 This is a driver, not a harness. It shells out to
-`scripts/abl338_solar_holdout.py` — the harness ABL-338 wrote, ABL-375 added
-`--seeds` to, and this issue added `--type` to — once per
+`scripts/abl338_solar_holdout.py` - the harness ABL-338 wrote, ABL-375 added
+`--seeds` to, and this issue added `--type` to - once per
 (forecast type, algorithm, window), with every country of that type in the same
 invocation so the read and the feature build are paid once rather than per seed.
 
@@ -12,8 +12,8 @@ Two properties worth knowing:
 **It is resumable.** Each invocation writes its own JSON, and an invocation whose
 output already exists is skipped unless ``--force``. A sweep that is interrupted
 after 40 of 88 invocations can be restarted and will not refit the 40. That
-matters because the alternative — one long process holding every result in
-memory — loses everything to a single failure, and this sweep is ~90 minutes.
+matters because the alternative - one long process holding every result in
+memory - loses everything to a single failure, and this sweep is ~90 minutes.
 
 **It does not decide anything.** It fits and writes. Every number that reaches a
 verdict is computed by `scripts/abl385_read_margin.py`, which never fits, so the
@@ -25,7 +25,7 @@ Usage
     .venv\\Scripts\\python.exe scripts/abl385_run_sweep.py --dry-run     # print the plan
     .venv\\Scripts\\python.exe scripts/abl385_run_sweep.py --only primary
 
-`ENERGY_DB_PATH` must be passed explicitly from a worktree — `.env` is gitignored
+`ENERGY_DB_PATH` must be passed explicitly from a worktree - `.env` is gitignored
 and `config.DATABASE_PATH` otherwise degrades to a bare `\\data\\energy_dashboard.db`.
 """
 
@@ -71,7 +71,7 @@ def _arms_for(reg: dict, forecast_type: str) -> list:
 
     Solar carries two (`control` and `geometry`) because both exist for it and
     only for it, and fitting both at matched seeds is what lets the seed-pairing
-    question be answered. Every other type carries `control` alone — the geometry
+    question be answered. Every other type carries `control` alone - the geometry
     pair is appended by `create_all_features` for solar only, so a `geometry` arm
     elsewhere would be byte-identical to `control`.
     """

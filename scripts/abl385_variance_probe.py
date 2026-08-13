@@ -1,4 +1,4 @@
-"""ABL-385: the pre-registration probe. Reads only — it never fits a model.
+"""ABL-385: the pre-registration probe. Reads only - it never fits a model.
 
 ABL-375 registered a solar A/B and had to return AMBIGUOUS, because DE CatBoost's
 daylight MAE moved 13.79% of its own mean across three seeds while the
@@ -20,12 +20,12 @@ this probe establishes, from reads alone:
    measured that all four *solar* artifacts are field-identical to those
    defaults, which is what let it call the CatBoost arm "the serving
    configuration refitted". That claim has never been checked for wind, and this
-   issue extends the scope to wind — so it is checked here, per pair, before any
+   issue extends the scope to wind - so it is checked here, per pair, before any
    arm is registered as standing in for a serving model.
 3. **Whether every registered (pair, window) cell can actually be scored.** DE
    solar's `energy_renewable` history begins 2025-09-08, which is why its fit
-   window is the shortest of the four solar countries and — on ABL-375's reading
-   — why it may be underdetermined. A rolling-origin design that silently
+   window is the shortest of the four solar countries and - on ABL-375's reading
+   - why it may be underdetermined. A rolling-origin design that silently
    produces an empty or tiny fit frame for the earliest windows would answer the
    variance question with the sample-size question mixed in.
 4. **Which contamination touches each fit window**, counted rather than recalled.
@@ -35,7 +35,7 @@ Usage
     .venv\\Scripts\\python.exe scripts/abl385_variance_probe.py \\
         --out reports/abl_385_probe.json
 
-`ENERGY_DB_PATH` must be passed explicitly from a worktree — `.env` is gitignored
+`ENERGY_DB_PATH` must be passed explicitly from a worktree - `.env` is gitignored
 and `config.DATABASE_PATH` otherwise degrades to a bare `\\data\\energy_dashboard.db`.
 """
 
@@ -64,7 +64,7 @@ LIVE_MODELS_DIR = Path(r"C:\Code\able\energy-forecast\models")
 
 #: The candidate scope: every served pair whose target is an individual
 #: renewable type. Aggregates (`load`, `price`, `renewable`, `price_cascade`) are
-#: out of scope — this issue is about the renewable gate reads, and the solar
+#: out of scope - this issue is about the renewable gate reads, and the solar
 #: harness's band logic only means anything for a generation target.
 #:
 #: Enumerated here rather than globbed so the registration names a fixed list
@@ -85,7 +85,7 @@ CANDIDATE_PAIRS = [
 #: seasonal sweep (mid-February to mid-August) rather than at one point in it.
 #:
 #: They are contiguous and non-overlapping, so no holdout row is scored twice and
-#: each window's fit frame is every featured row strictly before it — an
+#: each window's fit frame is every featured row strictly before it - an
 #: *expanding* fit, which is what a retrain actually gets. That deliberately
 #: confounds fit length with season across windows; the `FIT_LENGTH_ABLATION`
 #: below is what separates them, by moving the fit start with the window held
@@ -100,15 +100,15 @@ WINDOWS = [
 ]
 
 #: Fit-start dates for the season-controlled fit-length ablation, all scored on
-#: W6. ABL-375's two competing explanations for DE — "DE prefers XGBoost" versus
-#: "DE CatBoost is unstable on a 156-day fit" — differ in what happens to the
+#: W6. ABL-375's two competing explanations for DE - "DE prefers XGBoost" versus
+#: "DE CatBoost is unstable on a 156-day fit" - differ in what happens to the
 #: spread when the fit gets longer, and nothing else here can tell them apart.
 FIT_LENGTH_ABLATION = ["2023-01-01", "2025-11-01", "2026-01-01", "2026-03-01"]
 
 #: Disclosed before the registration is frozen: one timing calibration was run
 #: before this probe, to size the sweep. It fitted DE solar / CatBoost / geometry
-#: at seeds 42 and 1337 on 2026-06-13..2026-08-11 — a cell ABL-375 has already
-#: published at those seeds (report §3, `holdout_noisefloor_summer_catboost_
+#: at seeds 42 and 1337 on 2026-06-13..2026-08-11 - a cell ABL-375 has already
+#: published at those seeds (report section 3, `holdout_noisefloor_summer_catboost_
 #: cleaned.json`), so it revealed no number that was not already committed. Seed
 #: 42 reproduced ABL-375's published maximum, 3,694.8 MW daylight MAE, exactly.
 TIMING_CALIBRATION = {
@@ -220,7 +220,7 @@ def probe_pair(country: str, forecast_type: str) -> dict:
         )
         # The harness bounds its own read at `holdout_end + 1 day` and then
         # trains on the complement, so its fit frame is exactly the rows
-        # strictly before the holdout start — ABL-375 records DE's as ending
+        # strictly before the holdout start - ABL-375 records DE's as ending
         # 2026-04-29 for a 04-30 holdout, which is that property observed. This
         # probe reads the whole span at once, so it has to apply the bound
         # itself or it would count future rows the sweep will never see.
