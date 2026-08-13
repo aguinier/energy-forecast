@@ -508,14 +508,38 @@ Three things follow, and the third is the one that bites:
   **drops** an unproducible declared name and warns, `to_vector` **raises**.
 - **A scope already read does not follow the constant.** The list moving is a
   real change to the challenger — measured, not assumed — so `SCOPE_FEATURES`
-  (`evaluate_solar_retrain.py:215`) is a registration of the same kind
-  `FIT_RULES` is, for the reason stated over that table: two gate reads are not
-  comparable unless both say what they trained on. `abl253` and `abl376` pin the
-  25 they were read on; a scope that registers nothing gets the 27, which is what
-  unblocks the remaining tranches without touching the table. The report and the
-  JSON now name the set (`feature_set`, `n_features`), because a 25-column and a
-  27-column artifact are otherwise indistinguishable after the fact. Whether
-  either scope is re-read at 27 is ABL-401.
+  (search the constant in `scripts/evaluate_solar_retrain.py`; it has moved twice
+  and a line number here goes stale within a tranche) is a registration of the
+  same kind `FIT_RULES` is, for the reason stated over that table: two gate reads
+  are not comparable unless both say what they trained on. `abl253`, `abl376` and
+  `abl316-t1b` pin the 25 they were read on; a scope that registers nothing gets
+  the 27, which is what unblocks the remaining tranches without touching the
+  table. The report and the JSON now name the set (`feature_set`, `n_features`),
+  because a 25-column and a 27-column artifact are otherwise indistinguishable
+  after the fact. Whether `abl253` or `abl376` is re-read at 27 is ABL-401.
+
+  **`abl316-t1b`'s pin is ABL-404 and it was missing for two months of merges.**
+  It is not one of `check_registration_tables`' three, so its absence resolved
+  through `features_for` to the 27 instead of aborting at import, and that scope's
+  `SCOPE_OUTPUTS` row writes ABL-381's published PASS 6/6 — a `--scope abl316-t1b`
+  run refitted BG and CH at the wrong challenger, overwrote the evidence in place
+  under ABL-381's own heading, and exited 0. Merge order caused it (PR #40
+  registered the scope, PR #46 added the table off an older branch) and neither
+  merge conflicted.
+
+- **The guard derives its scopes; do not re-hardcode them.**
+  `test_a_dispositioned_scope_still_resolves_to_the_list_it_was_read_on` used to
+  be `parametrize("scope", ["abl253", "abl376"])`, which is how it covered two of
+  the three scopes that needed it. It now takes every scope in `SCOPE_OUTPUTS`
+  whose `json_out` or `report_out` is **tracked in git** — published, not merely
+  present, so a local gate run cannot promote an open scope — and holds it to the
+  list that run recorded: `meta.feature_columns` where the record states it, the
+  legacy 25 where it does not (ABL-395 added that field in the same change that
+  made the list 27, so its absence dates the read). The rule is *dispositioned vs
+  open*, **not** *pinned vs unpinned*: `abl316-t2a` is deliberately absent from
+  `SCOPE_FEATURES` and inherits the 27, and is still guarded, against the 27
+  literal names in its own committed record. Requiring every registered scope to
+  appear in `SCOPE_FEATURES` would be wrong and would fail the suite.
 
 `--with-geometry` on `scripts/abl376_night_seed_spread.py` is now
 `LEGACY_FEATURE_COLUMNS` vs `FEATURE_COLUMNS`, not `X` vs `X + geometry`: written
