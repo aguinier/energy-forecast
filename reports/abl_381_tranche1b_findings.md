@@ -4,8 +4,7 @@
 daylight hours only, so it is not an artefact of the night rows discussed in §5.
 
 Machine record: `experiments/ABL348/results_abl381_tranche1b.json`.
-Harness report: `reports/abl_381_solar_tranche1b.md` (see §7 — its heading is wrong,
-and that is a live harness defect, not a mislabelled run).
+Harness report: `reports/abl_381_solar_tranche1b.md`.
 Probes: `reports/abl_381_tranche1b_precheck.json`,
 `reports/abl_381_nonneg_and_constant_probe.json`,
 `reports/abl_381_night_floor_probe.json`.
@@ -28,6 +27,15 @@ gate 2026-07-11 → 2026-08-10 (both exclusive), bar seasonal-naive D-7, source
 **10:52:36**. The BG artifact was written **10:55** and the CH artifact
 **10:59**. The registration commit is the earlier object; the ABL-322 property
 holds again.
+
+The ABL-389 re-read (§3) refitted both pairs at **12:40**, so the artifacts on
+disk now postdate that first fit. This does not weaken the property: the
+registration commit still precedes *every* fit, and the fit is deterministic
+under the pinned seed, so the re-read reproduced the first read's challenger and
+D-7 WAPE to 1e-12 in all six cells rather than drawing a second result to choose
+from. The registered bar, bands, windows and source were never re-derived. See
+§7d for why the artifact hash changed anyway and why that is not evidence of a
+changed model.
 
 **Gate basis is the two-way `("challenger", "seasonal_naive")`**, not by
 preference but by necessity. Measured read-only on the live replica: `forecasts`
@@ -85,18 +93,77 @@ summer holdout — not year-round evidence.
 Reported per cell, on exactly the rows that cell scored. **A reported reference,
 not a gate criterion**; the registered bar is unchanged.
 
-| country | band | challenger | D-7 | causal constant | oracle constant | causal climatology | oracle climatology |
-|---|---|---:|---:|---:|---:|---:|---:|
-| BG | 24-36h | 18.89% | 24.40% | 75.30% | 73.49% | 41.98% | 19.15% |
-| BG | 36-48h | 18.60% | 24.40% | 75.30% | 73.49% | 41.98% | 19.15% |
-| BG | 48-64h | 20.03% | 24.99% | 68.17% | 62.57% | 41.33% | 20.38% |
-| CH | 24-36h | 8.16% | 12.67% | 95.08% | 94.65% | 37.53% | 9.02% |
-| CH | 36-48h | 8.01% | 12.67% | 95.08% | 94.65% | 37.53% | 9.02% |
-| CH | 48-64h | 8.39% | 12.53% | 85.99% | 79.52% | 36.56% | 8.70% |
+All four references are now **ABL-389's**, computed by
+`src/evaluation/model_free_reference.py` and attached by
+`attach_model_free_references` from the same ABL-188-filtered `builder._actuals`
+the gate actuals and the D-7 baseline come from. The local implementation this
+read originally carried has been deleted, on the CEO's instruction and for the
+reason ABL-389 exists: two implementations of a same-named reference are free to
+drift, and a number that differs by provenance is not a measurement anyone can
+audit. Each column is scored on **its own intersection** with the gate basis and
+carries its own `n`; all four equal the cell `n` on both pairs, because BG and
+CH each cover 24/24 hours of the day in both windows.
 
-Causal constant = fit-window mean (BG 855.2 MW, CH 833.4 MW), available at
-forecast time. Oracle constant = the cell's own gate-window median, hindsight,
-and the best any flat line can do since the median minimises `sum|a-c|`.
+| country | band | n | challenger | D-7 | causal constant | oracle constant | causal climatology | oracle climatology |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| BG | 24-36h | 720 | 18.89% | 24.40% | 75.30% | 73.49% | 41.98% | 19.15% |
+| BG | 36-48h | 720 | 18.60% | 24.40% | 75.30% | 73.49% | 41.98% | 19.15% |
+| BG | 48-64h | 510 | 20.03% | 24.99% | 68.17% | **63.82%** | 41.33% | 20.38% |
+| CH | 24-36h | 720 | 8.16% | 12.67% | 95.08% | 94.65% | 37.53% | 9.02% |
+| CH | 36-48h | 720 | 8.01% | 12.67% | 95.08% | 94.65% | 37.53% | 9.02% |
+| CH | 48-64h | 510 | 8.39% | 12.53% | 85.99% | **87.91%** | 36.56% | 8.70% |
+
+Causal constant = fit-window mean (BG 855.24 MW, CH 833.37 MW), available at
+forecast time. Oracle constant = the **whole-gate-window** median (BG 1087.86 MW,
+CH 677.22 MW), hindsight, and the best a single flat line can do over the window.
+Causal climatology = fit-window hourly mean; oracle climatology = whole-gate-window
+hourly median. All four levels reproduce the Founding Engineer's independently
+published values to the decimal, which is what establishes that this read and
+ABL-389 loaded the same series.
+
+### What the swap moved, measured rather than assumed
+
+The re-read was expected to change provenance and not value. **It changed one
+number in each of two cells, and the exception is worth more than the
+confirmation.** Scoring both implementations on the same rows at full precision:
+
+| column | cells 24-36h / 36-48h (n=720) | cells 48-64h (n=510) |
+|---|---|---|
+| `constant_causal` | identical to 1e-12 | identical to 1e-12 |
+| `constant_oracle` | identical to 1e-12 | **BG +1.25pp, CH +8.39pp** |
+| `climatology_causal` | identical to 1e-12 | identical to 1e-12 |
+| `climatology_oracle` | identical to 1e-12 | identical to 1e-12 |
+
+23 of 24 readings are bit-identical. The one that moved is `constant_oracle` on
+the 48-64h band, and the cause is not the missing-hour fallback the hold
+anticipated — that fallback never fires here, exactly as predicted. It is that
+**the deleted local version took its oracle level on each cell's own rows, and
+the canonical module takes one level per pair over the whole gate window.** The
+two agree wherever a cell covers the full window and can only differ where it
+does not, which is the 48-64h band alone.
+
+**Why the constant moves and the climatology does not, and why that generalises.**
+The 48-64h band is a 16-hour-wide lead-time slice, so its rows are not a random
+subset of the window — they are a different mix of day and night. CH's night
+fraction is 0.204 at 48-64h against 0.258 at 24-36h. An *unconditional* median is
+highly sensitive to that mix on a series that is near-zero half the time, so
+CH's constant oracle moves 8.39pp; BG's mix barely changes (0.294 vs 0.292) and
+its constant moves 1.25pp. An *hour-conditioned* median is invariant to it by
+construction, which is why all six climatology readings are unchanged.
+
+Two consequences for the remaining 33:
+
+1. **`constant_oracle` is not comparable across horizon bands on solar.** Its
+   level is fitted on the whole window but scored on a band whose hour-of-day
+   composition differs, so a band-to-band change in that column is a statement
+   about the band's day/night mix and not about the model. CH's column reads
+   94.65 / 94.65 / 87.91 across the three bands for that reason alone.
+2. **The canonical whole-window level is the right choice anyway**, and the
+   deleted per-cell version was the more flattering one — it re-optimised the
+   hindsight constant separately for every band, making the reference harder to
+   beat and the challenger look worse. Moving to the canonical module weakened
+   this reference on 2 of 6 cells. It changes no verdict: the challenger beats
+   every reference in every cell either way.
 
 **On solar the constant reference does not do the job it did on wind.** ABL-380's
 value came from a constant being *competitive* — CH wind cleared its bar while
@@ -104,16 +171,19 @@ scoring 7.1pp worse than an oracle constant. Here every constant is 63–95% WAP
 because a flat line cannot represent a diurnal cycle at all. A constant that
 loses by 60pp tells you the sun rises, not whether the model is any good.
 
-**The honest analogue on solar is an hour-of-day climatology**, added here and
-recommended for the remaining 33: same idea (a predictor with no model in it),
-but able to represent the one structure that dominates the series. It is far more
-informative:
+**The honest analogue on solar is an hour-of-day climatology.** Same idea (a
+predictor with no model in it), but able to represent the one structure that
+dominates the series. It was first measured on this tranche, is now ABL-389's and
+lives in the shared module, and since that merge the harness prints it in the
+headline gate table for every scope — so the qualification below travels with the
+verdict to the remaining 33 without anyone having to re-derive it. It is far more
+informative than the constant:
 
 - **CH's oracle climatology is 9.02% against a challenger at 8.16%.** The model
   beats a hindsight hour-of-day median by **0.86pp**. Its 35.6% skill over D-7
   is real but flatters it; against the diurnal cycle it is close to a tie.
-- **BG's challenger (18.89%) is marginally better than its own oracle
-  climatology (19.15%)** — 0.26pp, inside anything I would call a margin.
+- **BG's challenger (18.89%) is marginally better than the oracle climatology
+  (19.15%)** — 0.26pp, inside anything I would call a margin.
 - Against the *causal* climatology (37.5–42.0%), which is what is actually
   available at forecast time, both models win decisively. That is the fair
   comparison, and both pass it.
@@ -252,16 +322,17 @@ put in front of a promotion decision for CH, and I am putting it there.
 
 ## 7. Harness defects found
 
-**7a. The solar harness hardcodes ABL-253's heading — still live on `origin/main`.**
-`scripts/evaluate_solar_retrain.py` renders `"# ABL-253 — Serve-faithful solar
-retrain gate"` as a literal, not derived from the scope. The wind twin derives it:
-`f"# Serve-faithful wind retrain gate — registered scope \`{meta['scope']}\`"`.
-So `reports/abl_381_solar_tranche1b.md`, committed here, is a correct BG/CH gate
-read **headed "ABL-253"**. I left the generated file byte-exact rather than
-hand-editing a machine artifact; this findings pack is the correction.
-**ABL-387 fixed the output paths but not the title** — I verified it is merged into
-`main` and the literal is still there. Founding Engineer: this is the last piece
-of the same defect, and it recurs on all 33 remaining tranches.
+**7a. The solar harness hardcoded ABL-253's heading — found here, fixed here.**
+`scripts/evaluate_solar_retrain.py` rendered `"# ABL-253 — Serve-faithful solar
+retrain gate"` as a literal, not derived from the scope, so a correct BG/CH gate
+read came out **headed with another issue's number** — and would have on all 33
+remaining tranches. ABL-387 fixed the output paths but not the title. The wind
+twin has derived it since ABL-322, so the fix is that line ported:
+`f"# Serve-faithful solar retrain gate — registered scope \`{meta['scope']}\`"`.
+The first read of this tranche reported the defect and left the artifact
+byte-exact; that was the right call while the fix was another issue's, but the
+re-read had to regenerate the file anyway, so it is corrected at the source
+instead of annotated.
 
 **7b. ABL-387's depth guard tests a proxy, not the property.**
 `test_experiment_outputs_stay_one_directory_deep` requires `experiments/<dir>/<name>`
@@ -271,18 +342,41 @@ from sharing a directory; `git check-ignore -v` confirms that path *is* ignored 
 everything beneath it is ignored too). The guard's stated purpose — don't commit a
 2 MB binary — was satisfied; the depth proxy rejected it anyway.
 
-I conformed rather than loosen a freshly-landed guard from another issue: the two
-artifacts were **moved** to `experiments/ABL316/artifacts/{BG,CH}/solar/` and the
-registration names that. They were **not refitted** — ABL-375 measured 4.6–13.8%
-of daylight MAE moving across seeds on solar CatBoost, so a second draw to tidy a
-path would have been a second look at the result. SHA-256 is unchanged across the
-move and is the binding identity:
-`9bbe1e74…aa5e` (BG), `9ff1a53d…dd5e` (CH). **Consequence to note:** the absolute
-`training[].artifact_path` inside the results JSON is the write-time path and
-still reads `t1b`; the adjacent `artifact_sha256` resolves it. Founding Engineer's
-call whether the guard should assert "is git-ignored" instead of "is 3 path
-segments" — it matters because per-tranche grouping is the natural layout for 33
-more tranches.
+I conformed rather than loosen a freshly-landed guard from another issue: on the
+first read the two artifacts were **moved** to
+`experiments/ABL316/artifacts/{BG,CH}/solar/` and the registration names that.
+Founding Engineer's call whether the guard should assert "is git-ignored" instead
+of "is 3 path segments" — it matters because per-tranche grouping is the natural
+layout for 33 more tranches.
+
+**7d. The artifact SHA-256 cannot witness a refit — `Forecaster.save` stamps
+`saved_at`.** The re-read refitted both pairs, and both hashes changed:
+
+| pair | first read | re-read |
+|---|---|---|
+| BG | `9bbe1e74…aa5e` | `380e5c88…051b` |
+| CH | `9ff1a53d…dd5e` | `f79338bb…a270` |
+
+The models are nevertheless **identical**: challenger and D-7 WAPE reproduce to
+1e-12 in all six cells (18.885225 / 18.598880 / 20.027198 for BG, 8.161702 /
+8.007164 / 8.394333 for CH), which is the check that actually establishes it.
+The hashes differ because `src/forecaster.py:save` writes
+`"saved_at": datetime.now().isoformat()` into every bundle, so two bit-identical
+models are guaranteed different SHA-256 values.
+
+This matters beyond bookkeeping. The first read published those hashes as "the
+artifacts' binding identity", and for the *move* they performed that job
+correctly — a content-preserving copy leaves the hash alone. But the property
+worth having across 33 tranches is **"this fit reproduces"**, and the hash cannot
+express it: it will differ on every re-run no matter what, so a mismatch carries
+no information and a match is impossible. Anyone who reads a changed SHA as a
+changed model will conclude the tranche is irreproducible when it is exactly
+reproducible. `random_seed: 42` is fixed in `config.py`, so **prediction equality
+is the reproducibility witness** — the SHA identifies a file, not a model. I have
+stopped quoting it as one, and the earlier claim above is corrected here rather
+than left standing. Founding Engineer: excluding `saved_at` from the hash (or
+hashing the estimator alone) would make the artifact hash mean what the reports
+have been implying it means.
 
 **7c. The registration-table cross-check earned its keep.** `abl316-t1b` landed in
 `SCOPES`/`GATE_BASIS` at `776bfe7`, before `SCOPE_OUTPUTS` existed. Merging ABL-387
@@ -306,20 +400,30 @@ records the first).
 3. **The geometry-feature gap (§4) is repo-wide**, so all 33 will produce
    25-feature artifacts unless the harness changes first.
 4. **Cost is higher than ABL-322's sizing, and these were the cheap case.**
-   Measured from artifact mtimes on the run that produced them: precheck 10:52,
-   BG artifact 10:55, CH artifact 10:59 — roughly **3.5 minutes per pair**
-   end-to-end through the CLI, against the ~60 s/pair ABL-322 measured and this
-   issue's expectation of "appreciably less" for hourly countries. That is a ~3.5×
-   upward correction on the *cheapest* possible pairs, and it independently
-   confirms ABL-380's finding 6 on the wind side. 33 pairs is therefore closer to
-   two hours of compute than to half an hour. Still minutes, not a budget problem —
-   but the sizing assumption in ABL-316 should be corrected before someone plans
-   around it. (Timing is from file mtimes on a run that was doing other work, so
-   read it as an upper bound with roughly minute resolution.)
+   The first read estimated ~3.5 min/pair from artifact mtimes. The ABL-389
+   re-read gives a **directly measured CLI wall-clock: 6 min 06 s for the two
+   pairs, ~3.0 min/pair**, `time` on the full `--scope abl316-t1b` invocation.
+   That is a ~3× upward correction against the ~60 s/pair ABL-322 measured and
+   this issue's expectation of "appreciably less" for hourly countries, and it
+   independently confirms ABL-380's finding 6 on the wind side. BG and CH are
+   hourly, so the 15-minute countries in the remaining 33 are the expensive case
+   and will be worse. 33 pairs is therefore closer to **two hours** of compute
+   than to half an hour — still minutes-scale and not a budget problem, but the
+   sizing assumption in ABL-316 should be corrected before someone plans around
+   it. (Measured on a box running other work concurrently, so read it as an upper
+   bound; the mtime estimate and the wall-clock agree to within 15%, which is the
+   useful part.)
 5. **EE and FI solar remain NOT-EVALUABLE** under the ABL-348 registration —
    EE on both sources, FI broken by the source change. Neither is in this tranche.
    They must not surface later as gate *failures*; they are evaluability failures,
    declared before any model existed.
+6. **Do not read `constant_oracle` across horizon bands on solar** (§3). Its level
+   is one number per pair over the whole gate window, but the 48-64h band scores
+   it on a 16-hour lead-time slice with a different day/night mix, so the column
+   moves for reasons that have nothing to do with the model — 8.39pp on CH here.
+   `climatology_oracle` is invariant to that by construction and is the column to
+   compare across bands. This will recur on all 33 and on every solar pair whose
+   bands differ in night fraction, which is all of them.
 
 ## 9. Recommendation
 
@@ -333,8 +437,11 @@ records the first).
   hindsight hour-of-day climatology by 0.86pp. That combination should be in front
   of the decision, not behind it.
 - **Three handoffs to the Founding Engineer**, none of which I should land inside a
-  tranche read: the hardcoded ABL-253 heading (§7a), the geometry features missing
-  from the harness `FEATURE_COLUMNS` (§4), and the depth-guard proxy (§7b).
+  tranche read: the geometry features missing from the harness `FEATURE_COLUMNS`
+  (§4), the depth-guard proxy (§7b), and `saved_at` making the artifact SHA-256
+  useless as a reproducibility witness (§7d). The hardcoded ABL-253 heading (§7a)
+  *is* fixed here — it is one line, it is the wind twin's line, and the re-read
+  had to regenerate the mislabelled file anyway.
 - **One escalation to the CEO**: BG's overnight solar floor (§5) is a data defect
   on both source tables, it is upstream of anything this module controls, and the
   remaining 33 countries should be screened for it before their tranches run.

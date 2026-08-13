@@ -22,20 +22,37 @@ Whether that *bites* is an empirical question about the fitted models, not a
 reading of the config, so this predicts the registered gate window and counts.
 Night is `solar_features.night_mask` -- the same definition ABL-338 uses.
 
-**2. What is the constant-predictor reference worth here?**
+**2. What are the model-free references worth here, per cell?**
 ABL-380 found the D-7 bar nearly uninformative on BG/CH wind and reported a
-constant predictor beside every cell: *causal* at the fit-window mean (available
-at forecast time) and *oracle* at the gate-window median (hindsight, and the
-best any flat line can do, since the median minimises sum|a-c|).
+constant predictor beside every cell. This probe originally computed its own
+constant *and* its own hour-of-day climatology. It no longer computes either:
+ABL-389 (PR #39) put all four references in
+`src/evaluation/model_free_reference.py` so the two gate harnesses cannot drift
+into computing the same named reference differently, and a third implementation
+here would defeat that at one remove. **The levels are the canonical module's,
+attached by `attach_model_free_references` from the same ABL-188-filtered
+`builder._actuals` the harness scores.** What is left here is the per-cell
+*scoring* of those levels, which the harness reports per band already; this file
+keeps it only so the daylight-only re-score below sits beside a comparable
+reference on the same rows.
 
-Reported per **cell** here rather than per pair, which is what the CEO asked for
-on ABL-381 and is strictly the harder test: each constant is scored on exactly
-the rows that cell scored, so it is directly comparable to that cell's challenger
-and D-7 WAPE. The oracle is taken on the cell's own actuals, so it is a true
-upper bound on any constant for that cell rather than a whole-window constant
-evaluated on a subset.
+That swap is not free, and the direction matters. The deleted local version took
+its **oracle** levels on each cell's own rows; the canonical module takes one
+level set per pair over the whole gate window and broadcasts it. The two agree
+exactly wherever a cell covers the full window and disagree wherever it does not
+-- so the 24-36h and 36-48h cells (n=720) are unchanged to the decimal and the
+48-64h cells (n=510) move. The canonical number is the weaker, more honest
+bound: a single level a forecaster could have picked once, not one re-optimised
+per band with hindsight. See `reports/abl_381_tranche1b_findings.md`.
 
-This is a **reported reference, not a gate criterion**. Registered bands, bars,
+Each reference is scored on **its own intersection** with the gate basis via
+`scored_with_comparators`, and each carries its own `n`. A climatology is 24
+levels, so unlike every other comparator it can be partially measurable; read
+that `n` before setting its WAPE beside a challenger's. Both pairs here cover
+24/24 hours in both windows, so no row drops -- that is a property of BG and CH,
+not a guarantee for the remaining 33.
+
+These are **reported references, not gate criteria**. Registered bands, bars,
 windows and the PASS rule are frozen at `experiments/ABL348/config.json` and
 nothing here moves them.
 
@@ -50,39 +67,29 @@ import sys
 from pathlib import Path
 
 import joblib
-import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src import db
+from src.evaluation.model_free_reference import (
+    MODEL_FREE_COMPARATORS, attach_model_free_references, comparator_wape,
+)
+from src.evaluation.scorecard import score_predictions
 from src.evaluation.solar_retrain import (
     FEATURE_COLUMNS, PRIMARY_BANDS, attach_baselines, build_vintage_frame,
-    common_scores, finite_training_rows, select_latest_challenger_per_band,
+    finite_training_rows, scored_with_comparators,
+    select_latest_challenger_per_band,
 )
 from src.solar_features import night_mask
 from src.wind_features import RenewableFeatureBuilder
 
 #: The basis the tranche gates on (`GATE_BASIS['abl316-t1b']`). Scoring the
-#: constants on the same intersection is what makes them comparable to the cell.
+#: references on the same intersection is what makes them comparable to the cell.
 GATE_BASIS = ("challenger", "seasonal_naive")
 
-
-def _wape(actual: np.ndarray, forecast: np.ndarray) -> float | None:
-    denom = np.abs(actual).sum()
-    if denom == 0:
-        return None
-    return float(np.abs(actual - forecast).sum() / denom * 100.0)
-
-
-def _hourly(country: str, start, end, source: str, replica: str) -> pd.Series:
-    frame = db.load_renewable_type_data(country, "solar", str(start), str(end),
-                                        source=source, db_path=replica)
-    if frame.empty:
-        return pd.Series(dtype=float)
-    stamps = pd.to_datetime(frame["timestamp_utc"], format="mixed",
-                            utc=True).dt.tz_localize(None)
-    return pd.Series(frame["target_value"].to_numpy(dtype=float),
-                     index=stamps).sort_index()
+#: The basis plus ABL-389's four model-free references. Same construction as the
+#: harness's `REPORTED_COMPARATORS`, so both score the same columns the same way.
+REPORTED_COMPARATORS = (*GATE_BASIS, *MODEL_FREE_COMPARATORS)
 
 
 def probe(country: str, artifact_dir: Path, source: str, replica: str,
@@ -98,6 +105,11 @@ def probe(country: str, artifact_dir: Path, source: str, replica: str,
     gate_finite["challenger"] = model.predict(gate_finite[list(FEATURE_COLUMNS)])
     selected = attach_baselines(select_latest_challenger_per_band(gate_finite),
                                 builder._actuals)
+    # ABL-389's four references, from the canonical module and from the same
+    # ABL-188-filtered series the harness and the baselines use -- not a second
+    # read of the replica, and not a second implementation.
+    selected, reference_levels = attach_model_free_references(
+        selected, builder._actuals, fit_start, gate_start, gate_end)
     selected["country"] = country
 
     # ---- 1. ABL-338 non-negativity, on the rows the gate actually scored ----
@@ -125,22 +137,17 @@ def probe(country: str, artifact_dir: Path, source: str, replica: str,
                                     if night.sum() else None),
     }
 
-    # ---- 2. Constant-predictor reference, per cell ----
-    fit_series = _hourly(country, fit_start, gate_start, source, replica)
-    causal_constant = float(fit_series.mean())
+    # ---- 2. ABL-389's model-free references, scored per cell ----
     cells = []
     for band, group in selected[selected["horizon_band"].isin(PRIMARY_BANDS)].groupby(
             "horizon_band"):
-        _, common = common_scores(group, GATE_BASIS)
-        actual = common["actual"].to_numpy(dtype=float)
-        chal = common["challenger"].to_numpy(dtype=float)
-        d7 = common["seasonal_naive"].to_numpy(dtype=float)
-        oracle_constant = float(np.median(actual))
+        scores, common, comparator_n = scored_with_comparators(
+            group, GATE_BASIS, REPORTED_COMPARATORS)
         cells.append({
             "horizon_band": band,
             "n": int(len(common)),
-            "challenger_wape_pct": round(_wape(actual, chal), 2),
-            "d7_wape_pct": round(_wape(actual, d7), 2),
+            "challenger_wape_pct": round(scores["challenger"]["wape_pct"], 2),
+            "d7_wape_pct": round(scores["seasonal_naive"]["wape_pct"], 2),
             # Daylight-only sensitivity. WAPE divides by sum|actual|, so any
             # energy booked while the sun is down inflates the denominator and
             # flatters every forecaster scored on it. Where the target has a
@@ -150,19 +157,30 @@ def probe(country: str, artifact_dir: Path, source: str, replica: str,
             # margin survives. A **reported reference, not a gate criterion** --
             # the registered cell above is unchanged and is what dispositions.
             **_daylight_only(country, common),
-            "causal_constant_mw": round(causal_constant, 1),
-            "causal_constant_wape_pct": round(_wape(actual, np.full_like(actual, causal_constant)), 2),
-            "oracle_constant_mw": round(oracle_constant, 1),
-            "oracle_constant_wape_pct": round(_wape(actual, np.full_like(actual, oracle_constant)), 2),
-            # The natural solar generalisation of a flat line: a constant *per
-            # hour of day*. A flat line cannot represent a diurnal cycle at all,
-            # so on solar it is a far weaker reference than it is on wind; the
-            # honest analogue is a climatology, and it costs nothing to add.
-            **_climatology(common, fit_series),
+            # Each reference carries its own n, because each is scored on its own
+            # intersection with the basis. Equal to the cell n on both these
+            # pairs; a pair missing an hour of day would show a lower one on the
+            # climatology columns alone, and its WAPE would then not be
+            # comparable to the challenger's.
+            **_references(scores, comparator_n),
         })
     return {"country": country, "nonneg": nonneg,
-            "fit_window_mean_mw": round(causal_constant, 1),
+            "model_free_reference_mw": reference_levels,
             "cells": sorted(cells, key=lambda row: row["horizon_band"])}
+
+
+def _references(scores: dict, comparator_n: dict) -> dict:
+    """The four ABL-389 references for one cell, each with its own n.
+
+    Named exactly as the module names them, so a number in this file and the
+    same-named number in the gate report are the same measurement or a bug.
+    """
+    out = {}
+    for name in MODEL_FREE_COMPARATORS:
+        wape = comparator_wape(scores, name)
+        out[f"{name}_wape_pct"] = None if wape is None else round(wape, 2)
+        out[f"{name}_n"] = int(comparator_n.get(name, 0))
+    return out
 
 
 def _daylight_only(country: str, common: pd.DataFrame) -> dict:
@@ -177,32 +195,16 @@ def _daylight_only(country: str, common: pd.DataFrame) -> dict:
         return {"daylight_n": 0, "daylight_challenger_wape_pct": None,
                 "daylight_d7_wape_pct": None}
     actual = common["actual"].to_numpy(dtype=float)[day]
-    chal = common["challenger"].to_numpy(dtype=float)[day]
-    d7 = common["seasonal_naive"].to_numpy(dtype=float)[day]
-    chal_wape, d7_wape = _wape(actual, chal), _wape(actual, d7)
+    chal_wape = score_predictions(
+        actual, common["challenger"].to_numpy(dtype=float)[day])["wape_pct"]
+    d7_wape = score_predictions(
+        actual, common["seasonal_naive"].to_numpy(dtype=float)[day])["wape_pct"]
     return {
         "daylight_n": int(day.sum()),
         "daylight_challenger_wape_pct": round(chal_wape, 2) if chal_wape is not None else None,
         "daylight_d7_wape_pct": round(d7_wape, 2) if d7_wape is not None else None,
         "daylight_clears_d7": (None if chal_wape is None or d7_wape is None
                                else bool(chal_wape < d7_wape)),
-    }
-
-
-def _climatology(common: pd.DataFrame, fit_series: pd.Series) -> dict:
-    """Hour-of-day climatology, causal (fit window) and oracle (gate rows)."""
-    actual = common["actual"].to_numpy(dtype=float)
-    hours = pd.to_datetime(common["target_ts"]).dt.hour.to_numpy()
-
-    causal_profile = fit_series.groupby(fit_series.index.hour).mean()
-    causal = np.array([causal_profile.get(h, fit_series.mean()) for h in hours])
-
-    frame = pd.DataFrame({"actual": actual, "hour": hours})
-    oracle_profile = frame.groupby("hour")["actual"].median()
-    oracle = np.array([oracle_profile.get(h, np.median(actual)) for h in hours])
-    return {
-        "causal_climatology_wape_pct": round(_wape(actual, causal), 2),
-        "oracle_climatology_wape_pct": round(_wape(actual, oracle), 2),
     }
 
 

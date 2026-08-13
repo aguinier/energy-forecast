@@ -119,26 +119,28 @@ SCOPE_OUTPUTS = {
     # thing that could have caught it.
     #
     # These are the paths the run *actually wrote*, measured rather than
-    # assigned: the two `model.joblib` files under
-    # `experiments/ABL316/artifacts/t1b` hash to 9bbe1e74...aa5e (BG) and
-    # 9ff1a53d...dd5e (CH), the two SHA-256 values published in the gate
-    # report's fit-audit table.  The `json_out` sits under ABL348 because the
-    # registration these fits are read under is `experiments/ABL348/config.json`,
-    # frozen at ABL-348 and shared with the wind tranche; the artifacts sit
-    # under ABL316 because they belong to that rollout, not to the registration.
+    # assigned.  The `json_out` sits under ABL348 because the registration these
+    # fits are read under is `experiments/ABL348/config.json`, frozen at ABL-348
+    # and shared with the wind tranche; the artifacts sit under ABL316 because
+    # they belong to that rollout, not to the registration.
     #
-    # The run wrote its artifacts to `experiments/ABL316/artifacts/t1b`, one
-    # level deeper, to keep the 33 remaining tranches from sharing a directory.
-    # `test_experiment_outputs_stay_one_directory_deep` rejects that, so the two
-    # files were **moved** here and the registration names where they now live.
-    # They were not refitted: ABL-375 measured 4.6-13.8% of daylight MAE moving
-    # across seeds on solar CatBoost, so a second draw to tidy a path would be a
-    # second look at the result, which is the thing pre-registration exists to
-    # prevent.  The move is content-preserving and checkable -- the SHA-256
-    # values below are unchanged across it and are the artifacts' binding
-    # identity.  The absolute `training[].artifact_path` recorded inside
-    # `results_abl381_tranche1b.json` is therefore the **write-time** path and
-    # still says `t1b`; the SHA in the adjacent field is what resolves it.
+    # The first read wrote one level deeper, at `experiments/ABL316/artifacts/t1b`,
+    # to keep the 33 remaining tranches from sharing a directory;
+    # `test_experiment_outputs_stay_one_directory_deep` rejects that, so those
+    # files were moved here rather than loosening another issue's guard.  The
+    # ABL-389 re-read refits into this registered path directly, so the `t1b`
+    # layout and the write-time-path caveat that went with it are both gone.
+    #
+    # A refit is safe to repeat here and is *not* a second look at the result:
+    # `random_seed` is fixed at 42 in `config.py` and the fit is deterministic,
+    # so the re-read reproduced challenger and D-7 WAPE to 1e-12 in all six
+    # cells.  That equality -- not the artifact SHA-256 -- is what witnesses it.
+    # `Forecaster.save` stamps `"saved_at": datetime.now().isoformat()` into
+    # every bundle, so two bit-identical models are *guaranteed* different
+    # hashes; the SHA in `training[].artifact_sha256` identifies a file, and
+    # reading a changed one as a changed model is the wrong inference.  ABL-375's
+    # 4.6-13.8% cross-seed spread is the reason this only holds while the seed
+    # is pinned.
     #
     # Depth here is a proxy for the property that actually matters, and on this
     # path the proxy and the property disagreed: `.gitignore:56`
@@ -308,7 +310,14 @@ def render_markdown(result: dict) -> str:
     meta, cells = result["meta"], result["gate_cells"]
     passed = sum(cell["gate"]["pass"] for cell in cells)
     lines = [
-        "# ABL-253 — Serve-faithful solar retrain gate", "",
+        # The scope, not a literal: this title read "ABL-253" on every run,
+        # including a scoped one, so the two tranche-1b reports and the 33 to
+        # come would each have been headed with another issue's number while
+        # carrying that tranche's countries, cells and verdict. The registered
+        # scope is what the rest of the document is about, so it is what the
+        # heading says. The wind twin has interpolated it since ABL-322
+        # (`evaluate_wind_retrain.py`); this is the same line, ported.
+        f"# Serve-faithful solar retrain gate — registered scope `{meta['scope']}`", "",
         f"**Disposition: {result['verdict']}**", "",
         f"Generated: {meta['generated_at']}",
         f"Fit targets: {meta['fit_window']['start']} → {meta['fit_window']['end_exclusive']} (exclusive).",
