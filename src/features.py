@@ -545,14 +545,20 @@ def select_feature_columns(
     sites, and it discarded names without saying so.
 
     That silence is why 66 of 66 serving artifacts carry a shorter feature list
-    than the one their own next fit would build. Before ABL-338 threaded
-    `country_code` into `create_all_features` (5cf2296), `create_holiday_features`
-    never ran on a training frame, so the four holiday names were declared, never
-    produced, and dropped here without a word. Measured 2026-08-13: dropping
-    exactly those four reproduces the served list length for all eight forecast
-    types that have an artifact — 23/23/26/25/27/25/24/24
-    (`reports/abl_386_feature_drift.json`, and `tests/feature_list_manifest.json`
-    for the frozen copy).
+    than the one their own next fit would build: the four holiday names were
+    declared, not produced on the frame those artifacts were fitted on, and
+    dropped here without a word. Measured 2026-08-13: dropping exactly those four
+    reproduces the served list length for all eight forecast types that have an
+    artifact — 23/23/26/25/27/25/24/24 (`reports/abl_386_feature_drift.json`, and
+    `tests/feature_list_manifest.json` for the frozen copy).
+
+    What made them un-produced is *not* a commit in this repo, and ABL-407
+    corrected an earlier claim here that said it was. ABL-338 (`5cf2296`) did not
+    touch `scripts/train.py`; the training site passed `country_code` from
+    `996c45a` (Initial commit) onward. The site that omitted it built the
+    *validation* frame and writes no artifact — see ABL-397. 60 of the 66
+    artifacts predate this repo entirely; the other 6 are unexplained. Details in
+    `reports/abl_407_holiday_gap_provenance.md`.
 
     The selection is unchanged, deliberately: this is not the place to decide
     that a missing feature should abort a retrain. What is new is that the next
