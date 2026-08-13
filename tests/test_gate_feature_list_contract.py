@@ -35,6 +35,7 @@ import importlib
 import importlib.util
 import json
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -294,7 +295,7 @@ def test_the_written_artifact_declares_the_27_it_was_fitted_on(replica, tmp_path
 
 
 # ---------------------------------------------------------------------------
-# 4. A dispositioned scope does not follow the constant (ABL-395)
+# 4. A dispositioned scope does not follow the constant (ABL-395, ABL-404)
 # ---------------------------------------------------------------------------
 #
 # The list moving is a real change to the challenger, measured: on the two
@@ -302,6 +303,16 @@ def test_the_written_artifact_declares_the_27_it_was_fitted_on(replica, tmp_path
 # 18.89% -> 19.95%. So `SCOPE_FEATURES` is the same kind of registration
 # `FIT_RULES` is, and for the same stated reason -- two gate reads are not
 # comparable unless both say what they trained on.
+#
+# ABL-404: `SCOPE_FEATURES` is *not* one of `check_registration_tables`' three,
+# deliberately -- an absence here resolves through `features_for` instead of
+# aborting at import. That makes this file the only thing standing between a
+# published read and a silent re-base, and until ABL-404 it enumerated the scopes
+# it covered by hand. It covered two of the three that needed it.
+#
+# So nothing below names a scope in order to decide whether it is covered.
+# Coverage is derived from what the repository has actually published, and the
+# expectation from what the published run recorded.
 
 
 def test_the_legacy_25_is_the_current_list_minus_the_geometry_pair():
@@ -313,13 +324,124 @@ def test_the_legacy_25_is_the_current_list_minus_the_geometry_pair():
     assert not set(SOLAR_GEOMETRY_FEATURES) & set(harness.LEGACY_FEATURE_COLUMNS)
 
 
-@pytest.mark.parametrize("scope", ["abl253", "abl376"])
-def test_an_already_dispositioned_scope_keeps_the_25_it_was_read_on(scope):
-    """`abl253` and `abl376` were both read before ABL-395. Re-basing either onto
-    the new list would move published numbers with nothing in `git status` to
-    show it -- the ABL-387 failure mode with a feature list in place of a path."""
-    assert harness.features_for(scope) == harness.LEGACY_FEATURE_COLUMNS
-    assert len(harness.features_for(scope)) == 25
+def _tracked(path: Path) -> bool:
+    """Is `path` committed evidence, as opposed to a local run's leftovers?
+
+    Tracked-in-git, not `exists()`. The rule below turns on whether a read has
+    been *published*, and an untracked file in a working tree is by definition
+    not — keying on existence would have a developer's local gate run silently
+    promote an open scope to dispositioned and fail the suite for it.
+
+    A missing `git` raises `FileNotFoundError` out of here and a broken
+    invocation raises below. Neither degrades to `False`: that would empty
+    `DISPOSITIONED_SCOPES`, and an empty `parametrize` is a test that reports
+    green by not running -- the exact way this guard failed before.
+    """
+    result = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", "--", path.relative_to(ROOT).as_posix()],
+        cwd=ROOT, capture_output=True, text=True,
+    )
+    if result.returncode not in (0, 1):
+        raise RuntimeError(f"git ls-files failed for {path}: {result.stderr.strip()}")
+    return result.returncode == 0
+
+
+def _read_on(record: Path) -> tuple | None:
+    """The feature list a committed machine record says its run was fitted on.
+
+    `None` when the record does not say. That is not a gap: ABL-395 added
+    `meta.feature_columns` (`0a363eb`) in the same change that made the harness
+    list 27 (`d045b5f`), so a record that omits the field was written by a
+    harness whose list was the 25 -- every solar gate read from ABL-253 through
+    ABL-381. Absence dates the read rather than losing it.
+    """
+    meta = json.loads(record.read_text(encoding="utf-8"))["meta"]
+    columns = meta.get("feature_columns")
+    return tuple(columns) if columns else None
+
+
+def _dispositioned_scopes():
+    """Every scope whose read is published, and the list it was read on.
+
+    Derived from `SCOPE_OUTPUTS` — which `check_registration_tables` already
+    holds equal to `SCOPES` — so a tranche registered after this file was
+    written is covered on the commit that publishes it, with nothing to
+    hand-maintain here. That is ABL-404: the parametrize list used to be the
+    literal `["abl253", "abl376"]`, and `abl316-t1b` was simply not in it.
+    """
+    found = []
+    for scope, paths in sorted(harness.SCOPE_OUTPUTS.items()):
+        record = ROOT / paths["json_out"]
+        record_published = _tracked(record)
+        if not record_published and not _tracked(ROOT / paths["report_out"]):
+            continue  # never read, or read and not published: still open
+        found.append((scope, _read_on(record) if record_published else None))
+    return found
+
+
+#: `abl253` reaches this list through its report alone: `SCOPE_OUTPUTS` sends its
+#: machine record to `experiments/ABL253/results.json`, which `.gitignore:53`
+#: takes by exact filename (ABL-196). So it lands on the `None` branch and is held
+#: to the 25 by date. Every scope registered since takes the tracked `json_out`
+#: form the `SCOPE_OUTPUTS` comment recommends, and is held to its own literal
+#: names instead.
+DISPOSITIONED_SCOPES = _dispositioned_scopes()
+
+
+@pytest.mark.parametrize("scope,read_on", DISPOSITIONED_SCOPES,
+                         ids=[scope for scope, _ in DISPOSITIONED_SCOPES])
+def test_a_dispositioned_scope_still_resolves_to_the_list_it_was_read_on(scope, read_on):
+    """A published read must reproduce, so its challenger must not move under it.
+
+    Re-basing one onto a new list moves published numbers with nothing in
+    `git status` to show it -- the ABL-387 failure mode with a feature list in
+    place of a path. Measured on the `abl316-t1b` pairs at seed 42, the move from
+    25 to 27 takes BG's 24-36h cell 18.89% -> 19.95% WAPE, across its 19.15%
+    hour-of-day climatology, while the run still writes ABL-381's registered
+    heading and still exits 0.
+
+    The expectation is read out of the evidence, never asserted against a
+    constant: where the record states `meta.feature_columns` this compares
+    against those literal names, which is a stronger pin than any table entry --
+    the record is what the fit itself wrote down.
+    """
+    expected = harness.LEGACY_FEATURE_COLUMNS if read_on is None else read_on
+    assert harness.features_for(scope) == expected, (
+        f"scope {scope!r} is published evidence read on {len(expected)} features "
+        f"but resolves to {len(harness.features_for(scope))} today. Pin it in "
+        f"`SCOPE_FEATURES` to the list it was read on -- a scoped run writes over "
+        f"`{harness.SCOPE_OUTPUTS[scope]['report_out']}` in place and exits 0."
+    )
+
+
+def test_the_dispositioned_set_is_derived_and_still_covers_the_published_reads():
+    """The floor under the derivation, because its failure mode is silence.
+
+    `_dispositioned_scopes` returning `[]` would take the parametrised test above
+    with it and report green. These four reads are cited in committed evidence
+    packs, so they can only leave this set by being retired, which is a review
+    event and should look like one.
+    """
+    covered = {scope for scope, _ in DISPOSITIONED_SCOPES}
+    assert {"abl253", "abl376", "abl316-t1b", "abl316-t2a"} <= covered
+    assert covered <= set(harness.SCOPES)
+
+
+def test_a_published_read_that_recorded_its_own_list_needs_no_scope_features_row():
+    """The distinction the rule turns on: *dispositioned*, not *pinned*.
+
+    `abl316-t2a` is deliberately absent from `SCOPE_FEATURES` and inherits the
+    27 -- fitting that tranche at 27 was the point of it (ABL-405). A guard that
+    required every registered scope to be pinned would be wrong and would fail
+    here, so the guard requires only that the resolved list still match the
+    published one. This scope's record states its 27 literal names, so moving
+    `FEATURE_COLUMNS` to 28 fails the test above without anyone maintaining a
+    row for it.
+    """
+    assert "abl316-t2a" not in harness.SCOPE_FEATURES
+    read_on = dict(DISPOSITIONED_SCOPES)["abl316-t2a"]
+    assert read_on is not None and len(read_on) == 27
+    assert harness.features_for("abl316-t2a") == read_on == tuple(SOLAR_GATE_COLUMNS)
 
 
 def test_a_scope_that_registers_no_feature_set_gets_the_current_27():
