@@ -100,7 +100,15 @@ SCOPES = {
 # Entries stay exactly one directory deep under `experiments/`, because
 # `.gitignore:53-56` globs `experiments/*/results.json` and
 # `experiments/*/artifacts/`.  A nested path slips past both globs and would
-# commit a results file and a binary model artifact.
+# commit a binary model artifact.
+#
+# Depth is necessary but not sufficient, and the two globs do not key on the
+# same thing: `experiments/*/artifacts/` matches on the *directory name*, so any
+# entry ending `artifacts` one level deep is ignored, while
+# `experiments/*/results.json` matches on the *exact filename*.  A `json_out`
+# named anything else is therefore tracked -- which is deliberate for
+# `abl380-tranche1a` below, and is the one channel in which the overwrite this
+# table prevents would have been visible to review at all.
 SCOPE_OUTPUTS = {
     # Byte-for-byte the paths ABL-195 was read at, so an unflagged run still
     # reproduces the dispositioned read rather than relocating it.
@@ -113,6 +121,28 @@ SCOPE_OUTPUTS = {
     "abl322-pilot": {"artifact_dir": "experiments/ABL322/artifacts",
                      "json_out": "experiments/ABL322/results.json",
                      "report_out": "reports/abl_322_pilot_gate.md"},
+    # ABL-380, registered while this fix sat in review -- which is the check
+    # above working rather than a merge accident: `abl380-tranche1a` landed in
+    # `SCOPES` and `GATE_BASIS` at 69f8cd5, and merging it here raised
+    # `SCOPE_OUTPUTS is missing 'abl380-tranche1a'` at import.  GitHub reported
+    # the same merge MERGEABLE/CLEAN; the tables disagreeing is not a textual
+    # conflict, so this is the only thing that could have caught it.
+    #
+    # These are the paths that run *actually wrote*, measured rather than
+    # assigned: the two `model.joblib` files under `experiments/ABL348/artifacts`
+    # hash to eb0f63d8...43ea (BG) and 5d2ec407...0840 (CH), the two SHA-256
+    # values published in the gate report's fit-audit table.  The tranche writes
+    # under ABL348 rather than a directory of its own because the registration it
+    # is fitted under is `experiments/ABL348/config.json`, frozen at ABL-348.
+    #
+    # The `json_out` is deliberately not named `results.json`: at that name the
+    # `.gitignore` glob would swallow it, and it is the machine record
+    # `reports/abl_380_tranche1a_findings.md:9` cites for a PASS the Board has
+    # been asked to review.  It is committed, and must stay reachable at the
+    # path that report names.
+    "abl380-tranche1a": {"artifact_dir": "experiments/ABL348/artifacts",
+                         "json_out": "experiments/ABL348/results_abl380_tranche1a.json",
+                         "report_out": "reports/abl_380_wind_onshore_tranche1a.md"},
 }
 COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw"}
 

@@ -118,6 +118,45 @@ def test_the_default_scope_is_the_one_holding_the_historical_paths(sources):
         assert default == scope, f"{harness.name} defaults to scope {default!r}"
 
 
+def test_tranche1a_registers_the_paths_its_gate_read_was_published_at(sources):
+    """`abl380-tranche1a` writes where ABL-380's PASS was actually read.
+
+    Pinned as literals for the same reason ABL-195's are: this scope's read is
+    dispositioned — 6/6 PASS, with the Board asked to review it — so an edit here
+    relocates evidence someone has already been pointed at. The two artifact
+    SHA-256 values published in that report's fit-audit table,
+    `eb0f63d8...43ea` (BG) and `5d2ec407...0840` (CH), were reproduced from the
+    files under `experiments/ABL348/artifacts`, which is what makes this triple
+    measured rather than assigned.
+
+    It writes under `ABL348` and not an `ABL380` directory of its own because
+    the registration it is fitted under is `experiments/ABL348/config.json`,
+    frozen at ABL-348 — the scope name keys the table, the issue number does not.
+    """
+    outputs = _module_const(sources[WIND_HARNESS], "SCOPE_OUTPUTS")
+    assert outputs["abl380-tranche1a"] == {
+        "artifact_dir": "experiments/ABL348/artifacts",
+        "json_out": "experiments/ABL348/results_abl380_tranche1a.json",
+        "report_out": "reports/abl_380_wind_onshore_tranche1a.md"}
+
+
+def test_tranche1a_machine_record_stays_out_of_the_results_json_glob(sources):
+    """Its `json_out` must not be renamed into `.gitignore`'s blind spot.
+
+    `experiments/*/results.json` matches on the exact filename, so renaming this
+    entry to `results.json` for consistency would silently untrack the machine
+    record `reports/abl_380_tranche1a_findings.md:9` cites, and would restore
+    exactly the review-invisibility that made this issue's failure mode
+    unobservable: an overwritten gate read shows nothing in `git status`.
+    """
+    outputs = _module_const(sources[WIND_HARNESS], "SCOPE_OUTPUTS")
+    json_out = Path(outputs["abl380-tranche1a"]["json_out"])
+    assert json_out.name != "results.json", (
+        "renaming this to results.json puts a committed, cited gate record back "
+        "under .gitignore:53, where an overwrite is invisible to review")
+    assert (REPO / json_out).exists(), f"{json_out} is cited by a report but absent"
+
+
 @HARNESSES
 def test_every_scope_resolves_a_distinct_output_triple(sources, harness):
     """Two scopes sharing an output path is the defect, between named scopes.
@@ -148,9 +187,16 @@ def test_experiment_outputs_stay_one_directory_deep(sources, harness):
     """`.gitignore:53` and `:56` glob one level, so a nested path is committable.
 
     `experiments/*/results.json` and `experiments/*/artifacts/` do not match
-    `experiments/ABL322/pilot/results.json`. A scope registered at a nested path
-    would commit a results file and a binary model artifact on the next
-    `git add`, which is the opposite of what those two globs are for.
+    `experiments/ABL322/pilot/artifacts`. A scope registered at a nested path
+    would commit a binary model artifact on the next `git add`, which is the
+    opposite of what those two globs are for.
+
+    Depth alone does not decide tracking, and this test does not claim it does.
+    The artifacts glob keys on the directory *name* and the results glob on the
+    exact *filename*, so a one-level `json_out` not named `results.json` is
+    tracked — `abl380-tranche1a`'s is, deliberately, and is pinned below. What
+    this test governs is only the depth, which is the half that decides whether
+    a model binary can be committed by accident.
     """
     for scope, entry in _module_const(sources[harness], "SCOPE_OUTPUTS").items():
         for key in ("artifact_dir", "json_out"):

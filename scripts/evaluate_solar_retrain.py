@@ -73,7 +73,16 @@ SCOPES = {
 # Entries stay exactly one directory deep under `experiments/`, because
 # `.gitignore:53-56` globs `experiments/*/results.json` and
 # `experiments/*/artifacts/`.  A nested path slips past both globs and would
-# commit a results file and a binary model artifact.
+# commit a binary model artifact.
+#
+# Depth is necessary but not sufficient, and the two globs do not key on the
+# same thing: `experiments/*/artifacts/` matches on the *directory name*, so any
+# entry ending `artifacts` one level deep is ignored, while
+# `experiments/*/results.json` matches on the *exact filename*.  A `json_out`
+# named anything else is therefore tracked.  ABL-380 took that second option on
+# the wind twin deliberately, and a solar tranche registering here should decide
+# the same question rather than inherit `results.json` by imitation: an ignored
+# machine record is one no reviewer can diff.
 SCOPE_OUTPUTS = {
     # Byte-for-byte the paths ABL-253 was read at, so an unflagged run still
     # reproduces the dispositioned read rather than relocating it.
