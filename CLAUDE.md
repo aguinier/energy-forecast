@@ -604,15 +604,16 @@ defect rather than by the threshold.
 The clamp sits in `save_forecasts()`, so it covers every serving writer that
 goes through it, by construction rather than by each caller remembering to
 clamp. Two writers import it: `scripts/forecast_daily.py` and
-`src/tso_correction_forecaster.py:37`.
+`src/tso_correction_forecaster.py:39`.
 
-The second one does not currently run at all. `forecast_daily.py:226` launches
+The second one could not run at all until ABL-354. `forecast_daily.py` launched
 it as a subprocess **by file path**, and ABL-340 moved it to relative imports,
-so it dies at import with `attempted relative import with no known parent
-package` — every BE solar / wind row from the `tso-correction` runner has failed
-since, while the run summary still reports `[DONE]`. ABL-354. That path
-inherits the clamp the moment it can start; nothing about the clamp needs to
-change for it.
+so it died at import with `attempted relative import with no known parent
+package` — every BE solar / wind row from the `tso-correction` runner failed
+that way, while the run summary still reported `[DONE]`. It now launches as
+`-m src.tso_correction_forecaster` (`build_runner_command`,
+`scripts/forecast_daily.py:189`), so it reaches `save_forecasts()` and inherits
+the clamp by construction; nothing about the clamp had to change for it.
 
 ### Tests
 
