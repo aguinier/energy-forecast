@@ -1,0 +1,573 @@
+{
+  "meta": {
+    "generated_at": "2026-08-13 08:34 UTC",
+    "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "replica_bytes": 9432453120,
+    "databases": {
+      "replica": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "features": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "sidecar": "C:\\Code\\able\\data\\forecasts_local.db",
+      "ambient_energy_db_path": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "features_match_replica": true,
+      "ambient_matches_replica": true
+    },
+    "fit_window": {
+      "start": "2026-01-14 00:00:00",
+      "end_exclusive": "2026-07-11 00:00:00"
+    },
+    "gate_window": {
+      "start": "2026-07-11 00:00:00",
+      "end_exclusive": "2026-08-10 00:00:00"
+    },
+    "scope": "abl380-tranche1a",
+    "registered_pairs": [
+      [
+        "wind_onshore",
+        "BG"
+      ],
+      [
+        "wind_onshore",
+        "CH"
+      ]
+    ],
+    "registered_cells": 6,
+    "gate_basis": [
+      "challenger",
+      "seasonal_naive"
+    ],
+    "training_source": "energy_generation",
+    "registered_intended_n": {
+      "2-12h": 240,
+      "12-24h": 600,
+      "24-36h": 720,
+      "36-48h": 720,
+      "48-64h": 480
+    },
+    "schedule_implied_n": {
+      "2-12h": 210,
+      "12-24h": 570,
+      "24-36h": 720,
+      "36-48h": 720,
+      "48-64h": 510
+    },
+    "vintage_counts": {
+      "wind_offshore/xgboost": {
+        "generated_timestamps": 480,
+        "run_days": 31
+      },
+      "wind_onshore/catboost": {
+        "generated_timestamps": 720,
+        "run_days": 31
+      }
+    },
+    "selection": "latest vintage per country + target + model + horizon band"
+  },
+  "verdict": "PASS",
+  "recommendation": "The challenger clears the pre-registered D-7 bar in every served D+2 country-band cell. Preserve these experiment artifacts and ask the CEO to initiate Board review; do not promote from this issue.",
+  "training": [
+    {
+      "forecast_type": "wind_onshore",
+      "country": "BG",
+      "algorithm": "catboost",
+      "params": {
+        "iterations": 500,
+        "depth": 8,
+        "learning_rate": 0.05,
+        "l2_leaf_reg": 3,
+        "random_seed": 42,
+        "verbose": 0,
+        "thread_count": -1
+      },
+      "audit": {
+        "intended_rows": 34176,
+        "retained_rows": 34176,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 4272,
+        "degraded_lag_1d_rows": 23674
+      },
+      "gate_build_audit": {
+        "intended_rows": 5760,
+        "retained_rows": 5760,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 720,
+        "degraded_lag_1d_rows": 3990
+      },
+      "constant_runs": [],
+      "timings_sec": {
+        "fit_feature_build": 44.6,
+        "fit": 3.6,
+        "gate_build_and_predict": 7.2,
+        "pair_total": 55.3
+      },
+      "fit_rows": 34176,
+      "artifact_path": "C:\\Code\\able\\energy-forecast-abl380\\experiments\\ABL348\\artifacts\\BG\\wind_onshore\\model.joblib",
+      "artifact_sha256": "eb0f63d8c5ccf395a0d80a443257dc5a91bb61620eec7b30c3b9c862037b43ea"
+    },
+    {
+      "forecast_type": "wind_onshore",
+      "country": "CH",
+      "algorithm": "catboost",
+      "params": {
+        "iterations": 500,
+        "depth": 8,
+        "learning_rate": 0.05,
+        "l2_leaf_reg": 3,
+        "random_seed": 42,
+        "verbose": 0,
+        "thread_count": -1
+      },
+      "audit": {
+        "intended_rows": 34176,
+        "retained_rows": 34176,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 4272,
+        "degraded_lag_1d_rows": 23674
+      },
+      "gate_build_audit": {
+        "intended_rows": 5760,
+        "retained_rows": 5760,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 720,
+        "degraded_lag_1d_rows": 3990
+      },
+      "constant_runs": [],
+      "timings_sec": {
+        "fit_feature_build": 52.7,
+        "fit": 4.3,
+        "gate_build_and_predict": 8.3,
+        "pair_total": 65.3
+      },
+      "fit_rows": 34176,
+      "artifact_path": "C:\\Code\\able\\energy-forecast-abl380\\experiments\\ABL348\\artifacts\\CH\\wind_onshore\\model.joblib",
+      "artifact_sha256": "5d2ec407b47f727d107a2121d86b27fb4ff8e316bedfa2ca749a406c70990840"
+    }
+  ],
+  "gate_cells": [
+    {
+      "forecast_type": "wind_onshore",
+      "country": "BG",
+      "horizon_band": "24-36h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 56.862445518981104,
+          "mae": 61.92368901475127,
+          "bias_pct": -18.748734538620518,
+          "slope": 0.2674955210051786,
+          "correlation": 0.5751169907654322
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 93.7529376975121,
+          "mae": 102.09775019722221,
+          "bias_pct": -6.196478107234064,
+          "slope": -0.14208369566710047,
+          "correlation": -0.15911653280848603
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 80.60919672472876,
+          "mae": 87.784103975,
+          "bias_pct": -11.91920678893238,
+          "slope": 0.03790933360587914,
+          "correlation": 0.04691004541748114
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    },
+    {
+      "forecast_type": "wind_onshore",
+      "country": "BG",
+      "horizon_band": "36-48h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 56.8236213037111,
+          "mae": 61.88140911260006,
+          "bias_pct": -17.354519656460113,
+          "slope": 0.26072059186572855,
+          "correlation": 0.5625304012369993
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 93.7529376975121,
+          "mae": 102.09775019722221,
+          "bias_pct": -6.196478107234064,
+          "slope": -0.14208369566710047,
+          "correlation": -0.15911653280848603
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 87.05328472603743,
+          "mae": 94.80177086805556,
+          "bias_pct": -14.116996474387282,
+          "slope": -0.022129260039750815,
+          "correlation": -0.028954170791767337
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    },
+    {
+      "forecast_type": "wind_onshore",
+      "country": "BG",
+      "horizon_band": "48-64h",
+      "scores": {
+        "challenger": {
+          "n": 510,
+          "wape_pct": 57.755833212317235,
+          "mae": 56.96897289788879,
+          "bias_pct": -12.454648815718581,
+          "slope": 0.24891622095800597,
+          "correlation": 0.5021944215643149
+        },
+        "seasonal_naive": {
+          "n": 510,
+          "wape_pct": 89.32133173593618,
+          "mae": 88.1044258882353,
+          "bias_pct": -3.6656252829081137,
+          "slope": -0.14414180153929326,
+          "correlation": -0.16894126009874683
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 510,
+          "wape_pct": 71.33501856429895,
+          "mae": 70.36315664117647,
+          "bias_pct": -14.962384486266405,
+          "slope": 0.20253905552682583,
+          "correlation": 0.25449971568577906
+        }
+      },
+      "comparator_n": {
+        "challenger": 510,
+        "seasonal_naive": 510,
+        "incumbent": 0,
+        "persistence": 510
+      },
+      "gate": {
+        "pass": true,
+        "n": 510,
+        "intended_n": 480,
+        "minimum_n": 456,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    },
+    {
+      "forecast_type": "wind_onshore",
+      "country": "CH",
+      "horizon_band": "24-36h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 47.41798147969725,
+          "mae": 6.122932247154639,
+          "bias_pct": 13.236327456290974,
+          "slope": 0.07758045814399195,
+          "correlation": 0.13822572726616197
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 59.26474256532245,
+          "mae": 7.652666605555555,
+          "bias_pct": 7.61718971638887,
+          "slope": 0.0644643296220602,
+          "correlation": 0.061131408679702966
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 57.25788615991934,
+          "mae": 7.393527658333333,
+          "bias_pct": -2.1283990365088648,
+          "slope": 0.09000441824680493,
+          "correlation": 0.08721706810602305
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    },
+    {
+      "forecast_type": "wind_onshore",
+      "country": "CH",
+      "horizon_band": "36-48h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 44.9881212910046,
+          "mae": 5.8091721746852185,
+          "bias_pct": 9.403165734768724,
+          "slope": 0.08587785055534417,
+          "correlation": 0.16960894816393737
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 59.26474256532245,
+          "mae": 7.652666605555555,
+          "bias_pct": 7.61718971638887,
+          "slope": 0.0644643296220602,
+          "correlation": 0.061131408679702966
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 65.07685813272657,
+          "mae": 8.403166494444445,
+          "bias_pct": -0.25835952483551816,
+          "slope": -0.15063788224184751,
+          "correlation": -0.14430396404009865
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    },
+    {
+      "forecast_type": "wind_onshore",
+      "country": "CH",
+      "horizon_band": "48-64h",
+      "scores": {
+        "challenger": {
+          "n": 510,
+          "wape_pct": 44.309455953187914,
+          "mae": 5.7213323118377115,
+          "bias_pct": 13.430566651810363,
+          "slope": 0.13092416021282122,
+          "correlation": 0.2462245554770612
+        },
+        "seasonal_naive": {
+          "n": 510,
+          "wape_pct": 59.81294680288057,
+          "mae": 7.723176415686275,
+          "bias_pct": 11.06840658239035,
+          "slope": 0.06188160188847402,
+          "correlation": 0.05735889016339108
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 510,
+          "wape_pct": 52.264386718152835,
+          "mae": 6.748490092156862,
+          "bias_pct": -5.10156856094314,
+          "slope": 0.11092888862233805,
+          "correlation": 0.10938935922723131
+        }
+      },
+      "comparator_n": {
+        "challenger": 510,
+        "seasonal_naive": 510,
+        "incumbent": 0,
+        "persistence": 510
+      },
+      "gate": {
+        "pass": true,
+        "n": 510,
+        "intended_n": 480,
+        "minimum_n": 456,
+        "beats_d7": true,
+        "enough_pairs": true
+      }
+    }
+  ],
+  "country_d2": [
+    {
+      "forecast_type": "wind_onshore",
+      "country": "BG",
+      "n": 1950,
+      "scores": {
+        "challenger": {
+          "n": 1950,
+          "wape_pct": 57.06473109530771,
+          "mae": 60.61222914339294,
+          "bias_pct": -16.692252214961297,
+          "slope": 0.2608612237245726,
+          "correlation": 0.5538504947433087
+        },
+        "seasonal_naive": {
+          "n": 1950,
+          "wape_pct": 92.67660444583241,
+          "mae": 98.43795768564102,
+          "bias_pct": -5.581793256291054,
+          "slope": -0.14077842599630097,
+          "correlation": -0.15922592211385692
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 1950,
+          "wape_pct": 80.79620115982378,
+          "mae": 85.81899475589744,
+          "bias_pct": -13.490322380803233,
+          "slope": 0.05215197893877568,
+          "correlation": 0.06607664056280299
+        }
+      },
+      "comparator_n": {
+        "challenger": 1950,
+        "seasonal_naive": 1950,
+        "incumbent": 0,
+        "persistence": 1950
+      },
+      "tso": {
+        "n": 1950,
+        "wape_pct": 50.13889088328115,
+        "mae": 53.25583569538462,
+        "bias_pct": 17.14232125934159,
+        "slope": 1.036410243671234,
+        "correlation": 0.8175845465083452
+      }
+    },
+    {
+      "forecast_type": "wind_onshore",
+      "country": "CH",
+      "n": 1950,
+      "scores": {
+        "challenger": {
+          "n": 1950,
+          "wape_pct": 45.70781651557986,
+          "mae": 5.902048545006118,
+          "bias_pct": 11.871792548919233,
+          "slope": 0.0943334823165292,
+          "correlation": 0.17632260147977777
+        },
+        "seasonal_naive": {
+          "n": 1950,
+          "wape_pct": 59.408115246510675,
+          "mae": 7.671107632820513,
+          "bias_pct": 8.519791669348578,
+          "slope": 0.06380170556566522,
+          "correlation": 0.060122194177431455
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 1950,
+          "wape_pct": 58.838960937569084,
+          "mae": 7.59761524974359,
+          "bias_pct": -2.21549391845666,
+          "slope": 0.005874543318795759,
+          "correlation": 0.005689553695518962
+        }
+      },
+      "comparator_n": {
+        "challenger": 1950,
+        "seasonal_naive": 1950,
+        "incumbent": 0,
+        "persistence": 1950
+      },
+      "tso": {
+        "n": 1950,
+        "wape_pct": 27.778998720388174,
+        "mae": 3.5869794594871798,
+        "bias_pct": -11.143236284193849,
+        "slope": 0.5386745339440107,
+        "correlation": 0.7057814771343404
+      }
+    }
+  ]
+}
