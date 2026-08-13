@@ -624,6 +624,17 @@ def duplicate_check(stats):
     }
 
 
+def _or_dash(value, spec):
+    """Render a number, or an em-less dash when it was never measured.
+
+    A one-window pair has no between-window sd, and `nan%` in a results table
+    reads like a computed value rather than an absent one.
+    """
+    if value is None or (isinstance(value, float) and math.isnan(value)):
+        return "-"
+    return format(value, spec)
+
+
 def render_markdown(payload):
     """The evidence pack. Every number carries its window, n and baseline."""
     reg = payload["registration"]
@@ -729,7 +740,8 @@ def render_markdown(payload):
               "The pair-specific CV is the one to cite when it exists; the fleet "
               "percentile above is for a pair this sweep did not measure.",
               "",
-              "| pair / algorithm / arm | CV (RMS over 6 windows) | CV (worst window) | "
+              f"| pair / algorithm / arm | CV (RMS over {payload['n_windows_read']} "
+              f"windows) | CV (worst window) | "
               "delta_min at k=1 | at k=3 | at k=10 |",
               "|---|---:|---:|---:|---:|---:|"]
     for label in sorted(payload["pair_margins"],
@@ -758,9 +770,11 @@ def render_markdown(payload):
         p = payload["pooled"][label]
         if "sd_seed_log" not in p:
             continue
+        # A pair with one window has no between-window term. Rendering that as
+        # "nan%" invites a reader to treat a missing quantity as a measured one.
         lines.append(
-            f"| {label} | {p['sd_seed_log']:.4f} | {p['sd_window_log']:.4f} | "
-            f"{100 * p['seed_share_of_variance']:.1f}% |"
+            f"| {label} | {p['sd_seed_log']:.4f} | {_or_dash(p['sd_window_log'], '.4f')} | "
+            f"{_or_dash(p['seed_share_of_variance'], '.1%')} |"
         )
     lines.append("")
 
