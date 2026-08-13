@@ -15,7 +15,7 @@ vintage set.
 **`as_of` comes from `net_position.as_of_for_vintage`, not from a local
 constant.** `net_position` is day-ahead published (~12:45 CET on D-1), so a
 06:00Z run on day D legitimately holds actuals through D 21:00 and its bound is
-**D 22:00** — not the run instant. `compare_experiments.py:178` uses the run
+**D 22:00** -- not the run instant. `compare_experiments.py:178` uses the run
 instant for every type, which hands net_position 16h less context than the live
 run had; a fit built on that would be calibrating a model that never served.
 Sharing the eval's function is what keeps the two definitions from drifting

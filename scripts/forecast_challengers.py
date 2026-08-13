@@ -8,7 +8,7 @@ correction-layer challengers, reads the vintage the champion just wrote.
 
 Nothing here touches the replica: writes go through `src.db.get_connection`,
 which routes every write connection to `FORECAST_OUTPUT_DB`. Production safety
-is enforced on the other side too — `push_net_position_forecast.py` names the
+is enforced on the other side too -- `push_net_position_forecast.py` names the
 champion explicitly and filters on it, so a challenger row cannot be shipped
 even if it is the newest vintage in the sidecar.
 

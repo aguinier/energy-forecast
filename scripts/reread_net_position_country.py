@@ -14,7 +14,7 @@ the level-vs-shape split (`src/evaluation/country_reread.py`).
 Both databases are opened read-only; the only writes are the report files under
 `reports/net_position_eval/country_reread/`. A run below the pre-registered
 minimum scored-vintage count is labelled INTERIM in its own output rather than
-being refused — an interim number is useful, an unlabelled one is not.
+being refused -- an interim number is useful, an unlabelled one is not.
 """
 
 from __future__ import annotations
@@ -86,7 +86,7 @@ def main() -> int:
     p.add_argument("--cohort-split", default=str(npz.FIX_DEPLOYED_UTC))
     p.add_argument("--out-dir", default=str(OUT_DIR))
     p.add_argument("--fleet", action="store_true",
-                   help="also sweep every gate country — the context that "
+                   help="also sweep every gate country -- the context that "
                         "separates a zone-specific defect from a fleet-wide one")
     p.add_argument("--stdout", action="store_true", help="print the report")
     p.add_argument("--no-write", action="store_true", help="do not write files")

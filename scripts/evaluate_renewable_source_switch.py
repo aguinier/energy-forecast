@@ -29,8 +29,8 @@ A conclusion is only reported as robust where the two truths agree.
 Scoring is restricted to **common rows**: (target, horizon band) pairs where
 both arms produced a finite prediction and the truth is finite. Arm B loses
 coverage for FR (`energy_generation` is missing 2026-06-30 23:45 -> 2026-07-22
-14:15, ABL-318 §3), and letting each arm score on its own row set would compare
-different holdouts. The coverage loss is reported separately as its own
+14:15, ABL-318 section 3), and letting each arm score on its own row set would
+compare different holdouts. The coverage loss is reported separately as its own
 consequence of the switch rather than being absorbed into the metric.
 
 Writes nothing but report files. No replica write, no sidecar write, no
