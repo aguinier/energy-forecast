@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""ABL-419 — the tranche 2c findings tables, generated from the stored results.
+"""ABL-419 -- the tranche 2c findings tables, generated from the stored results.
 
 Nothing here refits, re-reads the replica or recomputes a WAPE. Every number is
 lifted from `experiments/ABL348/results_abl419_tranche2c.json` (written by
 `scripts/evaluate_solar_retrain.py --scope abl316-t2c`) and from two committed
-machine records — ABL-396's night-floor screen and ABL-348's frozen config. That
+machine records -- ABL-396's night-floor screen and ABL-348's frozen config. That
 is deliberate and follows ABL-418: a findings pack that restates numbers in prose
 is a second, unverifiable copy of the evidence, and the two drift. ABL-405's pack
-is the case in point — it states a source table its own machine record
+is the case in point -- it states a source table its own machine record
 contradicts.
 
 The grades are read back through `src.evaluation.gate_grading`, never
@@ -34,8 +34,8 @@ have been:
 
         W in [ (A - f) / (1 - f) ,  A / (1 - f) ]
 
-Both directions are printed. The point is not to adjust ES's verdict — the gate
-scores challenger and D-7 on identical rows, so the verdict is what it is — but
+Both directions are printed. The point is not to adjust ES's verdict -- the gate
+scores challenger and D-7 on identical rows, so the verdict is what it is -- but
 to bound, for free, the one thing an all-hours read on a country with a real
 night floor leaves open.
 
@@ -52,7 +52,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.evaluation.gate_grading import cell_grade, pair_grade  # noqa: E402
+from src.evaluation.gate_grading import GRADE_SEVERITY, cell_grade, pair_grade  # noqa: E402
 
 ROOT = Path(__file__).parent.parent
 
@@ -100,18 +100,37 @@ def implied_daylight(all_hours_wape_pct: float, f_pct: float) -> tuple[float, fl
     return ((all_hours_wape_pct - f_pct) / (1.0 - f), all_hours_wape_pct / (1.0 - f))
 
 
-def capped(country: str, ladder_label: str) -> tuple[str, str]:
-    """ES may not exceed B. Returns (reported grade, failed conditions).
+#: The cap ABL-419 places on ES: "grade ES no higher than B, whatever G1-G4 say".
+CAP = "B"
 
-    The cap only ever moves a grade **down**, and only for ES. A ladder grade
-    already at or below B keeps its own letter and gains the hold as an
-    additional named failure -- reporting `B` for a cell the ladder called `C`
-    would be an upgrade wearing a cap's clothing.
+
+def capped(country: str, ladder_label: str) -> tuple[str, str]:
+    """ES may not be reported higher than B. Returns (reported grade, failures).
+
+    **"Higher" is ABL-418's severity ordering, not alphabetical**, and getting
+    that wrong is the whole reason this is a named function with tests rather
+    than an inline conditional. `GRADE_SEVERITY` is `{"A": 0, "U": 1, "B": 2,
+    "C": 3}`, so `U` -- and therefore `U(+)` -- is **less severe than `B`**. A
+    reading that treated `U(+)` as already below the cap would leave ES's grade
+    untouched and quietly not apply the cap at all, which is the failure this
+    guards against: ES's ladder grade on this read *is* `U(+)`, so the cap binds.
+
+    The cap only ever moves a grade **down**. A ladder grade already at or below
+    the cap in severity keeps its own letter and gains the hold as an additional
+    named failure -- reporting `B` for a cell the ladder called `C` would be an
+    upgrade wearing a cap's clothing.
+
+    The ladder grade is never discarded: every caller prints it beside the
+    reported one. `U(+)` and `B` are both non-promotion, but they carry
+    *different next steps* -- `U(+)` means re-read at k>1 seeds per ABL-385,
+    `B` means not promotion-eligible with failures named -- and collapsing the
+    two would destroy the only actionable thing ES's read says.
     """
     if country != "ES":
         return ladder_label, ""
-    if ladder_label == "A":
-        return "B", ES_HOLD
+    letter = ladder_label.split("(")[0]
+    if GRADE_SEVERITY[letter] < GRADE_SEVERITY[CAP]:
+        return CAP, ES_HOLD
     return ladder_label, ES_HOLD
 
 
@@ -202,8 +221,8 @@ def main() -> int:
         "Exact, free, and it closes the only cell ABL-403's 2×2 could have moved on this "
         "tranche, which is why ABL-419 discharges that soft hold rather than waiting on it.")
     lines.append("")
-    lines.append("| band | n | all-hours challenger WAPE (measured) | implied daylight-only WAPE | D-7 bar (same rows) | verdict invariant across the band? |")
-    lines.append("|---|---:|---:|---:|---:|:---:|")
+    lines.append("| band | n | all-hours challenger WAPE (measured) | implied daylight-only WAPE | if clamped to 0 at night | D-7 bar (same rows) | registered verdict | clamped-variant verdict |")
+    lines.append("|---|---:|---:|---:|---:|---:|:---:|:---:|")
     for cell in cells:
         if cell["country"] != "ES":
             continue
@@ -212,23 +231,53 @@ def main() -> int:
         band = cell["horizon_band"]
         if challenger is None or d7 is None:
             lines.append(f"| {band} | {cell['scores'].get('challenger', {}).get('n', 0)} "
-                         f"| not measured | — | — | — |")
+                         f"| not measured | — | — | — | — | — |")
             continue
         low, high = implied_daylight(challenger, es_f)
-        # The band is a statement about the *challenger* only: the D-7 arm is
-        # scored on the same rows and does not move with how the challenger
-        # treats night. The verdict is invariant unless the far end of the band
-        # would cross the bar.
-        invariant = (challenger < d7) == ((challenger + es_f) < d7)
+        # What the *serving* path would score. The ABL-337 clamp forces a zero at
+        # night on this same predicate, so the clamped variant of this challenger
+        # keeps its daylight behaviour `W` and takes `W(1-f) + f`. Bounding `W`
+        # by the band above bounds that too:
+        #
+        #     W(1-f) in [A - f, A]   ->   clamped in [A, A + f]
+        #
+        # The registered verdict is NOT this: both gate arms are scored on the
+        # same all-hours rows, so the night floor cannot have moved it. This row
+        # answers a different and strictly serving-side question, and it is
+        # reported because it is free -- not because it gates anything here.
+        clamped_low, clamped_high = challenger, challenger + es_f
+        if clamped_high < d7:
+            clamped_verdict = "PASS"
+        elif clamped_low >= d7:
+            clamped_verdict = "FAIL"
+        else:
+            clamped_verdict = "**indeterminate**"
         n = cell["scores"]["challenger"].get("n", 0)
         record["es_band"][band] = {
             "n": n, "all_hours_wape_pct": challenger, "f_pct": es_f,
             "implied_daylight_low_pct": low, "implied_daylight_high_pct": high,
-            "d7_wape_pct": d7, "verdict_invariant_across_band": bool(invariant),
+            "clamped_low_pct": clamped_low, "clamped_high_pct": clamped_high,
+            "d7_wape_pct": d7,
+            "registered_verdict": "PASS" if (cell.get("gate") or {}).get("pass") else "FAIL",
+            "clamped_variant_verdict": clamped_verdict.replace("*", ""),
         }
         lines.append(
-            f"| {band} | {n:,} | {challenger:.2f}% | {low:.2f}%–{high:.2f}% | {d7:.2f}% | "
-            f"{'yes' if invariant else '**no**'} |")
+            f"| {band} | {n:,} | {challenger:.2f}% | {low:.2f}%–{high:.2f}% | "
+            f"{clamped_low:.2f}%–{clamped_high:.2f}% | {d7:.2f}% | "
+            f"{'PASS' if (cell.get('gate') or {}).get('pass') else 'FAIL'} | "
+            f"{clamped_verdict} |")
+    lines.append("")
+    lines.append(
+        "**Read the last two columns as answering different questions.** The *registered* "
+        "verdict is a direct measurement: challenger and D-7 are scored on the identical "
+        "all-hours rows, so ES's night floor cannot have moved it in either direction, and "
+        "the band does not qualify it. The *clamped-variant* column is serving-side and is "
+        "reported because `f` makes it free: the ABL-337 clamp forces a zero on this same "
+        "night predicate, so a served version of this challenger would score somewhere in "
+        "`[A, A+f]`. On all three ES bands that interval **straddles the D-7 bar**, so the "
+        "bound cannot say whether a clamped ES would clear it. That is a finding to hand to "
+        "whoever owns serving, not a qualification of the read above — and settling it needs "
+        "an actual daylight-only read, which this bound deliberately does not substitute for.")
     lines.append("")
     lines.append(f"**ES is capped at grade B regardless of G1–G4**, with `{ES_HOLD}` named as the "
                  "failed condition. The cap is a hold, not a measurement: the ABL-337 clamp "
@@ -284,6 +333,12 @@ def main() -> int:
 
     Path(args.md_out).write_text("\n".join(lines) + "\n", encoding="utf-8")
     Path(args.json_out).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    # ABL-364: the report body is deliberately non-ASCII (en dashes in the
+    # tables), which is the exception that rule allows -- but redirected stdout
+    # encodes with the locale codepage, so the stream is re-encoded here rather
+    # than the body being flattened. The `--help` text itself is ASCII.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     print("\n".join(lines))
     print(f"\nwrote {args.md_out}\nwrote {args.json_out}")
     return 0

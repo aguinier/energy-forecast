@@ -12,10 +12,15 @@ inverted bound is exactly the sort of arithmetic that is wrong by a factor of
 ABL-396 worked by hand and checked against a real gate read (BG), so the test
 fails if the inversion drifts rather than if someone dislikes the number.
 
-**The cap.** ABL-419 caps ES at grade B whatever G1-G4 say. A cap that could
-*raise* a grade would be an upgrade wearing a cap's clothing -- a `C` cell
-reported as `B` is strictly worse than no cap at all -- so the direction is
-pinned, not just the ES/A case.
+**The cap.** ABL-419 caps ES at grade B whatever G1-G4 say, and "higher" here is
+ABL-418's *severity* ordering rather than the alphabet:
+`GRADE_SEVERITY = {"A": 0, "U": 1, "B": 2, "C": 3}`, so `U` and `U(+)` are
+**less severe than `B`** and the cap pulls them down to it. That is not a
+hypothetical -- ES's ladder grade on this read is `U(+)`, so a reading that took
+`U(+)` for "already below B" would silently not apply the cap on the one read it
+was written for. Pinned in both directions, because a cap that could *raise* a
+grade would be an upgrade wearing a cap's clothing: a `C` cell reported as `B`
+is strictly worse than no cap at all.
 """
 
 import importlib.util
@@ -26,6 +31,8 @@ import pytest
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
+
+from src.evaluation.gate_grading import GRADE_SEVERITY  # noqa: E402
 
 
 def _load(name: str, relative: str):
@@ -107,12 +114,29 @@ def test_a_clean_country_has_a_band_of_zero_width():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("ladder,expected", [("A", "B"), ("B", "B"), ("U(+)", "U(+)"),
-                                             ("U", "U"), ("C", "C")])
+@pytest.mark.parametrize("ladder,expected", [("A", "B"), ("B", "B"), ("U(+)", "B"),
+                                             ("U", "B"), ("C", "C")])
 def test_the_es_cap_only_ever_moves_a_grade_down(ladder, expected):
     reported, hold = reader.capped("ES", ladder)
     assert reported == expected
     assert hold == reader.ES_HOLD, "the cap must always name its failed condition"
+
+
+def test_higher_means_less_severe_and_not_alphabetical():
+    """The trap this file exists for, stated as an assertion rather than a
+    comment. ABL-418 orders `C > B > U > A` by severity, so `U` and `U(+)` are
+    *higher* than the cap and must be pulled down to it. A reading that took
+    `U` for "already below B" would leave ES ungraded by the cap on exactly the
+    read where it binds -- ES's ladder grade here is `U(+)`."""
+    assert GRADE_SEVERITY["U"] < GRADE_SEVERITY["B"]
+    assert reader.capped("ES", "U(+)")[0] == "B"
+
+
+def test_the_cap_never_raises_a_worse_grade():
+    """`C` is more severe than the cap, so it survives it. The cap is a ceiling,
+    never a floor."""
+    assert reader.capped("ES", "C")[0] == "C"
+    assert GRADE_SEVERITY["C"] > GRADE_SEVERITY[reader.CAP]
 
 
 @pytest.mark.parametrize("country", ["GR", "HR", "IT", "PT"])
