@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from src.baselines import aligned_point_baselines
+from src.db import RENEWABLE_TYPE_COLUMNS
 from src.evaluation.net_position import (
     GATE_EXCLUDED_COUNTRIES,
     as_of_for_vintage,
@@ -49,18 +50,117 @@ ABL128_REFERENCE = {
                      "tso_wape_pct": None, "bias_pct": 28.1},
 }
 
+#: Every `energy_generation` column the renewable aggregate sums, in the order
+#: the dashboard's `renewableTotal.RENEWABLE_MW_COLUMNS` sums them. It is the
+#: same seven wire fields `/renewables` serves, flattened.
+#:
+#: `hydro_pumped_mw` is deliberately absent, and that absence is the whole of
+#: ABL-410's hydro finding: pumped storage is a *store*, not a primary source.
+#: `energy_generation` gives it its own column; the frozen `energy_renewable`
+#: folds it into `hydro_reservoir_mw`, so a sum over the frozen table's columns
+#: books a battery as renewable generation.
+GENERATION_RENEWABLE_COLUMNS = (
+    "solar_mw", "wind_onshore_mw", "wind_offshore_mw",
+    "hydro_run_mw", "hydro_reservoir_mw", "biomass_mw",
+    "geothermal_mw", "marine_mw", "other_renewable_mw",
+)
+
+
+def null_aware_sum(columns: Iterable[str]) -> str:
+    """Sum the reported members; NULL only when not one of them is reported.
+
+    The rule `db._HYDRO_TOTAL_EXPR` already applies to hydro's two components,
+    generalised to a list. A plain `a + b + ...` lets one unreported column
+    erase every reported one beside it; a plain `COALESCE(a,0) + ...` reports a
+    country that measures none of them as generating exactly zero. Neither is a
+    measurement.
+    """
+    members = tuple(columns)
+    absent = " AND ".join(f"{column} IS NULL" for column in members)
+    summed = " + ".join(f"COALESCE({column}, 0)" for column in members)
+    return f"CASE WHEN {absent} THEN NULL ELSE {summed} END"
+
+
+#: Which table, and which value in it, a forecast of each type is scored
+#: against. **One statement of the actual, for this repo and the dashboard
+#: both** — that is ABL-410's item 1, and this dict is the "one place".
+#:
+#: ## Why the renewable family moved off `energy_renewable` (ABL-410)
+#:
+#: ABL-399 moved the dashboard's renewable-family accuracy reads onto
+#: `energy_generation` (PR #30, merged 2026-08-13). Until this change the
+#: scorecard still scored those same types against the frozen table, so **the
+#: same model, country and window had two published WAPEs and neither was
+#: wrong** — they measured against different statements of the actual.
+#:
+#: This is *not* ABL-321's rejected switch. That was the **training** source,
+#: `db.RENEWABLE_TYPE_SOURCE_TABLE`, and it stays `energy_renewable`. Scoring
+#: truth and training source are independent post-ABL-331, and ABL-321's own
+#: decision window already took `energy_generation` as primary truth
+#: (`db.py:361`). Nothing here changes what a training run reads, what an
+#: artifact serves from, or any promotion gate: the gates take their actuals
+#: from `RenewableFeatureBuilder` -> `db.load_renewable_type_data`, never from
+#: this dict, which only `_load_actuals` reads.
+#:
+#: The measurement behind the choice — replica 2026-08-13, target window
+#: 2026-07-11 -> 2026-08-10, latest vintage per band, common instants only, n =
+#: 2,760 per pair (1,688 for FR, see the coverage caveat below), production
+#: models — is in `reports/abl_410_scoring_truth.md`. In summary: eight of the
+#: fifteen live pairs are **identical** under the two tables, because `solar`,
+#: `wind_onshore`, `wind_offshore` and `biomass` are single columns of the same
+#: name. The gap is entirely in the two re-derivations, `renewable` and
+#: `hydro_total`, plus a BE-only drift where the frozen table's `DEFAULT 0`
+#: stands in for a negative measurement.
+#:
+#: Two caveats that belong next to any figure this dict produces:
+#:
+#:  - **`energy_generation` has an open FR ingest gap** (ABL-318 §3): no rows
+#:    2026-06-30 23:45 -> 2026-07-22 14:15, which is 279 of the 720 hours of
+#:    the last published window. FR sample sizes drop accordingly. Over the
+#:    same era `energy_generation` covers 24,694 hours the frozen table does
+#:    not, so this is a specific gap, not a coverage regression.
+#:  - **The models are still fitted on `energy_renewable`.** Where the two
+#:    tables disagree about what the target *is*, part of the resulting WAPE is
+#:    target mismatch rather than model error. BE `hydro_total` is the extreme:
+#:    its fitted target was run-of-river plus folded pumped storage (84.7% of
+#:    it, across the hours both tables carry), and against honest run-of-river
+#:    it scores 14,274% with a correlation of **-0.12**. That is not a model
+#:    that got worse; it is a model of a different quantity. Filed separately —
+#:    a WAPE against the corrected target only becomes a quality figure after a
+#:    retrain, and no BE `hydro_total` WAPE should be quoted as quality until
+#:    then.
 ACTUAL_SPECS = {
     "load": ("energy_load", "load_mw"),
     "price": ("energy_price", "price_eur_mwh"),
+    "renewable": ("energy_generation", null_aware_sum(GENERATION_RENEWABLE_COLUMNS)),
+    "solar": ("energy_generation", "solar_mw"),
+    "wind_onshore": ("energy_generation", "wind_onshore_mw"),
+    "wind_offshore": ("energy_generation", "wind_offshore_mw"),
+    "biomass": ("energy_generation", "biomass_mw"),
+    # The training-side definition itself, imported rather than restated. The
+    # previous literal here was a strict `hydro_run_mw + hydro_reservoir_mw`,
+    # whose comment argued — correctly — that COALESCE fabricates a zero out of
+    # an unmeasured component. On the frozen table that strict form was
+    # harmless only by accident: `REAL DEFAULT 0` means nothing there is ever
+    # NULL, so it and the null-aware form agree to the digit on all 15 live
+    # pairs. On `energy_generation` it is fatal — for 9 of the 24 supported
+    # countries exactly one hydro component is 100% NULL (`db.py:406`), and a
+    # strict `+` would erase all nine.
+    "hydro_total": ("energy_generation", RENEWABLE_TYPE_COLUMNS["hydro_total"]),
+    "net_position": ("net_position", "net_position_mw"),
+}
+
+#: What the renewable family was scored against before ABL-410, kept as the
+#: record of a superseded decision rather than as a fallback. Nothing reads it;
+#: it exists so a reader comparing a report written before 2026-08-13 to one
+#: written after can see which definition produced which number.
+RETIRED_RENEWABLE_ACTUAL_SPECS = {
     "renewable": ("energy_renewable", "total_renewable_mw"),
     "solar": ("energy_renewable", "solar_mw"),
     "wind_onshore": ("energy_renewable", "wind_onshore_mw"),
     "wind_offshore": ("energy_renewable", "wind_offshore_mw"),
     "biomass": ("energy_renewable", "biomass_mw"),
-    # SQL addition deliberately requires both components. Unknown + measured is
-    # unknown; COALESCE would turn a missing component into a fabricated zero.
     "hydro_total": ("energy_renewable", "hydro_run_mw + hydro_reservoir_mw"),
-    "net_position": ("net_position", "net_position_mw"),
 }
 
 TSO_SPECS = {
@@ -418,6 +518,23 @@ def _attach_evidence(cfg: ScorecardConfig, selected: pd.DataFrame,
     return rows
 
 
+def mean_scored_actual(group: pd.DataFrame) -> float | None:
+    """Mean actual over exactly the pairs `score_predictions` scored.
+
+    WAPE is `sum|e| / sum|actual|`, so it is only readable beside the level of
+    its own denominator. ABL-410 made that concrete: BE `hydro_total` scores
+    92% against a 145.66 MW mean and 14,274% against a 1.26 MW one, on the same
+    forecasts and the same instants. Reporting the percentage alone would read
+    as a catastrophic model regression rather than as a target correction on a
+    series that is near zero in this window.
+    """
+    actual = pd.to_numeric(group["actual"], errors="coerce").to_numpy(dtype=float)
+    predicted = pd.to_numeric(group["forecast_value"],
+                              errors="coerce").to_numpy(dtype=float)
+    valid = np.isfinite(actual) & np.isfinite(predicted)
+    return float(np.mean(actual[valid])) if valid.any() else None
+
+
 def _score_group(group: pd.DataFrame) -> dict:
     model = score_predictions(group["actual"], group["forecast_value"])
     baselines = {
@@ -425,7 +542,8 @@ def _score_group(group: pd.DataFrame) -> dict:
                                      group[name])
         for name in ("seasonal_naive", "persistence", "tso")
     }
-    return {"model": model, "baselines": baselines}
+    return {"model": model, "baselines": baselines,
+            "mean_actual": mean_scored_actual(group)}
 
 
 def evaluate_scorecard(cfg: ScorecardConfig) -> dict:
@@ -488,6 +606,9 @@ def evaluate_scorecard(cfg: ScorecardConfig) -> dict:
             "models": models,
             "excluded": {"net_position": {"GR": GATE_EXCLUDED_COUNTRIES["GR"]}},
             "load_actual_rule": "load_mw > 0 (load only)",
+            "scoring_truth": {forecast_type: {"table": ACTUAL_SPECS[forecast_type][0],
+                                              "expression": ACTUAL_SPECS[forecast_type][1]}
+                              for forecast_type in models},
             "timestamp_join": "parsed UTC timestamps; accepts T and space separators",
             "net_position_gate": "src/evaluation/net_position.py (not duplicated here)",
             "abl128_reproduction": reproduction,
@@ -535,10 +656,23 @@ def render_markdown(results: dict, generated_at: str) -> str:
                      f"{_fmt(measured['seasonal_naive_wape_pct'], '%')} | "
                      f"{_fmt(reference['bias_pct'], '%')} | {_fmt(measured['bias_pct'], '%')} |")
     lines.extend(["", "Load reproduces within 0.1 percentage point on WAPE/D−7 and 0.1 point on TSO (reference 4.0%, measured 4.1%). Price, solar, and wind do not reproduce exactly; the scorecard preserves the disagreement.",
-                  "", "## Pooled score", "",
-                  "Skill is `100 × (1 − model WAPE / baseline WAPE)` on the exact same pairs.",
-                  "", "| type | model | horizon | n | WAPE | MAE | bias | slope | corr | D−7 WAPE / skill | persistence WAPE / skill | TSO WAPE / skill |",
-                  "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"])
+                  "", "## Scoring truth", "",
+                  "Which statement of the actual each type is scored against. "
+                  "Since ABL-410 this is the same table the dashboard publishes "
+                  "against, so one model and window has one WAPE across both "
+                  "surfaces. Training source is a separate, unchanged decision "
+                  "(`db.RENEWABLE_TYPE_SOURCE_TABLE`, still `energy_renewable`); "
+                  "where the two disagree about the target, part of the WAPE "
+                  "below is target mismatch rather than model error.",
+                  "", "| type | table | value |", "|---|---|---|"])
+    lines.extend(f"| {forecast_type} | `{spec['table']}` | `{spec['expression']}` |"
+                 for forecast_type, spec in meta["scoring_truth"].items())
+    lines.extend(["", "## Pooled score", "",
+                  "Skill is `100 × (1 − model WAPE / baseline WAPE)` on the exact same pairs. "
+                  "`mean actual` is the level of WAPE's own denominator over the scored pairs; "
+                  "a percentage against a near-zero mean is arithmetic, not quality.",
+                  "", "| type | model | horizon | n | mean actual | WAPE | MAE | bias | slope | corr | D−7 WAPE / skill | persistence WAPE / skill | TSO WAPE / skill |",
+                  "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"])
     for row in results["pooled"]:
         model = row["model"]
         cells = []
@@ -548,19 +682,21 @@ def render_markdown(results: dict, generated_at: str) -> str:
                          f"{_fmt(comparison['skill_pct'], '%')}")
         lines.append(
             f"| {row['forecast_type']} | {row['model_name']} | {row['horizon_band']} | "
-            f"{model['n']:,} | {_fmt(model['wape_pct'], '%')} | {_fmt(model['mae'])} | "
+            f"{model['n']:,} | {_fmt(row['mean_actual'])} | "
+            f"{_fmt(model['wape_pct'], '%')} | {_fmt(model['mae'])} | "
             f"{_fmt(model['bias_pct'], '%')} | {_fmt(model['slope'])} | "
             f"{_fmt(model['correlation'])} | {' | '.join(cells)} |")
     lines.extend(["", "## Country × horizon detail", "",
                   "Rows with no paired observations say **Not measured**; zero is never substituted.",
-                  "", "| type | model | country | horizon | n | WAPE | bias | slope | corr | D−7 skill | persistence skill | TSO skill |",
-                  "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"])
+                  "", "| type | model | country | horizon | n | mean actual | WAPE | bias | slope | corr | D−7 skill | persistence skill | TSO skill |",
+                  "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"])
     for row in results["by_country_horizon"]:
         model = row["model"]
         baselines = row["baselines"]
         lines.append(
             f"| {row['forecast_type']} | {row['model_name']} | {row['country']} | "
-            f"{row['horizon_band']} | {model['n']:,} | {_fmt(model['wape_pct'], '%')} | "
+            f"{row['horizon_band']} | {model['n']:,} | {_fmt(row['mean_actual'])} | "
+            f"{_fmt(model['wape_pct'], '%')} | "
             f"{_fmt(model['bias_pct'], '%')} | {_fmt(model['slope'])} | "
             f"{_fmt(model['correlation'])} | "
             f"{_fmt(baselines['seasonal_naive']['skill_pct'], '%')} | "
@@ -568,6 +704,9 @@ def render_markdown(results: dict, generated_at: str) -> str:
             f"{_fmt(baselines['tso']['skill_pct'], '%')} |")
     lines.extend(["", "## Correctness notes", "",
                   "- Both `T` and space timestamp separators are parsed before joining.",
+                  "- **Renewable-family figures are not comparable across the 2026-08-13 boundary.** ABL-410 moved their scoring truth from `energy_renewable` to `energy_generation` to match what the dashboard publishes. Eight of the fifteen live pairs are unchanged to the digit; `renewable` and `hydro_total` move, and BE `hydro_total` moves by two orders of magnitude because its frozen actual folded in pumped storage. The before/after is in `reports/abl_410_scoring_truth.md`.",
+                  "- `energy_generation` has an open FR ingest gap (ABL-318 §3): no rows 2026-06-30 23:45 → 2026-07-22 14:15. FR sample sizes in any window overlapping it are correspondingly smaller.",
+                  "- **Pooled rows are denominator-weighted across countries, so they move when coverage does.** On the 2026-07-11 → 2026-08-10 window the FR gap above cost 1,072 hours of the best-forecast country in most types: pooled `solar` went 48.35% → 51.85% and pooled `wind_onshore` 76.94% → 77.72% while **every country's own figure was unchanged to the digit**. Read a pooled move against the country × horizon detail before reading it as quality.",
                   "- `load_mw > 0` is applied only to load. Measured zero remains valid for every other type.",
                   f"- GR net position is excluded by name: {meta['excluded']['net_position']['GR']}",
                   "- D−7 and persistence use only stored actual observations. Missing source rows remain missing.",

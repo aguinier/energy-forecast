@@ -1403,6 +1403,31 @@ and every other type. GR net position is excluded by name using the reason from
 `GATE_EXCLUDED_COUNTRIES`, not by detecting zero-shaped data
 (`src/evaluation/scorecard.py:178`).
 
+**Scoring truth lives in one dict, `scorecard.ACTUAL_SPECS`, and since ABL-410
+the renewable family reads `energy_generation` — the same table the dashboard
+publishes against.** Before that it read the frozen `energy_renewable` while the
+dashboard had moved (ABL-399), so one model, country and window had two
+published WAPEs and neither was wrong. Three things to hold onto:
+
+- This is **not** ABL-321's rejected switch. That is the *training* source,
+  `db.RENEWABLE_TYPE_SOURCE_TABLE`, still `energy_renewable` and untouched.
+  Scoring truth and training source are independent post-ABL-331.
+- It touches **no promotion gate**. `ACTUAL_SPECS` is read only by
+  `scorecard._load_actuals`; both gate harnesses take actuals from
+  `RenewableFeatureBuilder` → `db.load_renewable_type_data`.
+- `hydro_total` is `db.RENEWABLE_TYPE_COLUMNS['hydro_total']` **imported, not
+  restated**. A strict `hydro_run_mw + hydro_reservoir_mw` is survivable on the
+  frozen table only because `REAL DEFAULT 0` means nothing there is NULL; on
+  `energy_generation` it erases the 9 countries that report one component.
+
+Two caveats travel with every renewable-family figure: `energy_generation` has
+an open FR ingest gap (2026-06-30 → 2026-07-22, ABL-318 §3) that shrinks FR
+samples and therefore moves **pooled** rows on composition alone; and the models
+are still fitted on `energy_renewable`, so where the tables disagree about the
+target, part of the WAPE is target mismatch. `reports/abl_410_scoring_truth.md`
+decomposes both, and records the finding that BE `hydro_total` is a
+pumped-storage forecast under a hydro label.
+
 D-7 and persistence predictions go through `src/baselines.py`, via the pure
 issued-row adapter at `src/baselines.py:297`. Persistence derives its lookback
 from target minus `generated_at` and rounds the lead **up**: stored

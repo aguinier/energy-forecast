@@ -19,10 +19,14 @@ against *both* candidate truths, on the identical rows:
                               instants, and the table ABL-188 used to
                               adjudicate `energy_renewable`'s zeros as wrong.
                               Primary.
-    truth=energy_renewable    what `src/evaluation/scorecard.py` scores the
-                              live models against today. Secondary, and
-                              reported precisely so the switch cannot be
-                              accused of grading its own homework.
+    truth=energy_renewable    the frozen table. Secondary, and reported
+                              precisely so the switch cannot be accused of
+                              grading its own homework. It was also what
+                              `src/evaluation/scorecard.py` scored the live
+                              models against when ABL-321 ran; ABL-410 has
+                              since moved that to `energy_generation`. That
+                              changes the label, not a number here -- this
+                              harness always computed both.
 
 A conclusion is only reported as robust where the two truths agree.
 
@@ -348,7 +352,8 @@ def render_markdown(result: dict) -> str:
         "## Per country/stream, D+2 primary bands (24-36h, 36-48h, 48-64h)", "",
     ]
     for truth, label in (("truth_gen", "energy_generation (primary)"),
-                         ("truth_ren", "energy_renewable (what the live scorecard uses)")):
+                         ("truth_ren", "energy_renewable (frozen; the live "
+                                       "scorecard's truth until ABL-410)")):
         rows = [r for r in result["per_pair"] if r["truth"] == truth]
         if not rows:
             continue

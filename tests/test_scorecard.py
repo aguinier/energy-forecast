@@ -1,5 +1,6 @@
 """Pure correctness checks for the all-type forecast scorecard (ABL-129)."""
 
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -9,10 +10,13 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from src.db import RENEWABLE_TYPE_COLUMNS
 from src.baselines import aligned_point_baselines
 from src.evaluation.scorecard import (
-    filter_measured_actuals, horizon_band, normalize_timestamps, score_against_baseline,
-    render_markdown, score_predictions, select_latest_per_band,
+    ACTUAL_SPECS, GENERATION_RENEWABLE_COLUMNS, RETIRED_RENEWABLE_ACTUAL_SPECS,
+    filter_measured_actuals, horizon_band, mean_scored_actual, normalize_timestamps,
+    null_aware_sum, score_against_baseline, render_markdown, score_predictions,
+    select_latest_per_band,
 )
 
 
@@ -102,12 +106,91 @@ def test_report_renders_empty_comparison_as_not_measured():
             "net_position_gate": "separate", "vintage_counts": {},
             "abl128_reproduction": {},
             "excluded": {"net_position": {"GR": "fabricated zeros"}},
+            "scoring_truth": {"load": {"table": "energy_load",
+                                       "expression": "load_mw"}},
         },
         "pooled": [{"forecast_type": "load", "model_name": "catboost",
                     "horizon_band": "all", "model": empty,
+                    "mean_actual": None,
                     "baselines": {name: comparison for name in
                                   ("seasonal_naive", "persistence", "tso")}}],
         "by_country_horizon": [],
     }
     report = render_markdown(results, "now")
-    assert "| load | catboost | all | 0 | Not measured" in report
+    assert "| load | catboost | all | 0 | Not measured | Not measured" in report
+    assert "| load | `energy_load` | `load_mw` |" in report
+
+
+# --------------------------------------------------------------------------
+# ABL-410: one statement of the actual, and it is not the frozen table.
+# --------------------------------------------------------------------------
+
+def test_hydro_scoring_truth_is_the_training_side_definition_itself():
+    """Not "the same rule" — the same object. A copy is what drifted.
+
+    `scorecard` scored `hydro_run_mw + hydro_reservoir_mw` strictly while
+    `db.py` used the null-aware form on the measurement that 9 of the 24
+    supported countries report exactly one component. Two definitions of one
+    quantity in one repo; this pins them to one.
+    """
+    table, expression = ACTUAL_SPECS["hydro_total"]
+    assert table == "energy_generation"
+    assert expression is RENEWABLE_TYPE_COLUMNS["hydro_total"]
+
+
+def test_no_renewable_family_type_is_scored_against_the_frozen_table():
+    family = ("renewable", "solar", "wind_onshore", "wind_offshore", "biomass",
+              "hydro_total")
+    assert {ACTUAL_SPECS[t][0] for t in family} == {"energy_generation"}
+    # The retired mapping is a record, not a fallback: it must stay the frozen
+    # one, and nothing may quietly score against it again.
+    assert {t[0] for t in RETIRED_RENEWABLE_ACTUAL_SPECS.values()} == {"energy_renewable"}
+    assert set(RETIRED_RENEWABLE_ACTUAL_SPECS) == set(family)
+
+
+def test_renewable_total_excludes_pumped_storage():
+    """The store is not a primary source, and folding it in is the ABL-410 bug.
+
+    `energy_renewable` has no `hydro_pumped_mw` column at all — it folds pumping
+    into `hydro_reservoir_mw`, which is why BE's frozen "hydro" actual was
+    84.7% pumped storage across the 22,641 hours both tables carry, and 99.3%
+    of it over the last published window. The list must not reintroduce it.
+    """
+    assert "hydro_pumped_mw" not in GENERATION_RENEWABLE_COLUMNS
+    assert "energy_storage_mw" not in GENERATION_RENEWABLE_COLUMNS
+    assert GENERATION_RENEWABLE_COLUMNS == (
+        "solar_mw", "wind_onshore_mw", "wind_offshore_mw",
+        "hydro_run_mw", "hydro_reservoir_mw", "biomass_mw",
+        "geothermal_mw", "marine_mw", "other_renewable_mw",
+    )
+
+
+def test_null_aware_sum_keeps_a_partial_report_and_a_measured_zero():
+    """One unreported component must not erase the ones beside it, and a
+    country reporting none of them must not read as generating zero."""
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE t (label TEXT, a REAL, b REAL, c REAL)")
+    con.executemany("INSERT INTO t VALUES (?, ?, ?, ?)", [
+        ("all reported", 1.0, 2.0, 3.0),
+        ("one missing", 1.0, None, 3.0),
+        ("measured zero", 0.0, 0.0, 0.0),
+        ("none reported", None, None, None),
+    ])
+    expression = null_aware_sum(("a", "b", "c"))
+    rows = dict(con.execute(f"SELECT label, {expression} FROM t").fetchall())
+    con.close()
+    assert rows["all reported"] == 6.0
+    assert rows["one missing"] == 4.0        # strict `+` would give NULL
+    assert rows["measured zero"] == 0.0      # a reading, not an absence
+    assert rows["none reported"] is None     # COALESCE-only would give 0.0
+
+
+def test_mean_actual_covers_exactly_the_scored_pairs():
+    """WAPE's denominator level, on the same mask `score_predictions` uses."""
+    group = pd.DataFrame({
+        "actual": [10.0, 20.0, np.nan, 30.0],
+        "forecast_value": [1.0, 2.0, 3.0, np.nan],
+    })
+    assert mean_scored_actual(group) == pytest.approx(15.0)
+    assert score_predictions(group["actual"], group["forecast_value"])["n"] == 2
+    assert mean_scored_actual(pd.DataFrame({"actual": [], "forecast_value": []})) is None
