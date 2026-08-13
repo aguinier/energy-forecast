@@ -370,7 +370,7 @@ the rule above, and is read back by `CascadeForecaster.load_model`.
 ABL-342 made that provenance faithful but gave neither harness a way to read
 anything else. The **solar** harness now has one (ABL-345):
 `scripts/evaluate_solar_retrain.py --renewable-source energy_generation`. It
-resolves the source once (`evaluate_solar_retrain.py:208`) and hands the same
+resolves the source once (`evaluate_solar_retrain.py:351`) and hands the same
 string to both read sites — the `RenewableFeatureBuilder`, which supplies the
 fitted series, every lag and rolling feature, the D-7/persistence baselines and
 the gate actuals; and `_constant_runs`, whose result drives `verdict`, so
@@ -425,10 +425,30 @@ Relatedly, a run in which any cell scores zero rows now returns verdict
 `FAIL` invites exactly the wrong next move (feature work on a model that was
 never measured).
 
-The **solar** harness still hardcodes `len(gate_cells) == 9` against its
-`COUNTRIES` and has no scope argument. That is correct while every solar run is
-the full ABL-253 scope; the ABL-348 tranche will need the same `SCOPES`
-treatment before it can gate a subset.
+ABL-378 ported all of the above to the **solar** harness, so it is no longer the
+exception this section used to describe. It takes `--scope` over a `SCOPES` table
+of its own (`evaluate_solar_retrain.py:60`), registers a `GATE_BASIS` per scope
+(`:98`), and derives its bar rather than hardcoding `== 9`:
+`registered_cells = len(registered_countries) * len(PRIMARY_BANDS)`
+(`:361`), compared in `disposition` (`:181`). `abl253` is the default and the
+only registered solar scope today, so an unflagged run still reproduces ABL-253;
+ABL-381's tranche registers the second.
+
+**A scope also registers where it writes** (ABL-387). `--artifact-dir`,
+`--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
+which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
+omitted three flags overwrote a dispositioned gate read in place, succeeded, and
+emitted a full report. Each harness now has a `SCOPE_OUTPUTS` table beside
+`SCOPES`/`GATE_BASIS` (`evaluate_wind_retrain.py:83`,
+`evaluate_solar_retrain.py:77`); the three flags default to `None` and resolve
+against it after parsing, so an explicit path still overrides. `abl195` and
+`abl253` keep their historical paths byte-for-byte. The three tables are one
+registration in three views and are cross-checked at **import** by
+`src/evaluation/gate_registration.py`, so a scope added to one and not the others
+fails before any fit rather than mid-run. **Registering a new scope means editing
+three tables**; entries stay one directory deep under `experiments/`, because
+`.gitignore:53` and `:56` glob only that depth and a nested path would commit a
+results file and a binary model artifact.
 
 Why the source matters for the 37 unmodelled solar / wind_onshore pairs, measured
 on the replica 2026-08-12: **33 of the 37 have under 365 days in
@@ -446,8 +466,8 @@ under `Replica:` as if it were the source of everything. `get_connection` now
 takes a read-only `db_path` (`src/db.py:33`) threaded through
 `load_renewable_type_data` (`src/db.py:527`) and `RenewableFeatureBuilder`
 (`src/wind_features.py:516`), and both harnesses hand it the resolved
-`--replica-db` (`scripts/evaluate_solar_retrain.py:232`,
-`scripts/evaluate_wind_retrain.py:332`). A write connection **refuses** a
+`--replica-db` (`scripts/evaluate_solar_retrain.py:374`,
+`scripts/evaluate_wind_retrain.py:378`). A write connection **refuses** a
 `db_path` rather than honour or ignore it, so the sidecar guard keeps its single
 rule. `meta['databases']` records every file the run opened
 (`src/evaluation/scorecard.py:193`) and the report names them, including an
