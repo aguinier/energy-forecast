@@ -661,6 +661,42 @@ reproduces; `abl376` is the same countries, basis and windows with the rule on �
 a controlled A/B on the rule alone. Do not re-read a dispositioned scope under a
 changed fit rule; register a new one.
 
+**Leave that rule off, and know why (ABL-403).** The 2x2 the ABL-395 handover
+asked for — geometry (25/27) x the rule (off/on), BG and CH, ABL-376's eight
+seeds, 64 fits — measured what it costs on a country whose night rows carry real
+MW. On **BG the rule alone doubles night MAE, 44.8 -> 105.9 MW at t = +9.6, 8/8
+seeds**, drives night bias from -2.1 to +88.5 MW, costs **1.4-1.9pp of gate-band
+WAPE** and eats **47% of the D-7 margin** ABL-405's PASS was carrying (+4.99pp ->
++2.63pp at 24-36h; still clears at 8/8, so this is cushion, not a flip). CH
+measures nothing on any exclusion contrast. `reports/abl_403_night_rule_interaction.md`.
+
+Three things follow, and the first is the general rule:
+
+- **A fit-side exclusion is only defensible when the excluded rows are both
+  genuinely contaminated *and* a small enough minority that the score is not
+  dominated by them.** The asymmetry above keeps the rows in the score by design;
+  on FR that meant refusing 113 targets, and on **BG it means refusing 76.4% of
+  the night fit rows while 25.3% of the scored gate rows are night rows at a
+  225 MW mean**. You cannot forbid a model to learn what you still grade it on
+  once that is a quarter of the score. Contaminated actuals are an upstream
+  repair (ABL-67/ABL-210's "repair beats delete"), not a fit filter under an
+  unchanged score. This holds whether or not BG's floor is genuine — grant
+  ABL-396 §9.3 that it is contaminated and the 1.4-1.9pp is still the cost.
+  ES is the strictly stronger case: its overnight MW is real CSP dispatch, so
+  the rule would delete generation rather than noise.
+- **Never disposition a night-floor change on the negative-prediction rate.** It
+  cannot see the level. The same BG run that doubles night MAE *improves* the
+  night-negative rate 20.09% -> 9.86% at 8/8 seeds, p = 0.0078. That is the
+  metric ABL-381 §4 and ABL-395 both reported, and on its own it would have
+  adopted this. Report night MAE and night bias beside it.
+- **ABL-376's 27x mechanism is real in structure and useless in direction.** The
+  interaction on night MAE is -14.2 MW (7/8 seeds, sign p = 0.070, clearing a
+  conservative 4-fit null of 11.3): geometry makes the rule do *less damage*, not
+  make it work. On the night-negative axis no interaction is readable at all. And
+  ABL-395 §5c's proposed mechanism for BG's +0.44pp geometry regression is
+  **tested and not supported** — removing the "lying" night rows roughly doubles
+  that regression (+0.46 -> +0.91pp at 24-36h, 6/8 -> 8/8) instead of curing it.
+
 **A one-seed solar A/B on this harness cannot resolve anything under ~5%
 (ABL-376 §5).** Refitting the solar gate's CatBoost at eight seeds, changing
 nothing else, moves daylight MAE by up to **4.4% (FR), 3.7% (DE) and 5.4% (BE)**
