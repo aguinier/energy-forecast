@@ -484,16 +484,43 @@ ABL-381's tranche registers the second.
 which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
 omitted three flags overwrote a dispositioned gate read in place, succeeded, and
 emitted a full report. Each harness now has a `SCOPE_OUTPUTS` table beside
-`SCOPES`/`GATE_BASIS` (`evaluate_wind_retrain.py:83`,
-`evaluate_solar_retrain.py:77`); the three flags default to `None` and resolve
+`SCOPES`/`GATE_BASIS` (`evaluate_wind_retrain.py:112`,
+`evaluate_solar_retrain.py:86`); the three flags default to `None` and resolve
 against it after parsing, so an explicit path still overrides. `abl195` and
 `abl253` keep their historical paths byte-for-byte. The three tables are one
 registration in three views and are cross-checked at **import** by
-`src/evaluation/gate_registration.py`, so a scope added to one and not the others
-fails before any fit rather than mid-run. **Registering a new scope means editing
-three tables**; entries stay one directory deep under `experiments/`, because
-`.gitignore:53` and `:56` glob only that depth and a nested path would commit a
-results file and a binary model artifact.
+`check_registration_tables` (`src/evaluation/gate_registration.py:39`, called at
+`evaluate_wind_retrain.py:184` and `evaluate_solar_retrain.py:118`), so a scope
+added to one and not the others fails before any fit rather than mid-run — it
+raises on `import`, so even `--help` exits non-zero. That is deliberately louder
+than a failing test: the tables disagreeing is **not** a textual conflict, so
+GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
+platform will show it. **Registering a new scope means editing three tables.**
+
+**Which way the two `.gitignore` globs cut — they do not cut the same way.**
+Entries stay exactly one directory deep under `experiments/`, and below that the
+resemblance ends. `.gitignore:56` (`experiments/*/artifacts/`) matches on the
+**directory name**, so any one-level path ending `artifacts` is ignored and no
+`artifact_dir` is committable. `.gitignore:53` (`experiments/*/results.json`)
+matches on the **exact filename**, so a one-level `json_out` named anything else
+is **tracked**. Depth alone therefore does not decide tracking, and both
+conventions are live:
+
+| scope | `json_out` | tracked? |
+|---|---|---|
+| `abl195`, `abl253`, `abl322-pilot` | `experiments/<ID>/results.json` | no — ignored at `.gitignore:53` |
+| `abl380-tranche1a` | `experiments/ABL348/results_abl380_tranche1a.json` | **yes** |
+
+**Prefer the tracked form for any new scope whose read will be dispositioned.**
+An ignored `results.json` is the one gate record `git checkout --` cannot recover
+and a reviewer cannot diff, which is the same blind spot that made this issue's
+failure mode unobservable: an overwritten gate read shows nothing in
+`git status`, no conflict, no reviewer signal. `abl195`/`abl253` keep the ignored
+form only because relocating them would break the path every already-published
+report cites. Do not rename `abl380-tranche1a`'s `json_out` to `results.json` for
+consistency — that silently untracks the machine record
+`reports/abl_380_tranche1a_findings.md:9` cites for a PASS the Board was asked to
+review, and `tests/test_gate_scope_outputs.py` pins against it.
 
 Why the source matters for the 37 unmodelled solar / wind_onshore pairs, measured
 on the replica 2026-08-12: **33 of the 37 have under 365 days in
