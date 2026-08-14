@@ -64,6 +64,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.evaluation.model_free_reference import (  # noqa: E402
     CLIMATOLOGY_COMPARATORS, CONSTANT_COMPARATORS, MODEL_FREE_COMPARATORS,
+    TRAILING_COMPARATORS,
     attach_model_free_references, climatology_reference_levels, comparator_wape,
     constant_reference_levels, levels_table, lost_to_a_model_free_reference,
 )
@@ -154,8 +155,14 @@ def _frame(n=60, seed=0, level=400.0):
     """
     rng = np.random.default_rng(seed)
     actual = rng.uniform(0.5 * level, 1.5 * level, n)
+    targets = pd.date_range(GATE_START, periods=n, freq="h")
     return pd.DataFrame({
-        "target_ts": pd.date_range(GATE_START, periods=n, freq="h"),
+        "target_ts": targets,
+        # ABL-437: the forecast issue instant, which the trailing references are
+        # levelled on. Every real gate frame carries it (`build_vintage_frame`);
+        # a fixture without it leaves those two columns unmeasurable, which is
+        # the documented safe direction and the wrong fixture for a live column.
+        "generated_at": targets - pd.Timedelta(hours=48),
         "actual": actual,
         "challenger": actual * 1.05 + rng.normal(0, 0.05 * level, n),
         "seasonal_naive": np.roll(actual, 7),
@@ -194,7 +201,12 @@ def test_both_harnesses_report_all_four_references(harness):
     assert set(MODEL_FREE_COMPARATORS) <= set(harness.REPORTED_COMPARATORS)
     assert CONSTANT_COMPARATORS == ("constant_causal", "constant_oracle")
     assert CLIMATOLOGY_COMPARATORS == ("climatology_causal", "climatology_oracle")
-    assert MODEL_FREE_COMPARATORS == CONSTANT_COMPARATORS + CLIMATOLOGY_COMPARATORS
+    # ABL-437 appends its trailing causal pair; the four above keep their names,
+    # their definitions and their order, which is what lets a published letter
+    # still mean what it meant.
+    assert TRAILING_COMPARATORS == ("constant_causal_28d", "climatology_causal_28d")
+    assert MODEL_FREE_COMPARATORS == (CONSTANT_COMPARATORS + CLIMATOLOGY_COMPARATORS
+                                      + TRAILING_COMPARATORS)
 
 
 @pytest.mark.parametrize("harness", [wind, solar], ids=["wind", "solar"])
@@ -748,9 +760,10 @@ def test_the_report_states_that_the_references_gate_nothing(harness, key):
     reading failure with more numbers in it.
     """
     text = harness.render_markdown(_report_fixture(harness, key))
-    assert text.count("| constant causal WAPE | constant oracle WAPE | "
-                      "climatology causal WAPE | climatology oracle WAPE |") == 2, (
-        "both the per-cell table and the per-country summary must carry all four")
+    assert text.count("| constant causal WAPE | constant causal 28d WAPE | constant oracle WAPE | "
+                      "climatology causal WAPE | climatology causal 28d WAPE | "
+                      "climatology oracle WAPE |") == 2, (
+        "both the per-cell table and the per-country summary must carry all six")
     assert "reported references and not gate criteria" in text
     assert "still reads PASS" in text
     # A climatology can be scored on fewer rows than the cell, so the report has
@@ -774,8 +787,12 @@ def test_the_report_reproduces_the_abl380_finding_that_motivated_this_issue(harn
     # CH's cells: challenger 47.4% / D-7 59.3% / skill / the four references.
     # It clears the registered bar by 20pp and still loses to a flat line by 7pp
     # and to an hour-of-day median by 9pp.
-    assert "| 47.4% | 59.3% | +20.0% | 79.1% | 40.3% | 77.8% | 38.2% |" in text
-    assert "| 56.9% | 93.8% | +39.3% | 82.8% | 63.8% | 81.0% | 62.5% |" in text, (
+    # ABL-437 interleaves the two trailing columns, unmeasured in this
+    # ABL-389-era fixture, and the level-inflation diagnostic after them.
+    assert ("| 47.4% | 59.3% | +20.0% | 79.1% | Not measured | 40.3% | 77.8% | "
+            "Not measured | 38.2% | 96.3% / Not measured |") in text
+    assert ("| 56.9% | 93.8% | +39.3% | 82.8% | Not measured | 63.8% | 81.0% | "
+            "Not measured | 62.5% | 29.8% / Not measured |") in text, (
         "BG clears a 93.75% D-7 bar that its own causal constant clears at 82.8%")
     assert "21.97 MW | 10.68 MW" in text and "141.54 MW | 74.69 MW" in text
     assert "The challenger loses to a constant chosen with hindsight in 3 cell(s)" in text

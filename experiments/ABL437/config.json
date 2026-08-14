@@ -1,0 +1,114 @@
+{
+  "issue": "ABL-437",
+  "parent": "ABL-316",
+  "title": "Pre-registered amendment: how the causal gate references are levelled",
+  "status": "PRE-REGISTERED - frozen before the amended ladder is read against any pair",
+  "registered_at": "2026-08-14T00:00:00Z",
+  "registered_by": "Forecasting Scientist",
+  "evidence_pack": "reports/abl_437_causal_levelling_registration.md",
+  "what_this_amends": "The reference that ABL-418's G2 (level) and G3 (shape) are scored against. Nothing else.",
+  "what_this_does_not_amend": [
+    "G1 and the registered bar. Seasonal-naive D-7 is the gate for every scope, unchanged.",
+    "ABL-348's windows, bands, metric, baseline, minimum n, source table and not_evaluable list - so `voids_this_registration` is not triggered, on the same reading ABL-418 took for a report-only ladder.",
+    "The four ABL-389 references, which keep their names, their definitions and every value already published.",
+    "The oracle references' status: reported, never gating, under both levellings.",
+    "The readability floor, the grade letters, the worst-band rule and the U/C precedence."
+  ],
+  "defect": {
+    "mechanism": "`constant_causal` and `climatology_causal` are levelled on the fit window and scored on the gate window. ABL-348's fit window is 2026-01-14 -> 2026-07-11 and its gate window is 2026-07-11 -> 2026-08-10, so on a seasonal series the causal reference is a winter-to-summer average scored against high summer, and is not an estimate of the gate window's level at all.",
+    "consequence": "G2 and G3 are registered on exactly those two references, so where the level moves the reference is a strawman and the grade is inflated for free.",
+    "worst_case": "NL wind_onshore: constant_causal 225.54% WAPE against constant_oracle 73.85% - 205% inflated, and three times worse than forecasting zero.",
+    "stream_split": "Fifteen of the eighteen wind_onshore pairs sit at or above 17% (worst band per pair), topping out at 205.4%; the remaining three are at 2.2-3.9%. All nineteen solar pairs sit between -1.2% and 7.8%, because a flat line's WAPE on solar is dominated by the diurnal cycle rather than by the level.",
+    "precedents": [
+      "ABL-406 bar weakness",
+      "ABL-417 mis-levelled constant_causal on RO",
+      "ABL-435 sec 6 on BG/CH"
+    ],
+    "issue_table_understates_it": "The ten rows in the ABL-437 description reproduce to the digit, but the derived set is fifteen: HU 43.0%, NO 40.7%, RO 30.6%, SE 22.7% and EE 17.3% are also above 17% and are absent from it. Re-derived by import over all 137 committed cells.",
+    "oracle_is_not_a_per_cell_optimum": "constant_oracle is the median of the whole gate window, not of a cell's band subset, so the inflation can be marginally negative. Measured once, EE solar 48-64h at -1.2%."
+  },
+  "candidate_forms_evaluated": {
+    "a_not_evaluable_flag": {
+      "form": "Flag G2/G3 not evaluable where the constant_causal / constant_oracle level ratio falls outside a registered band, on the ABL-421 SCOPE_NOT_EVALUABLE and net-position INCOMPLETE precedents.",
+      "rejected": true,
+      "reasons": [
+        "It converts a measurable question into an abstention. The mis-levelling is a number, and the number is exactly what a reader needs.",
+        "The band cannot separate the two cases it would be used to separate: it is keyed on the reference's mis-levelling, which is a property of the country's seasonality, not of the challenger. BG and CH sit at 43% and 96% inflation and would both be flagged, while BG beats the correctly-levelled references and CH loses to them.",
+        "It leaves the ladder with a hole exactly where the wind fleet is: 15 of 18 wind_onshore pairs sit above 17% inflation, so any band tight enough to catch NL abstains on G2 and G3 for most of the ABL-316 promotion set.",
+        "The registered band would itself be an unregistered choice made after seeing the ratios."
+      ],
+      "what_survives_from_it": "The ratio is reported as a per-cell `level inflation` diagnostic, per causal reference, so the residual mis-levelling of the adopted form is visible rather than assumed away."
+    },
+    "b_trailing_causal_reference": {
+      "form": "Keep both conditions on the ladder and re-level the reference they read: the same flat line and hour-of-day mean over the 28 days ending at each row's own `generated_at`.",
+      "adopted": true,
+      "reasons": [
+        "It measures the thing rather than declining to. G2 keeps asking 'does this model predict the level', against a level estimate a forecaster could actually have formed.",
+        "It is strictly causal by construction and not by a new argument: same anchor, same inclusive hour-floored bound and same ABL-188-filtered series as `wind_features._rolling_features` already uses for `target_value_roll_168h_mean`, which is one of the challenger's own input features. The reference uses no information the challenger did not have.",
+        "It discards nothing. Both fit-window references stay reported beside it, so every published letter still means what it meant and the inflation is readable in the same table."
+      ]
+    }
+  },
+  "adopted_form": "trailing_28d",
+  "window_days": 28,
+  "window_definition": "[generated_at.floor('h') - (28*24 - 1) hours, generated_at.floor('h')], inclusive at both ends, finite values only, on the same target series the gate actuals and the D-7 baseline are read from.",
+  "window_days_rationale": [
+    "The constant and the climatology must share one window: a constant is a climatology with one bucket, and levelling them differently breaks the reading that the gap between them is forced diurnal structure.",
+    "A shared window has to serve the climatology, which needs enough samples per hour-of-day bucket to be a level rather than noise. 28 days gives 28 per bucket; 7 would give 7 and would re-create the strawman defect in a new place.",
+    "28 days is four whole weeks, so day-of-week composition is balanced.",
+    "It is short enough to sit inside one season, which is the whole point, and long enough that a single storm week does not set the level.",
+    "It is available for every gate row: the earliest gate issue instant is 2026-07-09 07:00 and 28 days before that is inside ABL-348's fit window, so no run needs data it does not already load."
+  ],
+  "window_days_is_not_tuned": "Fixed on the grounds above and committed before the amended ladder was read against any pair. It was not selected from a sweep of candidate windows against the grades each would produce, and no such sweep was run.",
+  "ladder_references": {
+    "G2": "constant_causal_28d",
+    "G3": "climatology_causal_28d"
+  },
+  "reported_but_not_on_the_ladder": [
+    "constant_causal",
+    "climatology_causal",
+    "constant_oracle",
+    "climatology_oracle"
+  ],
+  "oracles_stay_off_the_ladder": true,
+  "oracles_rationale": "An oracle is not causally available. The fix for a strawman causal reference is a correctly-levelled causal reference, not a hindsight one. Agreed with the ABL-435 pack, which did not propose it either.",
+  "registered_bar_unchanged": "seasonal_naive D-7",
+  "scope_registration": {
+    "table": "CAUSAL_LEVELLING, in both gate harnesses",
+    "published_scopes_pinned_to": "fit_window",
+    "published_wind_scopes": [
+      "abl195",
+      "abl322-pilot",
+      "abl380-tranche1a",
+      "abl406-tranche2b",
+      "abl417-tranche2e",
+      "abl435-tranche2f"
+    ],
+    "published_solar_scopes": [
+      "abl253",
+      "abl316-t1b",
+      "abl316-t2a",
+      "abl316-t2c",
+      "abl316-t2d",
+      "abl376"
+    ],
+    "unregistered_scope_default": "trailing_28d",
+    "default_direction_rationale": "The two directions are not symmetric. Defaulting to fit_window would give a new tranche the inflated reference silently, on pairs nobody has looked at yet, which is the defect this amends. Defaulting to trailing_28d costs the ability to reproduce an old read by omission, so every published scope is pinned explicitly and a test derives that set from SCOPE_OUTPUTS and git rather than from a list.",
+    "not_in_check_registration_tables": "Deliberate. Adding a required table raises at import for every branch already in flight (three open PRs at registration time, one of them already CONFLICTING on that same call). The absence is guarded by test instead."
+  },
+  "how_the_already_graded_pairs_are_handled": {
+    "rule": "No committed record is edited or regenerated. The amended ladder read is a new document, on the ABL-418 retro-grade precedent.",
+    "reread_record": "reports/abl_437_causal_levelling_reread.md and reports/abl_437_causal_levelling_reread.json",
+    "method": "Arithmetic over the stored results files plus the trailing references recomputed from the replica's target series on the same rows. No refit and no new model.",
+    "order": "This registration is committed before the re-read is computed, and the two are separate commits, so the order is checkable in git."
+  },
+  "prediction_registered_before_the_reread": [
+    "Solar grades should move little on G2: the constant's mis-levelling there is 0-8%, and the constant is a formality on solar in any case.",
+    "Solar G3 may move materially and in the tightening direction: climatology_causal is a January-to-July hour-of-day mean scored on high summer.",
+    "Wind is where G2 should move, and the ten pairs listed in the defect table are where to look first.",
+    "This is a prediction and not a result. What the re-read measures is what is reported, including where it contradicts this."
+  ],
+  "contamination": "ABL-71/ABL-67/ABL-109/ABL-111 are unchanged by this amendment and are stated per pair in the re-read. This registration touches no ingest, no source table and no window, so it can neither introduce nor repair contamination.",
+  "voids_this_registration": "any change to the trailing window length, the anchor, the two column names, or the set of references the ladder reads, after the amended ladder has been read against any pair",
+  "promotion": "This amends how a grade is read. It promotes nothing and recommends nothing. Promotion remains a pre-registered gate read plus a Board decision."
+}

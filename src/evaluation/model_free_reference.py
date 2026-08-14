@@ -73,6 +73,72 @@ PASS — beside the number that qualifies it. Moving a bar after seeing a result
 is exactly what the pre-registration apparatus exists to prevent, and it does
 not become acceptable because the change would be a conservative one.
 `tests/test_gate_model_free_reference.py` pins both halves of that.
+
+ABL-437: the causal references are levelled on a trailing window too
+--------------------------------------------------------------------
+
+The two ``*_causal`` references above are levelled on the **fit** window and
+scored on the **gate** window, and ABL-348's fit window is
+2026-01-14 -> 2026-07-11 against a gate window of 2026-07-11 -> 2026-08-10.
+That is a winter-to-summer average scored against high summer, and wind is
+seasonal, so on a wind pair the "causal constant" is not an estimate of the gate
+window's level at all. Measured across every committed tranche record, worst
+band per pair, as the gap between the causal constant and the correctly-levelled
+oracle constant:
+
+* NL ``wind_onshore`` 225.54% vs 73.85% -- **205% inflated**. A flat line at the
+  fit-window mean scores three times worse there than forecasting zero.
+* PT 102%, CH 96%, IT 76%, ES 50%, BG 43%, LT 39%, HR 38%, PL 22%, CZ 21%.
+* Every solar pair sits at 0-8%: on solar the diurnal cycle dominates the
+  denominator, so a level error barely moves the WAPE. **This is a wind
+  problem.**
+
+G2 and G3 are registered on exactly these two references, so where the level
+moves between the two windows both become strawmen and the grade is inflated for
+free. That is the third instance of one pattern -- ABL-406 (bar weakness),
+ABL-417 (mis-levelled ``constant_causal`` on RO), ABL-435 (BG/CH).
+
+So this module attaches **two more causal references**, levelled the way a
+forecaster actually would:
+
+``constant_causal_28d`` / ``climatology_causal_28d``
+    the same flat line and hour-of-day mean, taken over the
+    :data:`TRAILING_WINDOW_DAYS`-day window ending at **the row's own
+    ``generated_at``** -- the forecast issue instant. Strictly causal by
+    construction, and not by a new argument: it is the same anchor, the same
+    inclusive hour-floored bound and the same ABL-188-filtered series that
+    ``wind_features._rolling_features`` already uses for
+    ``target_value_roll_168h_mean``, which is one of the challenger's own input
+    features. The reference therefore uses no information the challenger did not
+    have.
+
+Four things about the form, each of which was a choice:
+
+* **28 days, and the two forms share the window.** A constant is a climatology
+  with one bucket, so levelling them differently would break the reading that
+  the gap between them is forced diurnal structure. A shared window has to serve
+  the climatology, which needs enough samples per hour-of-day bucket to be a
+  level rather than noise -- 28 days gives 28, where 7 would give 7 and re-create
+  the strawman defect in a new place. 28 days is also four whole weeks, so
+  day-of-week composition is balanced, and it is short enough to sit inside one
+  season, which is the whole point.
+* **The window is in the column name.** Two reads levelled on different windows
+  must not wear the same name, for the reason two reads on different source
+  tables must not: changing the parameter changes the column, and a record says
+  which it carries.
+* **Nothing is removed.** ``constant_causal`` and ``climatology_causal`` keep
+  their names, their definitions and their published values, so every letter
+  already graded still means what it meant. The new columns are reported beside
+  them, which makes the inflation itself a printed diagnostic
+  (:func:`level_inflation`) rather than something a human has to go looking for.
+* **The oracles stay off the ladder.** An oracle is not causally available. The
+  fix for a strawman causal reference is a correctly-levelled causal reference,
+  not a hindsight one.
+
+Which pair of causal references the ABL-418 ladder reads is a **per-scope
+registration** (``CAUSAL_LEVELLING`` in each harness), not a global. Every scope
+whose record is already published is pinned to :data:`FIT_WINDOW` so its read
+still reproduces; the default for a new scope is :data:`TRAILING_28D`.
 """
 
 from __future__ import annotations
@@ -88,9 +154,26 @@ CONSTANT_COMPARATORS = ("constant_causal", "constant_oracle")
 #: The hour-of-day comparator column names, likewise.
 CLIMATOLOGY_COMPARATORS = ("climatology_causal", "climatology_oracle")
 
+#: ABL-437's trailing-window causal pair, in report order.
+TRAILING_COMPARATORS = ("constant_causal_28d", "climatology_causal_28d")
+
 #: Every reference this module attaches, in report order. A harness adds this to
 #: `REPORTED_COMPARATORS` and never to `GATE_BASIS`.
-MODEL_FREE_COMPARATORS = CONSTANT_COMPARATORS + CLIMATOLOGY_COMPARATORS
+MODEL_FREE_COMPARATORS = (CONSTANT_COMPARATORS + CLIMATOLOGY_COMPARATORS
+                          + TRAILING_COMPARATORS)
+
+#: The trailing window, in days. It is in the two column names above on purpose:
+#: changing it here without changing them would let two reads levelled on
+#: different windows wear one name. `tests/test_abl437_causal_levelling.py`
+#: holds the two together.
+TRAILING_WINDOW_DAYS = 28
+
+#: The two registered levelling forms for the *causal* references, i.e. which
+#: pair of columns G2 and G3 are scored against. The oracle references are
+#: unaffected by either: they are hindsight bounds and are on no ladder.
+FIT_WINDOW = "fit_window"
+TRAILING_28D = "trailing_28d"
+CAUSAL_LEVELLINGS = (FIT_WINDOW, TRAILING_28D)
 
 
 def _window_values(actuals: pd.Series, start, end) -> pd.Series:
@@ -156,6 +239,98 @@ def climatology_reference_levels(actuals: pd.Series, fit_start, gate_start,
             "climatology_oracle": _hourly(_window_values(actuals, gate_start, gate_end), "median")}
 
 
+def _trailing_window(actuals: pd.Series, as_of, window_days: int) -> pd.Series:
+    """The finite target values over the trailing window ending at ``as_of``.
+
+    Hour-floored and **inclusive** at the anchor, spanning ``window_days * 24``
+    hours -- character for character the bound
+    ``wind_features._rolling_features`` applies to
+    ``target_value_roll_168h_mean``. That is deliberate and is the whole
+    causality argument: this reference sees exactly the series the challenger's
+    own rolling features were built from, at that row's own issue instant, so
+    there is no new claim about what was knowable when.
+    """
+    anchor = pd.Timestamp(as_of).floor("h")
+    start = anchor - pd.Timedelta(hours=window_days * 24 - 1)
+    index = pd.DatetimeIndex(actuals.index)
+    return actuals[(index >= start) & (index <= anchor)].dropna()
+
+
+def trailing_reference_levels(actuals: pd.Series, as_of_values,
+                              window_days: int = TRAILING_WINDOW_DAYS) -> dict:
+    """``{as_of: {"constant": level | None, "climatology": {hour: level}}}``.
+
+    One entry per **distinct** issue instant, because the eight pre-registered
+    run instants are shared by every target hour of a day: a 30-day gate window
+    has some 240 of them and some 2,160 rows, so levelling per instant rather
+    than per row is the same numbers at a ninth of the work.
+
+    ``None`` and ``{}`` carry the same meaning they carry everywhere else in
+    this module -- a level nobody could measure is not a number, the column is
+    NaN there, and those rows leave that comparator's own intersection.
+    """
+    levels = {}
+    for as_of in pd.DatetimeIndex(pd.Series(list(as_of_values)).unique()):
+        window = _trailing_window(actuals, as_of, window_days)
+        levels[as_of] = {"constant": float(window.mean()) if len(window) else None,
+                         "climatology": _hourly(window, "mean")}
+    return levels
+
+
+def _trailing_summary(levels: dict, window_days: int) -> dict:
+    """What a record keeps of a per-row level: its range, not 240 numbers.
+
+    A trailing reference is a *set* of levels, one per issue instant, so unlike
+    the two fit-window levels it cannot be written down as one number. The
+    summary is what the report renders and what a later reader checks a WAPE
+    against; the per-instant levels are reproducible from the same series by
+    :func:`trailing_reference_levels` and are deliberately not duplicated into
+    every record.
+    """
+    constants = [entry["constant"] for entry in levels.values()
+                 if entry["constant"] is not None]
+    hours = [len(entry["climatology"]) for entry in levels.values()]
+    return {"window_days": window_days, "as_of_count": len(levels),
+            "constant_min_mw": min(constants) if constants else None,
+            "constant_max_mw": max(constants) if constants else None,
+            "constant_mean_mw": float(np.mean(constants)) if constants else None,
+            "climatology_hours_min": min(hours) if hours else None,
+            "climatology_hours_max": max(hours) if hours else None}
+
+
+def attach_trailing_references(frame: pd.DataFrame, actuals: pd.Series,
+                               window_days: int = TRAILING_WINDOW_DAYS
+                               ) -> tuple[pd.DataFrame, dict]:
+    """Attach ABL-437's two trailing-window causal columns, keyed on ``generated_at``.
+
+    A frame with no ``generated_at`` column has no issue instant to level on, so
+    both columns are all-NaN and read ``Not measured``. That is the safe
+    direction and not an accident: a condition that could not be measured is not
+    satisfied (ABL-418), so a cell missing the column cannot grade ``A`` on it.
+    It never silently falls back to the fit-window level, which would restore the
+    defect this reference exists to remove.
+    """
+    result = frame.copy()
+    constant_name, climatology_name = TRAILING_COMPARATORS
+    if "generated_at" not in result.columns or result.empty:
+        result[constant_name] = np.nan
+        result[climatology_name] = np.nan
+        return result, {"window_days": window_days, "as_of_count": 0,
+                        "constant_min_mw": None, "constant_max_mw": None,
+                        "constant_mean_mw": None, "climatology_hours_min": None,
+                        "climatology_hours_max": None}
+    as_of = pd.DatetimeIndex(result["generated_at"])
+    levels = trailing_reference_levels(actuals, as_of, window_days)
+    hours = pd.DatetimeIndex(result["target_ts"]).hour
+    result[constant_name] = [
+        np.nan if levels[stamp]["constant"] is None else levels[stamp]["constant"]
+        for stamp in as_of]
+    result[climatology_name] = [
+        levels[stamp]["climatology"].get(int(hour), np.nan)
+        for stamp, hour in zip(as_of, hours)]
+    return result, _trailing_summary(levels, window_days)
+
+
 def attach_model_free_references(frame: pd.DataFrame, actuals: pd.Series,
                                  fit_start, gate_start,
                                  gate_end) -> tuple[pd.DataFrame, dict]:
@@ -179,6 +354,13 @@ def attach_model_free_references(frame: pd.DataFrame, actuals: pd.Series,
     the missing hour from its neighbours, would be interpolating a data point to
     close a visual gap, and is not on the table.
 
+    **ABL-437 attaches its trailing pair here too, for every scope**, and which
+    pair the ladder *reads* is registered per scope elsewhere. Reporting all six
+    unconditionally is the same decision ABL-389 made when it added the first
+    four to scopes read before they existed: a column costs a column, and the
+    alternative -- attaching the reference only where it is graded -- would mean
+    a record could not show the inflation it was graded around.
+
     Returns the frame and the levels, so the run can record what it used.
     """
     result = frame.copy()
@@ -192,6 +374,8 @@ def attach_model_free_references(frame: pd.DataFrame, actuals: pd.Series,
     hours = pd.Series(pd.DatetimeIndex(result["target_ts"]).hour, index=result.index)
     for name in CLIMATOLOGY_COMPARATORS:
         result[name] = hours.map(levels[name]).astype(float)
+    result, trailing = attach_trailing_references(result, actuals)
+    levels["trailing"] = trailing
     return result, levels
 
 
@@ -204,6 +388,29 @@ def comparator_wape(scores: dict, name: str):
     is correct: neither is a number.
     """
     return (scores.get(name) or {}).get("wape_pct")
+
+
+def level_inflation(scores: dict, name: str = "constant_causal"):
+    """How much worse a causal constant scores than the correctly-levelled one.
+
+    ``constant_causal / constant_oracle`` as a ratio of WAPEs, minus one, in
+    percent -- the quantity ABL-437 was opened on, and 205% at its worst (NL
+    ``wind_onshore``: 225.54% against 73.85%). It is a property of the
+    *reference*, not of the challenger: a flat line cannot be a fair "does it
+    predict the level" test when the level it sits at is not the level of the
+    window it is scored on.
+
+    This is the half of the not-evaluable proposal that survives into the
+    adopted form. Instead of spending the number on an abstention, it is printed
+    beside every cell, per causal reference, so the residual mis-levelling of the
+    trailing form is visible too rather than assumed away. ``None`` where either
+    side was not measured, or where the oracle scored no error at all.
+    """
+    causal = comparator_wape(scores, name)
+    oracle = comparator_wape(scores, "constant_oracle")
+    if causal is None or oracle is None or not oracle:
+        return None
+    return 100.0 * (causal / oracle - 1.0)
 
 
 def reference_prose() -> list[str]:
@@ -225,6 +432,18 @@ def reference_prose() -> list[str]:
         "to the challenger.** A climatology is 24 levels, so an hour of day absent from its source window leaves those rows "
         "unscored for that column alone; scored on different rows, two WAPEs are not the same measurement. Nothing is "
         "interpolated to close that gap.",
+        "",
+        f"**Trailing-window causal reference (ABL-437).** `constant_causal_{TRAILING_WINDOW_DAYS}d` and "
+        f"`climatology_causal_{TRAILING_WINDOW_DAYS}d` are the same flat line and the same hour-of-day mean, levelled over "
+        f"the **{TRAILING_WINDOW_DAYS} days ending at each row's own `generated_at`** instead of over the whole fit window. "
+        f"They exist because the fit window here runs winter to summer and the gate window is high summer, so on a seasonal "
+        f"series the fit-window mean is not an estimate of the gate window's level: a causal constant reads up to **205% "
+        f"worse than the correctly-levelled oracle constant** (NL `wind_onshore`, 225.54% against 73.85%), which inflates a "
+        f"G2/G3 pass for free. The trailing form is strictly causal by construction — same anchor, same inclusive "
+        f"hour-floored bound and same filtered series as the challenger's own `target_value_roll_168h_mean` feature — so it "
+        f"uses no information the challenger did not have. The `level inflation` column prints the residual per cell. "
+        f"**Which pair the grade ladder reads is registered per scope**; the fit-window pair keeps its name, its definition "
+        f"and every value already published.",
     ]
 
 
@@ -249,19 +468,34 @@ def levels_table(training: list[dict], key: str | None = None) -> list[str]:
              "D-7/persistence baselines come from — no refit, no second read, no additional upstream fetch. The hourly "
              "levels behind the climatology columns are in `results.json` in full; `h` is how many of the 24 hours of the "
              "day that level set covers, and anything below 24 means those rows were dropped from that column's n:", "",
-             f"{heading} constant causal | constant oracle | climatology causal | climatology oracle |",
-             f"{rule}---:|---:|---:|---:|"]
+             f"{heading} constant causal | constant oracle | climatology causal | climatology oracle "
+             f"| constant causal {TRAILING_WINDOW_DAYS}d |",
+             f"{rule}---:|---:|---:|---:|---:|"]
     for row in rows:
         levels = row["model_free_reference_mw"]
         prefix = f"| {row[key]} | {row['country']} |" if key else f"| {row['country']} |"
         cells = [_fmt_level(levels.get(name)) for name in CONSTANT_COMPARATORS]
         cells.extend(_fmt_hourly(levels.get(name)) for name in CLIMATOLOGY_COMPARATORS)
+        cells.append(_fmt_trailing(levels.get("trailing")))
         lines.append(f"{prefix} {' | '.join(cells)} |")
     return lines
 
 
 def _fmt_level(level) -> str:
     return "Not measured" if level is None else f"{level:.2f} MW"
+
+
+def _fmt_trailing(summary) -> str:
+    """ABL-437's trailing constant as its range over the issue instants.
+
+    A range and not a single number, because that is what the reference *is*:
+    one level per forecast issue instant. A record that shows only its mean
+    would read like a flat line and hide the tracking that makes it correct.
+    """
+    if not summary or summary.get("constant_min_mw") is None:
+        return "Not measured"
+    return (f"{summary['constant_min_mw']:.2f}–{summary['constant_max_mw']:.2f} MW "
+            f"({summary['as_of_count']} as-of)")
 
 
 def _fmt_hourly(levels) -> str:

@@ -40,7 +40,9 @@ from src.evaluation.gate_grading import (  # noqa: E402
     CONDITIONS, PUBLISHED_FLOOR_PCT_K1, Z_95, grade_cell, margin_pct_of_own_error,
     pair_grade, readability_floor_pct, skill_pct,
 )
-from src.evaluation.model_free_reference import comparator_wape  # noqa: E402
+from src.evaluation.model_free_reference import (  # noqa: E402
+    FIT_WINDOW, comparator_wape,
+)
 
 
 #: A data hold that travels with a grade and is not derivable from the scores.
@@ -124,7 +126,18 @@ def read_tranche(root: Path, spec: dict) -> dict:
     holds = HOLDS.get(spec["tranche"], {})
     order, pairs, graded = [], {}, []
     for cell in results["gate_cells"]:
-        grade = grade_cell(cell["scores"], stream)
+        # ABL-437 pins this read to `fit_window`, the levelling ABL-418 was
+        # published on.  The pin is here, per cell, rather than per tranche in
+        # `TRANCHES`, so it covers every selection -- including ABL-438's `1b`
+        # and any row added later.  No committed tranche record carries a
+        # trailing reference column at all (checked over all three: 1b, 2a, 2b),
+        # because all of them were fitted before ABL-437 existed -- so grading
+        # them on the amended default would silently turn every G2 and G3 into
+        # "not measured" and re-write a published report as a page of Bs.  The
+        # amended read of these same tranches is a separate record
+        # (`reports/abl_437_causal_levelling_reread.md`), which is what a
+        # re-grade is: a new document, not an edit to the old one.
+        grade = grade_cell(cell["scores"], stream, levelling=FIT_WINDOW)
         label = spec["key"](cell)
         if label not in pairs:
             order.append(label)

@@ -50,6 +50,7 @@ from src.evaluation.gate_grading import (
     cell_grade, grade_cell, margin_pct_of_own_error, pair_grade,
     readability_floor_pct, skill_pct,
 )
+from src.evaluation.model_free_reference import FIT_WINDOW
 
 REPO = Path(__file__).resolve().parents[1]
 HARNESSES = {"solar": REPO / "scripts" / "evaluate_solar_retrain.py",
@@ -65,10 +66,17 @@ def scores(challenger, naive, constant, climatology, slope=0.8, correlation=0.9)
     # not omitted -- that is the shape both harnesses produce.
     def entry(wape):
         return {"wape_pct": wape, "n": 0 if wape is None else 720}
+    # ABL-437: both causal reference pairs carry the same numbers here, so
+    # every ladder assertion below holds under either registered levelling.
+    # That is the claim being made -- the amendment re-levels the *reference*
+    # G2 and G3 read and changes no rule of the ladder itself -- and
+    # `tests/test_abl437_causal_levelling.py` asserts the equivalence directly.
     return {"challenger": {"wape_pct": challenger, "n": 720, "slope": slope,
                            "correlation": correlation},
             "seasonal_naive": entry(naive), "constant_causal": entry(constant),
-            "climatology_causal": entry(climatology)}
+            "climatology_causal": entry(climatology),
+            "constant_causal_28d": entry(constant),
+            "climatology_causal_28d": entry(climatology)}
 
 
 def pair_label(cell):
@@ -81,7 +89,8 @@ def graded_pairs(tranche):
     cells = json.loads(path.read_text(encoding="utf-8"))["gate_cells"]
     pairs = {}
     for cell in cells:
-        pairs.setdefault(pair_label(cell), []).append(grade_cell(cell["scores"], stream))
+        pairs.setdefault(pair_label(cell), []).append(
+            grade_cell(cell["scores"], stream, levelling=FIT_WINDOW))
     return {label: pair_grade(grades).label for label, grades in pairs.items()}
 
 
@@ -263,7 +272,8 @@ def test_no_is_anti_correlated_in_every_band_which_is_what_g4_reads():
         assert cell["gate"]["pass"] is True          # it clears the registered bar
         assert cell["scores"]["challenger"]["slope"] < 0
         assert cell["scores"]["challenger"]["correlation"] < 0
-        assert grade_cell(cell["scores"], stream).conditions["G4"] is False
+        assert grade_cell(cell["scores"], stream,
+                          levelling=FIT_WINDOW).conditions["G4"] is False
 
 
 @pytest.mark.parametrize("tranche", sorted(TRANCHES))
@@ -321,7 +331,7 @@ def test_attaching_grades_moves_no_gate_verdict():
     path, stream = TRANCHES["2b"]
     cells = json.loads(path.read_text(encoding="utf-8"))["gate_cells"]
     before = [(dict(cell["gate"]), dict(cell["scores"]["challenger"])) for cell in cells]
-    attach_grades(cells, stream)
+    attach_grades(cells, stream, levelling=FIT_WINDOW)
     after = [(dict(cell["gate"]), dict(cell["scores"]["challenger"])) for cell in cells]
     assert before == after
     assert all(cell["grade"]["label"] for cell in cells)

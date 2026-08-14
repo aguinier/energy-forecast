@@ -27,7 +27,8 @@ from src.evaluation.gate_grading import (
     attach_grades, cell_grade, grade_summary_table, grading_prose,
 )
 from src.evaluation.model_free_reference import (
-    MODEL_FREE_COMPARATORS, attach_model_free_references, comparator_wape,
+    FIT_WINDOW, MODEL_FREE_COMPARATORS, TRAILING_28D,
+    attach_model_free_references, comparator_wape, level_inflation,
     levels_table, lost_to_a_model_free_reference, reference_prose,
 )
 from src.evaluation.gate_artifacts import save_gate_artifact
@@ -460,6 +461,41 @@ REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistenc
 # The numbers themselves live in `src/evaluation/gate_grading.py` and nowhere
 # else, so this file cannot come to disagree with the registration it cites.
 GRADE_STREAM = "solar"
+
+# ABL-437: which pair of causal references the ABL-418 ladder's G2 and G3 read.
+# The wind harness carries the twin of this table and the same rule; the reasons
+# are stated once, over `evaluate_wind_retrain.py`'s copy, and the short form is:
+# every scope below is published, its letters were decided against the fit-window
+# references, and a re-run that silently disagreed with its own record is the
+# ABL-404 failure mode.  So published scopes are pinned and a new scope defaults
+# to `trailing_28d`.
+#
+# Solar is the stream where the amendment moves *least* on the constant and
+# potentially most on the climatology.  The mis-levelling ABL-437 measured is
+# 0-8% on every solar pair, because a flat line's WAPE there is dominated by the
+# diurnal cycle rather than by the level -- but `climatology_causal` is a
+# Jan-to-Jul hour-of-day mean scored on high summer, and re-levelling it to a
+# trailing 28 days makes G3 a materially harder question on this stream.  That is
+# the intended direction and it is why this is a registration rather than a fix.
+#
+# This is the *eighth* scope-keyed table in this file, and only three are in the
+# `check_registration_tables` call at the bottom.  Count them with
+# `grep -E "^[A-Z_]+ = \{"` rather than trusting this sentence, which is exactly
+# the number that drifted twice before.
+CAUSAL_LEVELLING = {
+    "abl253": FIT_WINDOW,
+    "abl316-t1b": FIT_WINDOW,
+    "abl316-t2a": FIT_WINDOW,
+    "abl316-t2c": FIT_WINDOW,
+    "abl316-t2d": FIT_WINDOW,
+    "abl376": FIT_WINDOW,
+}
+
+
+def causal_levelling_for(scope: str) -> str:
+    """The scope's registered causal levelling, or ABL-437's amended default."""
+    return CAUSAL_LEVELLING.get(scope, TRAILING_28D)
+
 
 # ABL-376: what the fit is allowed to *see* is a registered property of the scope
 # too, and for the same reason as the basis -- two gate reads are not comparable
@@ -1062,6 +1098,11 @@ def not_evaluable_table(result: dict) -> list[str]:
 def render_markdown(result: dict) -> str:
     meta, cells = result["meta"], result["gate_cells"]
     passed = sum(cell["gate"]["pass"] for cell in cells)
+    # ABL-437: read the levelling from the *record*, not from `CAUSAL_LEVELLING`,
+    # so re-rendering a stored read cannot re-decide it under a later
+    # registration. A record written before ABL-437 has no such key and is
+    # `fit_window` -- absence dates the read, as ABL-404 reads a missing list.
+    levelling = meta.get("causal_levelling", FIT_WINDOW)
     # ABL-376: the title used to be the ABL-253 literal, which put that issue's
     # name on every other scope's report. `abl253` keeps its exact heading, so
     # the dispositioned read still renders byte-for-byte.
@@ -1104,9 +1145,9 @@ def render_markdown(result: dict) -> str:
         "",
         # ABL-418: what the PASS in the last column entitles the cell to. The
         # gate column is unchanged and still says whether the cell cleared D-7.
-        *grading_prose(GRADE_STREAM),
+        *grading_prose(GRADE_STREAM, levelling=levelling),
         "",
-        "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | MAE | bias | slope | corr | gate | grade |",
+        "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant causal 28d WAPE | constant oracle WAPE | climatology causal WAPE | climatology causal 28d WAPE | climatology oracle WAPE | level inflation (causal / 28d) | incumbent WAPE | MAE | bias | slope | corr | gate | grade |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|",
     ]
     for row in cells:
@@ -1115,19 +1156,23 @@ def render_markdown(result: dict) -> str:
         # A cell that scored no rows has None on both sides. It renders as
         # "Not measured", never as a number and never as a crash.
         skill = "Not measured" if chal is None or naive is None else f"{100 * (1 - chal / naive):+.1f}%"
-        grade = cell_grade(row, GRADE_STREAM).detail
+        grade = cell_grade(row, GRADE_STREAM, levelling=levelling).detail
         lines.append(
             f"| {row['country']} | {row['horizon_band']} | {row['gate']['n']:,} | "
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
             f"{skill} | {_fmt(comparator_wape(scores, 'constant_causal'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'constant_causal_28d'), '%')} | "
             f"{_fmt(comparator_wape(scores, 'constant_oracle'), '%')} | "
             f"{_fmt(comparator_wape(scores, 'climatology_causal'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'climatology_causal_28d'), '%')} | "
             f"{_fmt(comparator_wape(scores, 'climatology_oracle'), '%')} | "
+            f"{_fmt(level_inflation(scores), '%')} / {_fmt(level_inflation(scores, 'constant_causal_28d'), '%')} | "
             f"{_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(scores['challenger']['mae'])} MW | "
             f"{_fmt(scores['challenger']['bias_pct'], '%')} | {_fmt(scores['challenger']['slope'])} | "
             f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} | {grade} |"
         )
-    lines.extend(grade_summary_table(cells, GRADE_STREAM, lambda row: row["country"]))
+    lines.extend(grade_summary_table(cells, GRADE_STREAM, lambda row: row["country"],
+                                     levelling=levelling))
     lines.extend(not_evaluable_table(result))
     lines.extend(levels_table(result["training"]))
     # The protocol-count sentence below is a measured ABL-253 fact about that
@@ -1155,16 +1200,17 @@ def render_markdown(result: dict) -> str:
            "pools the band(s) the registration declares NOT-EVALUABLE, so the row is not the pooled form of that "
            "country's gate cells and must not be quoted as one.", ""]
           if meta.get("not_evaluable_cells_declared") else []),
-        "| country | n | challenger WAPE | D-7 WAPE | persistence WAPE | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| country | n | challenger WAPE | D-7 WAPE | persistence WAPE | constant causal WAPE | constant causal 28d WAPE | constant oracle WAPE | climatology causal WAPE | climatology causal 28d WAPE | climatology oracle WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ])
     for row in result["country_d2"]:
         scores, tso = row["scores"], row["tso"]
         lines.append(
             f"| {row['country']} | {row['n']:,} | {_fmt(scores['challenger']['wape_pct'], '%')} | "
             f"{_fmt(scores['seasonal_naive']['wape_pct'], '%')} | {_fmt(scores['persistence']['wape_pct'], '%')} | "
-            f"{_fmt(comparator_wape(scores, 'constant_causal'), '%')} | {_fmt(comparator_wape(scores, 'constant_oracle'), '%')} | "
-            f"{_fmt(comparator_wape(scores, 'climatology_causal'), '%')} | {_fmt(comparator_wape(scores, 'climatology_oracle'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'constant_causal'), '%')} | {_fmt(comparator_wape(scores, 'constant_causal_28d'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'constant_oracle'), '%')} | {_fmt(comparator_wape(scores, 'climatology_causal'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'climatology_causal_28d'), '%')} | {_fmt(comparator_wape(scores, 'climatology_oracle'), '%')} | "
             f"{_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(tso['wape_pct'], '%')} (n={tso['n']:,}) |"
         )
     lines.extend([
@@ -1424,7 +1470,7 @@ def main() -> int:
     # as they were.  The stream selects ABL-385's registered CV, and passing the
     # wrong one would silently apply wind's narrower floor --
     # `tests/test_gate_grading.py` reads this literal out of the AST.
-    attach_grades(gate_cells, GRADE_STREAM)
+    attach_grades(gate_cells, GRADE_STREAM, levelling=causal_levelling_for(args.scope))
     passed = sum(row["gate"]["pass"] for row in gate_cells)
     contaminated = any(row["constant_runs"] for row in training)
     verdict, recommendation = disposition(gate_cells, registered_cells, contaminated)
@@ -1438,6 +1484,7 @@ def main() -> int:
                        "databases": opened_databases(cfg, str(replica), config.DATABASE_PATH),
                        "training_source": source,
                        "scope": args.scope, "registered_countries": list(registered_countries),
+                       "causal_levelling": causal_levelling_for(args.scope),
                        # ABL-421: the *evaluable* cell count, which is the grid
                        # minus whatever the registration declared unscorable. The
                        # grid size is recorded beside it rather than left to be

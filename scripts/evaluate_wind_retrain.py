@@ -30,7 +30,8 @@ from src.evaluation.gate_grading import (
     attach_grades, cell_grade, grade_summary_table, grading_prose,
 )
 from src.evaluation.model_free_reference import (
-    MODEL_FREE_COMPARATORS, attach_model_free_references, comparator_wape,
+    FIT_WINDOW, MODEL_FREE_COMPARATORS, TRAILING_28D,
+    attach_model_free_references, comparator_wape, level_inflation,
     levels_table, lost_to_a_model_free_reference, reference_prose,
 )
 from src.evaluation.gate_artifacts import save_gate_artifact
@@ -348,6 +349,44 @@ COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw
 # avoided.
 GRADE_STREAM = "wind"
 
+# ABL-437: which pair of causal references the ABL-418 ladder's G2 and G3 read.
+# `fit_window` is ABL-389's original form -- a flat line and an hour-of-day mean
+# over the whole fit window.  `trailing_28d` levels the same two predictors over
+# the 28 days ending at each row's own `generated_at`.
+#
+# Why it is a table and not a constant.  Every scope below is *published*: its
+# `results_*.json` and its report are committed, and its ABL-418 letters were
+# decided against the fit-window references.  Re-levelling them here would make a
+# re-run disagree with its own record silently -- the ABL-404 failure mode, which
+# cost a dispositioned read.  So a published scope is pinned to what it was read
+# under, and the correction is published separately as an amended ladder read
+# (`reports/abl_437_causal_levelling_reread.md`), on the ABL-418 retro-grade
+# precedent.
+#
+# **This table defaults toward the amendment, unlike `SCOPE_FEATURES` and
+# unlike `SCOPE_NOT_EVALUABLE`.**  A scope absent from it grades on
+# `trailing_28d`, because the two directions are not symmetric: defaulting to
+# `fit_window` would give a new tranche the inflated reference silently, which is
+# precisely the defect ABL-437 exists to remove, and it would do so on the pairs
+# nobody has looked at yet.  What that costs is that an absence can no longer
+# reproduce an old read, so
+# `tests/test_abl437_causal_levelling.py::test_every_published_scope_pins_its_levelling`
+# derives the published set from `SCOPE_OUTPUTS` + git and requires an explicit
+# pin for each, rather than trusting this comment.
+CAUSAL_LEVELLING = {
+    "abl195": FIT_WINDOW,
+    "abl322-pilot": FIT_WINDOW,
+    "abl380-tranche1a": FIT_WINDOW,
+    "abl406-tranche2b": FIT_WINDOW,
+    "abl417-tranche2e": FIT_WINDOW,
+    "abl435-tranche2f": FIT_WINDOW,
+}
+
+
+def causal_levelling_for(scope: str) -> str:
+    """The scope's registered causal levelling, or ABL-437's amended default."""
+    return CAUSAL_LEVELLING.get(scope, TRAILING_28D)
+
 # The columns that must be *simultaneously finite* for a row to enter a gate
 # cell.  This is a registered property of the scope, not a detail: ABL-322 ran
 # with the four-way basis below and every one of its 6 cells came back n=0, all
@@ -497,6 +536,11 @@ def _fmt(value, suffix=""):
 def render_markdown(result: dict) -> str:
     meta = result["meta"]
     cells = result["gate_cells"]
+    # ABL-437: read the levelling from the *record*, not from the table above, so
+    # re-rendering a stored read cannot re-decide it under a later registration.
+    # A record written before ABL-437 has no such key and is `fit_window` --
+    # absence dates the read, exactly as ABL-404 reads a missing feature list.
+    levelling = meta.get("causal_levelling", FIT_WINDOW)
     lines = [
         f"# Serve-faithful wind retrain gate — registered scope `{meta['scope']}`",
         "",
@@ -531,10 +575,10 @@ def render_markdown(result: dict) -> str:
         "",
         # ABL-418: what the PASS in the last column entitles the cell to. The
         # gate column is unchanged and still says whether the cell cleared D-7.
-        *grading_prose(GRADE_STREAM),
+        *grading_prose(GRADE_STREAM, levelling=levelling),
         "",
-        "| type | country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | MAE | bias | slope | corr | gate | grade |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|",
+        "| type | country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant causal 28d WAPE | constant oracle WAPE | climatology causal WAPE | climatology causal 28d WAPE | climatology oracle WAPE | level inflation (causal / 28d) | incumbent WAPE | MAE | bias | slope | corr | gate | grade |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|",
     ]
     for row in cells:
         scores = row["scores"]
@@ -542,35 +586,40 @@ def render_markdown(result: dict) -> str:
         # A cell that scored no rows has None on both sides. It renders as
         # "Not measured", never as a number and never as a crash.
         skill = "Not measured" if chal is None or naive is None else f"{100 * (1 - chal / naive):+.1f}%"
-        grade = cell_grade(row, GRADE_STREAM).detail
+        grade = cell_grade(row, GRADE_STREAM, levelling=levelling).detail
         lines.append(
             f"| {row['forecast_type']} | {row['country']} | {row['horizon_band']} | {row['gate']['n']:,} | "
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
             f"{skill} | {_fmt(comparator_wape(scores, 'constant_causal'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'constant_causal_28d'), '%')} | "
             f"{_fmt(comparator_wape(scores, 'constant_oracle'), '%')} | "
             f"{_fmt(comparator_wape(scores, 'climatology_causal'), '%')} | "
+            f"{_fmt(comparator_wape(scores, 'climatology_causal_28d'), '%')} | "
             f"{_fmt(comparator_wape(scores, 'climatology_oracle'), '%')} | "
+            f"{_fmt(level_inflation(scores), '%')} / {_fmt(level_inflation(scores, 'constant_causal_28d'), '%')} | "
             f"{_fmt(scores['incumbent']['wape_pct'], '%')} | {_fmt(scores['challenger']['mae'])} MW | "
             f"{_fmt(scores['challenger']['bias_pct'], '%')} | {_fmt(scores['challenger']['slope'])} | "
             f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} | {grade} |"
         )
     lines.extend(grade_summary_table(
-        cells, GRADE_STREAM, lambda row: f"{row['country']} {row['forecast_type']}"))
+        cells, GRADE_STREAM, lambda row: f"{row['country']} {row['forecast_type']}",
+        levelling=levelling))
     lines.extend(levels_table(result["training"], key="forecast_type"))
     basis_names = ", ".join(meta.get("gate_basis", []))
     lines.extend(["", "## Per-country all-D+2 summary", "",
                   f"Gate-basis values (actual, {basis_names}) share one finite intersection; each comparator outside the basis is "
                   "scored on its own intersection with it, and its n is given in `comparator_n` in the JSON. A comparator showing "
                   "`Not measured` had no finite rows at all.", "",
-                  "| type | country | n | challenger WAPE | D-7 WAPE | persistence WAPE | constant causal WAPE | constant oracle WAPE | climatology causal WAPE | climatology oracle WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
-                  "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"])
+                  "| type | country | n | challenger WAPE | D-7 WAPE | persistence WAPE | constant causal WAPE | constant causal 28d WAPE | constant oracle WAPE | climatology causal WAPE | climatology causal 28d WAPE | climatology oracle WAPE | incumbent WAPE | TSO WAPE (revision-contaminated; n) |",
+                  "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"])
     for row in result["country_d2"]:
         s = row["scores"]
         tso = row["tso"]
         lines.append(f"| {row['forecast_type']} | {row['country']} | {row['n']:,} | {_fmt(s['challenger']['wape_pct'], '%')} | "
                      f"{_fmt(s['seasonal_naive']['wape_pct'], '%')} | {_fmt(s['persistence']['wape_pct'], '%')} | "
-                     f"{_fmt(comparator_wape(s, 'constant_causal'), '%')} | {_fmt(comparator_wape(s, 'constant_oracle'), '%')} | "
-                     f"{_fmt(comparator_wape(s, 'climatology_causal'), '%')} | {_fmt(comparator_wape(s, 'climatology_oracle'), '%')} | "
+                     f"{_fmt(comparator_wape(s, 'constant_causal'), '%')} | {_fmt(comparator_wape(s, 'constant_causal_28d'), '%')} | "
+                     f"{_fmt(comparator_wape(s, 'constant_oracle'), '%')} | {_fmt(comparator_wape(s, 'climatology_causal'), '%')} | "
+                     f"{_fmt(comparator_wape(s, 'climatology_causal_28d'), '%')} | {_fmt(comparator_wape(s, 'climatology_oracle'), '%')} | "
                      f"{_fmt(s['incumbent']['wape_pct'], '%')} | {_fmt(tso['wape_pct'], '%')} (n={tso['n']:,}) |")
     # ABL-322 criterion 3.  The protocol-count sentence this replaces was a
     # measured ABL-195 fact (210/570/720/720/510 by band) rendered for every
@@ -813,7 +862,7 @@ def main() -> int:
     # are computed exactly as they were.  The stream selects ABL-385's registered
     # CV, and passing the wrong one would silently apply solar's wider floor --
     # `tests/test_gate_grading.py` reads this literal out of the AST.
-    attach_grades(gate_cells, GRADE_STREAM)
+    attach_grades(gate_cells, GRADE_STREAM, levelling=causal_levelling_for(args.scope))
     passed = sum(row["gate"]["pass"] for row in gate_cells)
     contaminated = any(row["constant_runs"] for row in training)
     performance_pass = len(gate_cells) == registered_cells and passed == registered_cells
@@ -856,6 +905,7 @@ def main() -> int:
                        "fit_window": {"start": str(fit_start), "end_exclusive": str(gate_start)},
                        "gate_window": {"start": str(gate_start), "end_exclusive": str(gate_end)},
                        "scope": args.scope, "registered_pairs": list(registered_pairs),
+                       "causal_levelling": causal_levelling_for(args.scope),
                        "registered_cells": registered_cells, "gate_basis": list(gate_basis),
                        # ABL-389: the basis is what gates; this is what is
                        # merely reported beside it. Recorded so the two are

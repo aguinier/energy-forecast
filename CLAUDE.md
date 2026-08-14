@@ -826,6 +826,81 @@ it: a grade reads a *margin*, so a coverage-short cell that beat D-7 would grade
 `A` exactly as a full-coverage one does. It nests under `gate`, where a flat
 lookup passes vacuously — assert the value, not its presence.
 
+### Which causal reference G2 and G3 read is registered per scope (ABL-437)
+
+**The two `*_causal` references are levelled on the fit window and scored on the
+gate window, and those are different seasons.** ABL-348 fits
+2026-01-14 → 2026-07-11 and gates 2026-07-11 → 2026-08-10, so on a seasonal
+series the "causal constant" is a winter-and-spring average scored against high
+summer — not an estimate of the gate window's level at all. G2 and G3 are
+registered on exactly those two references, so the reference is a strawman and
+the grade is inflated for free. Re-derived by import over all 137 committed
+cells, worst band per pair: **15 of the 18 `wind_onshore` pairs sit at or above
+17%**, topping out at NL's **205%** (225.54% against an oracle constant at
+73.85% — a flat line three times worse there than forecasting zero), while all
+19 solar pairs sit between −1.2% and 7.8%, because a flat line's WAPE on solar is
+dominated by the diurnal cycle rather than by the level. The ten-row table in the
+ABL-437 description reproduces to the digit and is not the whole set: HU, NO, RO,
+SE and EE are also above 17%. This was the third instance of one pattern
+(ABL-406 bar weakness, ABL-417 on RO, ABL-435 on BG/CH).
+
+The amendment keeps both conditions on the ladder and **re-levels the reference
+they read**, to `constant_causal_28d` / `climatology_causal_28d`: the same two
+predictors over the 28 days ending at **the row's own `generated_at`**. The
+alternative — flagging G2/G3 not-evaluable outside a registered level band — was
+evaluated and rejected, because the band is keyed on the *country's seasonality*
+rather than on the challenger and so cannot separate the two cases it would be
+used to separate: BG (43%) and CH (96%) both trip any band, and BG beats the
+corrected references where CH loses to them. Its diagnostic survives as a printed
+`level inflation` column. `reports/abl_437_causal_levelling_registration.md` and
+`experiments/ABL437/config.json` are the registration.
+
+Five things follow, and the third is the one that bites:
+
+- **The causality claim is not a new argument.** The window is anchored at
+  `generated_at.floor("h")`, inclusive, spanning `28*24 - 1` hours back, over the
+  same ABL-188-filtered series — character for character the bound
+  `wind_features._rolling_features` applies to `target_value_roll_168h_mean`,
+  which is one of the challenger's own 24 features. The reference uses no
+  information the challenger did not have, and the test reads that bound out of
+  `wind_features.py`'s source rather than restating it.
+- **28 days, and both forms share the window.** A constant is a climatology with
+  one bucket, so levelling them differently breaks the reading that the gap
+  between them is forced diurnal structure. The shared window has to serve the
+  climatology, which needs samples per hour-of-day bucket — 28 days gives 28,
+  7 would give 7, and a noisy climatology is a weak reference, i.e. the same
+  defect in a new place. The window is **in the column name** so two reads
+  levelled differently cannot wear one name.
+- **`CAUSAL_LEVELLING` defaults *toward* the amendment**, which is the opposite
+  of `SCOPE_FEATURES` and the opposite of `SCOPE_NOT_EVALUABLE`. A scope absent
+  from it grades on `trailing_28d`, because inheriting the old reference silently
+  would hand a new tranche the inflated one on pairs nobody has looked at yet.
+  The cost is that an absence can no longer reproduce an old read, so every
+  published scope is **pinned to `fit_window`** and
+  `test_every_published_scope_pins_its_levelling` derives that set from
+  `SCOPE_OUTPUTS` **and git** rather than from a list. `scripts/abl418_retro_grade.py`
+  is pinned for the same reason, and pinned at the *cell* rather than per tranche,
+  so it covers ABL-438's `1b` row above and whatever `TRANCHES` gains next: none
+  of the three committed records carries a trailing column at all — checked, not
+  assumed — so the amended default would rewrite a published page of A's as B's.
+  The table is deliberately **not** passed to `check_registration_tables`, and
+  that is structural rather than cautious: that check requires every scope in the
+  union to appear in *every* table it is given, so registering `CAUSAL_LEVELLING`
+  there would force each scope to be pinned and delete the default this bullet
+  exists to describe.
+- **The ladder's rules did not move, only the reference.** Given two reference
+  pairs carrying identical numbers, every case grades identically under either
+  levelling; that is asserted directly rather than argued. G1 is still
+  seasonal-naive D-7 under both, both oracles are still on neither ladder, and
+  ABL-348's windows, bands, metric, baseline, minimum n and source are untouched,
+  so `voids_this_registration` is not triggered.
+- **A trailing window converges; it does not teleport.** On a step change at the
+  gate boundary it still carries the old level on day 1 and only halves the
+  reference's error over a 30-day window. On ABL-348's windows it *starts* as the
+  last 28 days of the fit window — mid-June to mid-July, already the gate season
+  — so the real residual is smaller, but it is **reported per cell** rather than
+  assumed away. Do not quote the corrected reference as exact.
+
 **A scope also registers where it writes** (ABL-387). `--artifact-dir`,
 `--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
 which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
