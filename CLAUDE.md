@@ -1115,6 +1115,70 @@ Four things follow, and the last two are the ones that catch a reader out:
   `wind_offshore` is the eleventh mover: all six of its G2/G3 margins are inside
   the floor, which its own record had already labelled *not readable at one seed*
   while recording `g2_g3_floor_is_a_ladder_condition: false`.
+**At k > 1 the readability test is the Student-t interval on the seed draws, not
+`delta_min`** (ABL-467, filed by ABL-427 §7.3).
+`reports/abl_467_seed_interval_readability_registration.md` and
+`experiments/ABL467/config.json` are the registration; `SEED_READABILITY` in both
+harnesses is the per-scope table, values `delta_min` / `student_t`.
+
+- **`delta_min` is not wrong, it is the k = 1 tool.** It imports `c_A` from a
+  fleet p90 because one fit carries no internal estimate of its own spread. At
+  k > 1 the cell has k honest draws of the graded quantity and the import answers
+  the wrong question — *how much do fits of this stream vary* rather than *how
+  much does this cell vary*. **`delta_min` is untouched at k = 1 and every
+  published letter is a k = 1 letter.**
+- **The rule does not change form.** A condition is readable iff
+  `|margin| > half_width`; `CI excludes 0` and `|mean| > t*se` are the same
+  statement. Only the estimator of the width moves, and **the point estimate does
+  not move at all** — skill is affine in WAPE against a deterministic reference,
+  so the mean of the draws *is* the printed `skill vs X` column (agreeing to under
+  `1.3e-14` pp on all six ABL-427 cells).
+- **Do not describe this as the more permissive test.** The t half-width exceeds
+  the unamended fleet floor wherever the cell's own seed CV exceeds about
+  `z/t_{k-1}` of the fleet p90 — ~93% of it at k = 12. **All three HR cells are
+  graded against a *wider* half-width than `readability_floor_pct("solar", 12)`
+  and still clear it.** The near-coincidence of the two floors at k = 12 is
+  arithmetic on these cells, not a theorem.
+- **One set of draws, three half-widths.** G1/G2/G3 have different denominators so
+  each gets its own width, all derived from the per-seed *challenger* WAPEs
+  because `c_B = 0` for every reference on this ladder. **A fitted reference voids
+  the registration** and every width has to be recomputed.
+- **The draws are passed, not a precomputed interval.** The ladder owns the one
+  implementation of its test; a caller could hand in a one-sided interval, or one
+  built with `z`, or with the wrong `df`, and `grade_cell` could not tell. Two
+  guards make the draws provably the cell's own — a seed count disagreeing with
+  `k` raises, and draws whose mean is not the cell's recorded challenger WAPE
+  raise (the silent failure being a paste from another cell).
+- **ABL-434's property survives.** `seed_wapes` defaults to `None`, so `grade_cell`
+  with `scores` alone is byte-for-byte the function ABL-434 registers; the draws
+  are read off the *cell* by `cell_grade`/`attach_grades`, the same two functions
+  ABL-434 uses for coverage. The difference that earns a per-scope table: coverage
+  is one-way, **this is not** — a sharper test can raise a letter.
+- **The table's fall-through is the *less* conservative direction**, unlike
+  ABL-444's, and is safe for a reason that is about `k` rather than about the
+  value: a fall-through row can only bind a read at k > 1, and at k = 1 there are
+  no degrees of freedom so `delta_min` decides whatever the table says. Published
+  scopes are pinned by **value**, not by presence.
+- **The blast radius is measured, not asserted**: no call site anywhere passes
+  k > 1; **613** committed graded cell-records carry `floor_pct` of exactly
+  `10.6482` or `7.5054` and no third value exists; and **1,568** replays of the
+  196 committed `scores` blocks under the amended module are byte-identical to the
+  pre-amendment one. The programme's only k > 1 cells are ABL-427's six.
+- **Normality is stated, not waved at, and is not load-bearing here.** Shapiro-Wilk
+  on 12 draws is failure-to-reject, not evidence. What answers the objection is
+  that **Wilcoxon and a percentile bootstrap agree with t on all six cells**. The
+  **sign test is the lone dissenter and it dissents in both directions**, exactly
+  inverting the pair verdicts — it discards magnitude and at n = 12 has about
+  three attainable p-values. Wilcoxon is the registered fallback for visibly
+  skewed draws; the bootstrap is not, because its lower bound moved −0.117 to
+  −0.005 across 10 RNG seeds and a registered verdict must reproduce exactly.
+- **`T_CRIT_95` is pinned in the module, not imported from `scipy`**, for the same
+  reason `STREAM_FLEET_CV_P90` is pinned rather than read from its report: a
+  registered verdict must not move on a dependency upgrade. Tests check every row
+  against `scipy`. Above `df = 30` it falls back to `z`, anti-conservative by at
+  most **3.9%** of the correct half-width — a figure that was wrong in this
+  module's first draft and is now asserted, not merely commented.
+
 **A scope also registers where it writes** (ABL-387). `--artifact-dir`,
 `--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
 which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
