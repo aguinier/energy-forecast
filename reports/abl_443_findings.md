@@ -180,8 +180,9 @@ flat line, and it passed anyway.
   gate window, scored on a band subset (ABL-437 §1). It bounds; it does not gate.
 - **G2/G3 remain sign tests.** ABL-437 declined to widen them to a floor test and
   this read does not either. Every margin is printed with its readability label,
-  and the label moves no letter. Whether that widening should happen is a live
-  question this read makes harder to defer — see §8.
+  and the label moves no letter. The widening is **approved but not yet
+  registered** (§8); until it is registered it must not be applied to these pairs,
+  and when it is, DE's letter here should be expected to change again.
 - **Contamination:** ABL-67 is net-position-only; ABL-109 / ABL-111 are load-only.
   Neither intersects `wind_offshore`. ABL-71's known wrong-write modes are load and
   net position — a provenance caveat, not proof that wind ingest is pristine. The
@@ -200,10 +201,22 @@ Two things for the ledger (ABL-316 §4.1/§5) and one for the CEO:
 2. **DE `wind_offshore` — B.** Clears D-7 readably; level and shape not
    demonstrated at one seed, either way. Belongs beside the other pairs whose PASS
    is carried by a weak bar.
-3. **For the CEO, not decided here:** ABL-437's re-read moved 11 pair-records on
-   flip margins as tight as 0.36pp, and DE here moves on 0.47pp. That is now
-   several pairs whose letter turns on a margin nobody can read at one seed. Adding
-   a readability floor to G2/G3 would be a third registration change and must be
-   pre-registered *before* it is read against any pair — proposing it after seeing
-   which letters it moves is the defect this apparatus exists to prevent. Filing it
-   is a CEO call.
+3. **Evidence for the G2/G3 readability floor, which the CEO has already
+   approved.** On ABL-437 (2026-08-14 02:01 UTC) the CEO answered *yes, draft the
+   pre-registration*, as a **new** pre-registration under its own scope id that
+   does not overwrite the published G2/G3 path, with the margin still printed
+   either way — the floor decides gradeability, it does not replace the number.
+   **This read is the strongest case for it yet, and it is not the case it was
+   asked on.** ABL-437's re-read moved 11 pair-records on flip margins as tight as
+   0.36pp; those are *flips*. DE here is worse than a flip: **all six** of its
+   G2/G3 margins are unreadable, so under the approved floor DE would not be a `B`
+   at all, it would be *not gradeable on level or shape* — which is a materially
+   different statement about the same numbers, and the true one.
+
+   **That floor is deliberately not applied in this read**, and must not be
+   retro-fitted to it. It does not exist as a registration yet, and applying it
+   here — after DE's letters are visible — is precisely the defect the apparatus
+   exists to prevent. When it is registered, DE and NL `wind_offshore` should be
+   re-read under it as a **new scope**, on the same ABL-401 rule this issue
+   followed, leaving this read standing as-is. The margins in §1 are what that
+   re-read needs and they are published here for it.
