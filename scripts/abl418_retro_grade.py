@@ -37,8 +37,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.evaluation.gate_grading import (  # noqa: E402
-    CONDITIONS, PUBLISHED_FLOOR_PCT_K1, Z_95, grade_cell, margin_pct_of_own_error,
-    pair_grade, readability_floor_pct, skill_pct,
+    CONDITIONS, PUBLISHED_FLOOR_PCT_K1, SIGN_TEST, Z_95, grade_cell,
+    margin_pct_of_own_error, pair_grade, readability_floor_pct, skill_pct,
 )
 from src.evaluation.model_free_reference import (  # noqa: E402
     FIT_WINDOW, comparator_wape,
@@ -137,7 +137,11 @@ def read_tranche(root: Path, spec: dict) -> dict:
         # amended read of these same tranches is a separate record
         # (`reports/abl_437_causal_levelling_reread.md`), which is what a
         # re-grade is: a new document, not an edit to the old one.
-        grade = grade_cell(cell["scores"], stream, levelling=FIT_WINDOW)
+        # ABL-444 pins the same way and for the same reason: these letters were
+        # decided by a bare sign test on G2/G3, and the floored form would turn
+        # a published `A` into `N` inside a document that reproduces ABL-418.
+        grade = grade_cell(cell["scores"], stream, levelling=FIT_WINDOW,
+                           g23_readability=SIGN_TEST)
         label = spec["key"](cell)
         if label not in pairs:
             order.append(label)

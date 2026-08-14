@@ -46,6 +46,10 @@ and the grades built from it:
             at one seed. ``U(+)`` where G2-G4 clear readably, in which
             case the disposition is *re-read at k>1 seeds* per ABL-385,
             not *reject*.
+``N``       (ABL-444, ``floored`` scopes only) G1 holds readably, nothing
+            below it fails readably, and at least one of G2/G3 sits
+            inside the floor. Not demonstrated **in either direction**;
+            not promotion-eligible.
 ==========  ==========================================================
 
 **``U`` takes precedence over ``C``.** Both are "G1 does not hold", but they are
@@ -117,6 +121,48 @@ a re-registration:
   unchanged; ABL-348's windows, bands, metric, baseline, minimum n and source
   are untouched, so this is not a change ``voids_this_registration`` names. Both
   oracle references stay reported and on no ladder.
+
+ABL-444: a readability floor on G2 and G3
+------------------------------------------
+
+G1 carries a floor; G2 and G3 were registered as bare sign tests, ``skill > 0``.
+So a G2/G3 verdict could turn on a margin far inside the spread one seed
+resolves, and the ladder reported it with the same letter it uses for a decisive
+result. ABL-437's re-read is where it became unignorable: PL solar's G3 flips A
+to B on **0.36%** of skill, 3.4% of the solar floor.
+
+**This is not a widening of the ladder's existing floor -- it is the removal of
+an inconsistency inside it.** ABL-418 *already* applies
+:func:`readability_floor_pct` to G2 and G3, on this same ``skill vs X`` column,
+when it decides ``U`` against ``U(+)``: the plus requires G2 and G3 to clear
+*readably*. The defect is that the identical margin decides ``A`` against ``B``
+on a bare sign, one branch of the same function away.
+
+The third outcome is an **abstention**, not a failure. ``N`` is neither ``U``
+(undecided on the *gate*, a different statement) nor ``B`` (a measured failure,
+which is precisely what is not being claimed). ``A`` still requires every
+condition to hold, so an unreadable condition cannot promote: *a condition that
+could not be measured is not satisfied*, the same rule the net-position gate's
+``INCOMPLETE`` and ABL-421's ``SCOPE_NOT_EVALUABLE`` state one level down.
+
+Three properties, in the order they were argued:
+
+* **A definite failure outranks an abstention.** A cell whose G4 fails and whose
+  G3 is unreadable is ``B``, not ``N``: there is something to report, and
+  ``N`` would bury it. Hence ``GRADE_SEVERITY`` places ``N`` between ``A`` and
+  ``U`` -- both ``N`` and ``U`` say *re-read at k>1*, and ``U`` is the deeper of
+  the two because it cannot resolve the registered gate itself, where ``N`` has
+  cleared it readably.
+* **The margin prints either way.** The floor decides *gradeability*; it does
+  not replace the number, and both the skill form and the challenger's-own-error
+  form (ABL-385's denominator) stay in the record. Measured over all 113
+  committed cells, the two denominators disagree on the readability of **2 of
+  452** condition-observations and on **no cell letter and no pair letter**.
+* **It is registered per scope and it cannot raise a grade.** ``N`` is only ever
+  reached from what would have been ``A`` or ``B``, so the promotable set shrinks
+  or holds. ABL-348's windows, bands, metric, baseline, minimum n and source are
+  untouched -- ``voids_this_registration`` is not triggered -- and ABL-434 (the
+  ladder cannot see minimum n) is a different guard, deliberately not folded in.
 """
 
 from __future__ import annotations
@@ -156,8 +202,29 @@ PUBLISHED_FLOOR_PCT_K1 = {"solar": 10.64, "wind": 7.51}
 #: negative than losing to a reference the bar never named. `B` outranks `U`
 #: because B is a *measured* failure and U is a deferral: a pair with one B band
 #: and one U band has something definite to say, and saying "re-read it" would
-#: bury it.
-GRADE_SEVERITY = {"A": 0, "U": 1, "B": 2, "C": 3}
+#: bury it. By the same argument `B` outranks `N` (ABL-444).
+#:
+#: `N` sits between `A` and `U` because both are deferrals and `U`'s is the
+#: deeper one: an `N` cell has cleared the registered gate readably and cannot
+#: resolve a condition below it, where a `U` cell cannot resolve the gate. The
+#: consequence to know is that a pair with one `A` band and one `N` band grades
+#: `N` -- a pair is never graded better than any band in it, and an abstention
+#: in any band is enough to stop it being promotion-eligible.
+GRADE_SEVERITY = {"A": 0, "N": 1, "U": 2, "B": 3, "C": 4}
+
+#: ABL-444: whether G2 and G3 are decided by a bare sign test -- `skill > 0`, as
+#: ABL-418 registered them -- or by the same readability floor G1 carries.
+#:
+#: `sign_test` is what every published letter was decided under, and pinning it
+#: per scope is what leaves those reads standing. `floored` is the amendment.
+SIGN_TEST = "sign_test"
+FLOORED = "floored"
+
+#: Both forms, for a caller validating a registration table. `floored` is the
+#: default for a scope that registers nothing; see the harness tables for why
+#: that direction, and `reports/abl_444_g23_readability_floor_registration.md`
+#: for the argument against the opposite one.
+G23_READABILITY_FORMS = (SIGN_TEST, FLOORED)
 
 #: The two causal references G2 and G3 are scored against, per registered
 #: levelling form (ABL-437). The oracle references appear in neither entry and
@@ -280,30 +347,42 @@ class CellGrade:
     #: The causal constant's WAPE over the oracle constant's, in percent, per
     #: causal reference. Reported, never gating -- a property of the reference.
     level_inflation_pct: dict = field(default_factory=dict)
+    #: Whether G2/G3 were decided by a sign test or against the floor (ABL-444).
+    g23_readability: str = SIGN_TEST
+    #: The conditions whose margin sits inside the floor, in ladder order, each
+    #: with its reason. Always empty under ``sign_test``. Distinct from
+    #: ``failed``: an abstention is not a failure, and neither is it a pass.
+    not_readable: tuple = ()
 
     @property
     def label(self) -> str:
-        """``A`` / ``B`` / ``C`` / ``U`` / ``U(+)``, or ``Not measured``."""
+        """``A`` / ``B`` / ``C`` / ``N`` / ``U`` / ``U(+)``, or ``Not measured``."""
         if self.grade is None:
             return "Not measured"
         return "U(+)" if self.plus else self.grade
 
     @property
     def detail(self) -> str:
-        """The label with its failed conditions named, for the table cell."""
-        if not self.failed:
-            return self.label
-        return f"{self.label} — fails {', '.join(name for name, _ in self.failed)}"
+        """The label with its failed and unreadable conditions named."""
+        parts = []
+        if self.failed:
+            parts.append(f"fails {', '.join(name for name, _ in self.failed)}")
+        if self.not_readable:
+            parts.append(f"not readable on {', '.join(name for name, _ in self.not_readable)}")
+        return f"{self.label} — {'; '.join(parts)}" if parts else self.label
 
     def as_dict(self) -> dict:
         return {"grade": self.grade, "plus": self.plus, "label": self.label,
                 "conditions": dict(self.conditions),
                 "failed": [{"condition": name, "reason": reason} for name, reason in self.failed],
+                "not_readable": [{"condition": name, "reason": reason}
+                                 for name, reason in self.not_readable],
                 "skill_pct": dict(self.skill),
                 "own_error_margin_pct": dict(self.own_error_margin),
                 "floor_pct": self.floor_pct, "bar_weaker_than_a_flat_line": self.bar_weak,
                 "causal_levelling": self.levelling,
-                "level_inflation_pct": dict(self.level_inflation_pct)}
+                "level_inflation_pct": dict(self.level_inflation_pct),
+                "g23_readability": self.g23_readability}
 
     @classmethod
     def from_dict(cls, record: dict) -> "CellGrade":
@@ -317,16 +396,20 @@ class CellGrade:
                    conditions=dict(record.get("conditions") or {}),
                    failed=tuple((item["condition"], item["reason"])
                                 for item in record.get("failed") or ()),
+                   not_readable=tuple((item["condition"], item["reason"])
+                                      for item in record.get("not_readable") or ()),
                    skill=dict(record.get("skill_pct") or {}),
                    own_error_margin=dict(record.get("own_error_margin_pct") or {}),
                    floor_pct=record.get("floor_pct", 0.0),
                    bar_weak=record.get("bar_weaker_than_a_flat_line"),
                    levelling=record.get("causal_levelling", FIT_WINDOW),
-                   level_inflation_pct=dict(record.get("level_inflation_pct") or {}))
+                   level_inflation_pct=dict(record.get("level_inflation_pct") or {}),
+                   g23_readability=record.get("g23_readability", SIGN_TEST))
 
 
 def cell_grade(cell: dict, stream: str, k: int = 1,
-               levelling: str = TRAILING_28D) -> CellGrade:
+               levelling: str = TRAILING_28D,
+               g23_readability: str = FLOORED) -> CellGrade:
     """One cell's grade: the one the run recorded, or computed if it recorded none.
 
     The fallback is what lets a ``results.json`` written before ABL-418 be
@@ -334,13 +417,15 @@ def cell_grade(cell: dict, stream: str, k: int = 1,
     a stored read be re-rendered without re-deciding it.
 
     A record written before ABL-437 carries no ``causal_levelling`` key and
-    rebuilds as :data:`FIT_WINDOW`, because that is what it was decided under.
-    Absence dates the read; it is not a default anyone chose after the fact.
+    rebuilds as :data:`FIT_WINDOW`, and one written before ABL-444 carries no
+    ``g23_readability`` key and rebuilds as :data:`SIGN_TEST`, because those are
+    what they were decided under. Absence dates the read; it is not a default
+    anyone chose after the fact.
     """
     recorded = cell.get("grade")
     if recorded:
         return CellGrade.from_dict(recorded)
-    return grade_cell(cell["scores"], stream, k, levelling)
+    return grade_cell(cell["scores"], stream, k, levelling, g23_readability)
 
 
 def scored_conditions(levelling: str = TRAILING_28D) -> tuple:
@@ -355,18 +440,23 @@ def scored_conditions(levelling: str = TRAILING_28D) -> tuple:
 
 
 def grade_cell(scores: dict, stream: str, k: int = 1,
-               levelling: str = TRAILING_28D) -> CellGrade:
+               levelling: str = TRAILING_28D,
+               g23_readability: str = FLOORED) -> CellGrade:
     """Grade one gate cell from the scores the harness already computed.
 
     ``scores`` is a cell's ``scores`` mapping as written to ``results.json``:
     ``challenger``, ``seasonal_naive`` and the ABL-389/ABL-437 model-free
     references, each a dict with ``wape_pct``, ``slope`` and ``correlation``.
 
-    ``levelling`` selects which causal pair G2 and G3 read (ABL-437). It is a
-    per-scope registration in the harness, never a run-time choice: a read that
-    could pick its own references after seeing them is the thing this ladder was
-    pre-registered to prevent.
+    ``levelling`` selects which causal pair G2 and G3 read (ABL-437), and
+    ``g23_readability`` whether they are decided by a sign test or against the
+    readability floor (ABL-444). Both are per-scope registrations in the harness,
+    never run-time choices: a read that could pick its own references or its own
+    decision rule after seeing them is the thing this ladder was pre-registered
+    to prevent.
     """
+    if g23_readability not in G23_READABILITY_FORMS:
+        raise ValueError(f"unknown G2/G3 readability form: {g23_readability!r}")
     floor = readability_floor_pct(stream, k)
     conditions_asked = conditions_for(levelling)
     scored = scored_conditions(levelling)
@@ -383,7 +473,8 @@ def grade_cell(scores: dict, stream: str, k: int = 1,
         # a C -- nothing lost a race here.
         return CellGrade(grade=None, skill=skill, own_error_margin=own,
                          floor_pct=floor, bar_weak=bar_weaker_than_a_flat_line(scores),
-                         levelling=levelling, level_inflation_pct=inflation)
+                         levelling=levelling, level_inflation_pct=inflation,
+                         g23_readability=g23_readability)
 
     slope = (scores.get("challenger") or {}).get("slope")
     correlation = (scores.get("challenger") or {}).get("correlation")
@@ -398,21 +489,36 @@ def grade_cell(scores: dict, stream: str, k: int = 1,
     }
     unreadable = abs(skill["seasonal_naive"]) <= floor
 
-    failed = []
+    # ABL-444: under `floored`, a G2/G3 margin inside the floor is neither a pass
+    # nor a failure. `G4` is a sign test on the challenger's own slope and
+    # correlation -- there is no margin to read against a floor -- so it is never
+    # routed here, under either form.
+    reference_of = {"G2": level, "G3": shape}
+    failed, not_readable = [], []
     for name, _, question in conditions_asked:
         if name == "G1":
             continue
         if conditions[name] is None:
             failed.append((name, f"not measured ({question})"))
-        elif not conditions[name]:
+            continue
+        margin = skill.get(reference_of.get(name))
+        if (g23_readability == FLOORED and margin is not None
+                and abs(margin) <= floor):
+            not_readable.append((name, f"margin {margin:+.2f}% sits inside the "
+                                       f"{floor:.2f}% readability floor ({question})"))
+            continue
+        if not conditions[name]:
             failed.append((name, question))
 
     common = {"skill": skill, "own_error_margin": own, "floor_pct": floor,
               "bar_weak": bar_weaker_than_a_flat_line(scores),
-              "levelling": levelling, "level_inflation_pct": inflation}
+              "levelling": levelling, "level_inflation_pct": inflation,
+              "g23_readability": g23_readability, "not_readable": tuple(not_readable)}
     if unreadable:
         # G2/G3 must clear *readably* for the plus, on the same floor G1 uses.
-        # G4 is a sign test, so there is no margin to read and it enters as-is.
+        # This test predates ABL-444 and is where the floor was already applied
+        # to these two conditions -- the amendment carries it to the other branch
+        # rather than introducing it. G4 enters as-is, being a sign test.
         readable = all(skill[name] is not None and skill[name] > floor
                        for name in (level, shape))
         return CellGrade(grade="U", plus=bool(readable and conditions["G4"]),
@@ -423,12 +529,18 @@ def grade_cell(scores: dict, stream: str, k: int = 1,
         return CellGrade(grade="C", conditions=conditions,
                          failed=(("G1", "readable loss to seasonal_naive D-7"), *failed),
                          **common)
-    return CellGrade(grade="B" if failed else "A", conditions=conditions,
-                     failed=tuple(failed), **common)
+    if failed:
+        # A definite failure outranks an abstention: there is something to
+        # report, and grading it `N` would bury it.
+        return CellGrade(grade="B", conditions=conditions, failed=tuple(failed), **common)
+    if not_readable:
+        return CellGrade(grade="N", conditions=conditions, failed=(), **common)
+    return CellGrade(grade="A", conditions=conditions, failed=(), **common)
 
 
 def attach_grades(cells: list[dict], stream: str, k: int = 1,
-                  levelling: str = TRAILING_28D) -> list[dict]:
+                  levelling: str = TRAILING_28D,
+                  g23_readability: str = FLOORED) -> list[dict]:
     """Add a ``grade`` block to every gate cell, in place, and return them.
 
     One call site per harness, right where ``gate_cells`` is assembled, so the
@@ -437,7 +549,8 @@ def attach_grades(cells: list[dict], stream: str, k: int = 1,
     them through this same function rather than reimplementing the ladder.
     """
     for cell in cells:
-        cell["grade"] = grade_cell(cell["scores"], stream, k, levelling).as_dict()
+        cell["grade"] = grade_cell(cell["scores"], stream, k, levelling,
+                                   g23_readability).as_dict()
     return cells
 
 
@@ -449,6 +562,10 @@ def pair_grade(cell_grades) -> CellGrade:
     is enough to stop a pair being promotion-eligible. ``U(+)`` survives to the
     pair only if every ``U`` band in it is ``U(+)``; a single plain ``U`` band
     means the pair is not uniformly re-readable.
+
+    An ``N`` band (ABL-444) takes the pair to ``N`` by the same rule, unless some
+    other band is worse. **Read that the way it is meant**: an ``A / A / N`` pair
+    is not "mostly promotable", it is a pair with a band nobody has resolved.
     """
     grades = [grade for grade in cell_grades if grade.grade is not None]
     if not grades:
@@ -462,13 +579,29 @@ def pair_grade(cell_grades) -> CellGrade:
                      own_error_margin=worst.own_error_margin,
                      floor_pct=worst.floor_pct, bar_weak=worst.bar_weak,
                      levelling=worst.levelling,
-                     level_inflation_pct=worst.level_inflation_pct)
+                     level_inflation_pct=worst.level_inflation_pct,
+                     g23_readability=worst.g23_readability,
+                     not_readable=worst.not_readable)
 
 
-def grading_prose(stream: str, k: int = 1, levelling: str = TRAILING_28D) -> list[str]:
+def grading_prose(stream: str, k: int = 1, levelling: str = TRAILING_28D,
+                  g23_readability: str = FLOORED) -> list[str]:
     """The paragraph that says what the grade column is and what it is not."""
     floor = readability_floor_pct(stream, k)
     references = LADDER_REFERENCES[levelling]
+    readability = (
+        [f"**G2/G3 readability (ABL-444): `{g23_readability}`.** G2 and G3 are decided against the same "
+         f"**{floor:.2f}%** floor G1 carries, not by a bare sign test. A margin inside it is **`N` — not readable**: "
+         f"neither demonstrated nor refuted at k={k}, an abstention rather than a failure, and not promotion-eligible, "
+         f"because a condition that could not be measured is not satisfied. `B` still outranks `N`, so a cell that also "
+         f"fails something readably reads `B`. **The margin is printed either way** — the floor decides gradeability, it "
+         f"does not replace the number. ABL-418 already applied this floor to G2/G3 when deciding `U` against `U(+)`; the "
+         f"amendment carries it to the `A`/`B` branch, where a letter could turn on 0.36% (PL solar's G3)."]
+        if g23_readability == FLOORED else
+        [f"**G2/G3 readability (ABL-444): `{g23_readability}`.** G2 and G3 are bare sign tests, `skill > 0`, which is what "
+         f"this scope was registered and published under. ABL-444 registers a floored form for new scopes — a margin "
+         f"inside the **{floor:.2f}%** readability floor grades `N`, not readable — and re-reads the published scopes "
+         f"under it separately (`reports/abl_444_g23_floor_reread.md`) rather than restating their letters here."])
     amendment = (
         [f"**Causal levelling (ABL-437): `{levelling}`.** G2 and G3 read `{references['G2']}` and "
          f"`{references['G3']}` — the flat line and the hour-of-day mean over the **28 days ending at each row's own "
@@ -506,11 +639,14 @@ def grading_prose(stream: str, k: int = 1, levelling: str = TRAILING_28D) -> lis
         "ladder. A condition that could not be measured is not satisfied, and is named like any other failure.",
         "",
         *amendment,
+        "",
+        *readability,
     ]
 
 
 def grade_summary_table(cells: list[dict], stream: str, key, k: int = 1,
-                        levelling: str = TRAILING_28D) -> list[str]:
+                        levelling: str = TRAILING_28D,
+                        g23_readability: str = FLOORED) -> list[str]:
     """The per-pair grade roll-up, under the per-cell table.
 
     ``key`` maps a cell to its pair label, so the wind harness can key on
@@ -524,17 +660,23 @@ def grade_summary_table(cells: list[dict], stream: str, key, k: int = 1,
         if label not in pairs:
             order.append(label)
             pairs[label] = []
-        pairs[label].append(cell_grade(cell, stream, k, levelling))
+        pairs[label].append(cell_grade(cell, stream, k, levelling, g23_readability))
     lines = ["", "### Graded disposition, per pair", "",
-             "| pair | bands | grade | failed conditions | bar weaker than a flat line? |",
-             "|---|---|:---:|---|:---:|"]
+             "| pair | bands | grade | failed conditions | not readable | "
+             "bar weaker than a flat line? |",
+             "|---|---|:---:|---|---|:---:|"]
     for label in order:
         grades = pairs[label]
         overall = pair_grade(grades)
         bands = " / ".join(grade.label for grade in grades)
         reasons = ", ".join(f"{name} ({reason})" for name, reason in overall.failed) or "—"
+        # Unioned across bands, unlike `failed`: an abstention in any band is why
+        # the pair is not promotion-eligible, and naming only the worst band's
+        # would hide the others behind a letter that already says "re-read this".
+        abstained = {name: reason for grade in grades for name, reason in grade.not_readable}
+        unreadable = ", ".join(f"{name} ({reason})" for name, reason in abstained.items()) or "—"
         weak = [grade.bar_weak for grade in grades]
         flag = ("Not measured" if all(value is None for value in weak)
                 else "yes" if any(value for value in weak) else "no")
-        lines.append(f"| {label} | {bands} | **{overall.label}** | {reasons} | {flag} |")
+        lines.append(f"| {label} | {bands} | **{overall.label}** | {reasons} | {unreadable} | {flag} |")
     return lines

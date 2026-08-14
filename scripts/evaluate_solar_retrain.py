@@ -24,7 +24,8 @@ import config
 from src import db
 from src.data_quality import find_suspect_constant_runs
 from src.evaluation.gate_grading import (
-    attach_grades, cell_grade, grade_summary_table, grading_prose,
+    FLOORED, SIGN_TEST, attach_grades, cell_grade, grade_summary_table,
+    grading_prose,
 )
 from src.evaluation.model_free_reference import (
     FIT_WINDOW, MODEL_FREE_COMPARATORS, TRAILING_28D,
@@ -495,6 +496,40 @@ CAUSAL_LEVELLING = {
 def causal_levelling_for(scope: str) -> str:
     """The scope's registered causal levelling, or ABL-437's amended default."""
     return CAUSAL_LEVELLING.get(scope, TRAILING_28D)
+
+
+# ABL-444: whether the ABL-418 ladder's G2 and G3 are decided by a bare sign
+# test or against the readability floor G1 already carries.  The wind harness
+# carries the twin of this table and the argument is stated once, over its copy
+# -- including why this table defaults *toward* the amendment where
+# `SCOPE_FEATURES` and `SCOPE_NOT_EVALUABLE` do not, and why it is deliberately
+# absent from `check_registration_tables` while three PRs are in flight.
+#
+# The short form: every scope below is published and its ABL-418 letters were
+# decided by a sign test, so each is pinned to `sign_test` and nothing already
+# published moves; a scope registering nothing gets `floored`.
+#
+# Solar is where this matters most under ABL-437's amended levelling and least
+# under the published one.  Against the fit-window climatology a solar
+# challenger's G3 margin is tens of percent -- 38.30% on PL, far outside this
+# stream's floor -- so the sign test and the floored test agree.  Against the
+# trailing-28d climatology the same cell's margin is -1.13%, and the letter that
+# turned on it was ABL-437's PL solar A -> B.  Registering the floor is what
+# stops the two amendments compounding into a graded verdict neither of them
+# measured.
+G23_READABILITY = {
+    "abl253": SIGN_TEST,
+    "abl316-t1b": SIGN_TEST,
+    "abl316-t2a": SIGN_TEST,
+    "abl316-t2c": SIGN_TEST,
+    "abl316-t2d": SIGN_TEST,
+    "abl376": SIGN_TEST,
+}
+
+
+def g23_readability_for(scope: str) -> str:
+    """The scope's registered G2/G3 readability form, or ABL-444's amended default."""
+    return G23_READABILITY.get(scope, FLOORED)
 
 
 # ABL-376: what the fit is allowed to *see* is a registered property of the scope
@@ -1103,6 +1138,9 @@ def render_markdown(result: dict) -> str:
     # registration. A record written before ABL-437 has no such key and is
     # `fit_window` -- absence dates the read, as ABL-404 reads a missing list.
     levelling = meta.get("causal_levelling", FIT_WINDOW)
+    # ABL-444, same rule and same reason: a record with no `g23_readability` key
+    # was decided by a sign test, so re-rendering it must not floor it.
+    readability = meta.get("g23_readability", SIGN_TEST)
     # ABL-376: the title used to be the ABL-253 literal, which put that issue's
     # name on every other scope's report. `abl253` keeps its exact heading, so
     # the dispositioned read still renders byte-for-byte.
@@ -1145,7 +1183,7 @@ def render_markdown(result: dict) -> str:
         "",
         # ABL-418: what the PASS in the last column entitles the cell to. The
         # gate column is unchanged and still says whether the cell cleared D-7.
-        *grading_prose(GRADE_STREAM, levelling=levelling),
+        *grading_prose(GRADE_STREAM, levelling=levelling, g23_readability=readability),
         "",
         "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant causal 28d WAPE | constant oracle WAPE | climatology causal WAPE | climatology causal 28d WAPE | climatology oracle WAPE | level inflation (causal / 28d) | incumbent WAPE | MAE | bias | slope | corr | gate | grade |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|",
@@ -1156,7 +1194,8 @@ def render_markdown(result: dict) -> str:
         # A cell that scored no rows has None on both sides. It renders as
         # "Not measured", never as a number and never as a crash.
         skill = "Not measured" if chal is None or naive is None else f"{100 * (1 - chal / naive):+.1f}%"
-        grade = cell_grade(row, GRADE_STREAM, levelling=levelling).detail
+        grade = cell_grade(row, GRADE_STREAM, levelling=levelling,
+                           g23_readability=readability).detail
         lines.append(
             f"| {row['country']} | {row['horizon_band']} | {row['gate']['n']:,} | "
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
@@ -1172,7 +1211,7 @@ def render_markdown(result: dict) -> str:
             f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} | {grade} |"
         )
     lines.extend(grade_summary_table(cells, GRADE_STREAM, lambda row: row["country"],
-                                     levelling=levelling))
+                                     levelling=levelling, g23_readability=readability))
     lines.extend(not_evaluable_table(result))
     lines.extend(levels_table(result["training"]))
     # The protocol-count sentence below is a measured ABL-253 fact about that
@@ -1470,7 +1509,8 @@ def main() -> int:
     # as they were.  The stream selects ABL-385's registered CV, and passing the
     # wrong one would silently apply wind's narrower floor --
     # `tests/test_gate_grading.py` reads this literal out of the AST.
-    attach_grades(gate_cells, GRADE_STREAM, levelling=causal_levelling_for(args.scope))
+    attach_grades(gate_cells, GRADE_STREAM, levelling=causal_levelling_for(args.scope),
+                  g23_readability=g23_readability_for(args.scope))
     passed = sum(row["gate"]["pass"] for row in gate_cells)
     contaminated = any(row["constant_runs"] for row in training)
     verdict, recommendation = disposition(gate_cells, registered_cells, contaminated)
@@ -1485,6 +1525,7 @@ def main() -> int:
                        "training_source": source,
                        "scope": args.scope, "registered_countries": list(registered_countries),
                        "causal_levelling": causal_levelling_for(args.scope),
+                       "g23_readability": g23_readability_for(args.scope),
                        # ABL-421: the *evaluable* cell count, which is the grid
                        # minus whatever the registration declared unscorable. The
                        # grid size is recorded beside it rather than left to be

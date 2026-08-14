@@ -49,7 +49,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.evaluation.gate_grading import (  # noqa: E402
-    cell_grade, comparator_wape as comparator, pair_grade,
+    SIGN_TEST, cell_grade, comparator_wape as comparator, pair_grade,
 )
 
 ROOT = Path(__file__).parent.parent
@@ -461,7 +461,10 @@ def main() -> int:
     lines.append("|---|---:|---:|:---:|:---:|:---:|---|:---:|:---:|---|:---:|")
     for country in COUNTRIES:
         own_cells = [cell for cell in cells if cell["country"] == country]
-        grades = [cell_grade(cell, STREAM) for cell in own_cells]
+        # Named rather than defaulted, as in ABL-419's read: these cells carry
+        # recorded grades, and ABL-444's floored form must not reach them.
+        grades = [cell_grade(cell, STREAM, g23_readability=SIGN_TEST)
+                  for cell in own_cells]
         if not grades:
             continue
         pair = pair_grade(grades)

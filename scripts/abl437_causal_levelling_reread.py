@@ -37,7 +37,9 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from src.evaluation.gate_grading import CellGrade, grade_cell, pair_grade  # noqa: E402
+from src.evaluation.gate_grading import (  # noqa: E402
+    SIGN_TEST, CellGrade, grade_cell, pair_grade,
+)
 from src.evaluation.model_free_reference import (  # noqa: E402
     FIT_WINDOW, TRAILING_28D, TRAILING_COMPARATORS, TRAILING_WINDOW_DAYS,
     level_inflation, trailing_reference_levels,
@@ -238,7 +240,8 @@ def _recorded_or_computed(cell: dict, stream: str) -> CellGrade:
     recorded = cell.get("grade")
     if recorded:
         return CellGrade.from_dict(recorded)
-    return grade_cell(cell["scores"], stream, levelling=FIT_WINDOW)
+    return grade_cell(cell["scores"], stream, levelling=FIT_WINDOW,
+                      g23_readability=SIGN_TEST)
 
 
 def read(root: Path, replica: str) -> dict:
@@ -296,7 +299,12 @@ def read(root: Path, replica: str) -> dict:
                     continue
                 trailing, extra = _trailing_scores(band_rows, actuals)
                 amended_scores = {**cell["scores"], **trailing}
-                amended = grade_cell(amended_scores, stream, levelling=TRAILING_28D)
+                # ABL-444: still `sign_test`.  This document's amended column is
+                # ABL-437's published result and must keep reproducing; the
+                # floored re-read of the same cells is its own record,
+                # `reports/abl_444_g23_floor_reread.md`.
+                amended = grade_cell(amended_scores, stream, levelling=TRAILING_28D,
+                                     g23_readability=SIGN_TEST)
                 before.append(published)
                 after.append(amended)
                 graded.append({

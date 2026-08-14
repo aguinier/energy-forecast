@@ -1,0 +1,102 @@
+{
+  "issue": "ABL-444",
+  "parent": "ABL-316",
+  "title": "Pre-registered amendment: a readability floor on G2 and G3",
+  "status": "PRE-REGISTERED - frozen before the floored ladder is read against any pair",
+  "registered_at": "2026-08-14T00:00:00Z",
+  "registered_by": "Forecasting Scientist",
+  "approved_by": "CEO, on ABL-437",
+  "evidence_pack": "reports/abl_444_g23_readability_floor_registration.md",
+  "what_this_amends": "How wide a G2 or G3 margin has to be before its sign is treated as a result. Nothing else.",
+  "what_this_does_not_amend": [
+    "G1 and the registered bar. Seasonal-naive D-7 is the gate for every scope, unchanged.",
+    "ABL-348's windows, bands, metric, baseline, minimum n, source table and not_evaluable list - so `voids_this_registration` is not triggered, on the same reading ABL-418 and ABL-437 took for a report-only ladder.",
+    "Which reference G2 and G3 read. That is ABL-437's axis and this one composes with it without touching it.",
+    "The floor's own value or derivation. `readability_floor_pct` is reused as-is; a second floor constant would drift from G1's.",
+    "The A / B / C / U letters, the worst-band rule, the U-over-C precedence, or the U(+) plus test.",
+    "The oracle references' status: reported, never gating.",
+    "Minimum n. ABL-434 is the adjacent defect and is a different guard; a floor and a coverage minimum are deliberately not folded."
+  ],
+  "defect": {
+    "mechanism": "G1 is registered against a readability floor; G2 and G3 were registered as bare sign tests, `skill > 0`, in `_SCORED_CONDITIONS`. So a G2/G3 verdict can turn on a margin far inside the spread one seed resolves, and the ladder reports it with the same letter it uses for a decisive result.",
+    "internal_inconsistency": "ABL-418 already applies `readability_floor_pct` to G2 and G3, on this same `skill vs X` column, when it decides `U` against `U(+)`: the plus requires both to clear *readably*. The identical margin decided `A` against `B` on a bare sign, one branch of the same function away. This amendment removes that inconsistency rather than widening the ladder.",
+    "worst_case": "PL solar, tranche 2a, under ABL-437's amended references: G3 flips A to B on 0.36% of skill at 48-64h, which is 3.4% of the solar floor.",
+    "precedents": [
+      "ABL-385, where the floor comes from",
+      "ABL-417, the floor applies to any margin a reader ranks on",
+      "ABL-421 SCOPE_NOT_EVALUABLE, the abstention precedent",
+      "the net-position gate's INCOMPLETE rule"
+    ]
+  },
+  "the_amendment": {
+    "third_outcome": "N",
+    "N_means": "not readable: G1 holds readably, nothing below it fails readably, and at least one of G2/G3 has a margin whose absolute value is at or inside the floor. Neither demonstrated nor refuted at this k.",
+    "N_is_not_promotion_eligible": "A condition that could not be measured is not satisfied, so `A` still requires every condition to hold readably.",
+    "why_a_new_symbol": "`U` already means undecided on G1, which is a different statement, and `B` means a named failure, which is precisely what is not being claimed.",
+    "severity_order": ["A", "N", "U", "B", "C"],
+    "severity_rationale": [
+      "A definite failure outranks an abstention: a cell whose G4 fails and whose G3 is unreadable is B, not N, because there is something to report and N would bury it.",
+      "N sits above U because both say re-read at k>1 and U's deferral is the deeper one - an N cell has cleared the registered gate readably, where a U cell cannot resolve the gate itself.",
+      "A pair takes its worst band, so an A / A / N pair grades N. That is intended: an abstention in any band is enough to stop a pair being promotion-eligible."
+    ],
+    "the_margin_prints_either_way": "The floor decides gradeability, not the number. Both the printed `skill vs X` form and ABL-385's own-error form stay in the record and in the report, per the CEO's binding constraint.",
+    "G4_is_untouched": "G4 is a sign test on the challenger's own slope and correlation. There is no margin to read against a floor, so it is never routed through the abstention branch under either form."
+  },
+  "denominator": {
+    "registered_on": "the printed `skill vs X` column, 100 * (1 - challenger / reference)",
+    "rationale": "It is what G1 is registered on, what ABL-418 already floors G2/G3 on for the U(+) plus, and what a reader can check against the report by eye.",
+    "sensitivity_measured": "Against ABL-385's own denominator, 100 * (reference - challenger) / challenger: of 452 G2/G3 condition-observations over all 113 committed cells, 3 change readability status - 1b BG solar 36-48h G3 (+10.56 inside / +11.81 outside), 2e RO wind_onshore 36-48h G2 (-7.53 / -7.00), 2f CH wind_onshore 24-36h G2 (-7.93 / -7.35). One cell letter moves (1b BG solar 36-48h, N on the registered column against A on ABL-385's) and no pair letter moves, because that pair's other two bands abstain under either denominator and the two wind cells fail G3 readably under either form.",
+    "reported_not_assumed": "`own_error_margin_pct` stays on every graded cell."
+  },
+  "scope_registration": {
+    "table": "G23_READABILITY, in both gate harnesses",
+    "published_scopes_pinned_to": "sign_test",
+    "published_wind_scopes": [
+      "abl195",
+      "abl322-pilot",
+      "abl380-tranche1a",
+      "abl406-tranche2b",
+      "abl417-tranche2e",
+      "abl435-tranche2f"
+    ],
+    "published_solar_scopes": [
+      "abl253",
+      "abl316-t1b",
+      "abl316-t2a",
+      "abl316-t2c",
+      "abl316-t2d",
+      "abl376"
+    ],
+    "unregistered_scope_default": "floored",
+    "default_direction_rationale": [
+      "The ABL-444 design sketch guessed `sign_test`, on the reasoning that an abstention silently inherited by a new tranche hides a result that was in fact measured. That premise does not hold: a sub-floor margin is not a measured result, it is a number whose sign one fit cannot resolve, which is the whole content of ABL-385 and what ABL-418 already asserts on these two conditions when it withholds the U(+) plus.",
+      "Nothing is hidden either, because the margin prints on an N cell exactly as it does on an A or a B one - the CEO's constraint on this issue.",
+      "The two directions are not symmetric in what they cost when wrong. Defaulting to `sign_test` gives a tranche nobody has looked at a letter awarded on noise, silently, which is the defect this amends and the same shape as ABL-421's SCOPE_NOT_EVALUABLE defaulting toward scoring. Defaulting to `floored` gives it an abstention it can resolve by re-reading at k>1 seeds, which is self-documenting degradation.",
+      "What defaulting toward the amendment costs is that an absence can no longer reproduce an old read, so every published scope is pinned explicitly and a test derives that set from SCOPE_OUTPUTS and git rather than from a list."
+    ],
+    "not_in_check_registration_tables": "Deliberate, and revisit-able. CLAUDE.md's rule is that adding a required table raises at import for every branch already in flight, and ABL-429 waited for both repo queues to reach zero; three PRs are open at registration time. The cost of the absence is bounded in a way it is not for SCOPE_NOT_EVALUABLE: a scope that forgets a row gets the conservative path, not a wrong verdict. Guarded by test instead, and promoting it into the import check when the queue is next empty is the named follow-up."
+  },
+  "how_the_already_graded_pairs_are_handled": {
+    "rule": "No committed record is edited or regenerated. The floored ladder read is a new document, on the ABL-418 and ABL-437 retro-grade precedent.",
+    "reread_record": "reports/abl_444_g23_floor_reread.md and reports/abl_444_g23_floor_reread.json",
+    "method": "Arithmetic over the stored results files and over ABL-437's re-read record. No refit, no new model, no database read.",
+    "order": "This registration is committed before the re-read is computed, and the two are separate commits, so the order is checkable in git."
+  },
+  "affected_set_stated_before_registration": {
+    "stated_where": "the ABL-444 issue comment of 2026-08-14, and section 3 of the registration pack",
+    "published_path_pairs_moved": 2,
+    "published_path_A_pairs_moved": 0,
+    "amended_path_pairs_moved": 10,
+    "amended_path_A_pairs_moved": 5,
+    "note": "Both paths are enumerated because both stay live. `sign_test` x `fit_window` is what is published today; `sign_test` x `trailing_28d` is what ABL-437 makes live when it merges."
+  },
+  "prediction_registered_before_the_reread": [
+    "The floored path cannot raise a grade. N is only ever reached from what would have been A or B, so the promotable set shrinks or holds.",
+    "On the published fit-window references solar should move least, because a solar challenger's margin against a fit-window climatology is tens of percent.",
+    "Wind is where the published path should move, because its causal references sit close to the challenger.",
+    "This is a prediction and not a result. What the re-read measures is what is reported, including where it contradicts this."
+  ],
+  "contamination": "ABL-71/ABL-67/ABL-109/ABL-111 are unchanged by this amendment and are stated per pair in the re-read. This touches no ingest, no source table and no window, so it can neither introduce nor repair contamination. ABL-396's night-contamination hold on BG solar is carried into the re-read unchanged.",
+  "voids_this_registration": "any change to the floor's derivation or value, to which conditions it applies to, to the severity order, or to the denominator it is tested on, after the floored ladder has been read against any pair",
+  "promotion": "This amends how a grade is read. It promotes nothing and recommends nothing, and it can only reduce the promotable set. Promotion remains a pre-registered gate read plus a Board decision."
+}
