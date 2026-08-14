@@ -322,10 +322,20 @@ def test_abl427s_own_registered_floor_is_the_one_that_disagrees(cell):
 # 4. Nothing already published can move
 # --------------------------------------------------------------------------
 
-#: The one committed record whose grades were taken at k > 1. The issue asserts
-#: the blast radius is ABL-427's six cells alone and asks for it to be verified
-#: rather than trusted; this is that verification, and it is an equality, so a
-#: second k > 1 read landing anywhere fails here until it is named.
+#: Every committed record whose grades were taken at k > 1, and how many such
+#: records each holds. The issue asserts the blast radius is ABL-427's six cells
+#: alone and asks for it to be verified rather than trusted; this is that
+#: verification, and it is an **equality**, so a k > 1 read landing anywhere else
+#: fails here until someone names it.
+#:
+#: ABL-427 published each of its six cells under **three** candidate floors, hence
+#: 18. This issue's own re-grade is the second entry and holds one record per cell
+#: -- it is listed because it is a k > 1 read like any other, not exempted for
+#: being ours.
+K_GT_1_RECORDS = {
+    "reports/abl_427_tranche2c_seed_reread.json": 18,
+    "reports/abl_467_t2c_regrade.json": 6,
+}
 THE_ONLY_K_GT_1_RECORD = "reports/abl_427_tranche2c_seed_reread.json"
 
 
@@ -361,7 +371,7 @@ def test_abl427s_six_cells_are_the_whole_blast_radius():
             elif isinstance(node, list):
                 stack.extend(node)
     assert k1 >= 600, f"expected the committed corpus, found {k1} k=1 graded cells"
-    assert non_k1 == {THE_ONLY_K_GT_1_RECORD: 18}, non_k1
+    assert non_k1 == K_GT_1_RECORDS, non_k1
 
 
 def test_the_one_k_gt_1_scope_is_pinned_so_its_letters_stand():

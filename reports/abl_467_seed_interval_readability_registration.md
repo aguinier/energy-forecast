@@ -367,7 +367,39 @@ six cells by raw per-seed WAPE, inline.
 
 ---
 
-## 8. What this does not do
+## 8. Result — added by the re-grade commit, after the above was frozen
+
+`reports/abl_467_t2c_regrade.md` and `.json`, scope `abl467-t2c-regrade`, produced
+by `scripts/abl467_seed_interval_regrade.py`. **It returned exactly the prediction
+registered in §3**, checked in the record itself rather than by eye:
+
+| pair | ABL-427 published | **amended** | moves |
+|---|:---:|:---:|:---:|
+| IT | `U` | `U` (bands `A` / `U` / `A`) | no |
+| HR | `U` | **`A`** (bands `A` / `A` / `A`) | **yes** |
+
+Two cells move — IT 24-36h and HR 48-64h — and both are the two ABL-427 named.
+One pair letter moves. The unamended `delta_min` column at k = 12 agrees with the
+amendment on all six cells, so the only test that disagrees is ABL-427's own.
+
+Two things were found in the doing and are worth carrying:
+
+* **The re-grade is coverage-gated.** It grades through `cell_grade`, not
+  `grade_cell`, so ABL-434's gate applies structurally rather than by a registry
+  exemption. All six cells clear their minimum n so nothing is held — but a
+  coverage-short cell could not grade `A` through this path, which is a guarantee
+  where an exemption is only a promise.
+* **The ladder still emits `U(+)` at k = 12, and the amendment does not fix it.**
+  `(+)` is the instruction *re-read at k>1 seeds*, and this read **is** that
+  re-read, so it is vacuous. `plus` is decided by G2/G3 clearing readably and has
+  nothing to do with which width G1 was read against. ABL-427 collapsed it by
+  hand; this issue has now had to collapse it again, **outside a module whose
+  doctrine is that nobody reimplements the ladder**. Both forms are recorded
+  (`amended.label` and `amended_disposition`). Filed as a follow-up rather than
+  fixed here: suppressing `plus` at k > 1 changes what a letter means, and this
+  registration does not cover it.
+
+## 9. What this does not do
 
 It promotes nothing. IT stays `U` and is not close. HR resolving `A` makes it
 **promotion-eligible under ABL-418, which is necessary and not sufficient** — and
