@@ -127,10 +127,13 @@ def read_tranche(root: Path, spec: dict) -> dict:
     order, pairs, graded = [], {}, []
     for cell in results["gate_cells"]:
         # ABL-437 pins this read to `fit_window`, the levelling ABL-418 was
-        # published on. Tranches 2a and 2b carry no trailing reference column
-        # at all -- they were fitted before ABL-437 existed -- so grading them
-        # on the amended default would silently turn every G2 and G3 into "not
-        # measured" and re-write a published report as a page of Bs. The
+        # published on.  The pin is here, per cell, rather than per tranche in
+        # `TRANCHES`, so it covers every selection -- including ABL-438's `1b`
+        # and any row added later.  No committed tranche record carries a
+        # trailing reference column at all (checked over all three: 1b, 2a, 2b),
+        # because all of them were fitted before ABL-437 existed -- so grading
+        # them on the amended default would silently turn every G2 and G3 into
+        # "not measured" and re-write a published report as a page of Bs.  The
         # amended read of these same tranches is a separate record
         # (`reports/abl_437_causal_levelling_reread.md`), which is what a
         # re-grade is: a new document, not an edit to the old one.

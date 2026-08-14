@@ -9,7 +9,10 @@ and the grade is arithmetic over them.
 Four things are pinned here, and each is a way this could go quietly wrong.
 
 **The grades themselves**, against the committed record rather than a fixture,
-so the test fails if either the ladder or the stored evidence moves.
+so the test fails if either the ladder or the stored evidence moves. ABL-437
+landed after this record was committed and added two *provenance* keys to every
+cell and pair; the comparisons strip exactly those keys and then assert the
+levelling pin separately, so a moved letter still fails here.
 
 **The qualifiers travel with the A.** Grade A reads *promotion-eligible, subject
 to any named data hold*, and on these two pairs there are two such qualifiers
@@ -49,37 +52,27 @@ from src.evaluation.model_free_reference import FIT_WINDOW
 
 REPO = Path(__file__).resolve().parents[1]
 
-#: Keys a grade block gained *after* the ABL-418 and ABL-438 records were
-#: committed. ABL-437 added both and deliberately did not regenerate
-#: `reports/abl_418_retro_grade.json` (its section 8): a re-run adds these two,
-#: and changes no value and no letter, so leaving the committed bytes alone keeps
-#: the whole published set unchanged. Strict dict equality against those bytes
-#: therefore stops being the right assertion the moment ABL-437 lands, while "no
-#: stored value moved" stays exactly as strong.
-ADDITIVE_SINCE_THE_RECORD = {"causal_levelling", "level_inflation_pct"}
+#: The two keys ABL-437 added to every graded cell and pair, *after* this record
+#: was committed.  Both are provenance rather than result: `causal_levelling`
+#: names which pair of causal references produced the letter, and
+#: `level_inflation_pct` reports how far the one it used is mis-levelled.  A
+#: grade that does not name the reference it graded against is the ambiguity
+#: ABL-437 exists to remove, so they are kept and this record is a strict
+#: superset of the committed one -- which is why the comparisons below strip
+#: them and then assert the pin separately, rather than being relaxed to a
+#: subset check that would also pass if a letter moved.
+ABL437_PROVENANCE_KEYS = frozenset({"causal_levelling", "level_inflation_pct"})
 
 
-def assert_grade_unmoved(fresh: dict, stored: dict, where: str) -> None:
-    """Every stored key present and unchanged; additions only from the set above.
-
-    Deliberately not ``fresh == stored``: a record committed before a purely
-    additive field existed cannot satisfy that. Equally deliberately not a subset
-    check, which would let a *value* move silently. Both halves are asserted --
-    nothing stored changed, and nothing new appeared that was not registered as
-    additive -- plus the pin itself, because `causal_levelling` on an ABL-418
-    grade must read `fit_window` or those published letters were decided against
-    references the script no longer reads.
-    """
-    added, dropped = set(fresh) - set(stored), set(stored) - set(fresh)
-    assert not added - ADDITIVE_SINCE_THE_RECORD, (
-        f"{where}: unregistered new key(s) {sorted(added - ADDITIVE_SINCE_THE_RECORD)}")
-    assert not dropped, f"{where}: key(s) dropped {sorted(dropped)}"
-    for key, value in stored.items():
-        assert fresh[key] == value, f"{where}: {key} moved, {value!r} -> {fresh[key]!r}"
-    if "causal_levelling" in fresh:
-        assert fresh["causal_levelling"] == FIT_WINDOW, (
-            f"{where}: ABL-418's published letters are pinned to the fit-window references")
-
+def without_abl437_provenance(value):
+    """Strip ABL-437's provenance keys, at any depth, so a record committed
+    before ABL-437 can be compared to one produced after it."""
+    if isinstance(value, dict):
+        return {key: without_abl437_provenance(item) for key, item in value.items()
+                if key not in ABL437_PROVENANCE_KEYS}
+    if isinstance(value, list):
+        return [without_abl437_provenance(item) for item in value]
+    return value
 
 _SPEC = importlib.util.spec_from_file_location(
     "abl418_retro_grade", REPO / "scripts" / "abl418_retro_grade.py")
@@ -226,12 +219,12 @@ def test_the_committed_record_matches_a_live_grade(tranche, committed):
     assert committed["issue"] == "ABL-438"
     assert committed["tranche_selection"] == ["1b"]
     stored, = committed["tranches"]
-    assert len(stored["cells"]) == len(tranche["cells"])
-    for index, cell in enumerate(stored["cells"]):
-        assert_grade_unmoved(tranche["cells"][index], cell, f"1b cell {index}")
-    assert set(stored["pair_grades"]) == set(tranche["pair_grades"])
-    for pair, grade in stored["pair_grades"].items():
-        assert_grade_unmoved(tranche["pair_grades"][pair], grade, f"1b {pair}")
+    assert stored["cells"] == without_abl437_provenance(tranche["cells"])
+    assert stored["pair_grades"] == without_abl437_provenance(tranche["pair_grades"])
+    # ABL-437 pins this record's read to the levelling it was published on, so
+    # the letters above are reproduced rather than re-derived on a new reference.
+    assert {grade["causal_levelling"] for grade in tranche["pair_grades"].values()} == {FIT_WINDOW}
+    assert {cell["causal_levelling"] for cell in tranche["cells"]} == {FIT_WINDOW}
 
 
 def test_the_record_names_the_bytes_it_graded(committed):
@@ -261,10 +254,10 @@ def test_abl418s_own_selection_still_produces_abl418s_own_grades():
     assert [tranche["tranche"] for tranche in committed["tranches"]] == list(rg.ABL418_TRANCHES)
     for stored in committed["tranches"]:
         fresh = rg.read_tranche(REPO, rg.TRANCHES[stored["tranche"]])
-        assert set(fresh["pair_grades"]) == set(stored["pair_grades"]), stored["tranche"]
-        for pair, grade in stored["pair_grades"].items():
-            assert_grade_unmoved(fresh["pair_grades"][pair], grade,
-                                 f"{stored['tranche']} {pair}")
+        assert without_abl437_provenance(fresh["pair_grades"]) == stored["pair_grades"], \
+            stored["tranche"]
+        assert {grade["causal_levelling"] for grade in fresh["pair_grades"].values()} \
+            == {FIT_WINDOW}, stored["tranche"]
         assert [cell["label"] for cell in fresh["cells"]] == \
             [cell["label"] for cell in stored["cells"]], stored["tranche"]
         assert [cell["skill_pct"] for cell in fresh["cells"]] == \

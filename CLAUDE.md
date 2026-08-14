@@ -879,10 +879,15 @@ Five things follow, and the third is the one that bites:
   published scope is **pinned to `fit_window`** and
   `test_every_published_scope_pins_its_levelling` derives that set from
   `SCOPE_OUTPUTS` **and git** rather than from a list. `scripts/abl418_retro_grade.py`
-  is pinned for the same reason: its two tranches carry no trailing column at
-  all, so the amended default would rewrite a published page of A's as B's.
-  The table is deliberately **not** in `check_registration_tables` — three PRs
-  were open at registration, one already `CONFLICTING` on that call.
+  is pinned for the same reason, and pinned at the *cell* rather than per tranche,
+  so it covers ABL-438's `1b` row above and whatever `TRANCHES` gains next: none
+  of the three committed records carries a trailing column at all — checked, not
+  assumed — so the amended default would rewrite a published page of A's as B's.
+  The table is deliberately **not** passed to `check_registration_tables`, and
+  that is structural rather than cautious: that check requires every scope in the
+  union to appear in *every* table it is given, so registering `CAUSAL_LEVELLING`
+  there would force each scope to be pinned and delete the default this bullet
+  exists to describe.
 - **The ladder's rules did not move, only the reference.** Given two reference
   pairs carrying identical numbers, every case grades identically under either
   levelling; that is asserted directly rather than argued. G1 is still
@@ -928,12 +933,18 @@ Three things that generalise:
   deliberately does not regenerate `reports/abl_418_retro_grade.json` (its §8);
   ABL-438 landed on main meanwhile with `fresh == stored` against those exact
   bytes. Green on each side, **2 failed on the merge**, no textual conflict, and
-  the collision is in a file neither branch's issue is about. The fix is
-  `assert_grade_unmoved` in `tests/test_abl438_retro_grade_1b.py`: every stored key
-  present and unchanged, additions only from a named additive set, and the
-  `fit_window` pin asserted — which is *stronger* than what it replaced, not
-  weaker. **Do not "fix" this by regenerating the committed record**; that
-  overwrites a published page of letters to make a test pass.
+  the collision is in a file neither branch's issue is about — so neither PR's own
+  test run can see it. The fix is `without_abl437_provenance` in
+  `tests/test_abl438_retro_grade_1b.py`: strip the two provenance keys at any
+  depth, compare, then assert the `fit_window` pin **separately** — which keeps a
+  moved letter failing, where a bare subset check would not. **Do not "fix" this by
+  regenerating the committed record**; that overwrites a published page of letters
+  to make a test pass.
+- **Two branches can find the same merge collision and fix it twice.** ABL-443 and
+  ABL-437 both hit this within one pass and wrote different helpers for it; the
+  base branch's won. Before writing a merge fix, re-fetch and check whether the
+  branch you are stacked on has already moved — a PR head is not stable while you
+  work against it.
 
 **A scope also registers where it writes** (ABL-387). `--artifact-dir`,
 `--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
