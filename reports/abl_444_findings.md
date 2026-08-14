@@ -9,10 +9,12 @@ Evidence pack for the G2/G3 readability floor. Registration:
 **Protocol.** Arithmetic over records already on disk — each tranche's committed
 `results_*.json` for the challenger's own scores, slope, correlation,
 `enough_pairs` and `minimum_n`, and `reports/abl_437_causal_levelling_reread.json`
-for the trailing-28d reference WAPEs on the same cells. **No refit, no new model,
-no database read.** 113 cells, 39 pair-records, tranches 1b and 2a–2f. Every cell
-graded four ways, because both registered axes stay live: `{fit_window,
-trailing_28d} × {sign_test, floored}`. Out-of-sample throughout: ABL-348's frozen
+plus `reports/abl_443_offshore_trailing_reread.json` for the trailing-28d
+reference WAPEs on the same cells. **No refit, no new model, no database read.**
+**119 cells, 41 pair-records** — tranches 1b and 2a–2f, plus the
+`abl443-offshore-trailing` scope, which merged to main while this issue was open.
+Every cell graded four ways, because both registered axes stay live:
+`{fit_window, trailing_28d} × {sign_test, floored}`. Out-of-sample throughout: ABL-348's frozen
 gate window 2026-07-11 → 2026-08-10, fit window 2026-01-14 → 2026-07-11.
 `n` per cell is 388–720; the floor is `readability_floor_pct` at k=1, **10.65%
 solar / 7.51% wind**.
@@ -25,15 +27,15 @@ hold on BG solar is live and is carried into §2 and §5.
 
 ## 1. The read reproduces every published letter before it changes any
 
-All **113 cells** and **39 pair-records** come back identical to ABL-437's
-published and amended columns on the `sign_test` arms — through a different path,
+All **119 cells** and **41 pair-records** come back identical to ABL-437's and
+ABL-443's published and amended columns on the `sign_test` arms — through a different path,
 since the challenger side here is read from each tranche's own committed record
 rather than from ABL-437's. Zero disagreements. That is what makes the `floored`
 column a comparison rather than a restatement.
 
 ## 2. What the floor changes
 
-### On the published path — 2 pair-records of 39, none of them `A`
+### On the published path — 2 pair-records of 41, none of them `A`
 
 | tranche | pair | published | floored | abstains on |
 |---|---|:---:|:---:|---|
@@ -45,7 +47,7 @@ become honest abstentions; no `A` is withdrawn. Solar is unmoved here for a
 structural reason rather than a lucky one — against a fit-window climatology a
 solar challenger's G3 margin is tens of percent.
 
-### On ABL-437's amended path — 10 of 39, and 5 of them from `A`
+### On ABL-437's amended path — 11 of 41, and 5 of them from `A`
 
 | tranche | pair | amended | floored | margin (skill %) |
 |---|---|:---:|:---:|---|
@@ -59,12 +61,24 @@ solar challenger's G3 margin is tens of percent.
 | 2d | LT solar | B | **N** | G3 −6.87 / −6.12 / −3.65 |
 | 2d | NL solar | B | **N** | G3 −3.86 / −5.64 / −1.95 |
 | 2d | SE solar | B | **N** | G3 −8.65 / −6.51 / −2.97 |
+| offshore | DE `wind_offshore` | B | **N** | G2 +0.33 / +1.32 / +1.03, G3 +0.52 / +1.32 / **−0.47** — §3.1 |
 
 Four more pair-records abstain in at least one band without their letter moving,
 because a worse band carries the pair: 2b ES `wind_onshore` (`C`), 2c PT solar
 (`C`), 2a HU solar and 2c IT solar (`U`). The full inventory is
-`abl_444_g23_floor_reread.md` §2 — **34 abstaining cell-conditions across the two
+`abl_444_g23_floor_reread.md` §2 — **57 abstaining cell-conditions across the two
 levellings**, not only the ones that move a letter.
+
+### 2.1 DE `wind_offshore` is the case the floor was registered for
+
+ABL-443 landed on main mid-issue and had already done the diagnosis without the
+machinery to act on it: its record labels all six DE margins *"not readable at one
+seed"* and carries `g2_g3_floor_is_a_ladder_condition: **false**`. Under the
+floored form all three of DE's bands abstain — its two shorter bands were graded
+`A` on G2/G3 margins of **+0.33% to +1.32%**, and its `B` came from a G3
+*failure* of **−0.47%**. So DE's published `B` and its two published band-level
+`A`s rest on six margins of which not one is readable, and the pair reads `N`.
+Its G1 is untouched at +24…+26pp against D-7, and ABL-436's PASS stands.
 
 ## 3. The finding this read did not go looking for: EE and FI solar
 
@@ -97,7 +111,7 @@ of ABL-348's source change, not a fact about FI's model.
 ## 4. The two denominators no longer agree, and it is one cell
 
 ABL-418 measured `skill` against ABL-385's own-error form over its 48 cells and
-found no cell moved. Over the programme's **452** G2/G3 condition-observations,
+found no cell moved. Over the programme's **476** G2/G3 condition-observations,
 **3** change readability status and **one cell letter moves**:
 
 | tranche | pair | band | condition | skill | own error | floor |
@@ -108,7 +122,7 @@ found no cell moved. Over the programme's **452** G2/G3 condition-observations,
 
 Only BG solar 1b 36-48h moves a letter (`N` on the registered column, `A` on
 ABL-385's). **No pair letter moves at all**, including BG's: its other two bands
-are inside the floor under either denominator. Quote the 113-cell number, not
+are inside the floor under either denominator. Quote the 119-cell number, not
 ABL-418's "they never disagree".
 
 ## 5. One correction to the ABL-444 description, and one hold
@@ -153,6 +167,7 @@ qualified by readability. It is 1b BG solar that ABL-438 published as `A × 2`.
    a required table raises on `import` for every branch in flight and three PRs
    are open; the cost of the absence is bounded because the default is the
    conservative path.
-3. **The re-read is levelling-agnostic and both arms are reported**, so nothing
-   here needs redoing when ABL-437 merges. If ABL-437 does *not* merge, §2's
-   published-path table is the operative one and it moves two pair-records.
+3. **The re-read is levelling-agnostic and both arms are reported.** ABL-437 and
+   ABL-443 both merged to main during this issue and the offshore scope was
+   folded in; a further scope landing after this read needs the same treatment,
+   which is one row in `_offshore`-shaped code rather than a new document.

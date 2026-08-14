@@ -318,10 +318,15 @@ def test_the_published_path_moves_exactly_the_two_pairs_the_pack_names(reread):
                      ("2e", "HU wind_onshore"): ("B", "N")}
 
 
-def test_the_amended_path_moves_ten_pairs_five_of_them_from_a(reread):
+def test_the_amended_path_moves_ten_tranche_pairs_five_of_them_from_a(reread):
     """Section 3.2 -- the set this issue said had not been enumerated: pairs that
     *pass* G2/G3 on a sub-floor margin. EE and FI solar are the sharpest, each
-    grading A on its only gated band at +0.35% and +0.59%."""
+    grading A on its only gated band at +0.35% and +0.59%.
+
+    Ten here, eleven in the published re-read: this fixture is ABL-437's record,
+    which predates ABL-443's offshore scope. DE `wind_offshore` is the eleventh
+    and is asserted against the committed re-read below.
+    """
     signed = _regrade(reread, TRAILING_28D, SIGN_TEST)
     floored = _regrade(reread, TRAILING_28D, FLOORED)
     moved = {key: (signed[key][0].label, floored[key][0].label)
@@ -449,7 +454,8 @@ def test_the_renderer_follows_the_record_and_not_the_table(stream):
 
 
 @pytest.mark.parametrize("script", ["abl418_retro_grade", "abl437_causal_levelling_reread",
-                                    "abl419_tranche2c_read", "abl421_tranche2d_read"])
+                                    "abl419_tranche2c_read", "abl421_tranche2d_read",
+                                    "abl443_offshore_trailing_reread"])
 def test_every_published_record_reader_names_the_form(script):
     """Four scripts grade cells from a *committed* record. Two of them read
     records that carry a recorded grade, so the default is unreachable there
@@ -520,7 +526,7 @@ def test_the_reread_names_the_bytes_it_graded(committed):
             hashlib.sha256((ROOT / tranche["record"]).read_bytes()).hexdigest()
 
 
-def test_the_sign_test_arms_reproduce_abl437s_published_letters(committed, reread):
+def test_the_sign_test_arms_reproduce_the_published_letters(committed, reread):
     """This document's `floored` column is a comparison, not a restatement, and
     that is only true if its `sign_test` columns reproduce ABL-437's -- through a
     different path, since the challenger side here is read from each tranche's
@@ -528,6 +534,10 @@ def test_the_sign_test_arms_reproduce_abl437s_published_letters(committed, rerea
     published = {(tranche["tranche"], pair["pair"]):
                  (pair["published_pair_grade"], pair["amended_pair_grade"])
                  for tranche in reread["tranches"] for pair in tranche["pairs"]}
+    offshore = json.loads((ROOT / rr.OFFSHORE_REREAD).read_text(encoding="utf-8"))
+    published.update({("offshore", pair["pair"]):
+                      (pair["published_pair_grade"], pair["amended_pair_grade"])
+                      for pair in offshore["pairs"]})
     checked = 0
     for tranche in committed["tranches"]:
         for pair in tranche["pairs"]:
@@ -536,15 +546,23 @@ def test_the_sign_test_arms_reproduce_abl437s_published_letters(committed, rerea
                     grades[f"{TRAILING_28D}/{SIGN_TEST}"]) == \
                 published[(tranche["tranche"], pair["pair"])], pair["pair"]
             checked += 1
-    assert checked == 39
+    assert checked == 41
 
 
-def test_the_reread_covers_every_cell_abl437_covered(committed, reread):
+def test_the_reread_covers_abl437s_cells_and_abl443s(committed, reread):
+    """113 from ABL-437's tranches, 6 from ABL-443's offshore scope, which merged
+    to main while this issue was open. A floored read of the programme that
+    skipped the one pair its own author flagged as unreadable would be worse than
+    no read."""
+    abl437 = sum(len(pair["cells"])
+                 for tranche in reread["tranches"] for pair in tranche["pairs"])
+    assert abl437 == 113
     cells = sum(len(pair["cells"])
                 for tranche in committed["tranches"] for pair in tranche["pairs"])
-    assert cells == sum(len(pair["cells"])
-                        for tranche in reread["tranches"] for pair in tranche["pairs"])
-    assert cells == 113
+    assert cells == 119
+    offshore, = [t for t in committed["tranches"] if t["tranche"] == "offshore"]
+    assert offshore["scope"] == "abl443-offshore-trailing"
+    assert sum(len(pair["cells"]) for pair in offshore["pairs"]) == 6
 
 
 def test_ee_and_fi_solars_only_gated_band_is_coverage_short_and_sub_floor(committed):
@@ -598,3 +616,38 @@ def test_the_reread_refuses_to_write_where_another_read_writes():
         assert "refusing to write" in str(caught.value)
     finally:
         sys.argv = argv
+
+
+def test_de_wind_offshore_is_the_case_the_floor_was_registered_for(committed):
+    """ABL-443 did the diagnosis and had no machinery to act on it.
+
+    Its record labels all six DE margins "not readable at one seed" and carries
+    `g2_g3_floor_is_a_ladder_condition: false`. Under the floored form all three
+    bands abstain -- the two shorter ones were graded `A` on +0.33% to +1.32%,
+    and the `B` came from a G3 *failure* of -0.47%. Not one of the six was
+    readable.
+    """
+    offshore, = [t for t in committed["tranches"] if t["tranche"] == "offshore"]
+    by_pair = {pair["pair"]: pair for pair in offshore["pairs"]}
+    de = by_pair["DE wind_offshore"]
+    assert de["pair_grades"][f"{TRAILING_28D}/{SIGN_TEST}"] == "B"
+    assert de["pair_grades"][f"{TRAILING_28D}/{FLOORED}"] == "N"
+    # ...and its published fit-window letter is untouched: those margins are readable.
+    assert de["pair_grades"][f"{FIT_WINDOW}/{SIGN_TEST}"] == "A"
+    assert de["pair_grades"][f"{FIT_WINDOW}/{FLOORED}"] == "A"
+    floor = readability_floor_pct("wind")
+    for cell in de["cells"]:
+        assert cell["labels"][f"{TRAILING_28D}/{FLOORED}"] == "N"
+        for name in ("constant_causal_28d", "climatology_causal_28d"):
+            margin = cell["grades"][f"{TRAILING_28D}/{FLOORED}"]["skill_pct"][name]
+            assert abs(margin) <= floor, (cell["band"], name, margin)
+    nl = by_pair["NL wind_offshore"]
+    assert {nl["pair_grades"][arm] for arm in nl["pair_grades"]} == {"A"}
+
+
+def test_the_committed_reread_moves_eleven_pairs_on_the_amended_path(committed):
+    """The published count, over all 41 pair-records rather than ABL-437's 39."""
+    assert sum(len(t["pairs"]) for t in committed["tranches"]) == 41
+    assert len(rr._moves(committed, TRAILING_28D)) == 11
+    assert len(rr._moves(committed, FIT_WINDOW)) == 2
+    assert sum(1 for item in rr._moves(committed, FIT_WINDOW) if item["before"] == "A") == 0

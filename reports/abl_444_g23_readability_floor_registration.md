@@ -96,15 +96,23 @@ strictly more information than the `A` or `B` it replaces, not less.
 ## 3. The affected set, measured before this was registered
 
 Source: every committed tranche record, through
-`reports/abl_437_causal_levelling_reread.json` — 113 cells, 39 pair-records,
-tranches 1b and 2a–2f. Arithmetic over stored WAPE only: no refit, no re-read, no
-database. Floor `readability_floor_pct` at k=1, **10.65% solar / 7.51% wind**.
+`reports/abl_437_causal_levelling_reread.json`, plus ABL-443's offshore re-read —
+**119 cells, 41 pair-records**, tranches 1b and 2a–2f and the
+`abl443-offshore-trailing` scope. Arithmetic over stored WAPE only: no refit, no
+re-read, no database. Floor `readability_floor_pct` at k=1, **10.65% solar /
+7.51% wind**.
+
+> The offshore pair set was added after this section was first written: ABL-443
+> merged to main while this issue was open, and its own record labels all six DE
+> `wind_offshore` margins *"not readable at one seed"* and carries
+> `g2_g3_floor_is_a_ladder_condition: false` — the hook this issue closes. The
+> counts below are over the full 41.
 
 Both live paths are enumerated, because both stay readable and a pair can be
 reported under either. `sign_test × fit_window` is what is **published today**;
 `sign_test × trailing_28d` is what ABL-437 makes live when it merges.
 
-### 3.1 The published path — 2 pair-records move, none of them `A`
+### 3.1 The published path — 2 pair-records of 41 move, none of them `A`
 
 | tranche | pair | published | floored | sub-floor margins (skill %) |
 |---|---|:---:|:---:|---|
@@ -117,7 +125,7 @@ abstentions. Solar is unmoved on this path for a structural reason rather than a
 lucky one: against a fit-window climatology a solar challenger's G3 margin is
 tens of percent (PL's is +38.30%), far outside a 10.65% floor.
 
-### 3.2 ABL-437's amended path — 10 move, and 5 are the happier letter
+### 3.2 ABL-437's amended path — 11 of 41 move, and 5 are the happier letter
 
 The set this issue said had not been enumerated: pairs that **pass** G2/G3 on a
 sub-floor margin.
@@ -130,8 +138,11 @@ sub-floor margin.
 | 2d | FI solar | A | **N** | G3 **+0.59** (48-64h, its only gated band) |
 | 2e | HR `wind_onshore` | A | **N** | G2 +2.80, G3 +2.02 (24-36h only) |
 
-and five flipping from `B`: 2a PL solar (G3 −1.13 / −1.11 / **−0.36**), 2a SK
-solar, 2d LT solar, 2d NL solar, 2d SE solar.
+and six flipping from `B`: 2a PL solar (G3 −1.13 / −1.11 / **−0.36**), 2a SK
+solar, 2d LT solar, 2d NL solar, 2d SE solar, and **DE `wind_offshore`** — whose
+two shorter bands were `A` at +0.33%/+0.52% and +1.32%/+1.32% and whose `B` came
+from a G3 *failure* of −0.47%, so all three of its bands abstain and none of the
+three margins was ever readable.
 
 **EE and FI solar are the sharpest case in the programme.** ABL-421 declares both
 NOT-EVALUABLE on 24-36h and 36-48h, so 48-64h is the *only* band carrying a
@@ -174,7 +185,7 @@ disagreement should be small. Measured, over all 113 cells:
 
 | | |
 |---|---:|
-| G2/G3 condition-observations, both levellings | **452** |
+| G2/G3 condition-observations, both levellings | **476** |
 | readability status differs between denominators | **3** |
 | **cell** letters that move | **1** |
 | **pair** letters that move | **0** |

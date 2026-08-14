@@ -1,9 +1,11 @@
 {
   "issue": "ABL-444",
-  "generated_at": "2026-08-14T02:51:57Z",
+  "generated_at": "2026-08-14T03:01:52Z",
   "registration": "experiments/ABL444/config.json",
   "source_reread": "reports/abl_437_causal_levelling_reread.json",
   "source_reread_sha256": "bc34431a04f74ceee75e30f441b65541d994bf52c6b7ee0ad47451a59b4d4209",
+  "source_offshore_reread": "reports/abl_443_offshore_trailing_reread.json",
+  "source_offshore_reread_sha256": "9df8df76562607c3f4ae024189f80ad96b2c3f9f4ad8871b22c0d03f1b8a4404",
   "readability_before": "sign_test",
   "readability_after": "floored",
   "levellings_reported": [
@@ -19897,6 +19899,1043 @@
                 "climatology_causal": 65.82184980130975,
                 "climatology_causal_28d": -3.698069743980451,
                 "climatology_oracle": -14.51566159877806
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tranche": "offshore",
+      "scope": "abl443-offshore-trailing",
+      "stream": "wind",
+      "record": "reports/abl_443_offshore_trailing_reread.json",
+      "record_sha256": "9df8df76562607c3f4ae024189f80ad96b2c3f9f4ad8871b22c0d03f1b8a4404",
+      "source_record": "experiments/ABL322/results_abl436_offshore_reread.json",
+      "source_record_sha256": "ef0f647449072fa00cbc985113ad90443b819c92fe490fca48da8954a80bb817",
+      "pairs": [
+        {
+          "pair": "DE wind_offshore",
+          "country": "DE",
+          "forecast_type": "wind_offshore",
+          "pair_grades": {
+            "fit_window/sign_test": "A",
+            "fit_window/floored": "A",
+            "trailing_28d/sign_test": "B",
+            "trailing_28d/floored": "N"
+          },
+          "hold": null,
+          "cells": [
+            {
+              "band": "24-36h",
+              "n": 720,
+              "minimum_n": 684,
+              "enough_pairs": true,
+              "gate_pass": true,
+              "floor_pct": 7.505415138351427,
+              "wape": {
+                "challenger": 66.1105035626839,
+                "seasonal_naive": 88.85618646684848,
+                "persistence": 71.83782027253864,
+                "constant_causal": 74.40104121879627,
+                "constant_causal_28d": 66.32994776811859,
+                "constant_oracle": 62.86091148323933,
+                "climatology_causal": 73.73642897503208,
+                "climatology_causal_28d": 66.45325257432418,
+                "climatology_oracle": 62.124865554790986
+              },
+              "grades": {
+                "fit_window/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 25.598310943325043,
+                    "constant_causal": 11.14303982888063,
+                    "climatology_causal": 10.342140944919365
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 34.40555082536596,
+                    "constant_causal": 12.540424303759137,
+                    "climatology_causal": 11.535119234294621
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 18.35819663326692,
+                    "constant_causal_28d": 5.518590492923758
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "fit_window/floored": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 25.598310943325043,
+                    "constant_causal": 11.14303982888063,
+                    "climatology_causal": 10.342140944919365
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 34.40555082536596,
+                    "constant_causal": 12.540424303759137,
+                    "climatology_causal": 11.535119234294621
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 18.35819663326692,
+                    "constant_causal_28d": 5.518590492923758
+                  },
+                  "g23_readability": "floored"
+                },
+                "trailing_28d/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 25.598310943325043,
+                    "constant_causal_28d": 0.3308372956991268,
+                    "climatology_causal_28d": 0.5157746210494918
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 34.40555082536596,
+                    "constant_causal_28d": 0.33193546200508606,
+                    "climatology_causal_28d": 0.518448647596967
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 18.35819663326692,
+                    "constant_causal_28d": 5.518590492923758
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "trailing_28d/floored": {
+                  "grade": "N",
+                  "plus": false,
+                  "label": "N",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [
+                    {
+                      "condition": "G2",
+                      "reason": "margin +0.33% sits inside the 7.51% readability floor (beats constant_causal_28d -- a flat line at the mean of the 28 days ending at the forecast issue instant)"
+                    },
+                    {
+                      "condition": "G3",
+                      "reason": "margin +0.52% sits inside the 7.51% readability floor (beats climatology_causal_28d -- an hour-of-day mean over the same trailing 28 days)"
+                    }
+                  ],
+                  "skill_pct": {
+                    "seasonal_naive": 25.598310943325043,
+                    "constant_causal_28d": 0.3308372956991268,
+                    "climatology_causal_28d": 0.5157746210494918
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 34.40555082536596,
+                    "constant_causal_28d": 0.33193546200508606,
+                    "climatology_causal_28d": 0.518448647596967
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 18.35819663326692,
+                    "constant_causal_28d": 5.518590492923758
+                  },
+                  "g23_readability": "floored"
+                }
+              },
+              "labels": {
+                "fit_window/sign_test": "A",
+                "fit_window/floored": "A",
+                "trailing_28d/sign_test": "A",
+                "trailing_28d/floored": "N"
+              },
+              "own_error_margin_pct": {
+                "seasonal_naive": 34.40555082536596,
+                "persistence": 8.663247746138058,
+                "constant_causal": 12.540424303759137,
+                "constant_causal_28d": 0.33193546200508606,
+                "constant_oracle": -4.91539453539847,
+                "climatology_causal": 11.535119234294621,
+                "climatology_causal_28d": 0.518448647596967,
+                "climatology_oracle": -6.028751549462726
+              }
+            },
+            {
+              "band": "36-48h",
+              "n": 720,
+              "minimum_n": 684,
+              "enough_pairs": true,
+              "gate_pass": true,
+              "floor_pct": 7.505415138351427,
+              "wape": {
+                "challenger": 65.65669963588455,
+                "seasonal_naive": 88.85618646684848,
+                "persistence": 79.53430358826832,
+                "constant_causal": 74.40104121879627,
+                "constant_causal_28d": 66.53664450943455,
+                "constant_oracle": 62.86091148323933,
+                "climatology_causal": 73.73642897503208,
+                "climatology_causal_28d": 66.5349394970552,
+                "climatology_oracle": 62.124865554790986
+              },
+              "grades": {
+                "fit_window/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 26.10902825502136,
+                    "constant_causal": 11.752982807319356,
+                    "climatology_causal": 10.957581552916551
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 35.33453091553858,
+                    "constant_causal": 13.318277695049588,
+                    "climatology_causal": 12.306024189390678
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 18.35819663326692,
+                    "constant_causal_28d": 5.847406503444175
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "fit_window/floored": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 26.10902825502136,
+                    "constant_causal": 11.752982807319356,
+                    "climatology_causal": 10.957581552916551
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 35.33453091553858,
+                    "constant_causal": 13.318277695049588,
+                    "climatology_causal": 12.306024189390678
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 18.35819663326692,
+                    "constant_causal_28d": 5.847406503444175
+                  },
+                  "g23_readability": "floored"
+                },
+                "trailing_28d/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 26.10902825502136,
+                    "constant_causal_28d": 1.3224966182736053,
+                    "climatology_causal_28d": 1.3199679263397046
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 35.33453091553858,
+                    "constant_causal_28d": 1.3402209956180464,
+                    "climatology_causal_28d": 1.3376241359086758
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 18.35819663326692,
+                    "constant_causal_28d": 5.847406503444175
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "trailing_28d/floored": {
+                  "grade": "N",
+                  "plus": false,
+                  "label": "N",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [
+                    {
+                      "condition": "G2",
+                      "reason": "margin +1.32% sits inside the 7.51% readability floor (beats constant_causal_28d -- a flat line at the mean of the 28 days ending at the forecast issue instant)"
+                    },
+                    {
+                      "condition": "G3",
+                      "reason": "margin +1.32% sits inside the 7.51% readability floor (beats climatology_causal_28d -- an hour-of-day mean over the same trailing 28 days)"
+                    }
+                  ],
+                  "skill_pct": {
+                    "seasonal_naive": 26.10902825502136,
+                    "constant_causal_28d": 1.3224966182736053,
+                    "climatology_causal_28d": 1.3199679263397046
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 35.33453091553858,
+                    "constant_causal_28d": 1.3402209956180464,
+                    "climatology_causal_28d": 1.3376241359086758
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 18.35819663326692,
+                    "constant_causal_28d": 5.847406503444175
+                  },
+                  "g23_readability": "floored"
+                }
+              },
+              "labels": {
+                "fit_window/sign_test": "A",
+                "fit_window/floored": "A",
+                "trailing_28d/sign_test": "A",
+                "trailing_28d/floored": "N"
+              },
+              "own_error_margin_pct": {
+                "seasonal_naive": 35.33453091553858,
+                "persistence": 21.136615195928893,
+                "constant_causal": 13.318277695049588,
+                "constant_causal_28d": 1.3402209956180464,
+                "constant_oracle": -4.258191727805322,
+                "climatology_causal": 12.306024189390678,
+                "climatology_causal_28d": 1.3376241359086758,
+                "climatology_oracle": -5.379244008121368
+              }
+            },
+            {
+              "band": "48-64h",
+              "n": 510,
+              "minimum_n": 456,
+              "enough_pairs": true,
+              "gate_pass": true,
+              "floor_pct": 7.505415138351427,
+              "wape": {
+                "challenger": 66.14974066997667,
+                "seasonal_naive": 87.09227948356508,
+                "persistence": 87.03562694164339,
+                "constant_causal": 75.78989569663379,
+                "constant_causal_28d": 66.83490783046406,
+                "constant_oracle": 62.31595594311998,
+                "climatology_causal": 73.6478319125505,
+                "climatology_causal_28d": 65.84119922296007,
+                "climatology_oracle": 61.31131170424097
+              },
+              "grades": {
+                "fit_window/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 24.046378092033304,
+                    "constant_causal": 12.719578168103073,
+                    "climatology_causal": 10.181007434783796
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 31.65929087775485,
+                    "constant_causal": 14.57323177539303,
+                    "climatology_causal": 11.335027419052283
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 21.62197393844427,
+                    "constant_causal_28d": 7.251677068821394
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "fit_window/floored": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 24.046378092033304,
+                    "constant_causal": 12.719578168103073,
+                    "climatology_causal": 10.181007434783796
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 31.65929087775485,
+                    "constant_causal": 14.57323177539303,
+                    "climatology_causal": 11.335027419052283
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 21.62197393844427,
+                    "constant_causal_28d": 7.251677068821394
+                  },
+                  "g23_readability": "floored"
+                },
+                "trailing_28d/sign_test": {
+                  "grade": "B",
+                  "plus": false,
+                  "label": "B",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": false,
+                    "G4": true
+                  },
+                  "failed": [
+                    {
+                      "condition": "G3",
+                      "reason": "beats climatology_causal_28d -- an hour-of-day mean over the same trailing 28 days"
+                    }
+                  ],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 24.046378092033304,
+                    "constant_causal_28d": 1.025163619923608,
+                    "climatology_causal_28d": -0.4686145614872128
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 31.65929087775485,
+                    "constant_causal_28d": 1.0357820809997098,
+                    "climatology_causal_28d": -0.466428808173139
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 21.62197393844427,
+                    "constant_causal_28d": 7.251677068821394
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "trailing_28d/floored": {
+                  "grade": "N",
+                  "plus": false,
+                  "label": "N",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": false,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [
+                    {
+                      "condition": "G2",
+                      "reason": "margin +1.03% sits inside the 7.51% readability floor (beats constant_causal_28d -- a flat line at the mean of the 28 days ending at the forecast issue instant)"
+                    },
+                    {
+                      "condition": "G3",
+                      "reason": "margin -0.47% sits inside the 7.51% readability floor (beats climatology_causal_28d -- an hour-of-day mean over the same trailing 28 days)"
+                    }
+                  ],
+                  "skill_pct": {
+                    "seasonal_naive": 24.046378092033304,
+                    "constant_causal_28d": 1.025163619923608,
+                    "climatology_causal_28d": -0.4686145614872128
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 31.65929087775485,
+                    "constant_causal_28d": 1.0357820809997098,
+                    "climatology_causal_28d": -0.466428808173139
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": true,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 21.62197393844427,
+                    "constant_causal_28d": 7.251677068821394
+                  },
+                  "g23_readability": "floored"
+                }
+              },
+              "labels": {
+                "fit_window/sign_test": "A",
+                "fit_window/floored": "A",
+                "trailing_28d/sign_test": "B",
+                "trailing_28d/floored": "N"
+              },
+              "own_error_margin_pct": {
+                "seasonal_naive": 31.65929087775485,
+                "persistence": 31.573647999418665,
+                "constant_causal": 14.57323177539303,
+                "constant_causal_28d": 1.0357820809997098,
+                "constant_oracle": -5.795615656278335,
+                "climatology_causal": 11.335027419052283,
+                "climatology_causal_28d": -0.466428808173139,
+                "climatology_oracle": -7.314358176965172
+              }
+            }
+          ]
+        },
+        {
+          "pair": "NL wind_offshore",
+          "country": "NL",
+          "forecast_type": "wind_offshore",
+          "pair_grades": {
+            "fit_window/sign_test": "A",
+            "fit_window/floored": "A",
+            "trailing_28d/sign_test": "A",
+            "trailing_28d/floored": "A"
+          },
+          "hold": null,
+          "cells": [
+            {
+              "band": "24-36h",
+              "n": 720,
+              "minimum_n": 684,
+              "enough_pairs": true,
+              "gate_pass": true,
+              "floor_pct": 7.505415138351427,
+              "wape": {
+                "challenger": 60.45612988075422,
+                "seasonal_naive": 81.79006233278575,
+                "persistence": 82.21861737125106,
+                "constant_causal": 89.96673526247297,
+                "constant_causal_28d": 77.28836106563521,
+                "constant_oracle": 71.74405193613164,
+                "climatology_causal": 87.27902704773763,
+                "climatology_causal_28d": 77.07870669092202,
+                "climatology_oracle": 70.88004807488329
+              },
+              "grades": {
+                "fit_window/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 26.083770868431987,
+                    "constant_causal": 32.80168530693393,
+                    "climatology_causal": 30.73235125812357
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 35.288286719826964,
+                    "constant_causal": 48.813255893035986,
+                    "climatology_causal": 44.36753927168317
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 25.39957367136667,
+                    "constant_causal_28d": 7.7279007525798304
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "fit_window/floored": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 26.083770868431987,
+                    "constant_causal": 32.80168530693393,
+                    "climatology_causal": 30.73235125812357
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 35.288286719826964,
+                    "constant_causal": 48.813255893035986,
+                    "climatology_causal": 44.36753927168317
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 25.39957367136667,
+                    "constant_causal_28d": 7.7279007525798304
+                  },
+                  "g23_readability": "floored"
+                },
+                "trailing_28d/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 26.083770868431987,
+                    "constant_causal_28d": 21.778481200535026,
+                    "climatology_causal_28d": 21.565718372549615
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 35.288286719826964,
+                    "constant_causal_28d": 27.842058726024103,
+                    "climatology_causal_28d": 27.49527110477424
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 25.39957367136667,
+                    "constant_causal_28d": 7.7279007525798304
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "trailing_28d/floored": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 26.083770868431987,
+                    "constant_causal_28d": 21.778481200535026,
+                    "climatology_causal_28d": 21.565718372549615
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 35.288286719826964,
+                    "constant_causal_28d": 27.842058726024103,
+                    "climatology_causal_28d": 27.49527110477424
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 25.39957367136667,
+                    "constant_causal_28d": 7.7279007525798304
+                  },
+                  "g23_readability": "floored"
+                }
+              },
+              "labels": {
+                "fit_window/sign_test": "A",
+                "fit_window/floored": "A",
+                "trailing_28d/sign_test": "A",
+                "trailing_28d/floored": "A"
+              },
+              "own_error_margin_pct": {
+                "seasonal_naive": 35.288286719826964,
+                "persistence": 35.99715617493533,
+                "constant_causal": 48.813255893035986,
+                "constant_causal_28d": 27.842058726024103,
+                "constant_oracle": 18.671261421533455,
+                "climatology_causal": 44.36753927168317,
+                "climatology_causal_28d": 27.49527110477424,
+                "climatology_oracle": 17.242119557916748
+              }
+            },
+            {
+              "band": "36-48h",
+              "n": 720,
+              "minimum_n": 684,
+              "enough_pairs": true,
+              "gate_pass": true,
+              "floor_pct": 7.505415138351427,
+              "wape": {
+                "challenger": 61.258013477660576,
+                "seasonal_naive": 81.79006233278575,
+                "persistence": 101.70126645402009,
+                "constant_causal": 89.96673526247297,
+                "constant_causal_28d": 77.31560980063236,
+                "constant_oracle": 71.74405193613164,
+                "climatology_causal": 87.27902704773763,
+                "climatology_causal_28d": 77.2323519675581,
+                "climatology_oracle": 70.88004807488329
+              },
+              "grades": {
+                "fit_window/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 25.103353964427598,
+                    "constant_causal": 31.91037409666616,
+                    "climatology_causal": 29.81359262385539
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 33.517327267905536,
+                    "constant_causal": 46.86525101778206,
+                    "climatology_causal": 42.477730002730716
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 25.39957367136667,
+                    "constant_causal_28d": 7.765881232162153
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "fit_window/floored": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 25.103353964427598,
+                    "constant_causal": 31.91037409666616,
+                    "climatology_causal": 29.81359262385539
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 33.517327267905536,
+                    "constant_causal": 46.86525101778206,
+                    "climatology_causal": 42.477730002730716
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 25.39957367136667,
+                    "constant_causal_28d": 7.765881232162153
+                  },
+                  "g23_readability": "floored"
+                },
+                "trailing_28d/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 25.103353964427598,
+                    "constant_causal_28d": 20.768893066197414,
+                    "climatology_causal_28d": 20.683480540133804
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 33.517327267905536,
+                    "constant_causal_28d": 26.213054278731434,
+                    "climatology_causal_28d": 26.07714090454959
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 25.39957367136667,
+                    "constant_causal_28d": 7.765881232162153
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "trailing_28d/floored": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 25.103353964427598,
+                    "constant_causal_28d": 20.768893066197414,
+                    "climatology_causal_28d": 20.683480540133804
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 33.517327267905536,
+                    "constant_causal_28d": 26.213054278731434,
+                    "climatology_causal_28d": 26.07714090454959
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 25.39957367136667,
+                    "constant_causal_28d": 7.765881232162153
+                  },
+                  "g23_readability": "floored"
+                }
+              },
+              "labels": {
+                "fit_window/sign_test": "A",
+                "fit_window/floored": "A",
+                "trailing_28d/sign_test": "A",
+                "trailing_28d/floored": "A"
+              },
+              "own_error_margin_pct": {
+                "seasonal_naive": 33.517327267905536,
+                "persistence": 66.02116307788573,
+                "constant_causal": 46.86525101778206,
+                "constant_causal_28d": 26.213054278731434,
+                "constant_oracle": 17.11782322535661,
+                "climatology_causal": 42.477730002730716,
+                "climatology_causal_28d": 26.07714090454959,
+                "climatology_oracle": 15.707389206689923
+              }
+            },
+            {
+              "band": "48-64h",
+              "n": 510,
+              "minimum_n": 456,
+              "enough_pairs": true,
+              "gate_pass": true,
+              "floor_pct": 7.505415138351427,
+              "wape": {
+                "challenger": 63.75049005612982,
+                "seasonal_naive": 88.51091991235536,
+                "persistence": 93.74639156487055,
+                "constant_causal": 92.99035072837877,
+                "constant_causal_28d": 79.15701216344787,
+                "constant_oracle": 73.27042888212344,
+                "climatology_causal": 88.40596896349403,
+                "climatology_causal_28d": 78.51009710793028,
+                "climatology_oracle": 72.33650475814049
+              },
+              "grades": {
+                "fit_window/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 27.974435110089956,
+                    "constant_causal": 31.443972888818816,
+                    "climatology_causal": 27.88893012138732
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 38.839591404591474,
+                    "constant_causal": 45.8660955335471,
+                    "climatology_causal": 38.6749637307196
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 26.91388892779718,
+                    "constant_causal_28d": 8.034050531892877
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "fit_window/floored": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 27.974435110089956,
+                    "constant_causal": 31.443972888818816,
+                    "climatology_causal": 27.88893012138732
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 38.839591404591474,
+                    "constant_causal": 45.8660955335471,
+                    "climatology_causal": 38.6749637307196
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "fit_window",
+                  "level_inflation_pct": {
+                    "constant_causal": 26.91388892779718,
+                    "constant_causal_28d": 8.034050531892877
+                  },
+                  "g23_readability": "floored"
+                },
+                "trailing_28d/sign_test": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 27.974435110089956,
+                    "constant_causal_28d": 19.463243604376824,
+                    "climatology_causal_28d": 18.799629086574644
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 38.839591404591474,
+                    "constant_causal_28d": 24.166907726910352,
+                    "climatology_causal_28d": 23.15214681299736
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 26.91388892779718,
+                    "constant_causal_28d": 8.034050531892877
+                  },
+                  "g23_readability": "sign_test"
+                },
+                "trailing_28d/floored": {
+                  "grade": "A",
+                  "plus": false,
+                  "label": "A",
+                  "conditions": {
+                    "G1": true,
+                    "G2": true,
+                    "G3": true,
+                    "G4": true
+                  },
+                  "failed": [],
+                  "not_readable": [],
+                  "skill_pct": {
+                    "seasonal_naive": 27.974435110089956,
+                    "constant_causal_28d": 19.463243604376824,
+                    "climatology_causal_28d": 18.799629086574644
+                  },
+                  "own_error_margin_pct": {
+                    "seasonal_naive": 38.839591404591474,
+                    "constant_causal_28d": 24.166907726910352,
+                    "climatology_causal_28d": 23.15214681299736
+                  },
+                  "floor_pct": 7.505415138351427,
+                  "bar_weaker_than_a_flat_line": false,
+                  "causal_levelling": "trailing_28d",
+                  "level_inflation_pct": {
+                    "constant_causal": 26.91388892779718,
+                    "constant_causal_28d": 8.034050531892877
+                  },
+                  "g23_readability": "floored"
+                }
+              },
+              "labels": {
+                "fit_window/sign_test": "A",
+                "fit_window/floored": "A",
+                "trailing_28d/sign_test": "A",
+                "trailing_28d/floored": "A"
+              },
+              "own_error_margin_pct": {
+                "seasonal_naive": 38.839591404591474,
+                "persistence": 47.05203282724652,
+                "constant_causal": 45.8660955335471,
+                "constant_causal_28d": 24.166907726910352,
+                "constant_oracle": 14.933122580880061,
+                "climatology_causal": 38.6749637307196,
+                "climatology_causal_28d": 23.15214681299736,
+                "climatology_oracle": 13.468154824301777
               }
             }
           ]

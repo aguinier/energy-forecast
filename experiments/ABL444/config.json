@@ -45,7 +45,7 @@
   "denominator": {
     "registered_on": "the printed `skill vs X` column, 100 * (1 - challenger / reference)",
     "rationale": "It is what G1 is registered on, what ABL-418 already floors G2/G3 on for the U(+) plus, and what a reader can check against the report by eye.",
-    "sensitivity_measured": "Against ABL-385's own denominator, 100 * (reference - challenger) / challenger: of 452 G2/G3 condition-observations over all 113 committed cells, 3 change readability status - 1b BG solar 36-48h G3 (+10.56 inside / +11.81 outside), 2e RO wind_onshore 36-48h G2 (-7.53 / -7.00), 2f CH wind_onshore 24-36h G2 (-7.93 / -7.35). One cell letter moves (1b BG solar 36-48h, N on the registered column against A on ABL-385's) and no pair letter moves, because that pair's other two bands abstain under either denominator and the two wind cells fail G3 readably under either form.",
+    "sensitivity_measured": "Against ABL-385's own denominator, 100 * (reference - challenger) / challenger: of 476 G2/G3 condition-observations over all 119 committed cells, 3 change readability status - 1b BG solar 36-48h G3 (+10.56 inside / +11.81 outside), 2e RO wind_onshore 36-48h G2 (-7.53 / -7.00), 2f CH wind_onshore 24-36h G2 (-7.93 / -7.35). One cell letter moves (1b BG solar 36-48h, N on the registered column against A on ABL-385's) and no pair letter moves, because that pair's other two bands abstain under either denominator and the two wind cells fail G3 readably under either form.",
     "reported_not_assumed": "`own_error_margin_pct` stays on every graded cell."
   },
   "scope_registration": {
@@ -86,9 +86,9 @@
     "stated_where": "the ABL-444 issue comment of 2026-08-14, and section 3 of the registration pack",
     "published_path_pairs_moved": 2,
     "published_path_A_pairs_moved": 0,
-    "amended_path_pairs_moved": 10,
+    "amended_path_pairs_moved": 11,
     "amended_path_A_pairs_moved": 5,
-    "note": "Both paths are enumerated because both stay live. `sign_test` x `fit_window` is what is published today; `sign_test` x `trailing_28d` is what ABL-437 makes live when it merges."
+    "pair_records": 41, "cells": 119, "scope_added_mid_issue": "ABL-443's abl443-offshore-trailing merged to main while this issue was open; its DE wind_offshore is the eleventh mover and its own record flags all six of its margins not readable at one seed.", "note": "Both paths are enumerated because both stay live. `sign_test` x `fit_window` is what is published today; `sign_test` x `trailing_28d` is what ABL-437 makes live when it merges."
   },
   "prediction_registered_before_the_reread": [
     "The floored path cannot raise a grade. N is only ever reached from what would have been A or B, so the promotable set shrinks or holds.",

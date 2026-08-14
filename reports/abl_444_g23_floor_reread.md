@@ -1,6 +1,6 @@
 # ABL-444 — the G2/G3 readability floor, applied to every graded ABL-316 cell
 
-Generated: 2026-08-14T02:51:57Z. Registration: `experiments/ABL444/config.json`, committed before this read existed.
+Generated: 2026-08-14T03:01:52Z. Registration: `experiments/ABL444/config.json`, committed before this read existed.
 
 Readability: **`sign_test` → `floored`**. Floor: `readability_floor_pct` at k=1 — **10.65% solar, 7.51% wind**.
 
@@ -14,14 +14,14 @@ Both registered axes stay live, so every cell is graded four ways: `{fit_window,
 
 `fit_window / sign_test` is what is **published today**. `trailing_28d / sign_test` is ABL-437's amended read.
 
-### 1.1 Levelling `fit_window` — **2 of 39 pair-records move**, 0 of them from `A`
+### 1.1 Levelling `fit_window` — **2 of 41 pair-records move**, 0 of them from `A`
 
 | tranche | pair | before | after | abstains on | hold |
 |---|---|:---:|:---:|---|---|
 | 2d | NL solar | B | **N** | G3 | — |
 | 2e | HU wind_onshore | B | **N** | G2, G3 | — |
 
-### 1.2 Levelling `trailing_28d` — **10 of 39 pair-records move**, 5 of them from `A`
+### 1.2 Levelling `trailing_28d` — **11 of 41 pair-records move**, 5 of them from `A`
 
 | tranche | pair | before | after | abstains on | hold |
 |---|---|:---:|:---:|---|---|
@@ -35,6 +35,7 @@ Both registered axes stay live, so every cell is graded four ways: `{fit_window,
 | 2d | NL solar | B | **N** | G3 | — |
 | 2d | SE solar | B | **N** | G3 | — |
 | 2e | HR wind_onshore | A | **N** | G2, G3 | — |
+| offshore | DE wind_offshore | B | **N** | G2, G3 | — |
 
 ## 2. Every abstaining cell, with its margin in both denominators
 
@@ -93,6 +94,12 @@ The CEO's constraint: the floor decides gradeability, it does not replace the nu
 | trailing_28d | 2f | CH wind_onshore | 36-48h | 720 | yes | G3 | -6.92 | -6.48 | 7.51 | N |
 | trailing_28d | 2f | CH wind_onshore | 48-64h | 510 | yes | G2 | -0.52 | -0.52 | 7.51 | N |
 | trailing_28d | 2f | CH wind_onshore | 48-64h | 510 | yes | G3 | -3.84 | -3.70 | 7.51 | N |
+| trailing_28d | offshore | DE wind_offshore | 24-36h | 720 | yes | G2 | +0.33 | +0.33 | 7.51 | N |
+| trailing_28d | offshore | DE wind_offshore | 24-36h | 720 | yes | G3 | +0.52 | +0.52 | 7.51 | N |
+| trailing_28d | offshore | DE wind_offshore | 36-48h | 720 | yes | G2 | +1.32 | +1.34 | 7.51 | N |
+| trailing_28d | offshore | DE wind_offshore | 36-48h | 720 | yes | G3 | +1.32 | +1.34 | 7.51 | N |
+| trailing_28d | offshore | DE wind_offshore | 48-64h | 510 | yes | G2 | +1.03 | +1.04 | 7.51 | N |
+| trailing_28d | offshore | DE wind_offshore | 48-64h | 510 | yes | G3 | -0.47 | -0.47 | 7.51 | N |
 
 ## 3. Every cell, all four arms
 
@@ -211,6 +218,12 @@ The CEO's constraint: the floor decides gradeability, it does not replace the nu
 | 2f | CH wind_onshore | 24-36h | 720 | A | A | B | **B** |
 | 2f | CH wind_onshore | 36-48h | 720 | A | A | B | **N** |
 | 2f | CH wind_onshore | 48-64h | 510 | A | A | B | **N** |
+| offshore | DE wind_offshore | 24-36h | 720 | A | A | A | **N** |
+| offshore | DE wind_offshore | 36-48h | 720 | A | A | A | **N** |
+| offshore | DE wind_offshore | 48-64h | 510 | A | A | B | **N** |
+| offshore | NL wind_offshore | 24-36h | 720 | A | A | A | **A** |
+| offshore | NL wind_offshore | 36-48h | 720 | A | A | A | **A** |
+| offshore | NL wind_offshore | 48-64h | 510 | A | A | A | **A** |
 
 ## 4. Holds that travel with these letters
 
@@ -234,3 +247,4 @@ Source records, SHA-256: `reports/abl_437_causal_levelling_reread.json` `bc34431
 - `experiments/ABL348/results_abl421_tranche2d.json` `ebbc4c448dbd5614…`
 - `experiments/ABL348/results_abl417_tranche2e.json` `1225905d091b4417…`
 - `experiments/ABL348/results_abl435_tranche2f.json` `70c6669b17cf74a4…`
+- `reports/abl_443_offshore_trailing_reread.json` `9df8df76562607c3…`
