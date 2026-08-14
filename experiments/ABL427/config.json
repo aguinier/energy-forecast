@@ -1,0 +1,102 @@
+{
+  "experiment": "ABL427",
+  "issue": "ABL-427",
+  "title": "Re-read tranche 2c's U(+) pairs IT and HR at k > 1 seeds, on a measured pair-specific CV",
+  "status": "frozen before the first fit of this issue",
+  "parent_issue": "ABL-316",
+  "owner_role": "Forecasting Scientist",
+
+  "why": "ABL-419 graded IT, HR and ES `U(+)`: all three clear ABL-348's registered bar in all three D+2 bands, and all nine margins sit inside ABL-385's readability floor at one seed (10.6482% on solar, with c_B = 0). `U(+)` is a disposition meaning re-read at k > 1 seeds. This is that re-read. Its output is a verdict -- A or a plain U -- not another U(+).",
+
+  "scope": {
+    "slug": "abl427-t2c-reread",
+    "not_a_re_basing_of": "abl316-t2c",
+    "why_a_new_slug": "`SCOPE_OUTPUTS['abl316-t2c']` is published evidence and ABL-404 is the standing lesson about re-basing a dispositioned scope. This read writes to its own paths, registers no row in the solar harness tables, and leaves every ABL-419 artifact byte-unchanged.",
+    "countries": ["IT", "HR"],
+    "excluded": {
+      "ES": "Out of scope by CEO direction on ABL-427, not merely optional. ES's margins (+2.5 / +2.3 / +1.0% skill vs D-7) need k = 18+ to clear the nominal floor, and ES sits behind the ABL-411 / ABL-425 overnight-CSP serving hold regardless, so no seed spend on ES can change a disposition.",
+      "GR": "Graded C by ABL-419 -- a readable loss. Not a U(+) pair.",
+      "PT": "Graded C by ABL-419 -- a readable loss. Not a U(+) pair."
+    },
+    "bands": ["24-36h", "36-48h", "48-64h"],
+    "cells": 6
+  },
+
+  "inherited_unchanged_from_ABL348_via_ABL419": {
+    "note": "Named, not re-derived. `voids_this_registration` in ABL-348 covers all of these; changing any of them would void the bar this read is taken against.",
+    "fit_window": {"start": "2026-01-14", "end_exclusive": "2026-07-11"},
+    "gate_window": {"start": "2026-07-11", "end_exclusive": "2026-08-10"},
+    "metric": "WAPE",
+    "baseline": "literal seasonal-naive D-7, recomputed on the same table",
+    "source_table": "energy_generation",
+    "gate_basis": ["challenger", "seasonal_naive"],
+    "fit_rules": {"exclude_impossible_night": false},
+    "features": "the 27 columns recorded in `experiments/ABL348/results_abl419_tranche2c.json` -> `meta.feature_columns` (legacy25+geometry), pinned from that record and asserted equal to the live `FEATURE_COLUMNS` at run time",
+    "algorithm": "catboost",
+    "causal_levelling": "FIT_WINDOW -- `CAUSAL_LEVELLING['abl316-t2c']`, not ABL-437's trailing-28d amendment",
+    "g23_readability": "SIGN_TEST -- `G23_READABILITY['abl316-t2c']`, not ABL-444's floored amendment",
+    "minimum_n": {"24-36h": 684, "36-48h": 684, "48-64h": 456}
+  },
+
+  "seeds": {
+    "list": [42, 1337, 2718, 7, 13, 101, 271, 314, 577, 863, 1024, 1729],
+    "k": 12,
+    "source": "`experiments/ABL385/config.json` -> `scope.seeds`, verbatim and in registered order. Not a new list invented for this issue: ABL-385 committed these twelve integers long before ABL-419 was fitted, which is what makes this read one the effect could not have been selected on.",
+    "why_the_order_matters": "The first element is 42, the seed `config.CATBOOST_PARAMS` pins and the one every ABL-419 cell was fitted at. Reading nested prefixes of this list therefore makes the k = 1 member exactly the published cell, and every k from 1 to 12 an honest extension of it rather than a different experiment.",
+    "why_12_and_not_4": "The CEO's k = 4 clears the nominal floor for IT's and HR's widest bands but not IT's tightest (+3.57% at 36-48h), and a CV from 4 draws carries a ~41% relative standard error -- an error bar too wide to move a readability call. ABL-385 chose 12 for a ~21% relative standard error and that is the design point reused here."
+  },
+
+  "what_is_measured": {
+    "c_A": "The per-fit CV of the challenger's gate WAPE across the 12 seeds, per (country, band). This is the c_A in delta_min. Reported with the chi-square 95% interval `cv_interval` gives at 11 degrees of freedom.",
+    "c_A_daylight_mae": "The same spread on daylight MAE, the metric ABL-385's fleet percentile is itself measured in. Reported so the pair-specific value and the fleet value are compared on one metric rather than merely placed side by side.",
+    "c_B": "Zero. Every reference on the ABL-418 ladder -- D-7, a flat line, an hour-of-day climatology -- is deterministic arithmetic on the actuals and does not move when the challenger is refitted. The two-fitted-arm margin is a factor of sqrt(2) too wide here.",
+    "pooled": "Per country, the 3 band CVs pooled as a root mean square and as a maximum, following ABL-385's pooling. Reported; not what decides a letter."
+  },
+
+  "decision_rule": {
+    "pre_specified": true,
+    "statistic": "The k-seed read of a cell is the arithmetic mean of the k per-seed WAPEs, and skill vs D-7 is 100 * (1 - mean_challenger_wape / d7_wape). D-7 is deterministic, so it is one number and not a mean.",
+    "which_denominator": "`skill_pct`, 100 * (1 - challenger / reference) -- the column ABL-418 registered G1 on. `margin_pct_of_own_error` is reported beside it as the ABL-406 sensitivity, because these cells sit near the floor and that is exactly where the two forms can disagree.",
+    "floor_that_decides_the_letter": "delta_min(k) = 1.96 * c_A_upper95 / sqrt(k), where `c_A_upper95` is the upper end of the 95% chi-square interval of the measured per-cell CV. The upper bound and not the point estimate: a CV from 12 draws is uncertain by about -29%/+70%, and deciding a letter on a point estimate would repeat one level up the mistake ABL-385 was filed on.",
+    "why_pair_specific_at_all": "ABL-385 registers its margin table 'per (pair, algorithm) where a pair-specific value exists', so preferring a measured pair CV is inside that registration rather than a re-opening of it. ABL-402 measured the fleet p90 to be roughly 2x too wide on BG and CH; if that holds here it moves the floor, and the readability call moves with the floor.",
+    "reported_beside_it": [
+      "the floor from the measured CV point estimate",
+      "ABL-385's fleet-p90 floor, `readability_floor_pct('solar', k)`, which is what the unamended ladder would use"
+    ],
+    "if_they_disagree": "Both letters are reported and the disagreement is itself the finding. The pair-specific upper-bound floor is the one this registration calls the verdict on.",
+    "letters_available": {
+      "A": "G1 holds at k -- skill vs D-7 exceeds the floor -- in every band, and G2, G3, G4 hold in every band. Promotion-eligible, subject to any named data hold.",
+      "U": "the G1 margin still sits inside the floor at k = 12. A plain U, not U(+): a re-read has been run and it did not resolve.",
+      "B": "G1 holds readably and one or more of G2/G3/G4 fails.",
+      "C": "G1 fails readably -- the challenger loses to D-7 by more than the floor."
+    }
+  },
+
+  "reproduction_controls": {
+    "deterministic_references": "Every comparator except the challenger is deterministic given the actuals. Their WAPEs are recomputed here and compared cell-by-cell against `results_abl419_tranche2c.json`. Any difference is a change in the actuals, not a seed effect, and is reported as such.",
+    "why_this_is_not_optional": "The replica has grown since ABL-419 was generated (2026-08-13 23:03 UTC), and the gate window 2026-07-11 -> 2026-08-10 lies inside `energy_generation`'s revision horizon. A revised actual would move the level of this read without touching its spread. The deterministic-reference check separates the two before any verdict is taken.",
+    "seed_42": "Fitted as the first member of the seed list. Its cells are compared against ABL-419's published challenger WAPEs. It is *not* excluded from the mean: unlike ABL-402, which needed a CV disjoint from the arm that produced a headline, this issue's k-seed mean is supposed to contain the published draw."
+  },
+
+  "contamination": {
+    "ABL-67": "net_position only. Not read here.",
+    "ABL-109": "energy_load only. Not read here.",
+    "ABL-111": "energy_load only. Not read here.",
+    "ABL-71": "known wrong-write modes are load and net position. A provenance caveat on this window, not proof that solar ingest is pristine.",
+    "ABL-188": "found no >=24-hour bit-identical solar run in `energy_generation` for any tranche 2c country across 2025-12-31 -> 2026-08-10.",
+    "revision_horizon": "Open and measured by this run rather than assumed -- see `reproduction_controls.deterministic_references`."
+  },
+
+  "boundaries": {
+    "no_promotion": "This read recommends nothing to the serving registry. Promotion is a CEO-to-Board decision and this is evidence for it.",
+    "no_replica_write": "The replica is opened `mode=ro` through the module's own connection path.",
+    "no_artifact": "No model artifact is saved and no row is written to `forecasts`.",
+    "no_registered_scope_touched": "The six solar-harness registration tables are not edited by this issue.",
+    "no_ingest_or_dashboard_change": true
+  },
+
+  "reproduce": {
+    "interpreter": "C:\\Code\\able\\energy-forecast\\.venv\\Scripts\\python.exe (Python 3.14.3)",
+    "command": ".venv\\Scripts\\python.exe scripts/abl427_tranche2c_seed_reread.py --replica-db C:\\Code\\able\\data\\energy_dashboard.db"
+  }
+}
