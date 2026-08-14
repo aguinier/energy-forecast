@@ -113,6 +113,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from catboost import CatBoostRegressor
+from scipy import stats
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config  # noqa: E402
@@ -365,6 +366,53 @@ def _floor_from_cv(cv_fraction: float, k: int) -> float:
     return 100.0 * delta_min(cv_fraction, 0.0, k)
 
 
+def _direct_skill_interval(per_seed_wape: list[float], d7_wape: float) -> dict:
+    """The exact small-sample interval on mean skill, from the k draws themselves.
+
+    **Reported, never gating.** `experiments/ABL427/config.json` registers
+    `delta_min` with an upper-bounded CV as the rule that decides the letter, and
+    that rule was frozen before the first fit. This is a sensitivity beside it,
+    not a substitute chosen after seeing the numbers.
+
+    It is nonetheless the *better statistic for this particular question*, and
+    the reason is worth stating because it is a candidate amendment rather than
+    an aside. `delta_min` is a delta-method approximation that exists in ABL-385
+    to give a **k = 1** read a margin at all: a single fit carries no internal
+    estimate of its own spread, so the spread has to be imported from a fleet
+    percentile. At k > 1 that import is unnecessary -- skill vs D-7 is
+    `100 * (1 - wape_j / d7)` for each of the k fits, D-7 is one deterministic
+    number, and those are k honest draws of the quantity being read. Student's t
+    on them is exact under normality and, crucially, its degrees of freedom are
+    what already accounts for the sd being estimated. Pairing a chi-square upper
+    bound on the CV *with* a z critical value counts that same uncertainty
+    twice.
+
+    Both are reported so the CEO can see the size of the gap between them rather
+    than take a letter on trust.
+    """
+    d7 = float(d7_wape)
+    skill = np.array([100.0 * (1.0 - w / d7) for w in per_seed_wape], dtype=float)
+    k = len(skill)
+    if k < 2:
+        return {"n_seeds": k, "mean_skill_pct": float(skill.mean()), "insufficient": True}
+    sd = float(skill.std(ddof=1))
+    se = sd / math.sqrt(k)
+    half = float(stats.t.ppf(0.975, k - 1)) * se
+    mean = float(skill.mean())
+    return {
+        "n_seeds": k, "mean_skill_pct": mean, "sd_skill_pp": sd, "se_skill_pp": se,
+        "t_crit_95": float(stats.t.ppf(0.975, k - 1)), "half_width_pp": half,
+        "ci95_pct": [mean - half, mean + half],
+        "beats_d7_readably": bool(mean - half > 0.0),
+        # How often a *single-seed* read of this cell would have lost to D-7
+        # outright. The operational number behind the letter: it is what shipping
+        # one fit rather than an average actually risks.
+        "seeds_losing_to_d7": int(sum(1 for w in per_seed_wape if w > d7)),
+        "worst_seed_skill_pct": float(skill.min()),
+        "best_seed_skill_pct": float(skill.max()),
+    }
+
+
 def _equivalent_k(floor_pct: float) -> float:
     """The `k` at which the ladder's fleet-p90 floor equals `floor_pct`.
 
@@ -374,6 +422,27 @@ def _equivalent_k(floor_pct: float) -> float:
     asserted by the caller, not trusted.
     """
     return (Z_95 * STREAM_FLEET_CV_P90["solar"] * 100.0 / floor_pct) ** 2
+
+
+def _disposition(grade_label: str | None) -> str:
+    """The ladder's letter, collapsed to what this issue is allowed to return.
+
+    `grade_cell` marks a `U` cell `U(+)` when G2, G3 and G4 all clear readably,
+    and ABL-418 defines that `(+)` as a *disposition*: **re-read at k > 1
+    seeds**. The ladder is a pure function of one cell's scores and cannot know
+    whether that re-read has already happened -- so run on a k = 12 mean it
+    still emits `U(+)`, which would read as an instruction to do the thing that
+    was just done.
+
+    This issue *is* the re-read. Its output is therefore `A` or a plain `U`, and
+    a `U` here is a stronger statement than ABL-419's: not "unresolved at one
+    seed" but "still unresolved at twelve". The `(+)` is dropped for that reason
+    and not because the G2-G4 conditions stopped holding -- they do hold, and the
+    record keeps them.
+    """
+    if grade_label is None:
+        return "Not graded"
+    return "U" if grade_label.startswith("U") else grade_label
 
 
 def _seeds_needed(cv_fraction: float, gap_relative: float) -> int | None:
@@ -587,7 +656,16 @@ def _assemble(countries: dict, seeds: tuple, k: int, feature_columns: tuple,
                               "fleet_p90": floor_fleet},
                 "seeds_needed_at_measured_upper95": _seeds_needed(
                     cv_upper, skill_pct(challenger, d7)),
+                "direct_skill_interval": _direct_skill_interval(per_seed_wape, d7),
+                # Where the gate's pinned seed sits among the k, by WAPE, lowest
+                # first. A published headline drawn from rank 1 of 12 and one
+                # drawn from rank 7 of 12 are different claims about that
+                # headline, and the record should not make a reader recompute it.
+                "seed_42_rank_by_wape": (
+                    sorted(per_seed_wape).index(per_seed_wape[0]) + 1
+                    if seeds[0] == CONTROL_SEED else None),
                 "grades": graded,
+                "disposition": _disposition(graded["measured_upper95"].get("grade")),
                 "abl419_published": {
                     "challenger_wape_pct": published[(country, band)]["scores"]
                                            ["challenger"]["wape_pct"],
@@ -600,15 +678,30 @@ def _assemble(countries: dict, seeds: tuple, k: int, feature_columns: tuple,
             for name, scored in mean_scores.items():
                 if name == "challenger":
                     continue
+                in_record = name in published[(country, band)]["scores"]
                 was = (published[(country, band)]["scores"].get(name) or {}).get("wape_pct")
                 now = scored.get("wape_pct")
+                # Three outcomes, not two. `constant_causal_28d` and
+                # `climatology_causal_28d` are ABL-437 columns that **did not
+                # exist** when ABL-419 was written, so they are absent from its
+                # record. Calling that "moved" would manufacture a data-revision
+                # scare out of a schema addition -- which is precisely the
+                # confusion this check exists to prevent.
+                if not in_record:
+                    status = "absent_from_abl419_record"
+                elif was is None and now is None:
+                    status = "not_measured_in_either"
+                elif was is None or now is None:
+                    status = "measurability_changed"
+                elif abs(now - was) <= REFERENCE_TOLERANCE_PP:
+                    status = "identical"
+                else:
+                    status = "MOVED"
                 reproduction.append({
                     "country": country, "horizon_band": band, "comparator": name,
                     "abl419_wape_pct": was, "recomputed_wape_pct": now,
                     "delta_pp": (None if was is None or now is None else now - was),
-                    "identical": (was is None and now is None) or (
-                        was is not None and now is not None
-                        and abs(now - was) <= REFERENCE_TOLERANCE_PP)})
+                    "status": status, "identical": status == "identical"})
 
     seed42 = [{"country": c["country"], "horizon_band": c["horizon_band"],
                "abl419_wape_pct": c["abl419_published"]["challenger_wape_pct"],
@@ -631,6 +724,7 @@ def _assemble(countries: dict, seeds: tuple, k: int, feature_columns: tuple,
             worst = pair_grade(bands)
             pairs[country][label] = {
                 "grade": worst.grade, "label": worst.label, "detail": worst.detail,
+                "disposition": _disposition(worst.grade),
                 "failed": [{"condition": name, "reason": reason}
                            for name, reason in worst.failed]}
 
@@ -728,19 +822,59 @@ def _markdown(record: dict) -> str:
                    f"**{letters['measured_upper95']['detail']}**; "
                    f"measured point: {letters['measured_point']['label']}; "
                    f"fleet p90: {letters['fleet_p90']['label']}")
+    out += ["", "### Disposition — what this re-read returns", "",
+            "ABL-418's `(+)` means *re-read at k > 1 seeds*. This issue **is** that "
+            "re-read, so its output is `A` or a plain `U`; the ladder cannot know the "
+            "re-read has happened and still emits `U(+)` on a k = 12 mean. A `U` below "
+            "is the stronger statement — not unresolved at one seed, but still "
+            "unresolved at twelve.", "",
+            "| pair | ABL-419 (k=1) | ABL-427 disposition (k=12) |", "|---|:---:|:---:|"]
+    for country, letters in record["pair_grades"].items():
+        out.append(f"| **{country}** | U(+) | "
+                   f"**{letters['measured_upper95']['disposition']}** |")
+
+    out += ["", "## The direct empirical test (reported, never gating)", "",
+            "Skill vs D-7 is one number per seed, so the k draws support an exact "
+            "Student-t interval with no delta-method approximation at all. "
+            "`delta_min` exists to give a **k = 1** read an imported margin; at k > 1 "
+            "the draws are in hand. Registered rule above; this is the sensitivity.", "",
+            "| pair | band | mean skill | sd (pp) | 95% t-CI on mean skill | excludes 0 | "
+            "seeds losing to D-7 | worst seed | seed 42 rank |",
+            "|---|---|---:|---:|---|:---:|---:|---:|---:|"]
+    for c in record["cells"]:
+        t = c["direct_skill_interval"]
+        out.append(
+            f"| {c['country']} | {c['horizon_band']} | {t['mean_skill_pct']:+.2f}% | "
+            f"{t['sd_skill_pp']:.2f} | "
+            f"[{t['ci95_pct'][0]:+.2f}, {t['ci95_pct'][1]:+.2f}]% | "
+            f"{'**yes**' if t['beats_d7_readably'] else 'no'} | "
+            f"{t['seeds_losing_to_d7']}/{t['n_seeds']} | "
+            f"{t['worst_seed_skill_pct']:+.2f}% | {c['seed_42_rank_by_wape']}/{t['n_seeds']} |")
 
     out += ["", "## Reproduction controls", "",
             "### Deterministic references vs ABL-419's committed record", ""]
-    moved = [r for r in record["deterministic_reference_reproduction"] if not r["identical"]]
-    out.append(f"{len(record['deterministic_reference_reproduction'])} comparator cells "
-               f"compared; **{len(moved)} moved**.")
+    reproduction = record["deterministic_reference_reproduction"]
+    counts: dict = {}
+    for r in reproduction:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    out.append(f"{len(reproduction)} comparator cells compared: "
+               + ", ".join(f"**{v} {k}**" for k, v in sorted(counts.items())) + ".")
+    out += ["", "`absent_from_abl419_record` is ABL-437's trailing-28d pair, which did not "
+                "exist when ABL-419 was written. It is a schema addition, not a moved "
+                "actual.", ""]
+    moved = [r for r in reproduction if r["status"] in ("MOVED", "measurability_changed")]
     if moved:
-        out += ["", "| pair | band | comparator | ABL-419 | now | Δ (pp) |",
-                "|---|---|---|---:|---:|---:|"]
+        out += ["| pair | band | comparator | ABL-419 | now | Δ (pp) | status |",
+                "|---|---|---|---:|---:|---:|---|"]
         for r in moved:
+            delta = "n/a" if r["delta_pp"] is None else f"{r['delta_pp']:+.6f}"
             out.append(f"| {r['country']} | {r['horizon_band']} | {r['comparator']} | "
                        f"{r['abl419_wape_pct']} | {r['recomputed_wape_pct']} | "
-                       f"{r['delta_pp']:+.6f} |")
+                       f"{delta} | {r['status']} |")
+    else:
+        out.append("**No deterministic reference moved.** The gate-window actuals for "
+                   "IT and HR solar in `energy_generation` are unchanged since ABL-419, "
+                   "so nothing in this read is a revision effect.")
 
     out += ["", "### Seed 42 against ABL-419's published challenger", "",
             "| pair | band | ABL-419 | seed 42 here | Δ (pp) |", "|---|---|---:|---:|---:|"]
