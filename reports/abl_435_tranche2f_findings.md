@@ -260,6 +260,21 @@ excluded by `.gitignore:56`, confirmed with `git check-ignore -v`.
 **Registration precedes the fit, checkable in git.** The scope commit `ebd6aa6` is timestamped
 **2026-08-14T00:24:04Z**; the first fit started **00:24:10Z** and the run ended **00:25:57Z**.
 
+**One open PR touches a comparator this pack quotes, and it was checked rather than assumed.**
+PR #65 (ABL-431) wires a plausibility guard into `scorecard`'s TSO comparator — the same read
+path that produces the TSO column in §2 and §6. Measured directly against the replica on
+2026-08-14 under the guard's own rule
+(`value > 3.0 × max(p99.5(actuals), p99.5(day-ahead forecasts))`):
+
+| pair | reference scale | threshold | gate-window max | rows the guard would null (gate window / whole series) |
+|---|---:|---:|---:|---:|
+| BG `wind_onshore` | 632.00 MW | 1,896.00 MW | 522.00 MW (**0.83×** reference) | **0 / 0** |
+| CH `wind_onshore` | 69.11 MW | 207.34 MW | 33.25 MW (**0.48×** reference) | **0 / 0** |
+
+So ABL-431 cannot move a number in this pack, in the gate window or anywhere in either series.
+The 0.52pp CH TSO movement in §2 is a genuine upstream revision, not a guard artifact — the
+guard is not merged, and would null nothing here if it were.
+
 **Scope registration tables, counted at head rather than trusted.** The wind harness carries
 **three** scope-keyed tables — `SCOPES`, `GATE_BASIS`, `SCOPE_OUTPUTS` — and
 `check_registration_tables(SCOPES=…, GATE_BASIS=…, SCOPE_OUTPUTS=…)` covers **all three**, so
