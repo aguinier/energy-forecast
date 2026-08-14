@@ -277,11 +277,32 @@ runs 1/5 to 4/5; a 4/5 one-sided sign test is p = 0.1875 and nothing reaches 5/5
 
 Two caveats a reader should carry:
 
-- **This is the right size of change to expect.** The rule removes 21–26 hourly
-  observations from fit windows of ~5,300 hours. A backtest that showed a large
-  effect there would be evidence of something *else* moving, not of this rule
-  working. The case for landing it is the correctness argument in §2 and the
-  worked examples in §4, not a WAPE win.
+- **This is the right size of change to expect — but the mechanism is a level
+  correction, not a deletion.** *(Corrected 2026-08-14 post-merge, measured on
+  `origin/main` at 7984229b. This bullet originally read "removes 21–26 hourly
+  observations from fit windows of ~5,300 hours", which mislabelled a sub-hourly
+  row count as an hourly one.)* The 21–26 figure counts **disproved sub-hourly
+  rows**. What reaches the model is the ABL-332 hourly mean, and the guard runs
+  *before* that aggregation, so an hour is deleted only when **every** sub-hourly
+  row in it was disproved; otherwise the hour survives with the false zero
+  removed from its mean. Measured through the real training read path
+  (`load_renewable_type_data`) over this same fit window:
+
+  | pair | sub-hourly rows disproved | hourly obs **deleted** | hourly means **raised** | mean shift | max shift |
+  |---|---|---|---|---|---|
+  | GR `wind_onshore` | 24 | 1 | 16 | +308.1 MW | +739.2 MW |
+  | EE `wind_onshore` | 25 | 5 | 3 | +103.2 MW | +185.8 MW |
+  | ES `wind_onshore` | 6 | 0 | 5 | +3251.3 MW | +5379.0 MW |
+  | NL `wind_onshore` | 1 | 0 | 1 | +119.7 MW | +119.7 MW |
+
+  All 25 shifts are **upward and none downward**, the only physically admissible
+  direction for removing a false zero from a mean. A backtest showing a large
+  effect would still be evidence of something *else* moving, and the case for
+  landing it remains the correctness argument in §2 and the worked examples in
+  §4, not a WAPE win. **The part this changes is what the §4 re-read should
+  expect:** a re-read of those 7 scopes will find fit-window causal references
+  levelled over *raised* hours, not over missing ones — on ES the individual
+  hourly correction reaches +5.4 GW.
 - **IT `wind_offshore` is not a usable model in either arm.** 163–179% WAPE is
   worse than forecasting a flat zero, on both sides of the comparison. It is
   included here because it is the unscoped control and because its arms are

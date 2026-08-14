@@ -419,7 +419,12 @@ Four things about it are load-bearing.
   `constant_causal`/`climatology_causal` level on the fit window (or, under
   ABL-437, on a trailing 28 d that reaches into it). Per ABL-401 a re-read of any
   of those scopes against the new training set is a **new pre-registration**, not
-  a re-read of a published path. None has been run.
+  a re-read of a published path. None has been run. **Expect raised hours, not
+  missing ones:** the guard runs on sub-hourly rows and ABL-332 averages after
+  it, so an hour disappears only when *every* row in it was disproved — measured
+  post-merge, 6 hourly observations deleted against 25 whose mean rose (all 25
+  upward, up to +5.4 GW on ES `wind_onshore`). The 170 is a sub-hourly count.
+  See §5 of the report for the per-pair split.
 
 **Neither generation table is hourly, and most countries are both** (ABL-332).
 `energy_generation` and `energy_renewable` store whatever resolution ENTSO-E
