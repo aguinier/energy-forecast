@@ -502,8 +502,9 @@ def causal_levelling_for(scope: str) -> str:
 # test or against the readability floor G1 already carries.  The wind harness
 # carries the twin of this table and the argument is stated once, over its copy
 # -- including why this table defaults *toward* the amendment where
-# `SCOPE_FEATURES` and `SCOPE_NOT_EVALUABLE` do not, and why it is deliberately
-# absent from `check_registration_tables` while three PRs are in flight.
+# `SCOPE_FEATURES` and `SCOPE_NOT_EVALUABLE` do not.  Why it is absent from
+# `check_registration_tables` is argued beside its row in
+# `UNCHECKED_REGISTRATION_TABLES` below.
 #
 # The short form: every scope below is published and its ABL-418 letters were
 # decided by a sign test, so each is pinned to `sign_test` and nothing already
@@ -996,6 +997,26 @@ UNCHECKED_REGISTRATION_TABLES = {
     # Per-published-scope enforcement is handled by
     # `tests/test_gate_scope_registration.py`'s stale-declaration check.
     "CAUSAL_LEVELLING": "defaults toward ABL-437's amendment; pins checked per published scope",
+    # ABL-444: `CAUSAL_LEVELLING`'s structural twin, and exempt for the same
+    # structural reason -- this check requires every scope in the union to appear
+    # in *every* table it is given, so requiring this one would force each scope
+    # to be pinned and delete the default-toward-amendment behaviour it exists to
+    # provide.  It covers 6/6 scopes today, so it would pass the check on the
+    # commit that added it and only bind the *next* tranche -- which is the case
+    # against adding it, not for: the cheapest row for that author to write is a
+    # copy of the neighbouring `SIGN_TEST`, and that is the unsafe direction
+    # chosen by copy-paste.
+    #
+    # The hazard this exemption has to answer is "a scope falls through and
+    # mis-grades a published pair".  It cannot, on two independent counts. The
+    # fall-through value is `FLOORED`, which *abstains* -- an `N` cell never
+    # awards a letter, so no fall-through can promote (ABL-421's rule that an
+    # unmeasured condition is not a satisfied one).  And a published scope cannot
+    # fall through at all: `test_every_published_scope_pins_a_sign_test` derives
+    # the published set from `SCOPE_OUTPUTS` **and git** and asserts the *value*
+    # is `SIGN_TEST`, which is strictly stronger than the presence check this
+    # call would give.
+    "G23_READABILITY": "defaults toward ABL-444's amendment (abstain); published pins asserted by value",
 }
 
 # `tests/test_abl421_not_evaluable.py` holds the line for the one scope that

@@ -428,13 +428,16 @@ def causal_levelling_for(scope: str) -> str:
 # `sign_test` its committed letters were decided under -- no refit, no re-read,
 # nothing overwritten (the CEO's binding constraint on ABL-401's ruling).
 #
-# It is deliberately **not** in the `check_registration_tables` call below.
-# CLAUDE.md's rule for that is that adding a table raises on `import` for every
-# branch already in flight, and ABL-429 waited for both repo queues to reach zero
-# before doing it; three PRs are open as this lands. What that costs is bounded
-# here in a way it is not for `SCOPE_NOT_EVALUABLE`: a scope that forgets a row
-# gets the *conservative* path, not a wrong verdict. Promoting it into the import
-# check when the queue is next empty is the follow-up.
+# It is deliberately **not** in the `check_registration_tables` call below, and
+# is declared in `UNCHECKED_REGISTRATION_TABLES` with that reason -- the choice
+# ABL-429 made executable.  The reason is *structural*, not a wait for a quiet
+# queue: that check requires every scope in the union to appear in every table it
+# is given, so requiring this one would force each scope to be pinned and delete
+# the default-toward-amendment behaviour this comment exists to describe.  It is
+# the same exemption `CAUSAL_LEVELLING` carries, on the same grounds
+# (CLAUDE.md).  What the absence costs is bounded in a way it is not for
+# `SCOPE_NOT_EVALUABLE`, which defaults toward scoring: a scope that forgets a
+# row here gets the *conservative* path -- an abstention, never a letter.
 G23_READABILITY = {
     "abl195": SIGN_TEST,
     "abl322-pilot": SIGN_TEST,
@@ -561,6 +564,13 @@ UNCHECKED_REGISTRATION_TABLES = {
     # Per-published-scope enforcement is handled by
     # `tests/test_gate_scope_registration.py`'s stale-declaration check.
     "CAUSAL_LEVELLING": "defaults toward ABL-437's amendment; pins checked per published scope",
+    # ABL-444: `CAUSAL_LEVELLING`'s structural twin.  The argument for the
+    # exemption is stated once, over the solar copy of this table; the short form
+    # is that requiring it would force every scope to be pinned and delete the
+    # default-toward-amendment behaviour, that the fall-through value abstains
+    # rather than awards, and that published scopes are pinned by value in
+    # `test_every_published_scope_pins_a_sign_test` rather than by presence here.
+    "G23_READABILITY": "defaults toward ABL-444's amendment (abstain); published pins asserted by value",
 }
 check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
 check_scope_outputs(SCOPE_OUTPUTS)

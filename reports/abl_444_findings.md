@@ -162,11 +162,13 @@ qualified by readability. It is 1b BG solar that ABL-438 published as `A × 2`.
 
 1. **ABL-434** (backlog) — the coverage guard. §3 is a compounding finding for it,
    not a duplicate: the two guards catch different halves of the same two cells.
-2. **Promote `G23_READABILITY` into `check_registration_tables`** in both
-   harnesses when the repo queue is next at zero. It is out today because adding
-   a required table raises on `import` for every branch in flight and three PRs
-   are open; the cost of the absence is bounded because the default is the
-   conservative path.
+2. **None on the registration mechanism.** An earlier draft of this section named
+   "promote `G23_READABILITY` into `check_registration_tables`" as a follow-up.
+   That was wrong and is withdrawn: the exemption is structural, not a wait for a
+   quiet queue. Requiring the table would force every scope to be pinned and
+   delete the default-toward-abstention this issue registers, exactly as it would
+   for `CAUSAL_LEVELLING`. It is declared in `UNCHECKED_REGISTRATION_TABLES` with
+   that reason, and the registration pack §5.1 argues it.
 3. **The re-read is levelling-agnostic and both arms are reported.** ABL-437 and
    ABL-443 both merged to main during this issue and the offshore scope was
    folded in; a further scope landing after this read needs the same treatment,

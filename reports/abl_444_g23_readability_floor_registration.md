@@ -254,22 +254,49 @@ two months.
 
 ### 5.1 Why it is not in `check_registration_tables`
 
-Deliberate, and revisit-able. CLAUDE.md's rule is that adding a required table
-raises on `import` for **every branch already in flight**, which is why ABL-429
-waited for both repo queues to reach zero; three PRs are open as this lands.
+Deliberate and **structural**, not a wait for a quiet queue. It is declared in
+`UNCHECKED_REGISTRATION_TABLES` in both harnesses with that reason, which is the
+choice ABL-429 made executable — a per-scope table must either join the call or
+say why it cannot, and this one says.
 
-The cost of the absence is bounded here in a way it is not for
-`SCOPE_NOT_EVALUABLE`: a scope that forgets a row gets the **conservative** path,
-not a wrong verdict. The four other scope-keyed call sites that grade a
-*published* record — `abl418_retro_grade.py`, `abl437_causal_levelling_reread.py`,
+The reason it cannot join: that check requires every scope in the union to appear
+in **every** table it is given. Requiring `G23_READABILITY` would therefore force
+each scope to carry an explicit row and delete the default-toward-abstention §5
+registers. This is the same exemption `CAUSAL_LEVELLING` carries, on grounds
+CLAUDE.md already states for it; the two tables are structural twins.
+
+The table covers **6/6 scopes in both harnesses today**, so joining the call would
+pass on the commit that did it and bind only the *next* tranche. That is the
+argument against, not for: the cheapest row for that author to write is a copy of
+the neighbouring `SIGN_TEST`, which is the unsafe direction arrived at by
+copy-paste.
+
+The absence is bounded here in a way it is not for `SCOPE_NOT_EVALUABLE`, which
+defaults *toward scoring*. Two independent guards, both stronger than the
+presence check the call would add:
+
+- **A fall-through cannot promote.** The default is `FLOORED`, which abstains. An
+  `N` cell never awards a letter, so no scope can inherit a verdict it did not
+  earn — only an abstention it can resolve by re-reading at k>1.
+- **A published scope cannot fall through at all.**
+  `test_every_published_scope_pins_a_sign_test` derives the published set from
+  `SCOPE_OUTPUTS` **and git** and asserts the *value* is `SIGN_TEST`.
+  `check_registration_tables` enforces presence and never reads a value, so for
+  the published pairs — the ones a fall-through would mis-grade — the test is the
+  stronger guard, not the weaker one.
+
+`test_the_table_stays_declared_unchecked_rather_than_joining_the_call` pins this
+decision in both harnesses, because ABL-429's check admits either answer and the
+two failure modes are asymmetric: dropping the declaration already fails, while
+moving the table into the call would pass green today and bind the next tranche
+silently.
+
+The four other scope-keyed call sites that grade a *published* record —
+`abl418_retro_grade.py`, `abl437_causal_levelling_reread.py`,
 `abl419_tranche2c_read.py`, `abl421_tranche2d_read.py` — name `SIGN_TEST`
 explicitly rather than defaulting, including the two whose records already carry
 a recorded grade and where the default is unreachable today. A default that only
 *happens* to be unreachable is the ABL-404 shape.
-
-**Follow-up, named:** promote `G23_READABILITY` into
-`check_registration_tables(...)` in both harnesses when the repo queue is next at
-zero.
 
 ## 6. Caveats that travel with this
 

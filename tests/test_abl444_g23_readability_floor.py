@@ -14,7 +14,10 @@ Five things need holding, and they fail in different directions.
    amendment would be a way of promoting on noise rather than refusing to.
 4. **Every published scope is pinned to ``sign_test``.** Derived from
    ``SCOPE_OUTPUTS`` + git rather than typed here, on the ABL-404 precedent, and
-   asserted on the *value* rather than on the row's presence.
+   asserted on the *value* rather than on the row's presence. That pin is also
+   why the table stays out of ``check_registration_tables`` and declares itself
+   in ``UNCHECKED_REGISTRATION_TABLES`` instead (ABL-429): presence is the weaker
+   of the two guards, and requiring it would delete the default this registers.
 5. **Every call site that grades a published record names the form.** The
    default is the amendment, so a site that forgets it re-decides a committed
    letter silently -- ABL-404 again, one directory over.
@@ -412,6 +415,33 @@ def test_every_published_scope_pins_a_sign_test(stream):
     for scope in published:
         assert harness.G23_READABILITY[scope] == SIGN_TEST, (
             f"{scope} is published; its letters were decided by a sign test on G2/G3")
+
+
+@pytest.mark.parametrize("stream", sorted(HARNESSES))
+def test_the_table_stays_declared_unchecked_rather_than_joining_the_call(stream):
+    """ABL-429 makes the choice executable but admits either answer; this pins
+    which one ABL-444 registered, because the two failure modes are asymmetric.
+
+    Dropping the declaration already fails
+    `test_every_per_scope_table_is_checked_or_declares_why_not`. Moving the table
+    *into* `check_registration_tables` does not: it covers 6/6 scopes today, so it
+    would pass on the commit that did it and bind only the next tranche -- forcing
+    that author to type a row whose cheapest value is a copy of the neighbouring
+    `SIGN_TEST`, which is the direction this whole issue exists to stop being
+    silent. The exemption is structural, so flipping it should require re-arguing
+    it here rather than a green suite.
+    """
+    source = (ROOT / "scripts" / f"evaluate_{stream}_retrain.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    declared = next(node.value for node in tree.body
+                    if isinstance(node, ast.Assign)
+                    and getattr(node.targets[0], "id", "") == "UNCHECKED_REGISTRATION_TABLES")
+    reasons = ast.literal_eval(declared)
+    assert "G23_READABILITY" in reasons, (
+        "G23_READABILITY must stay declared in UNCHECKED_REGISTRATION_TABLES; "
+        "requiring it in check_registration_tables would force every scope to be "
+        "pinned and delete the default-toward-abstention this issue registered.")
+    assert reasons["G23_READABILITY"].strip(), "the declaration must carry its reason"
 
 
 @pytest.mark.parametrize("stream", sorted(HARNESSES))
