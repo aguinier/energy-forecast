@@ -50,6 +50,9 @@ and the grades built from it:
             below it fails readably, and at least one of G2/G3 sits
             inside the floor. Not demonstrated **in either direction**;
             not promotion-eligible.
+``X``       (ABL-434) the cell scored fewer rows than ABL-348's
+            registered minimum n, so nothing on the ladder below it is
+            decidable. Not promotion-eligible.
 ==========  ==========================================================
 
 **``U`` takes precedence over ``C``.** Both are "G1 does not hold", but they are
@@ -162,7 +165,57 @@ Three properties, in the order they were argued:
   reached from what would have been ``A`` or ``B``, so the promotable set shrinks
   or holds. ABL-348's windows, bands, metric, baseline, minimum n and source are
   untouched -- ``voids_this_registration`` is not triggered -- and ABL-434 (the
-  ladder cannot see minimum n) is a different guard, deliberately not folded in.
+  ladder cannot see minimum n) is a different guard, landed separately below.
+
+ABL-434: the ladder reads the cell's coverage first
+----------------------------------------------------
+
+Everything above grades a **margin**. :func:`grade_cell` is handed a cell's
+``scores`` mapping and nothing else, so it never sees ``gate.n``,
+``gate.minimum_n`` or ``gate.enough_pairs`` -- and a cell that beats D-7 by more
+than the floor while falling **short of its registered minimum n** graded ``A``,
+which means promotion-eligible. A cell the registration does not consider
+readable cannot be. Tranche 2d is where the combination first arose: EE and FI
+solar clear D-7 by +29.0% and +36.8% in their only gated band and miss 456 rows,
+FI by **three**, so both graded ``A`` beside ``pass: false`` in the same cell.
+
+**This is not a new bar and no scope can opt out of it.** ``enough_pairs`` is
+already part of ABL-348's registered ``pass`` rule and already decides the gate
+verdict; what moves here is only whether the *grade* is allowed to disagree with
+it. The direction is one-way -- a coverage shortfall only ever removes
+eligibility -- which is why, unlike ABL-437's levelling and ABL-444's G2/G3
+floor, there is no per-scope table: a scope that could declare its own cells
+covered is a scope that can promote on rows it does not have.
+
+Where the gate lives is the load-bearing choice:
+
+* :func:`grade_cell` stays a function of ``scores`` **alone**. That is what makes
+  it re-runnable over a stored record, and it is what lets the published
+  margin-only re-reads (ABL-418's retro-grade, ABL-437, ABL-443, ABL-444)
+  reproduce byte-for-byte rather than being silently re-graded by this change.
+* :func:`cell_grade` and :func:`attach_grades` are handed a **whole cell**, so
+  they can and do read its coverage -- through :func:`gated_on_coverage`, applied
+  to a computed grade and to one rebuilt from a record alike. Both harnesses
+  render and record through those two functions, so no future tranche can write a
+  coverage-blind ``A``, and every later reader of an already-written record gets
+  the hold without keeping its own books (which is what ABL-421 had to do).
+* Coverage that is **not recorded** is not coverage that holds. A cell with no
+  ``gate`` block, or a ``gate`` block with no ``enough_pairs``, grades ``X`` with
+  that named as the reason -- the same rule as everywhere else on this ladder: a
+  condition that could not be measured is not satisfied.
+
+``X`` sits between ``U`` and ``B`` in :data:`GRADE_SEVERITY`. It is deeper than
+``U`` -- a ``U`` cell has the rows and cannot resolve the margin, an ``X`` cell
+does not have the rows, so nothing below is decidable -- and shallower than
+``B``/``C``, on ABL-444's rule that a definite failure outranks an abstention and
+grading it ``X`` would bury it.
+
+Two letters move, both in tranche 2d and both already reported as held by
+ABL-421's evidence pack: EE and FI solar 48-64h, ``A`` -> ``X``, and with it each
+pair. No other committed cell in the programme is coverage-short (checked over
+every record: 143 cells, 2 short, 0 with the column absent), so no published
+report is re-graded by this change -- see
+``reports/abl_434_coverage_gate_registration.md``.
 """
 
 from __future__ import annotations
@@ -210,7 +263,21 @@ PUBLISHED_FLOOR_PCT_K1 = {"solar": 10.64, "wind": 7.51}
 #: consequence to know is that a pair with one `A` band and one `N` band grades
 #: `N` -- a pair is never graded better than any band in it, and an abstention
 #: in any band is enough to stop it being promotion-eligible.
-GRADE_SEVERITY = {"A": 0, "N": 1, "U": 2, "B": 3, "C": 4}
+#:
+#: `X` (ABL-434) is the deepest deferral of the three and still ranks below `B`:
+#: an `X` cell does not have the rows the registration requires, so nothing on
+#: the ladder is decidable for it -- but a band that *did* have the rows and lost
+#: readably has something definite to say, and letting `X` outrank it at pair
+#: level would bury that.
+GRADE_SEVERITY = {"A": 0, "N": 1, "U": 2, "X": 3, "B": 4, "C": 5}
+
+#: ABL-434's letter, and the condition it answers. `G0` is deliberately *not* in
+#: `conditions_for`: that tuple is the four registered margin conditions, and G0
+#: is a property of the cell rather than of the challenger's error. It is
+#: numbered ahead of G1 because it is assessed before any of them.
+COVERAGE_SHORT = "X"
+COVERAGE_CONDITION = ("G0", "readable",
+                      "n meets ABL-348's registered minimum for the band")
 
 #: ABL-444: whether G2 and G3 are decided by a bare sign test -- `skill > 0`, as
 #: ABL-418 registered them -- or by the same readability floor G1 carries.
@@ -353,10 +420,15 @@ class CellGrade:
     #: with its reason. Always empty under ``sign_test``. Distinct from
     #: ``failed``: an abstention is not a failure, and neither is it a pass.
     not_readable: tuple = ()
+    #: ABL-434: the cell's registered coverage, where this read was handed one.
+    #: ``None`` means the grade was decided on the margin alone -- which is what
+    #: :func:`grade_cell` does by construction, and what every published
+    #: margin-only re-read is. Absence dates the read; it is not a pass.
+    enough_pairs: bool | None = None
 
     @property
     def label(self) -> str:
-        """``A`` / ``B`` / ``C`` / ``N`` / ``U`` / ``U(+)``, or ``Not measured``."""
+        """``A`` / ``B`` / ``C`` / ``N`` / ``U`` / ``U(+)`` / ``X``, or ``Not measured``."""
         if self.grade is None:
             return "Not measured"
         return "U(+)" if self.plus else self.grade
@@ -372,17 +444,26 @@ class CellGrade:
         return f"{self.label} — {'; '.join(parts)}" if parts else self.label
 
     def as_dict(self) -> dict:
-        return {"grade": self.grade, "plus": self.plus, "label": self.label,
-                "conditions": dict(self.conditions),
-                "failed": [{"condition": name, "reason": reason} for name, reason in self.failed],
-                "not_readable": [{"condition": name, "reason": reason}
-                                 for name, reason in self.not_readable],
-                "skill_pct": dict(self.skill),
-                "own_error_margin_pct": dict(self.own_error_margin),
-                "floor_pct": self.floor_pct, "bar_weaker_than_a_flat_line": self.bar_weak,
-                "causal_levelling": self.levelling,
-                "level_inflation_pct": dict(self.level_inflation_pct),
-                "g23_readability": self.g23_readability}
+        record = {"grade": self.grade, "plus": self.plus, "label": self.label,
+                  "conditions": dict(self.conditions),
+                  "failed": [{"condition": name, "reason": reason} for name, reason in self.failed],
+                  "not_readable": [{"condition": name, "reason": reason}
+                                   for name, reason in self.not_readable],
+                  "skill_pct": dict(self.skill),
+                  "own_error_margin_pct": dict(self.own_error_margin),
+                  "floor_pct": self.floor_pct, "bar_weaker_than_a_flat_line": self.bar_weak,
+                  "causal_levelling": self.levelling,
+                  "level_inflation_pct": dict(self.level_inflation_pct),
+                  "g23_readability": self.g23_readability}
+        # Emitted only where the read was coverage-gated, on the same rule as
+        # every other additive key here: the key's presence is what dates the
+        # read. A margin-only grade carries no coverage claim, and writing one as
+        # `null` would put a field a caller can splat over its own `enough_pairs`
+        # into the two records that do exactly that (`abl418_retro_grade.py`,
+        # `abl444_g23_floor_reread.py`).
+        if self.enough_pairs is not None:
+            record["enough_pairs"] = self.enough_pairs
+        return record
 
     @classmethod
     def from_dict(cls, record: dict) -> "CellGrade":
@@ -404,7 +485,63 @@ class CellGrade:
                    bar_weak=record.get("bar_weaker_than_a_flat_line"),
                    levelling=record.get("causal_levelling", FIT_WINDOW),
                    level_inflation_pct=dict(record.get("level_inflation_pct") or {}),
-                   g23_readability=record.get("g23_readability", SIGN_TEST))
+                   g23_readability=record.get("g23_readability", SIGN_TEST),
+                   enough_pairs=record.get("enough_pairs"))
+
+
+def coverage_reason(gate: dict | None) -> str:
+    """Why a cell is not readable at its registered n, named with the numbers.
+
+    A record that carries the counts says so; one that carries no coverage at all
+    says *that*, which is a different statement and must not read as the first.
+    """
+    gate = gate or {}
+    n, minimum = gate.get("n"), gate.get("minimum_n")
+    if gate.get("enough_pairs") is None:
+        return ("the cell's coverage against ABL-348's registered minimum n is not "
+                "recorded, so it cannot be shown readable")
+    if n is None or minimum is None:
+        return "n is below ABL-348's registered minimum for this band"
+    return (f"n = {n:,} is below ABL-348's registered minimum of {minimum:,} "
+            f"for this band")
+
+
+def gated_on_coverage(grade: CellGrade, gate: dict | None) -> CellGrade:
+    """ABL-434: hold a grade whose cell does not meet its registered minimum n.
+
+    Applied by :func:`cell_grade` and :func:`attach_grades`, which are handed a
+    whole cell; :func:`grade_cell` is handed ``scores`` alone and stays the pure
+    margin instrument, so a published margin-only re-read reproduces.
+
+    One-way by construction: it can only ever replace a letter with ``X``, never
+    raise one, so no scope can be made promotion-eligible by this function. A
+    grade of ``None`` — the cell measured nothing — passes through unchanged:
+    ``Not measured`` is already the weaker statement, and overwriting it with a
+    coverage verdict would claim the cell was scored.
+
+    Idempotent: re-gating an ``X`` grade re-derives the same one condition rather
+    than accumulating it, which matters because a record written by a gated run
+    is read back through this same path.
+    """
+    if grade.grade is None:
+        return grade
+    condition, _, _ = COVERAGE_CONDITION
+    enough = (gate or {}).get("enough_pairs")
+    fields = {"plus": grade.plus, "skill": grade.skill,
+              "own_error_margin": grade.own_error_margin, "floor_pct": grade.floor_pct,
+              "bar_weak": grade.bar_weak, "levelling": grade.levelling,
+              "level_inflation_pct": grade.level_inflation_pct,
+              "g23_readability": grade.g23_readability,
+              "not_readable": grade.not_readable}
+    # `failed` is rebuilt without any G0 the caller's record already carried, so
+    # the reason below is the one this read derived rather than a stale copy.
+    failed = tuple((name, reason) for name, reason in grade.failed if name != condition)
+    if enough is True:
+        return CellGrade(grade=grade.grade, conditions={**grade.conditions, condition: True},
+                         failed=failed, enough_pairs=True, **fields)
+    return CellGrade(grade=COVERAGE_SHORT, conditions={**grade.conditions, condition: enough},
+                     failed=((condition, coverage_reason(gate)), *failed),
+                     enough_pairs=enough, **{**fields, "plus": False})
 
 
 def cell_grade(cell: dict, stream: str, k: int = 1,
@@ -421,11 +558,17 @@ def cell_grade(cell: dict, stream: str, k: int = 1,
     ``g23_readability`` key and rebuilds as :data:`SIGN_TEST`, because those are
     what they were decided under. Absence dates the read; it is not a default
     anyone chose after the fact.
+
+    ABL-434 is the one thing here that is **not** rebuilt from the record. The
+    cell's coverage is applied to whatever grade comes back, recorded or
+    computed, because a stored ``A`` on a cell whose own ``gate`` block says
+    ``enough_pairs: false`` is the defect — the record and the registration
+    disagreeing, with nothing attached to reconcile them.
     """
     recorded = cell.get("grade")
-    if recorded:
-        return CellGrade.from_dict(recorded)
-    return grade_cell(cell["scores"], stream, k, levelling, g23_readability)
+    grade = (CellGrade.from_dict(recorded) if recorded
+             else grade_cell(cell["scores"], stream, k, levelling, g23_readability))
+    return gated_on_coverage(grade, cell.get("gate"))
 
 
 def scored_conditions(levelling: str = TRAILING_28D) -> tuple:
@@ -547,10 +690,14 @@ def attach_grades(cells: list[dict], stream: str, k: int = 1,
     markdown table and ``results.json`` cannot disagree about a grade. Cells
     written before ABL-418 carry no ``grade`` key; the retro-grade script grades
     them through this same function rather than reimplementing the ladder.
+
+    The cell is in hand here, so ABL-434's coverage gate applies: what a harness
+    *records* is already held where the cell falls short of its registered
+    minimum n, rather than being held later by whoever reads the record.
     """
     for cell in cells:
-        cell["grade"] = grade_cell(cell["scores"], stream, k, levelling,
-                                   g23_readability).as_dict()
+        grade = grade_cell(cell["scores"], stream, k, levelling, g23_readability)
+        cell["grade"] = gated_on_coverage(grade, cell.get("gate")).as_dict()
     return cells
 
 
@@ -566,6 +713,14 @@ def pair_grade(cell_grades) -> CellGrade:
     An ``N`` band (ABL-444) takes the pair to ``N`` by the same rule, unless some
     other band is worse. **Read that the way it is meant**: an ``A / A / N`` pair
     is not "mostly promotable", it is a pair with a band nobody has resolved.
+
+    An ``X`` band (ABL-434) travels the same way, and that is stricter than the
+    reporting-side hold ABL-421 kept by hand, which held a pair only when *no*
+    band was decidable. The two agree on every cell measured so far — EE and FI
+    each have exactly one gated band — and where they would not, one registered
+    band short of its minimum n is already enough to stop a pair being
+    promotion-eligible, by the same "every band" rule that makes ``A`` the worst
+    of its bands.
     """
     grades = [grade for grade in cell_grades if grade.grade is not None]
     if not grades:
@@ -581,7 +736,8 @@ def pair_grade(cell_grades) -> CellGrade:
                      levelling=worst.levelling,
                      level_inflation_pct=worst.level_inflation_pct,
                      g23_readability=worst.g23_readability,
-                     not_readable=worst.not_readable)
+                     not_readable=worst.not_readable,
+                     enough_pairs=worst.enough_pairs)
 
 
 def grading_prose(stream: str, k: int = 1, levelling: str = TRAILING_28D,
@@ -632,6 +788,13 @@ def grading_prose(stream: str, k: int = 1, levelling: str = TRAILING_28D,
         f"**A** = all four in every band (promotion-eligible, subject to any named data hold); **B** = G1 holds and one or "
         f"more of G2/G3/G4 fails, named; **C** = a readable loss to D-7; **U** = the G1 margin sits inside the floor, so the "
         f"cell is unreadable at one seed — **U(+)** where G2–G4 clear readably, meaning *re-read at k>1 seeds*, not *reject*.",
+        "",
+        "**G0** readable (ABL-434): the cell meets ABL-348's registered minimum n, assessed **before** any of G1–G4. "
+        "A cell that does not grades **`X`** — not readable at the registered coverage, so nothing on the ladder below "
+        "it is decidable, and not promotion-eligible. This is not a new bar: `enough_pairs` already decides the gate "
+        "column, and what changes is only that the grade may no longer disagree with it. It is one-way — a coverage "
+        "shortfall can only remove eligibility — and coverage that is not recorded is not coverage that holds. `X` "
+        "ranks below `B` and `C`: a band that had the rows and lost readably has something definite to say.",
         "",
         "Causal references only. The two oracle references stay reported and gate nothing: an oracle is not causally "
         "available, so losing to one bounds what a verdict means rather than voiding it. The bar-weakness flag — does "

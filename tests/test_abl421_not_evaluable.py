@@ -257,8 +257,14 @@ def test_the_hold_does_not_bind_when_any_band_is_decidable(read_script):
 
 
 def test_the_hold_never_upgrades_a_grade(read_script):
-    """It only ever removes eligibility -- it cannot turn a C into anything better."""
-    for label in ("A", "B", "C", "U(+)", "U"):
+    """It only ever removes eligibility -- it cannot turn a C into anything better.
+
+    ``X`` is on the list since ABL-434: the ladder now hands this script the held
+    letter itself rather than the ``A`` this hold was written to catch. The hold
+    stays, and stays a no-op on the reported grade -- ``—`` either way -- because
+    the published pack renders that and this issue re-grades no published tranche.
+    """
+    for label in ("A", "B", "C", "U(+)", "U", "X"):
         reported, _ = read_script.held_for_coverage(label, [_cell(enough=False)])
         assert reported == "—", f"{label} was not held"
     # And with no cells at all there is nothing to hold: the label passes through
