@@ -36,7 +36,9 @@ energy_forecast/
 ├── src/
 │   ├── db.py               # Database operations
 │   ├── data_quality.py     # Training-data invariants (ABL-188: rejects
-│   │                       # suspect constant-value runs from energy_renewable)
+│   │                       # suspect constant-value runs from energy_renewable;
+│   │                       # ABL-200: rejects zeros energy_generation disproves
+│   │                       # at the same instant, at any run length)
 │   ├── features.py         # Feature engineering (incl. holiday features)
 │   ├── solar_geometry.py   # Sun elevation per (country, timestamp) — one
 │   │                       # capacity-weighted point per country (ABL-337);
@@ -339,6 +341,85 @@ bit-identical value for 24+ hours is nulled before it can enter training,
 with a `logger.warning` naming the exact excluded window. No stored row is
 fixed by this — that needs a supplemental ENTSO-E re-fetch for the affected
 window, proposed but not executed in the ABL-188 report.
+
+### A zero is adjudicated against the twin table, not against a duration (ABL-200)
+
+The guard above can only reject a zero **for lasting 24 hours**, and that
+question has no good answer for wind. BE `wind_offshore` carries **105**
+flat-zero runs of 6 h or longer (re-measured 2026-08-14) and only **9** reach the
+default, so the threshold either misses the rest or, lowered, starts deleting the
+genuine calm and curtailment spells a duration test cannot tell them apart from.
+ABL-42 settled the formally identical MD hydro case by **cross-referencing the
+better table instead of sizing a threshold**, and that is what
+`exclude_zeros_disproved_by_sibling` does here: an exact `0.0` in
+`energy_renewable` is **disproved** when `energy_generation` — the NaN-preserving
+twin of the same fetch — reports real generation at the identical instant, at any
+run length. Wired at the one training read site (`load_renewable_type_data`),
+only when reading `energy_renewable`, and only *after* the ABL-188 guard.
+`reports/abl_200_cross_table_zero_disproof.md` is the evidence pack;
+`scripts/abl200_cross_table_zero_census.py` regenerates every number in it.
+
+**Read §1 of that report before quoting the issue that filed this.** The premise
+overstates the harm by two orders of magnitude on the pair it is about: of the
+1,432 rows inside BE `wind_offshore`'s 105 runs, `energy_generation` is
+**negative on 1,378 and positive on 54**, and only **2 of the 105 runs** contain
+a single positive sibling value. A negative sibling is A75 netting — an idle farm
+drawing house load — and a gross `0.0` is the correct reading of it. The
+headline 2,175 MW instant (2025-11-17 04:00) is **already excluded today** by the
+24 h rule, and ABL-198's own adjudicated window (2026-03-08/10) reads −11 to −30
+MW on all 40 rows and correctly does not fire. The rule's marginal contribution
+for that pair is **10 rows**; its case is fleet-wide — **564 rows over 38 of 120
+pairs** — not BE.
+
+Four things about it are load-bearing.
+
+- **The floor is calibrated per pair, because there is no band to put a global
+  one in.** Sibling value ÷ fleet p99.5 runs continuously across four decades
+  over all 18,900 raw candidates (q05 0.000065, q50 0.000478, q95 0.1395, max
+  1.018) with no gap wider than 4× anywhere — the **opposite** of ABL-431, whose
+  3.0 sits inside a measured empty band 2.3× wide. So the floor is
+  `q0.99(|renewable − generation|)` over the instants where the renewable side is
+  **strictly positive** — how far these two tables routinely sit apart on this
+  very series, estimated where the zero-fill defect provably is not what is being
+  looked at. Bit-identical pairs (32 of 100) get a floor of exactly 0.0 and any
+  positive sibling disproves; vintage-divergent pairs (NL `wind_onshore`,
+  `energy_generation` higher at 83.5% of instants, median +311.8 MW — the ABL-439
+  seam) set their own high bar and the rule falls quiet on them. Nobody chooses a
+  number for NL. It is **not** a knife edge: 896 / 739 / **564** / 416 rows at
+  q = 0.90 / 0.95 / 0.99 / 1.00, no acceptance case changing verdict in that
+  range. q = 1.00 was rejected because one contaminated calibration row would set
+  an unreachable floor and silently disable the rule for that pair forever.
+- **It is one-sided, and it refuses to evaluate rather than guessing.** A
+  negative sibling never disproves anything (`energy_renewable` holds no negative
+  value in any of the 120 pairs, so the sign carries information). And below
+  `SIBLING_DISPROOF_MIN_CALIBRATION_ROWS` positive-value instants the rule
+  abstains and carries the reason, ABL-431's `evaluable` pattern for ABL-431's
+  reason: **20 of the 120 pairs have a calibration population of exactly 0** —
+  the all-zero series, landlocked countries reporting `wind_offshore_mw = 0.0`
+  forever — where a floor of 0.0 would let any sibling value delete a new fleet's
+  first output. The constant is 1000 and **that is a measurement**: the smallest
+  non-zero population is 2,559, so anything in (0, 2559) is the same rule.
+- **Alignment is on parsed instants, never on the stored string, and the order
+  against ABL-188 is fixed.** `energy_renewable` stores BE's 2025-11-09 →
+  2025-11-25 rows in the `2025-11-14T16:00:00` form while `energy_generation`
+  stores every row in the `2025-11-14 16:00:00` form, so a SQL join on
+  `timestamp_utc` returns NULL for **all 540** of them — including every row of
+  the worked example the rule exists for. And it runs strictly **after**
+  `exclude_suspect_constant_runs`: that guard measures a run over the
+  observations present, so nulling rows inside a long flat run first would split
+  it at the new gap and drop both halves under `min_run_hours`, weakening the
+  older guard instead of adding to it.
+- **It moves 15 pairs under 7 registered scopes, and zero gate rows.** All 170
+  fit-window exclusions land in ABL-348's *fit* window (`abl406-tranche2b` 4/8,
+  `abl417-tranche2e` 4/8, `abl316-t2d` 3/6, `abl316-t2c` 2/5, `abl253`/`abl376`
+  1/3, `abl322-pilot` 1/2); **0** land in the gate window, and the latest
+  exclusion anywhere is 2026-07-03 00:45, which is before the earliest gate row's
+  D-7 and 168 h lookbacks. So gate truth, gate rows and the seasonal-naive
+  baseline are byte-unchanged — but the **causal references are not**, since
+  `constant_causal`/`climatology_causal` level on the fit window (or, under
+  ABL-437, on a trailing 28 d that reaches into it). Per ABL-401 a re-read of any
+  of those scopes against the new training set is a **new pre-registration**, not
+  a re-read of a published path. None has been run.
 
 **Neither generation table is hourly, and most countries are both** (ABL-332).
 `energy_generation` and `energy_renewable` store whatever resolution ENTSO-E

@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import config
 from src import db
+from src.data_quality import adjudicate_zeros_against_sibling
 from src.wind_features import RenewableFeatureBuilder
 
 COUNTRY = "XX"
@@ -152,12 +153,24 @@ def test_the_old_source_returns_that_same_stream_as_a_full_length_frame(replica)
     assert len(frame) == len(_HOURS)
 
 
-def test_a_sub_24h_zero_fill_survives_the_guard_on_the_old_source(replica):
+def test_a_sub_24h_zero_fill_survives_the_duration_guard_on_the_old_source(replica):
     """The load-bearing argument for the switch. `exclude_suspect_constant_runs`
     only rejects bit-identical runs of 24 hours or more, so a shorter zero-fill
     reaches the trainer as a measured zero -- 6,711 such rows across 35 of 72
     country/stream pairs in the ABL-318 census, including LV solar's 374 with
-    no qualifying run at all."""
+    no qualifying run at all.
+
+    **ABL-200 narrowed this claim, and the assertion below now says so.** That
+    issue adjudicates exactly this shape against `energy_generation` rather than
+    against a duration, and on the real replica this row class *is* now
+    excluded. What keeps it visible in this fixture is that the disproof needs a
+    calibration population -- `SIBLING_DISPROOF_MIN_CALIBRATION_ROWS`
+    positive-value instants, to measure how far the two tables routinely
+    disagree on this pair -- and this fixture is 72 hours long, so the
+    adjudicator refuses to judge rather than guess a floor. The second assertion
+    is written against that reason, so lowering the minimum fails here loudly
+    instead of quietly turning this test into a tautology. The caught case is
+    `tests/test_cross_table_zero_disproof.py`."""
     old = db.load_renewable_type_data(
         COUNTRY, "solar", START, END, source="energy_renewable"
     )
@@ -165,6 +178,16 @@ def test_a_sub_24h_zero_fill_survives_the_guard_on_the_old_source(replica):
     assert (zero_filled == 0.0).all(), (
         "expected the guard to miss a sub-24h run; if this fails the guard's "
         "minimum changed and the argument in this test needs restating"
+    )
+
+    verdict = adjudicate_zeros_against_sibling(
+        db._read_renewable_series(COUNTRY, "solar_mw", START, END, "energy_renewable"),
+        db._read_renewable_series(COUNTRY, "solar_mw", START, END, "energy_generation"),
+    )
+    assert not verdict.evaluable, (
+        "this fixture is too short for ABL-200 to adjudicate, and that is the "
+        "only reason the zero-fill above is still visible; if it became "
+        "evaluable this test measures the new rule and its docstring is wrong"
     )
 
 

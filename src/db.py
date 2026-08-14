@@ -18,7 +18,10 @@ import config
 # working scripts already follow (e.g. scripts/evaluate_scorecard.py:14).
 # `from db import ...` with src/ on sys.path has been an ImportError since
 # 574eb80 (ABL-188) added the first relative import here.
-from .data_quality import exclude_suspect_constant_runs
+from .data_quality import (
+    exclude_suspect_constant_runs,
+    exclude_zeros_disproved_by_sibling,
+)
 from .solar_clamp import SolarClampStats, clamp_solar_forecasts
 
 
@@ -524,6 +527,96 @@ def aggregate_renewable_to_hourly(
     return hourly[[timestamp_col, value_col]]
 
 
+#: The table a zero in `RENEWABLE_TYPE_SOURCE_TABLE` is adjudicated against
+#: (ABL-200). It is the NaN-preserving side of the same fetch: it can say "not
+#: reported", which is exactly the statement `energy_renewable` cannot make and
+#: the whole reason a 0.0 there needs corroborating. Deliberately not derived
+#: from `_RENEWABLE_TYPE_SOURCES` -- the relationship is directional, and
+#: disproving an `energy_generation` value with `energy_renewable` would be
+#: unsound in the way this constant exists to prevent.
+RENEWABLE_ZERO_DISPROOF_SOURCE = 'energy_generation'
+
+
+def _read_renewable_series(
+    country_code: str,
+    target_col: str,
+    start_date: str,
+    end_date: str,
+    source: str,
+    db_path=None,
+    context: str = '',
+) -> pd.DataFrame:
+    """
+    One (timestamp_utc, target_value) frame at the table's own resolution.
+
+    Everything up to but not including the quality guards: NULL rows dropped,
+    timestamps parsed out of their several stored spellings, one instant per
+    row. Both the training target and the sibling series ABL-200 adjudicates it
+    against come through here, because two frames compared on anything other
+    than identically-derived instants are not comparable at all.
+    """
+    query = f"""
+        SELECT timestamp_utc, {target_col} as target_value
+        FROM {source}
+        WHERE country_code = ?
+          AND timestamp_utc >= ?
+          AND timestamp_utc < ?
+          AND data_quality = 'actual'
+          AND ({target_col}) IS NOT NULL
+        ORDER BY timestamp_utc
+    """
+    with get_connection(db_path=db_path) as conn:
+        df = pd.read_sql_query(query, conn, params=(country_code, start_date, end_date))
+
+    if df.empty:
+        return df
+
+    # Parse timestamps handling mixed formats (some may have TZ offsets)
+    df['timestamp_utc'] = pd.to_datetime(
+        df['timestamp_utc'], format='mixed', utc=True
+    ).dt.tz_localize(None)
+
+    # ABL-321: one instant, one row. `energy_renewable`'s UNIQUE index is on
+    # (country_code, timestamp_utc) as a *string*, so a single instant is
+    # storable under several spellings ('...09 23:00:00', '...09T23:00:00',
+    # '...T00:00:00+01:00') -- 78,510 duplicate-instant rows across all 24
+    # countries, 5,425 carrying disagreeing values. `energy_generation` has
+    # zero duplicates, so all of this is a no-op there.
+    #
+    # This is not only the nondeterminism the issue named. The duplicates
+    # survive into the feature builder's index, where a same-hour lag lookup
+    # resolves to a two-element Series instead of a scalar and `float()`
+    # raises: measured on AT/solar over 2025-11-21 -> 2026-02-15, 10,761 rows
+    # for 9,564 distinct instants (1,918 duplicated entries, beginning
+    # 2025-11-17 16:15). The pre-ABL-321 source therefore cannot complete a
+    # winter backtest at all without this, which is why it is fixed here and
+    # not worked around in the harness -- `source=` exists to keep the
+    # before/after comparison runnable, and without this it is not.
+    #
+    # Agreeing spellings collapse to their shared value; no information is
+    # lost. Disagreeing spellings become NaN -- the same "unadjudicated-
+    # missing" treatment the ABL-188 guard below applies -- because the table
+    # holds two contradictory answers and no tiebreaker. Picking one would
+    # make the training set depend on which row the query happened to return;
+    # averaging would invent a value the TSO never published.
+    if df['timestamp_utc'].duplicated().any():
+        spellings = df.groupby('timestamp_utc')['target_value']
+        disagreeing = spellings.nunique(dropna=False) > 1
+        collapsed = spellings.last()
+        collapsed[disagreeing] = float('nan')
+        n_dropped = int(len(df) - len(collapsed))
+        df = collapsed.reset_index()[['timestamp_utc', 'target_value']]
+        logger.warning(
+            f"Collapsed {n_dropped} duplicate-instant rows into "
+            f"{len(df)} distinct instants for {context or country_code} "
+            f"in {source}; {int(disagreeing.sum())} instants held disagreeing "
+            f"values and were nulled as unadjudicated rather than resolved "
+            f"arbitrarily"
+        )
+
+    return df
+
+
 def load_renewable_type_data(
     country_code: str,
     renewable_type: str,
@@ -565,28 +658,16 @@ def load_renewable_type_data(
         raise ValueError(f"Unknown renewable type: {renewable_type}")
 
     target_col = column_map[renewable_type]
+    context = f"{country_code}/{renewable_type}"
 
     # NULL is the honest "TSO does not report this" encoding and the whole
     # reason for preferring `energy_generation` -- drop those rows here so a
     # not-reported stream reaches the caller as an empty frame rather than as
     # a feature-complete series of zeros.
-    query = f"""
-        SELECT timestamp_utc, {target_col} as target_value
-        FROM {source}
-        WHERE country_code = ?
-          AND timestamp_utc >= ?
-          AND timestamp_utc < ?
-          AND data_quality = 'actual'
-          AND ({target_col}) IS NOT NULL
-        ORDER BY timestamp_utc
-    """
-
-    with get_connection(db_path=db_path) as conn:
-        df = pd.read_sql_query(
-            query,
-            conn,
-            params=(country_code, start_date, end_date),
-        )
+    df = _read_renewable_series(
+        country_code, target_col, start_date, end_date, source,
+        db_path=db_path, context=context,
+    )
 
     if df.empty:
         logger.warning(
@@ -595,49 +676,6 @@ def load_renewable_type_data(
             f"or the window is empty"
         )
         return df
-
-    # Parse timestamps handling mixed formats (some may have TZ offsets)
-    df['timestamp_utc'] = pd.to_datetime(
-        df['timestamp_utc'], format='mixed', utc=True
-    ).dt.tz_localize(None)
-
-    # ABL-321: one instant, one row. `energy_renewable`'s UNIQUE index is on
-    # (country_code, timestamp_utc) as a *string*, so a single instant is
-    # storable under several spellings ('...09 23:00:00', '...09T23:00:00',
-    # '...T00:00:00+01:00') -- 78,510 duplicate-instant rows across all 24
-    # countries, 5,425 carrying disagreeing values. `energy_generation` has
-    # zero duplicates, so all of this is a no-op there.
-    #
-    # This is not only the nondeterminism the issue named. The duplicates
-    # survive into the feature builder's index, where a same-hour lag lookup
-    # resolves to a two-element Series instead of a scalar and `float()`
-    # raises: measured on AT/solar over 2025-11-21 -> 2026-02-15, 10,761 rows
-    # for 9,564 distinct instants (1,918 duplicated entries, beginning
-    # 2025-11-17 16:15). The pre-ABL-321 source therefore cannot complete a
-    # winter backtest at all without this, which is why it is fixed here and
-    # not worked around in the harness -- `source=` exists to keep the
-    # before/after comparison runnable, and without this it is not.
-    #
-    # Agreeing spellings collapse to their shared value; no information is
-    # lost. Disagreeing spellings become NaN -- the same "unadjudicated-
-    # missing" treatment the ABL-188 guard below applies -- because the table
-    # holds two contradictory answers and no tiebreaker. Picking one would
-    # make the training set depend on which row the query happened to return;
-    # averaging would invent a value the TSO never published.
-    if df['timestamp_utc'].duplicated().any():
-        spellings = df.groupby('timestamp_utc')['target_value']
-        disagreeing = spellings.nunique(dropna=False) > 1
-        collapsed = spellings.last()
-        collapsed[disagreeing] = float('nan')
-        n_dropped = int(len(df) - len(collapsed))
-        df = collapsed.reset_index()[['timestamp_utc', 'target_value']]
-        logger.warning(
-            f"Collapsed {n_dropped} duplicate-instant rows into "
-            f"{len(df)} distinct instants for {country_code}/{renewable_type} "
-            f"in {source}; {int(disagreeing.sum())} instants held disagreeing "
-            f"values and were nulled as unadjudicated rather than resolved "
-            f"arbitrarily"
-        )
 
     # ABL-188: `energy_renewable`'s mapper zero-fills a production type that's
     # absent from a given ENTSO-E response instead of leaving it NULL (see
@@ -652,7 +690,7 @@ def load_renewable_type_data(
     before_n = df['target_value'].notna().sum()
     df = exclude_suspect_constant_runs(
         df, value_col='target_value', timestamp_col='timestamp_utc',
-        context=f"{country_code}/{renewable_type}",
+        context=context,
     )
     excluded_n = before_n - df['target_value'].notna().sum()
     if excluded_n:
@@ -660,6 +698,44 @@ def load_renewable_type_data(
             f"Excluded {excluded_n} suspect-constant {renewable_type} rows "
             f"for {country_code} (see warnings above for exact runs)"
         )
+
+    # ABL-200: the duration guard above can only reject a zero for lasting 24h.
+    # Adjudicate what is left against `energy_generation`, the NaN-preserving
+    # twin of the same fetch: a 0.0 the twin contradicts at the identical
+    # instant is disproved at any run length, which is the question BE
+    # wind_offshore's 105 flat-zero runs of 6h+ (only 9 of them 24h+) cannot be
+    # answered by sizing a threshold. See src/data_quality.py for why the floor
+    # is calibrated per pair and one-sided.
+    #
+    # Only when reading `energy_renewable`. The rule is directional: it needs a
+    # disprover that can encode "not reported", and `energy_renewable` cannot.
+    # Reading `energy_generation` is already the honest side and has nothing to
+    # adjudicate against.
+    #
+    # Strictly after `exclude_suspect_constant_runs`, never before -- that guard
+    # measures a run over the observations present, so nulling rows inside a
+    # long flat run first would split it at the new gap and drop both halves
+    # under `min_run_hours`, weakening the older guard rather than adding to it.
+    # Keyed on the table this call actually read, never on
+    # `RENEWABLE_TYPE_SOURCE_TABLE`: since ABL-331 the source is per-artifact,
+    # so a caller can be reading `energy_renewable` while the default says
+    # otherwise, and that caller is exactly the one that needs the guard.
+    if source != RENEWABLE_ZERO_DISPROOF_SOURCE:
+        sibling = _read_renewable_series(
+            country_code, target_col, start_date, end_date,
+            RENEWABLE_ZERO_DISPROOF_SOURCE, db_path=db_path, context=context,
+        )
+        before_n = df['target_value'].notna().sum()
+        df = exclude_zeros_disproved_by_sibling(
+            df, sibling, value_col='target_value',
+            timestamp_col='timestamp_utc', context=context,
+        )
+        disproved_n = before_n - df['target_value'].notna().sum()
+        if disproved_n:
+            logger.warning(
+                f"Excluded {disproved_n} sibling-disproved zero {renewable_type} "
+                f"rows for {country_code} (see warning above for the window)"
+            )
 
     # ABL-332: one resolution leaves this function -- hourly. Deliberately
     # *after* `exclude_suspect_constant_runs`: that guard infers a series'
