@@ -1,0 +1,377 @@
+{
+  "issue": "ABL-438",
+  "tranche_selection": [
+    "1b"
+  ],
+  "ladder": [
+    {
+      "condition": "G1",
+      "role": "gate",
+      "test": "beats seasonal_naive D-7 by more than the readability floor"
+    },
+    {
+      "condition": "G2",
+      "role": "level",
+      "test": "beats constant_causal -- a flat line at the fit-window mean"
+    },
+    {
+      "condition": "G3",
+      "role": "shape",
+      "test": "beats climatology_causal -- an hour-of-day mean over the fit window"
+    },
+    {
+      "condition": "G4",
+      "role": "direction",
+      "test": "slope > 0 and correlation > 0"
+    }
+  ],
+  "tranches": [
+    {
+      "tranche": "1b",
+      "scope": "abl316-t1b",
+      "stream": "solar",
+      "issue": "ABL-438",
+      "results_path": "experiments/ABL348/results_abl381_tranche1b.json",
+      "results_sha256": "6ff1629cc4525683de630c72ec04dac1658b045da6cf0847f6d9c6f8f3e6184a",
+      "evidence_pack": "reports/abl_381_tranche1b_findings.md",
+      "published_verdict": "PASS",
+      "gate_window": {
+        "start": "2026-07-11 00:00:00",
+        "end_exclusive": "2026-08-10 00:00:00"
+      },
+      "training_source": "energy_generation",
+      "reported_comparators": [
+        "challenger",
+        "incumbent",
+        "seasonal_naive",
+        "persistence",
+        "constant_causal",
+        "constant_oracle",
+        "climatology_causal",
+        "climatology_oracle"
+      ],
+      "floor_pct": 10.648236880290906,
+      "published_floor_pct": 10.64,
+      "holds": {
+        "BG": {
+          "issue": "ABL-396",
+          "kind": "night contamination, upstream",
+          "statement": "76-85% of geometric-night hours carry above 1 MW, up to 1,097 MW, ~5-6% of all energy booked after dark. Identical on both actuals tables, so it is upstream of this module. ABL-396's screen found BG an outlier by 3.7x and the only country whose displacement band is wide enough to threaten a verdict -- and that band is far wider than BG's margin over the oracle climatology.",
+          "effect": "Grade A must not be reported for BG solar without this line."
+        }
+      },
+      "pair_order": [
+        "BG",
+        "CH"
+      ],
+      "pair_grades": {
+        "BG": {
+          "grade": "A",
+          "plus": false,
+          "label": "A",
+          "conditions": {
+            "G1": true,
+            "G2": true,
+            "G3": true,
+            "G4": true
+          },
+          "failed": [],
+          "skill_pct": {
+            "seasonal_naive": 22.599069184907083,
+            "constant_causal": 74.92104901722159,
+            "climatology_causal": 55.01406540655094
+          },
+          "own_error_margin_pct": {
+            "seasonal_naive": 29.197412675688835,
+            "constant_causal": 298.7407610018038,
+            "climatology_causal": 122.29170273715327
+          },
+          "floor_pct": 10.648236880290906,
+          "bar_weaker_than_a_flat_line": false
+        },
+        "CH": {
+          "grade": "A",
+          "plus": false,
+          "label": "A",
+          "conditions": {
+            "G1": true,
+            "G2": true,
+            "G3": true,
+            "G4": true
+          },
+          "failed": [],
+          "skill_pct": {
+            "seasonal_naive": 35.59216100423043,
+            "constant_causal": 91.41630062529346,
+            "climatology_causal": 78.25000985712629
+          },
+          "own_error_margin_pct": {
+            "seasonal_naive": 55.260604235717615,
+            "constant_causal": 1064.9988616175042,
+            "climatology_causal": 359.7703233109951
+          },
+          "floor_pct": 10.648236880290906,
+          "bar_weaker_than_a_flat_line": false
+        }
+      },
+      "cells": [
+        {
+          "pair": "BG",
+          "band": "24-36h",
+          "n": 720,
+          "gate_pass": true,
+          "minimum_n": 684,
+          "enough_pairs": true,
+          "challenger_wape_pct": 18.885224767803308,
+          "oracle_skill_pct": {
+            "constant_oracle": 74.30304920766466,
+            "climatology_oracle": 1.4076237844836692
+          },
+          "oracle_margin_readable": {
+            "constant_oracle": true,
+            "climatology_oracle": false
+          },
+          "hold": {
+            "issue": "ABL-396",
+            "kind": "night contamination, upstream",
+            "statement": "76-85% of geometric-night hours carry above 1 MW, up to 1,097 MW, ~5-6% of all energy booked after dark. Identical on both actuals tables, so it is upstream of this module. ABL-396's screen found BG an outlier by 3.7x and the only country whose displacement band is wide enough to threaten a verdict -- and that band is far wider than BG's margin over the oracle climatology.",
+            "effect": "Grade A must not be reported for BG solar without this line."
+          },
+          "grade": "A",
+          "plus": false,
+          "label": "A",
+          "conditions": {
+            "G1": true,
+            "G2": true,
+            "G3": true,
+            "G4": true
+          },
+          "failed": [],
+          "skill_pct": {
+            "seasonal_naive": 22.599069184907083,
+            "constant_causal": 74.92104901722159,
+            "climatology_causal": 55.01406540655094
+          },
+          "own_error_margin_pct": {
+            "seasonal_naive": 29.197412675688835,
+            "constant_causal": 298.7407610018038,
+            "climatology_causal": 122.29170273715327
+          },
+          "floor_pct": 10.648236880290906,
+          "bar_weaker_than_a_flat_line": false
+        },
+        {
+          "pair": "BG",
+          "band": "36-48h",
+          "n": 720,
+          "gate_pass": true,
+          "minimum_n": 684,
+          "enough_pairs": true,
+          "challenger_wape_pct": 18.59888047557926,
+          "oracle_skill_pct": {
+            "constant_oracle": 74.69267523951852,
+            "climatology_oracle": 2.9025154012490506
+          },
+          "oracle_margin_readable": {
+            "constant_oracle": true,
+            "climatology_oracle": false
+          },
+          "hold": {
+            "issue": "ABL-396",
+            "kind": "night contamination, upstream",
+            "statement": "76-85% of geometric-night hours carry above 1 MW, up to 1,097 MW, ~5-6% of all energy booked after dark. Identical on both actuals tables, so it is upstream of this module. ABL-396's screen found BG an outlier by 3.7x and the only country whose displacement band is wide enough to threaten a verdict -- and that band is far wider than BG's margin over the oracle climatology.",
+            "effect": "Grade A must not be reported for BG solar without this line."
+          },
+          "grade": "A",
+          "plus": false,
+          "label": "A",
+          "conditions": {
+            "G1": true,
+            "G2": true,
+            "G3": true,
+            "G4": true
+          },
+          "failed": [],
+          "skill_pct": {
+            "seasonal_naive": 23.77264879670581,
+            "constant_causal": 75.30130472278927,
+            "climatology_causal": 55.696157664365074
+          },
+          "own_error_margin_pct": {
+            "seasonal_naive": 31.186507757963998,
+            "constant_causal": 304.879686467767,
+            "climatology_causal": 125.71405712945796
+          },
+          "floor_pct": 10.648236880290906,
+          "bar_weaker_than_a_flat_line": false
+        },
+        {
+          "pair": "BG",
+          "band": "48-64h",
+          "n": 510,
+          "gate_pass": true,
+          "minimum_n": 456,
+          "enough_pairs": true,
+          "challenger_wape_pct": 20.027198495225225,
+          "oracle_skill_pct": {
+            "constant_oracle": 68.61767109807572,
+            "climatology_oracle": 1.7457690528204117
+          },
+          "oracle_margin_readable": {
+            "constant_oracle": true,
+            "climatology_oracle": false
+          },
+          "hold": {
+            "issue": "ABL-396",
+            "kind": "night contamination, upstream",
+            "statement": "76-85% of geometric-night hours carry above 1 MW, up to 1,097 MW, ~5-6% of all energy booked after dark. Identical on both actuals tables, so it is upstream of this module. ABL-396's screen found BG an outlier by 3.7x and the only country whose displacement band is wide enough to threaten a verdict -- and that band is far wider than BG's margin over the oracle climatology.",
+            "effect": "Grade A must not be reported for BG solar without this line."
+          },
+          "grade": "A",
+          "plus": false,
+          "label": "A",
+          "conditions": {
+            "G1": true,
+            "G2": true,
+            "G3": true,
+            "G4": true
+          },
+          "failed": [],
+          "skill_pct": {
+            "seasonal_naive": 19.85934774680328,
+            "constant_causal": 70.62006965059291,
+            "climatology_causal": 51.54284780574607
+          },
+          "own_error_margin_pct": {
+            "seasonal_naive": 24.780616564062363,
+            "constant_causal": 240.36840390950096,
+            "climatology_causal": 106.3678847636821
+          },
+          "floor_pct": 10.648236880290906,
+          "bar_weaker_than_a_flat_line": false
+        },
+        {
+          "pair": "CH",
+          "band": "24-36h",
+          "n": 720,
+          "gate_pass": true,
+          "minimum_n": 684,
+          "enough_pairs": true,
+          "challenger_wape_pct": 8.161702097980383,
+          "oracle_skill_pct": {
+            "constant_oracle": 91.37675298384742,
+            "climatology_oracle": 9.487864202116224
+          },
+          "oracle_margin_readable": {
+            "constant_oracle": true,
+            "climatology_oracle": false
+          },
+          "hold": null,
+          "grade": "A",
+          "plus": false,
+          "label": "A",
+          "conditions": {
+            "G1": true,
+            "G2": true,
+            "G3": true,
+            "G4": true
+          },
+          "failed": [],
+          "skill_pct": {
+            "seasonal_naive": 35.59216100423043,
+            "constant_causal": 91.41630062529346,
+            "climatology_causal": 78.25000985712629
+          },
+          "own_error_margin_pct": {
+            "seasonal_naive": 55.260604235717615,
+            "constant_causal": 1064.9988616175042,
+            "climatology_causal": 359.7703233109951
+          },
+          "floor_pct": 10.648236880290906,
+          "bar_weaker_than_a_flat_line": false
+        },
+        {
+          "pair": "CH",
+          "band": "36-48h",
+          "n": 720,
+          "gate_pass": true,
+          "minimum_n": 684,
+          "enough_pairs": true,
+          "challenger_wape_pct": 8.007164067544696,
+          "oracle_skill_pct": {
+            "constant_oracle": 91.54003015248685,
+            "climatology_oracle": 11.201669365403621
+          },
+          "oracle_margin_readable": {
+            "constant_oracle": true,
+            "climatology_oracle": true
+          },
+          "hold": null,
+          "grade": "A",
+          "plus": false,
+          "label": "A",
+          "conditions": {
+            "G1": true,
+            "G2": true,
+            "G3": true,
+            "G4": true
+          },
+          "failed": [],
+          "skill_pct": {
+            "seasonal_naive": 36.81169345757591,
+            "constant_causal": 91.57882897774918,
+            "climatology_causal": 78.66183579714769
+          },
+          "own_error_margin_pct": {
+            "seasonal_naive": 58.25712932005997,
+            "constant_causal": 1087.4833053001214,
+            "climatology_causal": 368.6438769959076
+          },
+          "floor_pct": 10.648236880290906,
+          "bar_weaker_than_a_flat_line": false
+        },
+        {
+          "pair": "CH",
+          "band": "48-64h",
+          "n": 510,
+          "gate_pass": true,
+          "minimum_n": 456,
+          "enough_pairs": true,
+          "challenger_wape_pct": 8.39433278149978,
+          "oracle_skill_pct": {
+            "constant_oracle": 90.4509777372489,
+            "climatology_oracle": 3.4669069004607644
+          },
+          "oracle_margin_readable": {
+            "constant_oracle": true,
+            "climatology_oracle": false
+          },
+          "hold": null,
+          "grade": "A",
+          "plus": false,
+          "label": "A",
+          "conditions": {
+            "G1": true,
+            "G2": true,
+            "G3": true,
+            "G4": true
+          },
+          "failed": [],
+          "skill_pct": {
+            "seasonal_naive": 32.98312114379558,
+            "constant_causal": 90.23799955509605,
+            "climatology_causal": 77.04169161667079
+          },
+          "own_error_margin_pct": {
+            "seasonal_naive": 49.216140331700934,
+            "constant_causal": 924.3802032625696,
+            "climatology_causal": 335.5721611990078
+          },
+          "floor_pct": 10.648236880290906,
+          "bar_weaker_than_a_flat_line": false
+        }
+      ],
+      "denominator_sensitive_cells": []
+    }
+  ]
+}

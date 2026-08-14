@@ -54,7 +54,8 @@ from src.evaluation.gate_grading import (
 REPO = Path(__file__).resolve().parents[1]
 HARNESSES = {"solar": REPO / "scripts" / "evaluate_solar_retrain.py",
              "wind": REPO / "scripts" / "evaluate_wind_retrain.py"}
-TRANCHES = {"2a": (REPO / "experiments" / "ABL348" / "results_abl405_tranche2a.json", "solar"),
+TRANCHES = {"1b": (REPO / "experiments" / "ABL348" / "results_abl381_tranche1b.json", "solar"),
+            "2a": (REPO / "experiments" / "ABL348" / "results_abl405_tranche2a.json", "solar"),
             "2b": (REPO / "experiments" / "ABL348" / "results_abl406_tranche2b.json", "wind")}
 
 
@@ -265,11 +266,12 @@ def test_no_is_anti_correlated_in_every_band_which_is_what_g4_reads():
         assert grade_cell(cell["scores"], stream).conditions["G4"] is False
 
 
-@pytest.mark.parametrize("tranche", ["2a", "2b"])
+@pytest.mark.parametrize("tranche", sorted(TRANCHES))
 def test_no_cell_changes_grade_on_the_other_denominator(tranche):
     """ABL-418 registers G1 on the printed skill column; ABL-406 quoted margins
-    on the challenger's own error. Neither decides anything on these 48 cells,
-    and the published 2-dp floors do not either."""
+    on the challenger's own error. Neither decides anything on these 54 cells
+    (48 from ABL-418's two tranches, 6 from 1b's retro-grade on ABL-438), and the
+    published 2-dp floors do not either."""
     path, stream = TRANCHES[tranche]
     floor, published = readability_floor_pct(stream), PUBLISHED_FLOOR_PCT_K1[stream]
     for cell in json.loads(path.read_text(encoding="utf-8"))["gate_cells"]:
