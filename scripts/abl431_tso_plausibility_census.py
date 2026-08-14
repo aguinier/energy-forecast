@@ -30,6 +30,7 @@ from src.tso_plausibility import (
     PLAUSIBILITY_TOLERANCE,
     REFERENCE_QUANTILE,
     TSO_FORECAST_SOURCES,
+    forecast_read,
     reference_scale,
 )
 
@@ -60,16 +61,18 @@ def census(conn: sqlite3.Connection, tolerance: float, quantile: float) -> dict:
                 continue
             n_evaluable += 1
 
+            expression, where, params = forecast_read(table, column)
             largest = conn.execute(
-                f"SELECT MAX({column}) FROM {table} WHERE country_code = ? "
-                f"AND forecast_type = 'day_ahead'", (country,)).fetchone()[0]
+                f"SELECT MAX({expression}) FROM {table} WHERE country_code = ? "
+                f"AND {where}", (country, *params)).fetchone()[0]
             if largest is not None:
                 ratios.append((largest / scale.reference_mw, country, column))
 
             count, lo, hi = conn.execute(
                 f"SELECT COUNT(*), MIN(target_timestamp_utc), MAX(target_timestamp_utc) "
-                f"FROM {table} WHERE country_code = ? AND forecast_type = 'day_ahead' "
-                f"AND {column} > ?", (country, scale.threshold_mw)).fetchone()
+                f"FROM {table} WHERE country_code = ? AND {where} "
+                f"AND ({expression}) > ?",
+                (country, *params, scale.threshold_mw)).fetchone()
             if count:
                 n_flagged += count
                 flagged.append({

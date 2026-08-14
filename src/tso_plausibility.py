@@ -44,23 +44,54 @@ five-year quarter-hourly series that is about 985 rows (~10 days). HU's
 incident is 96 rows, 0.0487% of its series -- an order of magnitude inside the
 bound, but not infinitely so.
 
-**Why 3x, measured.** Across all 146 evaluable (country, column) pairs on the
+**Why 3x, measured.** Across all 257 evaluable (country, column) pairs on the
 replica (2026-08-14), ``max / reference`` separates cleanly with no pair in
 between:
 
     anomalous   HU wind_onshore 497.7x   HU total 37.3x   SK wind_onshore 8.70x
-                MK wind_onshore 6.05x    MK total 4.12x
+                MK wind_onshore 6.07x    MK total 4.12x
     ---------------------------------- 3.0x -----------------------------------
     healthy     PT solar 1.82x   PT wind_offshore 1.77x   NL load 1.60x
                 p90 of all pairs 1.41x   p50 1.11x
 
 3.0 sits inside a measured empty band running from 1.82 to 4.12, so the
 tolerance is not a guess and the highest healthy pair keeps 1.65x of headroom.
-At 3.0 the guard flags **213 of 14,610,819 column-observations (0.0015%)**
-across both tables -- 192 HU (``wind_onshore_mw`` and the ``total_forecast_mw``
-it dominates, one CET market day), 20 MK on 2022-04-10, 1 SK on 2022-09-25, and
-**0 rows in ``energy_load_forecast``**, whose worst pair is NL at 1.60x.
+At 3.0 the guard flags **320 of 26,805,465 column-observations (0.00119%)**
+across all three tables -- 288 HU (``wind_onshore`` in both its live and its
+archived form, plus the ``total_forecast_mw`` it dominates, one CET market
+day), 30 MK on 2022-04-10, 2 SK on 2022-09-25, and **0 load rows in any of the
+three tables** -- the worst load pair anywhere is NL at 1.60x.
 ``scripts/abl431_tso_plausibility_census.py`` regenerates all of it.
+
+**The third table: ``forecast_vintage_archive`` (ABL-458).** ABL-431 wired the
+two live tables, which is not where ABL-247 reads. That issue needs *issued*
+vintages -- what a TSO published at a given run time, not the current value of
+a row -- and the archive is the only place those exist. The same 96 HU rows are
+in it, at the identical 140,996.245 over the identical window, so guarding only
+the live tables would have left the poison on the one read path the guard was
+built for. The static sweep in the tests names all three tables for that reason.
+
+The archive is **tall** where the other two are wide: one ``forecast_value``
+column for every variable, discriminated by ``source`` (``ml``/``tso``) and
+``forecast_type`` (the variable), with the product horizon in ``model_name``.
+No new rule -- the same reference, the same tolerance, the same one-sidedness --
+only a read shape, which lives in ``forecast_read`` so that this module and the
+census cannot compute it two different ways. Two exclusions are load-bearing
+there, and both can only *lower* the bar, which is the safe direction:
+
+- ``source = 'ml'`` rows are our own forecasts. They measure the same fleet but
+  are not a published TSO series, and a challenger that overshot would
+  otherwise raise the bar a TSO read is held to.
+- ``model_name = 'tso-week_ahead'`` reaches **4.76% of a pair's rows** (DK
+  load), an order of magnitude past the 1 - q = 0.5% cluster the quantile
+  tolerates, so a week-ahead unit error could sit in its own tail and lift the
+  threshold above itself. The reference is the day-ahead slice alone; a
+  week-ahead series read through this registration is still held to its own
+  fleet's day-ahead scale.
+
+There is no archive counterpart to ``total_forecast_mw``: the archive stores no
+aggregate row, and registering one would invent a series the table does not
+have.
 
 **Why it is not a blanket filter.** This repo has twice shipped a deliberately
 narrow guard to avoid discarding legitimately published values (ABL-71 keeps
@@ -71,7 +102,7 @@ places:
 - **Only an upper bound.** A published 0.0 is never flagged, at any tolerance
   -- ``0 <= 3 * reference`` always. Both prior guards survive untouched.
 - **A zero reference refuses to evaluate rather than rejecting everything.**
-  28 of the 174 (country, column) pairs are all-zero series -- landlocked
+  56 of the 318 (country, column) pairs are all-zero series -- landlocked
   countries reporting ``wind_offshore_mw = 0.0`` forever. Their reference is
   0.0, and ``value > 3 * 0`` would flag every non-zero value a new fleet ever
   published. ``ReferenceScale.evaluable`` is False there and the series passes
@@ -107,6 +138,11 @@ REFERENCE_QUANTILE = 0.995
 #: measured 1.82x-4.12x empty band across all evaluable pairs, not by convention.
 PLAUSIBILITY_TOLERANCE = 3.0
 
+#: The vintage archive (ABL-184). Tall where the two live tables are wide: one
+#: `forecast_value` column for every variable, discriminated by `source` and
+#: `forecast_type`. Named because the read shape branches on it.
+VINTAGE_ARCHIVE_TABLE = "forecast_vintage_archive"
+
 #: Every TSO day-ahead forecast column this module knows how to scale, mapped to
 #: the actuals series that measures the same fleet. There is deliberately no
 #: default: an unregistered column raises rather than being guarded against a
@@ -117,6 +153,12 @@ PLAUSIBILITY_TOLERANCE = 3.0
 #: total_forecast_mw has no single counterpart. COALESCE there matches
 #: db.RENEWABLE_TYPE_COLUMNS' null-aware form: a country reporting only solar
 #: must still contribute its solar, not be erased by a strict `+`.
+#:
+#: The `forecast_vintage_archive` half is keyed by the archive's own
+#: `forecast_type` value rather than by a column name, because that is what
+#: identifies the variable in a tall table. See `forecast_read`. There is no
+#: archive counterpart to `total_forecast_mw`: the archive stores no aggregate
+#: row, so registering one would invent a series the table does not have.
 TSO_FORECAST_SOURCES: Dict[Tuple[str, str], Tuple[str, str]] = {
     ("energy_generation_forecast", "solar_mw"):
         ("energy_generation", "solar_mw"),
@@ -130,12 +172,31 @@ TSO_FORECAST_SOURCES: Dict[Tuple[str, str], Tuple[str, str]] = {
          "+ COALESCE(wind_offshore_mw, 0)"),
     ("energy_load_forecast", "forecast_value_mw"):
         ("energy_load", "load_mw"),
+    (VINTAGE_ARCHIVE_TABLE, "solar"):
+        ("energy_generation", "solar_mw"),
+    (VINTAGE_ARCHIVE_TABLE, "wind_onshore"):
+        ("energy_generation", "wind_onshore_mw"),
+    (VINTAGE_ARCHIVE_TABLE, "wind_offshore"):
+        ("energy_generation", "wind_offshore_mw"),
+    (VINTAGE_ARCHIVE_TABLE, "load"):
+        ("energy_load", "load_mw"),
 }
+
+#: The archive's `model_name` for the day-ahead TSO product. The reference is
+#: taken over this slice alone, not over every `source = 'tso'` row, because
+#: `tso-week_ahead` reaches 4.76% of a pair's rows (DK load, measured
+#: 2026-08-14) -- an order of magnitude past the 1 - q = 0.5% contaminated
+#: cluster the quantile tolerates, so a week-ahead unit error could set the bar
+#: that is supposed to catch it. Excluding it can only lower the reference,
+#: which is the safe direction for a one-sided guard: a week-ahead series read
+#: through this registration is still held to its own fleet's day-ahead scale.
+VINTAGE_ARCHIVE_DAY_AHEAD_MODEL = "tso-day_ahead"
 
 #: Which timestamp column each table bounds an as-of read on.
 _TIMESTAMP_COLUMN = {
     "energy_generation_forecast": "target_timestamp_utc",
     "energy_load_forecast": "target_timestamp_utc",
+    VINTAGE_ARCHIVE_TABLE: "target_timestamp_utc",
     "energy_generation": "timestamp_utc",
     "energy_load": "timestamp_utc",
 }
@@ -204,6 +265,27 @@ class GuardOutcome:
         return self.reference.evaluable
 
 
+def forecast_read(table: str, column: str) -> Tuple[str, str, list]:
+    """How to read one registered TSO forecast column out of its own table.
+
+    Returns ``(value_expression, where_clause, params)``. One definition,
+    exported, because two callers computing the reference differently would be
+    the defect one level up -- the census script asks the same question of the
+    same rows through this function rather than restating the shape.
+
+    The two live tables are wide: the variable *is* the column, and
+    ``forecast_type`` names the product horizon (``'day_ahead'``). The vintage
+    archive is tall: the value is always ``forecast_value``, ``forecast_type``
+    names the *variable*, and the horizon lives in ``model_name``. Same
+    question, two schemas.
+    """
+    if table == VINTAGE_ARCHIVE_TABLE:
+        return ("forecast_value",
+                "source = ? AND model_name = ? AND forecast_type = ?",
+                ["tso", VINTAGE_ARCHIVE_DAY_AHEAD_MODEL, column])
+    return column, "forecast_type = ?", ["day_ahead"]
+
+
 def _nearest_rank_quantile(
     conn: sqlite3.Connection,
     table: str,
@@ -212,6 +294,7 @@ def _nearest_rank_quantile(
     quantile: float,
     as_of: Optional[str],
     extra_where: str = "",
+    extra_params: Optional[list] = None,
 ) -> Tuple[Optional[float], int]:
     """Nearest-rank quantile of ``expression`` over one country's whole history.
 
@@ -233,7 +316,9 @@ def _nearest_rank_quantile(
     where = ["country_code = ?", f"({expression}) IS NOT NULL"]
     params: list = [country_code]
     if extra_where:
+        # Appended before as_of so the placeholders bind in clause order.
         where.append(extra_where)
+        params.extend(extra_params or [])
     if as_of is not None:
         where.append(f"{_TIMESTAMP_COLUMN[table]} <= ?")
         params.append(as_of)
@@ -319,9 +404,10 @@ def reference_scale(
             f"TSO_FORECAST_SOURCES rather than guarding against a guessed scale"
         ) from None
 
+    expression, extra_where, extra_params = forecast_read(table, column)
     forecast_q, n_forecast = _nearest_rank_quantile(
-        conn, table, column, country_code, quantile, as_of,
-        extra_where="forecast_type = 'day_ahead'",
+        conn, table, expression, country_code, quantile, as_of,
+        extra_where=extra_where, extra_params=extra_params,
     )
     actual_q, n_actual = _nearest_rank_quantile(
         conn, actual_table, actual_expression, country_code, quantile, as_of,
