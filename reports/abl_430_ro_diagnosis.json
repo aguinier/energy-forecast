@@ -1,0 +1,1390 @@
+{
+  "meta": {
+    "issue": "ABL-430",
+    "generated_at": "2026-08-14T00:39:43+00:00",
+    "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "replica_bytes": 9432453120,
+    "read_only": true,
+    "interpreter": "C:\\Code\\able\\energy-forecast\\.venv\\Scripts\\python.exe"
+  },
+  "A1_solar_clock": {
+    "window": "2026-05-01..2026-08-01",
+    "per_country": [
+      {
+        "country": "AT",
+        "centroid_h_utc": 10.439,
+        "solar_noon_h_utc": 10.954,
+        "offset_h": -0.515
+      },
+      {
+        "country": "BE",
+        "centroid_h_utc": 11.199,
+        "solar_noon_h_utc": 11.715,
+        "offset_h": -0.516
+      },
+      {
+        "country": "BG",
+        "centroid_h_utc": 10.19,
+        "solar_noon_h_utc": 10.318,
+        "offset_h": -0.128
+      },
+      {
+        "country": "CH",
+        "centroid_h_utc": 10.912,
+        "solar_noon_h_utc": 11.489,
+        "offset_h": -0.576
+      },
+      {
+        "country": "CZ",
+        "centroid_h_utc": 10.37,
+        "solar_noon_h_utc": 10.971,
+        "offset_h": -0.601
+      },
+      {
+        "country": "DE",
+        "centroid_h_utc": 10.735,
+        "solar_noon_h_utc": 11.256,
+        "offset_h": -0.521
+      },
+      {
+        "country": "EE",
+        "centroid_h_utc": 9.844,
+        "solar_noon_h_utc": 10.314,
+        "offset_h": -0.47
+      },
+      {
+        "country": "ES",
+        "centroid_h_utc": 11.742,
+        "solar_noon_h_utc": 12.275,
+        "offset_h": -0.533
+      },
+      {
+        "country": "FI",
+        "centroid_h_utc": 9.701,
+        "solar_noon_h_utc": 10.357,
+        "offset_h": -0.656
+      },
+      {
+        "country": "FR",
+        "centroid_h_utc": 11.448,
+        "solar_noon_h_utc": 11.83,
+        "offset_h": -0.382
+      },
+      {
+        "country": "GR",
+        "centroid_h_utc": 9.873,
+        "solar_noon_h_utc": 10.497,
+        "offset_h": -0.624
+      },
+      {
+        "country": "HR",
+        "centroid_h_utc": 10.344,
+        "solar_noon_h_utc": 10.884,
+        "offset_h": -0.539
+      },
+      {
+        "country": "HU",
+        "centroid_h_utc": 10.081,
+        "solar_noon_h_utc": 10.693,
+        "offset_h": -0.611
+      },
+      {
+        "country": "IT",
+        "centroid_h_utc": 10.601,
+        "solar_noon_h_utc": 11.15,
+        "offset_h": -0.549
+      },
+      {
+        "country": "LT",
+        "centroid_h_utc": 9.527,
+        "solar_noon_h_utc": 10.384,
+        "offset_h": -0.857
+      },
+      {
+        "country": "LV",
+        "centroid_h_utc": 9.571,
+        "solar_noon_h_utc": 10.394,
+        "offset_h": -0.823
+      },
+      {
+        "country": "NL",
+        "centroid_h_utc": 10.987,
+        "solar_noon_h_utc": 11.61,
+        "offset_h": -0.623
+      },
+      {
+        "country": "NO",
+        "centroid_h_utc": 10.632,
+        "solar_noon_h_utc": 11.357,
+        "offset_h": -0.725
+      },
+      {
+        "country": "PL",
+        "centroid_h_utc": 10.139,
+        "solar_noon_h_utc": 10.783,
+        "offset_h": -0.644
+      },
+      {
+        "country": "PT",
+        "centroid_h_utc": 12.115,
+        "solar_noon_h_utc": 12.547,
+        "offset_h": -0.432
+      },
+      {
+        "country": "RO",
+        "centroid_h_utc": 9.763,
+        "solar_noon_h_utc": 10.358,
+        "offset_h": -0.595
+      },
+      {
+        "country": "SE",
+        "centroid_h_utc": 10.593,
+        "solar_noon_h_utc": 10.978,
+        "offset_h": -0.385
+      },
+      {
+        "country": "SI",
+        "centroid_h_utc": 10.471,
+        "solar_noon_h_utc": 10.993,
+        "offset_h": -0.522
+      },
+      {
+        "country": "SK",
+        "centroid_h_utc": 10.18,
+        "solar_noon_h_utc": 10.694,
+        "offset_h": -0.515
+      }
+    ],
+    "fleet_median_offset_h": -0.544,
+    "fleet_min_offset_h": -0.857,
+    "fleet_max_offset_h": -0.128,
+    "ro_offset_h": -0.595,
+    "ro_rank_of": "10/24",
+    "ro_z_vs_fleet": -0.27,
+    "verdict": "RO sits inside the fleet distribution. No local-time, UTC-offset or DST error on energy_generation."
+  },
+  "A2_wind_vs_tso": {
+    "window": "2026-01-01..2026-08-11",
+    "per_country": [
+      {
+        "country": "AT",
+        "n": 5328,
+        "corr": 0.9105,
+        "argmax_lag_h": -1,
+        "slope_tso_on_actual": 0.829,
+        "wape_pct": 27.81,
+        "actual_mean_mw": 1003.9,
+        "by_lag": null
+      },
+      {
+        "country": "BE",
+        "n": 5328,
+        "corr": 0.9427,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 1.01,
+        "wape_pct": 20.74,
+        "actual_mean_mw": 678.3,
+        "by_lag": null
+      },
+      {
+        "country": "BG",
+        "n": 4611,
+        "corr": 0.8577,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 1.0639,
+        "wape_pct": 42.9,
+        "actual_mean_mw": 148.7,
+        "by_lag": null
+      },
+      {
+        "country": "CH",
+        "n": 5307,
+        "corr": 0.6893,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.2375,
+        "wape_pct": 50.56,
+        "actual_mean_mw": 21.0,
+        "by_lag": null
+      },
+      {
+        "country": "DE",
+        "n": 5309,
+        "corr": 0.9788,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.9988,
+        "wape_pct": 10.67,
+        "actual_mean_mw": 11791.7,
+        "by_lag": null
+      },
+      {
+        "country": "EE",
+        "n": 5274,
+        "corr": 0.8646,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.7746,
+        "wape_pct": 32.53,
+        "actual_mean_mw": 139.0,
+        "by_lag": null
+      },
+      {
+        "country": "ES",
+        "n": 5261,
+        "corr": 0.7778,
+        "argmax_lag_h": 2,
+        "slope_tso_on_actual": 0.8584,
+        "wape_pct": 25.86,
+        "actual_mean_mw": 6249.0,
+        "by_lag": null
+      },
+      {
+        "country": "FI",
+        "n": 5306,
+        "corr": 0.9537,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.9404,
+        "wape_pct": 18.26,
+        "actual_mean_mw": 2243.6,
+        "by_lag": null
+      },
+      {
+        "country": "FR",
+        "n": 4766,
+        "corr": 0.9735,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 1.0093,
+        "wape_pct": 11.71,
+        "actual_mean_mw": 4971.5,
+        "by_lag": null
+      },
+      {
+        "country": "GR",
+        "n": 5328,
+        "corr": 0.9399,
+        "argmax_lag_h": -1,
+        "slope_tso_on_actual": 0.9355,
+        "wape_pct": 16.22,
+        "actual_mean_mw": 1445.0,
+        "by_lag": null
+      },
+      {
+        "country": "HR",
+        "n": 5328,
+        "corr": 0.9335,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.9643,
+        "wape_pct": 21.35,
+        "actual_mean_mw": 324.0,
+        "by_lag": null
+      },
+      {
+        "country": "HU",
+        "n": 5328,
+        "corr": 0.0237,
+        "argmax_lag_h": 3,
+        "slope_tso_on_actual": 2.0992,
+        "wape_pct": 597.0,
+        "actual_mean_mw": 62.8,
+        "by_lag": null
+      },
+      {
+        "country": "IT",
+        "n": 5307,
+        "corr": 0.9078,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.8882,
+        "wape_pct": 22.15,
+        "actual_mean_mw": 2738.8,
+        "by_lag": null
+      },
+      {
+        "country": "LT",
+        "n": 5327,
+        "corr": 0.9027,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.8964,
+        "wape_pct": 25.66,
+        "actual_mean_mw": 570.1,
+        "by_lag": null
+      },
+      {
+        "country": "LV",
+        "n": 5258,
+        "corr": 0.8388,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.9081,
+        "wape_pct": 38.79,
+        "actual_mean_mw": 34.9,
+        "by_lag": null
+      },
+      {
+        "country": "NL",
+        "n": 5328,
+        "corr": 0.9052,
+        "argmax_lag_h": -1,
+        "slope_tso_on_actual": 1.4673,
+        "wape_pct": 68.83,
+        "actual_mean_mw": 691.9,
+        "by_lag": null
+      },
+      {
+        "country": "NO",
+        "n": 5328,
+        "corr": 0.953,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 1.0064,
+        "wape_pct": 9.7,
+        "actual_mean_mw": 1638.8,
+        "by_lag": null
+      },
+      {
+        "country": "PL",
+        "n": 4925,
+        "corr": 0.9284,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 1.0634,
+        "wape_pct": 18.66,
+        "actual_mean_mw": 2231.4,
+        "by_lag": null
+      },
+      {
+        "country": "PT",
+        "n": 5209,
+        "corr": 0.9641,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.9561,
+        "wape_pct": 14.44,
+        "actual_mean_mw": 1481.3,
+        "by_lag": null
+      },
+      {
+        "country": "RO",
+        "n": 5328,
+        "corr": 0.9402,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.9122,
+        "wape_pct": 24.05,
+        "actual_mean_mw": 672.6,
+        "by_lag": {
+          "-3": 0.8807,
+          "-2": 0.9134,
+          "-1": 0.9347,
+          "0": 0.9402,
+          "1": 0.9273,
+          "2": 0.8993,
+          "3": 0.8609
+        }
+      },
+      {
+        "country": "SE",
+        "n": 5141,
+        "corr": 0.9941,
+        "argmax_lag_h": 0,
+        "slope_tso_on_actual": 0.9859,
+        "wape_pct": 4.41,
+        "actual_mean_mw": 4509.0,
+        "by_lag": null
+      }
+    ],
+    "caveat": "publication_timestamp_utc is fetch time, so these day_ahead rows are revision-contaminated (ABL-348 tso_role). WAPE here is a lower bound on true day-ahead error and is not an achievability claim. Sign, alignment, scale and zone are unaffected by revision."
+  },
+  "A3_net_position_balance": {
+    "window": "2026-01-01..2026-08-11",
+    "per_country": [
+      {
+        "country": "AT",
+        "n": 5300,
+        "corr": 0.5263,
+        "argmax_lag_h": 2,
+        "slope_np_on_balance": 0.6391,
+        "mean_np_mw": -700.7,
+        "by_lag": null
+      },
+      {
+        "country": "BE",
+        "n": 5301,
+        "corr": 0.689,
+        "argmax_lag_h": 1,
+        "slope_np_on_balance": 0.7242,
+        "mean_np_mw": -3356.3,
+        "by_lag": null
+      },
+      {
+        "country": "BG",
+        "n": 5295,
+        "corr": 0.6286,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.6399,
+        "mean_np_mw": -124.0,
+        "by_lag": null
+      },
+      {
+        "country": "CZ",
+        "n": 5300,
+        "corr": 0.9067,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 1.0117,
+        "mean_np_mw": 828.0,
+        "by_lag": null
+      },
+      {
+        "country": "DE",
+        "n": 5301,
+        "corr": 0.9261,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.5967,
+        "mean_np_mw": -362.6,
+        "by_lag": null
+      },
+      {
+        "country": "EE",
+        "n": 5271,
+        "corr": 0.8539,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.5328,
+        "mean_np_mw": -380.0,
+        "by_lag": null
+      },
+      {
+        "country": "ES",
+        "n": 5292,
+        "corr": 0.8398,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.5132,
+        "mean_np_mw": 1417.2,
+        "by_lag": null
+      },
+      {
+        "country": "FI",
+        "n": 5294,
+        "corr": 0.9682,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.9258,
+        "mean_np_mw": -831.8,
+        "by_lag": null
+      },
+      {
+        "country": "FR",
+        "n": 4757,
+        "corr": 0.7321,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.559,
+        "mean_np_mw": 6215.5,
+        "by_lag": null
+      },
+      {
+        "country": "HR",
+        "n": 5301,
+        "corr": 0.776,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 1.0806,
+        "mean_np_mw": -468.9,
+        "by_lag": null
+      },
+      {
+        "country": "HU",
+        "n": 5301,
+        "corr": 0.9466,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.8959,
+        "mean_np_mw": -1322.4,
+        "by_lag": null
+      },
+      {
+        "country": "LT",
+        "n": 5300,
+        "corr": 0.8716,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.7483,
+        "mean_np_mw": -323.3,
+        "by_lag": null
+      },
+      {
+        "country": "LV",
+        "n": 5295,
+        "corr": 0.9421,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.8618,
+        "mean_np_mw": -37.0,
+        "by_lag": null
+      },
+      {
+        "country": "NL",
+        "n": 5300,
+        "corr": 0.5938,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.3217,
+        "mean_np_mw": 1301.1,
+        "by_lag": null
+      },
+      {
+        "country": "PL",
+        "n": 5301,
+        "corr": 0.9043,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.7357,
+        "mean_np_mw": 361.5,
+        "by_lag": null
+      },
+      {
+        "country": "PT",
+        "n": 5300,
+        "corr": 0.4297,
+        "argmax_lag_h": 1,
+        "slope_np_on_balance": 0.6239,
+        "mean_np_mw": -1335.5,
+        "by_lag": null
+      },
+      {
+        "country": "RO",
+        "n": 5301,
+        "corr": 0.9058,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.761,
+        "mean_np_mw": -258.6,
+        "by_lag": {
+          "-2": 0.7862,
+          "-1": 0.8745,
+          "0": 0.9058,
+          "1": 0.8414,
+          "2": 0.7222
+        }
+      },
+      {
+        "country": "SI",
+        "n": 5263,
+        "corr": 0.8177,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 0.81,
+        "mean_np_mw": -310.1,
+        "by_lag": null
+      },
+      {
+        "country": "SK",
+        "n": 5292,
+        "corr": 0.8424,
+        "argmax_lag_h": 0,
+        "slope_np_on_balance": 1.0425,
+        "mean_np_mw": 93.5,
+        "by_lag": null
+      }
+    ]
+  },
+  "B_flow_identity": {
+    "legs_present": [
+      {
+        "from": "BG",
+        "to": "RO",
+        "rows": 30949,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-13 12:00:00"
+      },
+      {
+        "from": "HU",
+        "to": "RO",
+        "rows": 28742,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-13 13:00:00"
+      },
+      {
+        "from": "RO",
+        "to": "BG",
+        "rows": 20322,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-13 12:00:00"
+      },
+      {
+        "from": "RO",
+        "to": "HU",
+        "rows": 20323,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-13 13:00:00"
+      },
+      {
+        "from": "RO",
+        "to": "RS",
+        "rows": 20322,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-13 12:00:00"
+      },
+      {
+        "from": "RO",
+        "to": "UA",
+        "rows": 20321,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-13 12:00:00"
+      },
+      {
+        "from": "RS",
+        "to": "RO",
+        "rows": 30205,
+        "first": "2023-01-01 00:00:00",
+        "last": "2026-08-13 12:00:00"
+      }
+    ],
+    "legs_expected_but_absent": [
+      "MD->RO",
+      "RO->MD",
+      "UA->RO"
+    ],
+    "identity_on_complete_hours": {
+      "n": 557,
+      "corr": 0.8427,
+      "mean_np_mw": -97.5,
+      "mean_flow_sum_mw": -426.7,
+      "mean_residual_mw": 329.2,
+      "residual_daily_mean_sd_mw": 256.5,
+      "residual_daily_min_mw": -207.0,
+      "residual_daily_max_mw": 760.5,
+      "n_days": 24,
+      "abl280_bias_sd_mw": 721.5
+    }
+  },
+  "C_series_integrity": {
+    "RO wind_onshore": {
+      "rows": 19962,
+      "native_step_minutes": {
+        "15": 19955,
+        "30": 6
+      },
+      "hours": 4992,
+      "mean_mw": 655.4,
+      "exact_zero_hours": 33,
+      "longest_constant_run_h": 5,
+      "ac1": 0.9811,
+      "ac24": 0.1959,
+      "ac168": 0.0845
+    },
+    "RO net_position": {
+      "rows": 4992,
+      "native_step_minutes": {
+        "60": 4991
+      },
+      "hours": 4992,
+      "mean_mw": -263.8,
+      "exact_zero_hours": 0,
+      "longest_constant_run_h": 1,
+      "ac1": 0.9346,
+      "ac24": 0.5819,
+      "ac168": 0.4072
+    }
+  },
+  "D_wind_feature_strength": {
+    "fit_window": "2026-01-14..2026-08-10",
+    "feature_families": "10 calendar + 11 lag/rolling of the target + 3 weather (wind_speed_100m_ms, wind_speed_10m_ms, temperature_c)",
+    "table": [
+      {
+        "country": "NO",
+        "ch_corr": -0.1478684468358845,
+        "ch_slope": -0.07829039088800314,
+        "ch_wape": 51.57195854134261,
+        "d7_corr": -0.08387357579776616,
+        "persistence_corr": 0.2644903231416749,
+        "ac24": 0.469,
+        "ac168": 0.2334,
+        "corr_ws100": 0.3286,
+        "mean_mw": 1606.5,
+        "n_clusters": 3,
+        "wtd_dist_to_centroid_km": 346.2
+      },
+      {
+        "country": "RO",
+        "ch_corr": -0.056495865982403366,
+        "ch_slope": -0.02119564044934132,
+        "ch_wape": 79.87036707185118,
+        "d7_corr": -0.1846744271843911,
+        "persistence_corr": 0.05800283195946188,
+        "ac24": 0.1959,
+        "ac168": 0.0845,
+        "corr_ws100": 0.3657,
+        "mean_mw": 655.4,
+        "n_clusters": 3,
+        "wtd_dist_to_centroid_km": 170.5
+      },
+      {
+        "country": "LV",
+        "ch_corr": 0.10724473073635292,
+        "ch_slope": 0.05034732492367097,
+        "ch_wape": 90.06525384021096,
+        "d7_corr": 0.1309463026186761,
+        "persistence_corr": -0.05018418202265202,
+        "ac24": 0.3323,
+        "ac168": 0.1303,
+        "corr_ws100": 0.5955,
+        "mean_mw": 34.8,
+        "n_clusters": 1,
+        "wtd_dist_to_centroid_km": 0.0
+      },
+      {
+        "country": "CH",
+        "ch_corr": 0.18468641030238686,
+        "ch_slope": 0.09812748963738578,
+        "ch_wape": 45.571852907963255,
+        "d7_corr": 0.059873902507599004,
+        "persistence_corr": 0.0174341544310519,
+        "ac24": 0.4092,
+        "ac168": 0.2246,
+        "corr_ws100": 0.3776,
+        "mean_mw": 20.7,
+        "n_clusters": 1,
+        "wtd_dist_to_centroid_km": 0.0
+      },
+      {
+        "country": "HU",
+        "ch_corr": 0.2189260533347596,
+        "ch_slope": 0.18651514279197304,
+        "ch_wape": 104.75070154532595,
+        "d7_corr": -0.21447210126785135,
+        "persistence_corr": -0.02563996242268141,
+        "ac24": 0.3699,
+        "ac168": 0.0189,
+        "corr_ws100": 0.5055,
+        "mean_mw": 62.1,
+        "n_clusters": 1,
+        "wtd_dist_to_centroid_km": 0.0
+      },
+      {
+        "country": "PT",
+        "ch_corr": 0.2691294895648047,
+        "ch_slope": 0.19300545567591873,
+        "ch_wape": 65.95578444400523,
+        "d7_corr": 0.4061422159974362,
+        "persistence_corr": 0.26692789620525725,
+        "ac24": 0.5726,
+        "ac168": 0.2379,
+        "corr_ws100": 0.7354,
+        "mean_mw": 1448.8,
+        "n_clusters": 3,
+        "wtd_dist_to_centroid_km": 95.3
+      },
+      {
+        "country": "IT",
+        "ch_corr": 0.3468641487352253,
+        "ch_slope": 0.25899556121023387,
+        "ch_wape": 69.80893166005717,
+        "d7_corr": 0.1636842297311698,
+        "persistence_corr": 0.20352491631549366,
+        "ac24": 0.5704,
+        "ac168": 0.2203,
+        "corr_ws100": 0.5278,
+        "mean_mw": 2616.6,
+        "n_clusters": 6,
+        "wtd_dist_to_centroid_km": 236.7
+      },
+      {
+        "country": "HR",
+        "ch_corr": 0.495310939693618,
+        "ch_slope": 0.329507216831563,
+        "ch_wape": 67.83910356637399,
+        "d7_corr": -0.09717974736249341,
+        "persistence_corr": 0.24863222438446744,
+        "ac24": 0.4614,
+        "ac168": 0.084,
+        "corr_ws100": 0.6848,
+        "mean_mw": 320.1,
+        "n_clusters": 2,
+        "wtd_dist_to_centroid_km": 65.9
+      },
+      {
+        "country": "CZ",
+        "ch_corr": 0.5104182636313123,
+        "ch_slope": 0.36591095434475834,
+        "ch_wape": 45.73652432593843,
+        "d7_corr": -0.12226153014663242,
+        "persistence_corr": -0.08844176459956782,
+        "ac24": 0.4518,
+        "ac168": -0.0786,
+        "corr_ws100": 0.752,
+        "mean_mw": 76.0,
+        "n_clusters": 1,
+        "wtd_dist_to_centroid_km": 0.0
+      },
+      {
+        "country": "NL",
+        "ch_corr": 0.538425720422624,
+        "ch_slope": 0.3953738517551106,
+        "ch_wape": 80.78313044454995,
+        "d7_corr": 0.12736243407055473,
+        "persistence_corr": -0.09596159026608929,
+        "ac24": 0.431,
+        "ac168": 0.1159,
+        "corr_ws100": 0.8323,
+        "mean_mw": 655.4,
+        "n_clusters": 4,
+        "wtd_dist_to_centroid_km": 80.7
+      },
+      {
+        "country": "BG",
+        "ch_corr": 0.5466139378555822,
+        "ch_slope": 0.2590441112763044,
+        "ch_wape": 57.14730001166981,
+        "d7_corr": -0.16239144190523963,
+        "persistence_corr": 0.09081853010383095,
+        "ac24": 0.2784,
+        "ac168": 0.0802,
+        "corr_ws100": 0.4752,
+        "mean_mw": 136.8,
+        "n_clusters": 1,
+        "wtd_dist_to_centroid_km": 0.0
+      },
+      {
+        "country": "SE",
+        "ch_corr": 0.5880842255187756,
+        "ch_slope": 0.4137865910072649,
+        "ch_wape": 30.231245427743303,
+        "d7_corr": 0.03579653949406111,
+        "persistence_corr": 0.15093397074609208,
+        "ac24": 0.4189,
+        "ac168": 0.0481,
+        "corr_ws100": 0.6363,
+        "mean_mw": 4419.7,
+        "n_clusters": 13,
+        "wtd_dist_to_centroid_km": 297.7
+      },
+      {
+        "country": "FI",
+        "ch_corr": 0.5947629289809574,
+        "ch_slope": 0.35455094880106586,
+        "ch_wape": 43.5348263894406,
+        "d7_corr": 0.3369622026121318,
+        "persistence_corr": 0.14316968118502868,
+        "ac24": 0.4416,
+        "ac168": 0.2326,
+        "corr_ws100": 0.775,
+        "mean_mw": 2169.4,
+        "n_clusters": 7,
+        "wtd_dist_to_centroid_km": 145.9
+      },
+      {
+        "country": "ES",
+        "ch_corr": 0.6372625290239126,
+        "ch_slope": 0.5907439796602956,
+        "ch_wape": 53.625661779699804,
+        "d7_corr": 0.527265523334179,
+        "persistence_corr": 0.18389878018522676,
+        "ac24": 0.7538,
+        "ac168": 0.3774,
+        "corr_ws100": 0.6221,
+        "mean_mw": 6012.3,
+        "n_clusters": 15,
+        "wtd_dist_to_centroid_km": 296.3
+      },
+      {
+        "country": "PL",
+        "ch_corr": 0.6510197509757235,
+        "ch_slope": 0.4131648721797004,
+        "ch_wape": 52.65258985300773,
+        "d7_corr": -0.07335604715726808,
+        "persistence_corr": 0.055586517645638135,
+        "ac24": 0.4633,
+        "ac168": -0.0645,
+        "corr_ws100": 0.7555,
+        "mean_mw": 2124.1,
+        "n_clusters": 11,
+        "wtd_dist_to_centroid_km": 176.1
+      },
+      {
+        "country": "LT",
+        "ch_corr": 0.6663001251601584,
+        "ch_slope": 0.4686558390605255,
+        "ch_wape": 57.82913564618104,
+        "d7_corr": 0.10354616285462807,
+        "persistence_corr": -0.015245047285835868,
+        "ac24": 0.3885,
+        "ac168": 0.0038,
+        "corr_ws100": 0.7914,
+        "mean_mw": 567.1,
+        "n_clusters": 1,
+        "wtd_dist_to_centroid_km": 0.0
+      },
+      {
+        "country": "EE",
+        "ch_corr": 0.7190883835938097,
+        "ch_slope": 0.42953978421234956,
+        "ch_wape": 43.682402115512595,
+        "d7_corr": 0.1378563931853217,
+        "persistence_corr": -0.0998001049922531,
+        "ac24": 0.3294,
+        "ac168": 0.0055,
+        "corr_ws100": 0.8038,
+        "mean_mw": 136.0,
+        "n_clusters": 1,
+        "wtd_dist_to_centroid_km": 0.0
+      },
+      {
+        "country": "GR",
+        "ch_corr": 0.7989688461935079,
+        "ch_slope": 0.6655717974801244,
+        "ch_wape": 29.80454043947113,
+        "d7_corr": 0.19718483376833543,
+        "persistence_corr": 0.35022935784105197,
+        "ac24": 0.4337,
+        "ac168": 0.1396,
+        "corr_ws100": 0.7249,
+        "mean_mw": 1365.1,
+        "n_clusters": 4,
+        "wtd_dist_to_centroid_km": 153.9
+      }
+    ],
+    "drivers": {
+      "ac24": {
+        "n": 18,
+        "spearman_vs_ch_corr": 0.049,
+        "pearson_vs_ch_corr": 0.229,
+        "spearman_vs_ch_slope": 0.156
+      },
+      "ac168": {
+        "n": 18,
+        "spearman_vs_ch_corr": -0.315,
+        "pearson_vs_ch_corr": -0.251,
+        "spearman_vs_ch_slope": -0.278
+      },
+      "corr_ws100": {
+        "n": 18,
+        "spearman_vs_ch_corr": 0.705,
+        "pearson_vs_ch_corr": 0.777,
+        "spearman_vs_ch_slope": 0.695
+      },
+      "mean_mw": {
+        "n": 18,
+        "spearman_vs_ch_corr": 0.292,
+        "pearson_vs_ch_corr": 0.252,
+        "spearman_vs_ch_slope": 0.336
+      },
+      "wtd_dist_to_centroid_km": {
+        "n": 18,
+        "spearman_vs_ch_corr": -0.01,
+        "pearson_vs_ch_corr": -0.124,
+        "spearman_vs_ch_slope": 0.065
+      }
+    },
+    "ro_bands": [
+      {
+        "country": "RO",
+        "band": "24-36h",
+        "n": 720,
+        "ch_corr": -0.01541144842372763,
+        "ch_slope": -0.005214287457258931,
+        "ch_wape": 79.5283329800701,
+        "d7_corr": -0.2036202037371873,
+        "persistence_corr": 0.1554073732242686,
+        "ch_corr_z": -0.41,
+        "d7_corr_z": -5.53
+      },
+      {
+        "country": "RO",
+        "band": "36-48h",
+        "n": 720,
+        "ch_corr": -0.04628039678369212,
+        "ch_slope": -0.016094467085611082,
+        "ch_wape": 80.31613404427192,
+        "d7_corr": -0.2036202037371873,
+        "persistence_corr": 0.010468130043319923,
+        "ch_corr_z": -1.24,
+        "d7_corr_z": -5.53
+      },
+      {
+        "country": "RO",
+        "band": "48-64h",
+        "n": 510,
+        "ch_corr": -0.10779575273979036,
+        "ch_slope": -0.042278166805153956,
+        "ch_wape": 79.76663419121151,
+        "d7_corr": -0.14678287407879867,
+        "persistence_corr": 0.008132992610797144,
+        "ch_corr_z": -2.44,
+        "d7_corr_z": -3.33
+      }
+    ]
+  },
+  "E_net_position_covariates": {
+    "outbound_month_health": {
+      "BG": {
+        "months": 20,
+        "zero_months": 1,
+        "partial_months": 0
+      },
+      "CZ": {
+        "months": 20,
+        "zero_months": 0,
+        "partial_months": 0
+      },
+      "HU": {
+        "months": 20,
+        "zero_months": 2,
+        "partial_months": 0
+      },
+      "PL": {
+        "months": 20,
+        "zero_months": 0,
+        "partial_months": 0
+      },
+      "RO": {
+        "months": 20,
+        "zero_months": 6,
+        "partial_months": 1
+      }
+    },
+    "outbound_coverage_in_abl280_cohort_pct": {
+      "AT": 96.8,
+      "BE": 96.8,
+      "BG": 96.5,
+      "CZ": 96.8,
+      "DE": 96.8,
+      "EE": 96.5,
+      "ES": 96.8,
+      "FI": 96.8,
+      "FR": 96.8,
+      "HR": 96.8,
+      "HU": 96.8,
+      "LT": 96.8,
+      "LV": 96.8,
+      "NL": 96.8,
+      "PL": 96.8,
+      "PT": 96.8,
+      "RO": 96.8,
+      "SI": 96.8,
+      "SK": 96.8
+    },
+    "training_span": "2023-01-01..2026-03-01 (27720 h)",
+    "note": "Values above 100% are sub-hourly publication, not over-coverage: the count is of distinct hour labels present in a table that also carries quarter-hour rows for some countries.",
+    "coverage_pct": [
+      {
+        "country": "AT",
+        "net_position": 100.0,
+        "da_price": 91.9,
+        "tso_load_forecast": 99.9,
+        "weather": 98.5,
+        "xb_outbound_READ": 100.0,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "BE",
+        "net_position": 100.0,
+        "da_price": 99.9,
+        "tso_load_forecast": 99.9,
+        "weather": 98.5,
+        "xb_outbound_READ": 100.0,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "BG",
+        "net_position": 100.0,
+        "da_price": 97.1,
+        "tso_load_forecast": 6.0,
+        "weather": 98.5,
+        "xb_outbound_READ": 100.0,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "CZ",
+        "net_position": 100.0,
+        "da_price": 97.6,
+        "tso_load_forecast": 6.0,
+        "weather": 98.5,
+        "xb_outbound_READ": 97.4,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "DE",
+        "net_position": 100.0,
+        "da_price": 91.0,
+        "tso_load_forecast": 99.9,
+        "weather": 100.0,
+        "xb_outbound_READ": 100.0,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "EE",
+        "net_position": 100.0,
+        "da_price": 96.9,
+        "tso_load_forecast": 6.0,
+        "weather": 98.5,
+        "xb_outbound_READ": 94.7,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "ES",
+        "net_position": 100.0,
+        "da_price": 93.8,
+        "tso_load_forecast": 99.9,
+        "weather": 98.5,
+        "xb_outbound_READ": 97.4,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "FI",
+        "net_position": 99.9,
+        "da_price": 97.2,
+        "tso_load_forecast": 99.9,
+        "weather": 98.5,
+        "xb_outbound_READ": 100.0,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "FR",
+        "net_position": 100.0,
+        "da_price": 98.1,
+        "tso_load_forecast": 99.9,
+        "weather": 98.5,
+        "xb_outbound_READ": 84.1,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "HR",
+        "net_position": 100.0,
+        "da_price": 97.1,
+        "tso_load_forecast": 6.0,
+        "weather": 98.5,
+        "xb_outbound_READ": 100.0,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "HU",
+        "net_position": 100.0,
+        "da_price": 97.2,
+        "tso_load_forecast": 6.0,
+        "weather": 98.5,
+        "xb_outbound_READ": 92.0,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "LT",
+        "net_position": 100.0,
+        "da_price": 97.3,
+        "tso_load_forecast": 5.9,
+        "weather": 98.5,
+        "xb_outbound_READ": 92.1,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "LV",
+        "net_position": 100.0,
+        "da_price": 97.3,
+        "tso_load_forecast": 6.0,
+        "weather": 98.5,
+        "xb_outbound_READ": 89.4,
+        "xb_inbound_NOT_read": 94.7
+      },
+      {
+        "country": "NL",
+        "net_position": 100.0,
+        "da_price": 96.7,
+        "tso_load_forecast": 99.9,
+        "weather": 98.5,
+        "xb_outbound_READ": 97.3,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "PL",
+        "net_position": 100.0,
+        "da_price": 97.4,
+        "tso_load_forecast": 99.9,
+        "weather": 98.5,
+        "xb_outbound_READ": 100.0,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "PT",
+        "net_position": 99.9,
+        "da_price": 96.7,
+        "tso_load_forecast": 99.9,
+        "weather": 98.5,
+        "xb_outbound_READ": 100.0,
+        "xb_inbound_NOT_read": 97.4
+      },
+      {
+        "country": "RO",
+        "net_position": 100.0,
+        "da_price": 96.7,
+        "tso_load_forecast": 6.0,
+        "weather": 98.5,
+        "xb_outbound_READ": 65.7,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "SI",
+        "net_position": 100.0,
+        "da_price": 97.4,
+        "tso_load_forecast": 5.9,
+        "weather": 98.4,
+        "xb_outbound_READ": 100.0,
+        "xb_inbound_NOT_read": 100.0
+      },
+      {
+        "country": "SK",
+        "net_position": 100.0,
+        "da_price": 97.2,
+        "tso_load_forecast": 6.0,
+        "weather": 98.5,
+        "xb_outbound_READ": 68.5,
+        "xb_inbound_NOT_read": 100.0
+      }
+    ],
+    "ro_is_fleet_minimum_on": [
+      "xb_outbound_READ"
+    ],
+    "outbound_monthly_hours": [
+      {
+        "m": "2025-01",
+        "BG": 744,
+        "CZ": 744,
+        "HU": 744,
+        "PL": 744,
+        "RO": 0
+      },
+      {
+        "m": "2025-02",
+        "BG": 672,
+        "CZ": 672,
+        "HU": 672,
+        "PL": 672,
+        "RO": 672
+      },
+      {
+        "m": "2025-03",
+        "BG": 744,
+        "CZ": 744,
+        "HU": 744,
+        "PL": 744,
+        "RO": 744
+      },
+      {
+        "m": "2025-04",
+        "BG": 720,
+        "CZ": 720,
+        "HU": 720,
+        "PL": 720,
+        "RO": 720
+      },
+      {
+        "m": "2025-05",
+        "BG": 744,
+        "CZ": 744,
+        "HU": 744,
+        "PL": 744,
+        "RO": 744
+      },
+      {
+        "m": "2025-06",
+        "BG": 720,
+        "CZ": 720,
+        "HU": 720,
+        "PL": 720,
+        "RO": 720
+      },
+      {
+        "m": "2025-07",
+        "BG": 744,
+        "CZ": 744,
+        "HU": 0,
+        "PL": 744,
+        "RO": 744
+      },
+      {
+        "m": "2025-08",
+        "BG": 744,
+        "CZ": 744,
+        "HU": 744,
+        "PL": 744,
+        "RO": 744
+      },
+      {
+        "m": "2025-09",
+        "BG": 720,
+        "CZ": 720,
+        "HU": 720,
+        "PL": 720,
+        "RO": 720
+      },
+      {
+        "m": "2025-10",
+        "BG": 744,
+        "CZ": 744,
+        "HU": 744,
+        "PL": 744,
+        "RO": 0
+      },
+      {
+        "m": "2025-11",
+        "BG": 720,
+        "CZ": 720,
+        "HU": 720,
+        "PL": 720,
+        "RO": 720
+      },
+      {
+        "m": "2025-12",
+        "BG": 744,
+        "CZ": 744,
+        "HU": 744,
+        "PL": 744,
+        "RO": 744
+      },
+      {
+        "m": "2026-01",
+        "BG": 744,
+        "CZ": 744,
+        "HU": 744,
+        "PL": 744,
+        "RO": 0
+      },
+      {
+        "m": "2026-02",
+        "BG": 672,
+        "CZ": 672,
+        "HU": 672,
+        "PL": 672,
+        "RO": 0
+      },
+      {
+        "m": "2026-03",
+        "BG": 0,
+        "CZ": 744,
+        "HU": 744,
+        "PL": 744,
+        "RO": 744
+      },
+      {
+        "m": "2026-04",
+        "BG": 720,
+        "CZ": 720,
+        "HU": 720,
+        "PL": 720,
+        "RO": 0
+      },
+      {
+        "m": "2026-05",
+        "BG": 744,
+        "CZ": 744,
+        "HU": 0,
+        "PL": 744,
+        "RO": 744
+      },
+      {
+        "m": "2026-06",
+        "BG": 720,
+        "CZ": 720,
+        "HU": 720,
+        "PL": 720,
+        "RO": 0
+      },
+      {
+        "m": "2026-07",
+        "BG": 744,
+        "CZ": 744,
+        "HU": 744,
+        "PL": 744,
+        "RO": 317
+      },
+      {
+        "m": "2026-08",
+        "BG": 301,
+        "CZ": 302,
+        "HU": 302,
+        "PL": 302,
+        "RO": 302
+      }
+    ],
+    "loader": "src/chronos2/input_builder._load_crossborder_flow_covariates reads country_from only (ABL-28), so flow__total_export_mw / flow__net_mw come entirely from the outbound leg and flow__total_import_mw is a constant zero for every country."
+  }
+}
