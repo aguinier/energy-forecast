@@ -340,7 +340,11 @@ def test_attaching_grades_moves_no_gate_verdict():
 def test_a_recorded_grade_is_read_back_and_not_re_decided():
     """`cell_grade` prefers what the run wrote; recomputing it in the renderer
     would be the second implementation this module exists to prevent."""
-    cell = {"scores": scores(10.0, 20.0, 60.0, 30.0)}
+    # ABL-434: a cell carries its coverage, and a cell-level grade reads it. The
+    # gate block is what every harness writes; a synthetic cell without one is
+    # held rather than passed, which is asserted on its own below.
+    cell = {"scores": scores(10.0, 20.0, 60.0, 30.0),
+            "gate": {"n": 720, "minimum_n": 684, "enough_pairs": True}}
     attach_grades([cell], "wind")
     assert cell["grade"]["label"] == "A"
     # Move the stored decision. The renderer must follow the record, not the
@@ -349,4 +353,4 @@ def test_a_recorded_grade_is_read_back_and_not_re_decided():
     cell["grade"]["failed"] = [{"condition": "G1", "reason": "recorded by that run"}]
     assert cell_grade(cell, "wind").detail == "C — fails G1"
     # With no record, it is computed -- which is what grades tranche 2a and 2b.
-    assert cell_grade({"scores": cell["scores"]}, "wind").label == "A"
+    assert cell_grade({"scores": cell["scores"], "gate": cell["gate"]}, "wind").label == "A"

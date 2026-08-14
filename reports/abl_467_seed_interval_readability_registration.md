@@ -15,9 +15,10 @@ number below is arithmetic over records that already exist.
 **This amendment cannot be registered blind, and pretending otherwise would be
 the dishonest version of the ABL-444 pattern.** ABL-427's pack published the six
 Student-t intervals and the letters they imply, in §4 of
-`reports/abl_427_tranche2c_seed_reread_findings.md` (PR #80). Its §7.3 then
-*predicted the outcome of this issue in writing* — "HR resolves `A`, IT 24-36h
-resolves `A`, IT stays `U` overall on 36-48h" — before this issue was assigned.
+`reports/abl_427_tranche2c_seed_reread_findings.md` (PR #80, now merged at
+`dbc37af`). Its §7.3 then *predicted the outcome of this issue in writing* — "HR
+resolves `A`, IT 24-36h resolves `A`, IT stays `U` overall on 36-48h" — before
+this issue was assigned.
 
 So the affected set is public, and what pre-registration can still buy here is
 narrower but real:
@@ -238,13 +239,22 @@ interval on one cell's mean while grading another's margin.
 
 ### 5.2 `grade_cell` and ABL-434's property
 
-ABL-434 (PR #79, open) registers that `grade_cell` stays a function of `scores`
-alone, so that published margin-only re-reads reproduce byte-for-byte. **That
-property is preserved.** `seed_wapes` defaults to `None`; with it omitted the
-function is the one ABL-434 describes. The draws are read off the *cell* by
-`cell_grade` and `attach_grades` — the same two functions ABL-434 uses for
-coverage, and for the same reason: they hold a whole cell and `grade_cell` does
-not.
+ABL-434 (PR #79, merged into `main` at `ca3c7f8` while this issue was in flight)
+registers that `grade_cell` stays a function of `scores` alone, so that published
+margin-only re-reads reproduce byte-for-byte. **That property is preserved.**
+`seed_wapes` defaults to `None`; with it omitted the function is the one ABL-434
+describes, and §5.4's 1,568 replays are measured against ABL-434's own merged
+module rather than the one this branch was cut from. The draws are read off the
+*cell* by `cell_grade` and `attach_grades` — the same two functions ABL-434 uses
+for coverage, and for the same reason: they hold a whole cell and `grade_cell`
+does not.
+
+The two amendments compose in one place worth naming: a cell held at `X` for
+coverage **keeps** the interval its margin was read against. `X` is a statement
+about the rows, not a reason to discard the measurement that was taken, and a
+record that dropped the width could not say what the margin had been judged
+against. Pinned by
+`test_a_coverage_held_cell_keeps_the_interval_its_margin_was_read_against`.
 
 The distinction from ABL-434's coverage gate that matters: coverage is one-way and
 needs no per-scope table; **this is not one-way**, so it has one.
@@ -266,19 +276,47 @@ stronger than the presence check the call would give.
 ### 5.4 Blast radius, measured rather than asserted
 
 The issue says "no other committed tranche cell is at k > 1" and asks for that to
-be verified. It was, three independent ways:
+be verified. It was, three independent ways, against `main` at `ca3c7f8` — which
+**already contains ABL-427's record**, so this is a measurement rather than a
+prediction:
 
 1. **No call site anywhere passes k > 1** to `readability_floor_pct`,
    `grade_cell`, `cell_grade`, `attach_grades` or `pair_grade`.
-2. **613 committed graded cell-records** across `reports/` and `experiments/`
-   carry `floor_pct` of exactly `10.6482` (solar, 305) or `7.5054` (wind, 308) —
-   the k = 1 floors. No third value exists.
+2. **631 committed graded cell-records** across `reports/` and `experiments/`.
+   **613** carry `floor_pct` of exactly `10.6482` (solar, 305) or `7.5054` (wind,
+   308) — the k = 1 floors. The other **18 are all in one file**,
+   `reports/abl_427_tranche2c_seed_reread.json`: six cells published under three
+   candidate floors each. **No other file carries a non-k=1 floor at all.**
 3. **1,568 replays**: every one of the 196 committed `scores` blocks re-graded
    under the amended module across both streams, both levellings and both G2/G3
-   forms produced records **byte-identical** to the pre-amendment module.
+   forms produced records **byte-identical** to the pre-amendment module (compared
+   against `origin/main`'s `gate_grading.py`, i.e. after ABL-434).
 
-The six k > 1 cells in the programme are ABL-427's, and they are not on `main`.
-Pinned as tests 4 in `tests/test_abl467_seed_interval.py`.
+The issue's claim is therefore exactly right, and `abl427-t2c-reread` is pinned to
+`delta_min` so its published letters stand. The assertion in
+`tests/test_abl467_seed_interval.py` is an **equality**, not a bound, so a second
+k > 1 read landing anywhere goes red until someone names it.
+
+### 5.5 A red `main`, found and repaired here
+
+**`origin/main` was already failing its own test suite before this branch
+touched it**, and the repair is in this PR because leaving it red while stacking
+on top of it is worse than fixing it.
+
+ABL-427 (PR #80) and ABL-434 (PR #79) merged back to back on 2026-08-14. #80
+landed a fifth `grade_cell` caller — `scripts/abl427_tranche2c_seed_reread.py` —
+and #79 landed `MARGIN_ONLY_READERS`, the registry that has to name every such
+caller. Each branch was green on the base it was cut from; neither could see the
+other. `test_every_ungated_caller_is_registered_with_a_reason` has been failing on
+`main` since `ca3c7f8`, on a tree neither author ever ran. **Verified by checking
+out `origin/main` detached and running that file alone**, before making any change.
+
+The fix is the registry entry ABL-434 would have written had the script existed:
+ABL-427's read is margin-only and **fully covered** — all six cells clear their
+registered minimum n (720/684, 720/684, 510/456, and the same three for HR,
+checked against the record, not assumed) — so routing it through the coverage gate
+would change no letter. This is a repair, not a new decision to publish an ungated
+grade.
 
 ---
 
@@ -290,13 +328,14 @@ the re-grade in a separate commit afterwards.** The re-grade is a new scope,
 `abl467-t2c-regrade`, and a new document; ABL-427's committed record is not edited
 or regenerated.
 
-**Dependency, stated plainly:** the re-grade's input is
-`reports/abl_427_tranche2c_seed_reread.json`, which is on PR #80 and not yet on
-`main`. The re-grade script verifies that file's blob hash and refuses to run
-without it, so it cannot produce a number from the wrong vintage. **This PR should
-merge after #80.** The registration and the amendment in §5 have no such
-dependency — their tests pin ABL-427's six cells by raw per-seed WAPE, inline, so
-they are green on `main` today.
+**The input is on `main`.** `reports/abl_427_tranche2c_seed_reread.json` merged as
+PR #80 at `dbc37af` while this issue was in flight — it was open when this branch
+was cut, and the registration was drafted against the branch copy. The re-grade
+therefore reads the committed file and pins its blob hash
+(`47e2d9a7fe1073bae84b695c4fbe206490fe6ef3`), so it is reproducible from this tree
+alone and cannot silently read a different vintage. The registration and the
+amendment in §5 have no dependency on it either way — their tests pin ABL-427's
+six cells by raw per-seed WAPE, inline.
 
 ---
 

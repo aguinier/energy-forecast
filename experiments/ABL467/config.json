@@ -59,14 +59,26 @@
   },
 
   "affected_set_verified_before_registration": {
-    "method": "Three independent checks, all in tests/test_abl467_seed_interval.py",
+    "method": "Three independent checks, all in tests/test_abl467_seed_interval.py, measured against main at ca3c7f8 which already contains ABL-427's record",
     "no_call_site_passes_k_greater_than_1": true,
-    "committed_graded_cell_records": 613,
-    "distinct_floor_pct_values": {"solar_k1": 10.6482, "wind_k1": 7.5054},
-    "committed_cells_at_k_greater_than_1": 0,
+    "committed_graded_cell_records": 631,
+    "records_at_k_equals_1": 613,
+    "distinct_k1_floor_pct_values": {"solar": 10.6482, "wind": 7.5054},
+    "records_at_k_greater_than_1": 18,
+    "records_at_k_greater_than_1_location": "all 18 in reports/abl_427_tranche2c_seed_reread.json - six cells published under three candidate floors each. No other file carries a non-k=1 floor at all.",
     "replay_calls_byte_identical_to_pre_amendment_module": 1568,
     "committed_score_blocks_replayed": 196,
-    "conclusion": "The only k > 1 graded cells in the programme are ABL-427's six, and they are not on main."
+    "replay_baseline": "origin/main's gate_grading.py, i.e. after ABL-434 merged",
+    "assertion_is_an_equality": "so a second k > 1 read landing anywhere goes red until it is named",
+    "conclusion": "The only k > 1 graded cells in the programme are ABL-427's six, exactly as the issue states. abl427-t2c-reread is pinned to delta_min so its published letters stand."
+  },
+
+  "red_main_found_and_repaired": {
+    "what": "test_every_ungated_caller_is_registered_with_a_reason has been failing on main since ca3c7f8, independently of this branch.",
+    "why": "ABL-427 (PR #80) and ABL-434 (PR #79) merged back to back on 2026-08-14. #80 landed a fifth grade_cell caller (scripts/abl427_tranche2c_seed_reread.py) and #79 landed MARGIN_ONLY_READERS, the registry that has to name every such caller. Each branch was green on the base it was cut from; neither could see the other.",
+    "verified_how": "checked out origin/main detached and ran tests/test_abl434_coverage_gate.py alone, before making any change",
+    "fix": "the registry entry ABL-434 would have written had the script existed. ABL-427's read is margin-only and fully covered - all six cells clear their registered minimum n (720/684, 720/684, 510/456 and the same three for HR, checked against the record) - so routing it through the coverage gate would change no letter.",
+    "not_a_new_decision": "This is a repair of a broken assertion, not a decision to publish an ungated grade."
   },
 
   "disclosure": {
@@ -105,7 +117,7 @@
     "rule": "No committed record is edited or regenerated. The amended read is a new scope, abl467-t2c-regrade, and a new document - the route ABL-444's re-read took.",
     "method": "Arithmetic over ABL-427's committed per-seed WAPEs. No refit, no replica write, no artifact saved.",
     "order": "This registration is committed before the re-grade is computed, and the two are separate commits.",
-    "input_dependency": "reports/abl_427_tranche2c_seed_reread.json is on PR #80 and not yet on main. The re-grade script verifies its blob hash and refuses to run without it, so it cannot produce a number from the wrong vintage. This PR should merge after #80. The registration and the amendment have no such dependency - their tests pin the six cells by raw per-seed WAPE, inline."
+    "input": "reports/abl_427_tranche2c_seed_reread.json, merged to main as PR #80 at dbc37af while this issue was in flight. It was open when this branch was cut. The re-grade reads the committed file and pins its blob hash 47e2d9a7fe1073bae84b695c4fbe206490fe6ef3, so it is reproducible from this tree alone and cannot silently read a different vintage. The registration and the amendment have no dependency on it either way - their tests pin the six cells by raw per-seed WAPE, inline."
   },
 
   "caveats": {

@@ -1,0 +1,86 @@
+{
+  "issue": "ABL-434",
+  "parent": "ABL-316",
+  "title": "Registered correction: the grade ladder reads the cell's minimum n before its margin",
+  "status": "REGISTERED - the affected set was measured before the change landed and is stated below in full",
+  "registered_at": "2026-08-14T00:00:00Z",
+  "registered_by": "Forecasting Scientist",
+  "approved_by": "CEO, on ABL-434 (\"Scope as filed - make the ladder see minimum n\")",
+  "evidence_pack": "reports/abl_434_coverage_gate_registration.md",
+  "what_this_corrects": "Whether an ABL-418 grade is allowed to disagree with ABL-348's registered `enough_pairs`. Nothing else.",
+  "what_this_does_not_change": [
+    "ABL-348's windows, bands, metric, baseline, source table, not_evaluable list, and the minimum n itself - `min_n = ceil(0.95 * intended_n)` in `gate_cell` is untouched, so `voids_this_registration` on ABL-348 is not triggered.",
+    "The registered bar. Seasonal-naive D-7 is still G1 for every scope.",
+    "The `pass` rule, `passed`, `performance_pass`, `disposition` or any gate verdict. A grade is a reading of a cell, never an input to it, and `tests/test_gate_grading.py::test_attaching_grades_moves_no_gate_verdict` still holds.",
+    "G1-G4, the floor, the worst-band rule, the U-over-C precedence or the U(+) plus test.",
+    "ABL-437's causal levelling and ABL-444's G2/G3 readability form, which compose with this and are untouched by it.",
+    "The oracle references' status: reported, never gating.",
+    "Any committed record, report or published letter. The two cells that move are re-graded nowhere; they are reported here and the disposition is the CEO's, per the ABL-434 assignment comment."
+  ],
+  "defect": {
+    "mechanism": "`grade_cell` is handed a cell's `scores` mapping and nothing else. It never sees `gate.n`, `gate.minimum_n` or `gate.enough_pairs`, so a cell that beats seasonal-naive D-7 by more than the readability floor while falling short of its registered minimum n graded `A`. `A` means promotion-eligible; a cell the registration does not consider readable cannot be.",
+    "first_observed": "ABL-421, tranche 2d. Every cell in tranches 1a, 1b, 2a, 2b and 2c met its minimum, so the combination had never arisen.",
+    "observed_cells": [
+      {"tranche": "2d", "pair": "EE/solar", "band": "48-64h", "n": 388, "minimum_n": 456, "challenger_wape_pct": 25.05, "d7_wape_pct": 35.29, "skill_vs_d7_pct": 29.0, "beats_d7": true, "enough_pairs": false, "gate_pass": false, "ladder_grade_before": "A"},
+      {"tranche": "2d", "pair": "FI/solar", "band": "48-64h", "n": 453, "minimum_n": 456, "challenger_wape_pct": 23.99, "d7_wape_pct": 37.98, "skill_vs_d7_pct": 36.8, "beats_d7": true, "enough_pairs": false, "gate_pass": false, "ladder_grade_before": "A"}
+    ],
+    "why_it_matters_more_than_the_adjacent_corrections": "ABL-426 (wrong source) and ABL-440 (gitignored record) make a pair unreadable, which is visible. This one makes an unreadable pair look promotable, which is not - it is the only one of the four that can put a false A into promotion evidence.",
+    "why_ABL-421_did_not_fix_it_there": "Editing the ladder after seeing a result is the shopping the pre-registration apparatus exists to prevent, and `gate_grading.py` is shared with the wind harness. ABL-421 named a reporting-side hold instead, correct for one pack: `results_abl421_tranche2d.json` still records `grade: A`, so the next reader of that record sees `A` with nothing attached."
+  },
+  "the_correction": {
+    "condition": "G0",
+    "G0_asks": "does the cell meet ABL-348's registered minimum n for its band?",
+    "assessed": "before G1-G4",
+    "letter_on_failure": "X",
+    "X_means": "not readable at the registered coverage. The cell does not have the rows the registration requires, so nothing on the ladder below it is decidable. Not promotion-eligible.",
+    "why_a_new_symbol": "It is not `C` - nothing lost a race. It is not `U` - the margin is not inside the floor, and may be far outside it. It is not `N` - ABL-444's abstention is about a G2/G3 margin, and this is about the cell.",
+    "severity_order": ["A", "N", "U", "X", "B", "C"],
+    "severity_rationale": [
+      "`X` is deeper than `U` and `N`: a `U` cell has the rows and cannot resolve the margin, an `X` cell does not have the rows.",
+      "`X` ranks below `B` and `C` on ABL-444's rule that a definite failure outranks an abstention: a band that had the rows and lost readably has something definite to say, and `X` at pair level would bury it.",
+      "A pair takes its worst band, so one band short of its registered n takes the pair to `X`. That is stricter than ABL-421's reporting-side hold, which held a pair only when no band was decidable; the two agree on every cell measured so far, because EE and FI each have exactly one gated band."
+    ],
+    "one_way": "The gate can only ever replace a letter with `X`, never raise one. No scope can be made promotion-eligible by it.",
+    "unrecorded_coverage": "A cell with no `gate` block, or a `gate` block with no `enough_pairs`, grades `X` with that named as the reason - the same rule as everywhere else on this ladder: a condition that could not be measured is not satisfied. It does not arise on any committed record (143 of 143 cells carry the column)."
+  },
+  "no_per_scope_table": {
+    "decision": "There is no `COVERAGE_GRADING` registration table, unlike ABL-437's `CAUSAL_LEVELLING` and ABL-444's `G23_READABILITY`.",
+    "rationale": [
+      "`enough_pairs` is already part of ABL-348's registered `pass` rule and already decides the gate verdict. What moves is only whether the grade may disagree with it, so this is a coherence fix and not a methodology choice a scope could reasonably register either way.",
+      "The direction is one-way, so a table would only ever be used to let a scope declare its own cells covered - which is a scope that can promote on rows it does not have.",
+      "It is not needed to leave published reads standing. Those are reproduced through `grade_cell`, which stays ungated by signature; see `where_the_gate_lives`."
+    ]
+  },
+  "where_the_gate_lives": {
+    "ungated": "`grade_cell(scores, ...)` stays a function of `scores` alone. That is what makes it re-runnable over a stored record and what leaves the four published margin-only re-reads byte-identical.",
+    "gated": "`cell_grade(cell, ...)` and `attach_grades(cells, ...)`, which are handed a whole cell, apply `gated_on_coverage`. Both gate harnesses record and render through those two, so no future tranche can write a coverage-blind `A` and every later reader of a written record gets the hold without keeping its own books.",
+    "applied_to_a_rebuilt_grade_too": "The one thing `cell_grade` does not take from the record. A stored `A` on a cell whose own `gate` block says `enough_pairs: false` is the defect - the record and the registration disagreeing with nothing attached to reconcile them.",
+    "registered_ungated_callers": [
+      "scripts/abl418_retro_grade.py",
+      "scripts/abl437_causal_levelling_reread.py",
+      "scripts/abl443_offshore_trailing_reread.py",
+      "scripts/abl444_g23_floor_reread.py"
+    ],
+    "enforcement": "`tests/test_abl434_coverage_gate.py::test_every_ungated_caller_is_registered_with_a_reason` sweeps `src/` and `scripts/` by AST and fails on any unregistered `grade_cell` caller, on the `tso_plausibility` sweep pattern."
+  },
+  "affected_set_measured_over_every_committed_record": {
+    "method": "Re-grade every cell of every gate record tracked in git, through `cell_grade`, and diff against the letter that record was published with. Arithmetic only - no refit, no database, no model.",
+    "records": 11,
+    "cells": 143,
+    "cells_with_the_coverage_column_absent": 0,
+    "cells_coverage_short": 2,
+    "cell_letters_moved": [
+      {"record": "experiments/ABL348/results_abl421_tranche2d.json", "pair": "EE/solar", "band": "48-64h", "before": "A", "after": "X"},
+      {"record": "experiments/ABL348/results_abl421_tranche2d.json", "pair": "FI/solar", "band": "48-64h", "before": "A", "after": "X"}
+    ],
+    "pair_letters_moved": [
+      {"tranche": "2d", "pair": "EE/solar", "before": "A", "after": "X"},
+      {"tranche": "2d", "pair": "FI/solar", "before": "A", "after": "X"}
+    ],
+    "published_reports_regenerated": 0,
+    "note": "Both moved pairs are already reported as held, `--` with `no band meets the registered minimum n`, in `reports/abl_421_tranche2d_tables.md`. The ladder now says what that pack said by hand. Neither that pack nor `reports/abl_418_retro_grade.*`, `reports/abl_437_causal_levelling_reread.*`, `reports/abl_443_offshore_trailing_reread.*` or `reports/abl_444_g23_floor_reread.*` is regenerated here."
+  },
+  "contamination": "ABL-71/ABL-67/ABL-109/ABL-111 are unchanged by this correction and are stated per pair in each tranche's own pack. This touches no ingest, no source table, no window and no fit, so it can neither introduce nor repair contamination. ABL-396's night-contamination hold on BG solar and ABL-419's on EE/FI are carried unchanged.",
+  "voids_this_registration": "any change to the minimum n itself, to which cells G0 is assessed on, to the severity position of `X`, or to the one-way property, after a gated ladder has been read against any pair",
+  "promotion": "This corrects how a grade is read. It promotes nothing, recommends nothing, and can only reduce the promotable set. Promotion remains a pre-registered gate read plus a Board decision."
+}

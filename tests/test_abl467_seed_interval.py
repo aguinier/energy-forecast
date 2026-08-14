@@ -322,30 +322,55 @@ def test_abl427s_own_registered_floor_is_the_one_that_disagrees(cell):
 # 4. Nothing already published can move
 # --------------------------------------------------------------------------
 
-def test_every_committed_graded_cell_is_k1_which_is_the_whole_blast_radius():
-    """The issue asserts this; it is checked rather than trusted. A cell graded at
-    k > 1 would carry a floor other than the two k = 1 values."""
-    seen, floors = 0, set()
+#: The one committed record whose grades were taken at k > 1. The issue asserts
+#: the blast radius is ABL-427's six cells alone and asks for it to be verified
+#: rather than trusted; this is that verification, and it is an equality, so a
+#: second k > 1 read landing anywhere fails here until it is named.
+THE_ONLY_K_GT_1_RECORD = "reports/abl_427_tranche2c_seed_reread.json"
+
+
+def test_abl427s_six_cells_are_the_whole_blast_radius():
+    """A cell graded at k > 1 carries a floor other than the two k = 1 values, so
+    the corpus can be partitioned on `floor_pct` without trusting any label.
+
+    ABL-427 published each of its six cells under **three** candidate floors, so
+    18 records is the expected count, not 6.
+    """
+    k1_floors = {round(readability_floor_pct("solar"), 4),
+                 round(readability_floor_pct("wind"), 4)}
+    k1, non_k1 = 0, {}
     paths = sorted((ROOT / "reports").glob("*.json")) + sorted((ROOT / "experiments").rglob("*.json"))
     for path in paths:
         try:
             document = json.loads(path.read_text(encoding="utf-8"))
         except (ValueError, UnicodeDecodeError):
             continue
+        relative = path.relative_to(ROOT).as_posix()
         stack = [document]
         while stack:
             node = stack.pop()
             if isinstance(node, dict):
                 if "grade" in node and isinstance(node.get("floor_pct"), (int, float)):
-                    seen += 1
-                    floors.add(round(node["floor_pct"], 4))
-                    assert "readability_test" not in node, f"{path.name} carries a k>1 grade"
+                    if round(node["floor_pct"], 4) in k1_floors:
+                        k1 += 1
+                        # A k = 1 record must not carry the amendment's keys.
+                        assert "readability_test" not in node, relative
+                    else:
+                        non_k1[relative] = non_k1.get(relative, 0) + 1
                 stack.extend(node.values())
             elif isinstance(node, list):
                 stack.extend(node)
-    assert seen >= 600, f"expected the committed corpus, found {seen} graded cells"
-    assert floors == {round(readability_floor_pct("solar"), 4),
-                      round(readability_floor_pct("wind"), 4)}, floors
+    assert k1 >= 600, f"expected the committed corpus, found {k1} k=1 graded cells"
+    assert non_k1 == {THE_ONLY_K_GT_1_RECORD: 18}, non_k1
+
+
+def test_the_one_k_gt_1_scope_is_pinned_so_its_letters_stand():
+    """ABL-427's record is on `main`, so the pin is doing real work rather than
+    describing a hypothetical."""
+    record = json.loads((ROOT / THE_ONLY_K_GT_1_RECORD).read_text(encoding="utf-8"))
+    assert record["meta"]["k"] == 12
+    assert _module_const("solar", "SEED_READABILITY")[record["meta"]["scope"]] == DELTA_MIN
+    assert HARNESSES["solar"].seed_readability_for(record["meta"]["scope"]) == DELTA_MIN
 
 
 def test_a_k1_grade_carries_no_abl467_key_whatever_the_registered_form_says():
@@ -482,12 +507,37 @@ def test_cell_grade_takes_the_draws_off_the_cell_the_way_abl434_takes_coverage()
 
 def test_a_recorded_grade_is_still_read_back_and_not_re_decided():
     """ABL-437's rule, unchanged: a stored letter is the record of what that read
-    decided, and handing the cell draws afterwards must not re-open it."""
+    decided, and handing the cell draws afterwards must not re-open it.
+
+    The cell carries a covered `gate` block because ABL-434's coverage gate does
+    apply to a recorded grade -- deliberately, and it is the one thing that does.
+    Without it the cell would grade `X` for want of a coverage claim, which would
+    be ABL-434 firing rather than this rule failing.
+    """
     cell = ABL427_CELLS[5]
-    stored = grade_cell(_scores(cell), "solar", k=12, seed_readability=DELTA_MIN).as_dict()
-    record = {"scores": _scores(cell), "grade": stored,
+    gate = {"n": 510, "minimum_n": 456, "enough_pairs": True}
+    stored = cell_grade({"scores": _scores(cell), "gate": gate}, "solar", k=12,
+                        seed_readability=DELTA_MIN).as_dict()
+    record = {"scores": _scores(cell), "gate": gate, "grade": stored,
               "challenger_wape_pct_per_seed": list(cell["per_seed"])}
     assert cell_grade(record, "solar", k=12, seed_readability=STUDENT_T).as_dict() == stored
+
+
+def test_a_coverage_held_cell_keeps_the_interval_its_margin_was_read_against():
+    """ABL-434 and ABL-467 compose: `X` is a statement about the rows, not a reason
+    to discard the measurement that was taken. The width has to survive the hold,
+    or the record cannot say what the margin was judged against."""
+    cell = ABL427_CELLS[5]
+    record = {"scores": _scores(cell),
+              "gate": {"n": 400, "minimum_n": 456, "enough_pairs": False},
+              "challenger_wape_pct_per_seed": list(cell["per_seed"])}
+    held = cell_grade(record, "solar", k=12, levelling="fit_window",
+                      g23_readability="sign_test", seed_readability=STUDENT_T)
+    assert held.grade == "X"
+    assert held.readability_test == STUDENT_T
+    assert held.seed_interval["seasonal_naive"]["n_seeds"] == 12
+    assert held.half_width_for("seasonal_naive") == pytest.approx(
+        cell["published_half_width_pp"], abs=1e-9)
 
 
 # --------------------------------------------------------------------------
