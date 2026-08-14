@@ -318,6 +318,92 @@ def test_tranche2e_does_not_gate_on_the_incumbent(gate_basis):
 
 
 # --------------------------------------------------------------------------
+# ABL-435 -- tranche 2f, the BG/CH re-read
+# --------------------------------------------------------------------------
+
+def test_tranche2f_re_reads_tranche1a_pairs_exactly(scopes):
+    """2f is 1a's pair set, deliberately, and must stay *identical* to it.
+
+    Every other tranche is pinned to be disjoint from its predecessors. This one
+    is pinned the other way, and the direction is the point: 2f exists to give
+    BG and CH the ABL-389 reference columns and the ABL-418 grade that tranche 1a
+    predates, so the two reads are comparable only while they cover the same
+    pairs under the same registration. A 2f that quietly gained or lost a pair
+    would still run, still emit a full report, and would no longer be a re-read
+    of anything -- and its challenger WAPEs would no longer be checkable against
+    the published ones.
+    """
+    assert scopes["abl435-tranche2f"] == scopes["abl380-tranche1a"], (
+        "tranche 2f is a re-read of tranche 1a and must register the same pairs")
+    assert scopes["abl435-tranche2f"] == {("wind_onshore", "BG"), ("wind_onshore", "CH")}
+    assert len(scopes["abl435-tranche2f"]) * len(PRIMARY_BANDS) == 6
+    assert not scopes["abl435-tranche2f"] & SERVING_PAIRS, (
+        f"tranche 2f refits serving pairs: "
+        f"{sorted(scopes['abl435-tranche2f'] & SERVING_PAIRS)}")
+
+
+def test_tranche2f_does_not_disturb_the_onshore_coverage_claim(scopes):
+    """A re-read must not be counted as coverage.
+
+    `test_tranche2e_is_disjoint_from_the_earlier_wind_tranches` closes ABL-316's
+    onshore half at 2 + 8 + 8 = 18 countries. 2f adds no country, and this pins
+    that it cannot: its countries are already inside that union, so the
+    completeness arithmetic is unchanged by it. Without this, a later reader
+    counting scopes rather than countries would make the onshore half read 20.
+    """
+    covered = {country for scope in ("abl380-tranche1a", "abl406-tranche2b",
+                                     "abl417-tranche2e")
+               for stream, country in scopes[scope] if stream == "wind_onshore"}
+    assert len(covered) == 18
+    re_read = {country for stream, country in scopes["abl435-tranche2f"]
+               if stream == "wind_onshore"}
+    assert re_read <= covered, (
+        f"tranche 2f introduces uncovered countries {sorted(re_read - covered)}; "
+        "it is a re-read, so a new country here belongs in a tranche of its own")
+
+
+def test_tranche2f_gates_on_the_basis_tranche1a_was_published_under(gate_basis):
+    """Identical to 1a's basis, because a changed basis voids the comparison.
+
+    2f's reproduction claim is that the challenger figures land on ABL-380's to
+    the digit. The basis decides which rows enter a cell, so widening or
+    narrowing it would move n and move every WAPE with it -- and the new numbers
+    would then differ from the published ones for a reason that has nothing to do
+    with the model. Re-measured on the live replica on 2026-08-14: BG and CH
+    still carry zero `renewable_type='wind_onshore'` rows in `forecasts` while
+    holding 65,232 and 64,272 rows of other types, so a four-way basis would
+    still intersect all 6 cells to n=0.
+    """
+    assert gate_basis["abl435-tranche2f"] == gate_basis["abl380-tranche1a"]
+    assert gate_basis["abl435-tranche2f"] == ("challenger", "seasonal_naive")
+    assert "incumbent" not in gate_basis["abl435-tranche2f"]
+
+
+def test_tranche2f_writes_nowhere_tranche1a_writes():
+    """The re-read must not touch the record it is re-reading.
+
+    `check_scope_outputs` enforces global distinctness at import; this states the
+    specific pairing that matters, because tranche 1a's `json_out` is the machine
+    record `reports/abl_380_tranche1a_findings.md:9` cites for a PASS the Board
+    was asked to review, and its `artifact_dir` holds the two model artifacts
+    whose SHA-256 values that report's fit-audit table publishes. ABL-404 is the
+    precedent: a scope overwrote a published read *under its own heading*, exited
+    0, and showed nothing in `git status`.
+    """
+    outputs = _module_const(HARNESS.read_text(encoding="utf-8"), "SCOPE_OUTPUTS")
+    first_read, re_read = outputs["abl380-tranche1a"], outputs["abl435-tranche2f"]
+    for key in ("artifact_dir", "json_out", "report_out"):
+        assert re_read[key] != first_read[key], (
+            f"tranche 2f would overwrite tranche 1a's {key}")
+    assert first_read["json_out"] == "experiments/ABL348/results_abl380_tranche1a.json"
+    assert re_read["json_out"] == "experiments/ABL348/results_abl435_tranche2f.json"
+    # Tracked, not swallowed by `.gitignore:53` -- the deficiency in tranche 1a's
+    # record that 2f exists to repair is exactly that a gate record a reviewer
+    # cannot diff is not evidence.
+    assert not re_read["json_out"].endswith("/results.json")
+
+
+# --------------------------------------------------------------------------
 # ABL-378: the same two properties for the solar harness.
 #
 # The wind harness was fixed by ABL-322; `evaluate_solar_retrain.py` was not,
