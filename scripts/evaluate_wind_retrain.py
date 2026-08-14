@@ -27,7 +27,8 @@ import config
 from src import db
 from src.data_quality import find_suspect_constant_runs
 from src.evaluation.gate_grading import (
-    attach_grades, cell_grade, grade_summary_table, grading_prose,
+    FLOORED, SIGN_TEST, attach_grades, cell_grade, grade_summary_table,
+    grading_prose,
 )
 from src.evaluation.model_free_reference import (
     FIT_WINDOW, MODEL_FREE_COMPARATORS, TRAILING_28D,
@@ -387,6 +388,71 @@ def causal_levelling_for(scope: str) -> str:
     """The scope's registered causal levelling, or ABL-437's amended default."""
     return CAUSAL_LEVELLING.get(scope, TRAILING_28D)
 
+
+# ABL-444: whether the ABL-418 ladder's G2 and G3 are decided by a bare sign
+# test -- `skill > 0`, as ABL-418 registered them -- or against the same
+# readability floor G1 carries.  The floor itself is deliberately not restated
+# here: it is `gate_grading.readability_floor_pct(stream, k)`, and a retyped
+# copy is how ABL-381 came to quote another stream's margins.
+#
+# This is a *separate axis* from `CAUSAL_LEVELLING` above and composes freely
+# with it: one says which reference G2/G3 read, the other says how wide a margin
+# has to be before its sign means anything. Keeping them apart is what lets the
+# ABL-444 re-read report both levellings without re-deciding either.
+#
+# **Which way this table defaults was the argued question, and the design sketch
+# on ABL-444 guessed the opposite of what is registered here.** The sketch's
+# reasoning was that `CAUSAL_LEVELLING` defaults toward its amendment because
+# silently inheriting an old reference is the failure mode, whereas here "an
+# abstention silently inherited by a new tranche hides a result that was in fact
+# measured", so the default should be `sign_test`. That premise does not hold,
+# for two reasons:
+#
+#   1. A sub-floor margin is not a result that was measured. It is a number whose
+#      *sign* one fit cannot resolve -- which is the whole content of ABL-385 and
+#      exactly what ABL-418 already asserts on this same pair of conditions when
+#      it withholds the `U(+)` plus. Inheriting `floored` therefore hides nothing
+#      that was established.
+#   2. The margin is printed either way, per the CEO's constraint on this issue.
+#      An `N` cell carries its number in `skill_pct`, in `own_error_margin_pct`
+#      and in the report table, so the reader who wants the sign can have it,
+#      labelled as unreadable.
+#
+# The two directions are not symmetric in what they cost when they are wrong.
+# Defaulting to `sign_test` gives a new tranche -- the pairs nobody has looked at
+# -- a letter awarded on noise, silently, which is the defect ABL-444 exists to
+# remove and the same shape as ABL-421's `SCOPE_NOT_EVALUABLE` defaulting toward
+# scoring. Defaulting to `floored` gives it an abstention it can resolve by
+# re-reading at k>1 seeds, which is self-documenting degradation. So this table
+# defaults *toward the amendment*, and every published scope is pinned to the
+# `sign_test` its committed letters were decided under -- no refit, no re-read,
+# nothing overwritten (the CEO's binding constraint on ABL-401's ruling).
+#
+# It is deliberately **not** in the `check_registration_tables` call below, and
+# is declared in `UNCHECKED_REGISTRATION_TABLES` with that reason -- the choice
+# ABL-429 made executable.  The reason is *structural*, not a wait for a quiet
+# queue: that check requires every scope in the union to appear in every table it
+# is given, so requiring this one would force each scope to be pinned and delete
+# the default-toward-amendment behaviour this comment exists to describe.  It is
+# the same exemption `CAUSAL_LEVELLING` carries, on the same grounds
+# (CLAUDE.md).  What the absence costs is bounded in a way it is not for
+# `SCOPE_NOT_EVALUABLE`, which defaults toward scoring: a scope that forgets a
+# row here gets the *conservative* path -- an abstention, never a letter.
+G23_READABILITY = {
+    "abl195": SIGN_TEST,
+    "abl322-pilot": SIGN_TEST,
+    "abl380-tranche1a": SIGN_TEST,
+    "abl406-tranche2b": SIGN_TEST,
+    "abl417-tranche2e": SIGN_TEST,
+    "abl435-tranche2f": SIGN_TEST,
+}
+
+
+def g23_readability_for(scope: str) -> str:
+    """The scope's registered G2/G3 readability form, or ABL-444's amended default."""
+    return G23_READABILITY.get(scope, FLOORED)
+
+
 # The columns that must be *simultaneously finite* for a row to enter a gate
 # cell.  This is a registered property of the scope, not a detail: ABL-322 ran
 # with the four-way basis below and every one of its 6 cells came back n=0, all
@@ -498,6 +564,13 @@ UNCHECKED_REGISTRATION_TABLES = {
     # Per-published-scope enforcement is handled by
     # `tests/test_gate_scope_registration.py`'s stale-declaration check.
     "CAUSAL_LEVELLING": "defaults toward ABL-437's amendment; pins checked per published scope",
+    # ABL-444: `CAUSAL_LEVELLING`'s structural twin.  The argument for the
+    # exemption is stated once, over the solar copy of this table; the short form
+    # is that requiring it would force every scope to be pinned and delete the
+    # default-toward-amendment behaviour, that the fall-through value abstains
+    # rather than awards, and that published scopes are pinned by value in
+    # `test_every_published_scope_pins_a_sign_test` rather than by presence here.
+    "G23_READABILITY": "defaults toward ABL-444's amendment (abstain); published pins asserted by value",
 }
 check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
 check_scope_outputs(SCOPE_OUTPUTS)
@@ -557,6 +630,9 @@ def render_markdown(result: dict) -> str:
     # A record written before ABL-437 has no such key and is `fit_window` --
     # absence dates the read, exactly as ABL-404 reads a missing feature list.
     levelling = meta.get("causal_levelling", FIT_WINDOW)
+    # ABL-444, same rule and same reason: a record with no `g23_readability` key
+    # was decided by a sign test, so re-rendering it must not floor it.
+    readability = meta.get("g23_readability", SIGN_TEST)
     lines = [
         f"# Serve-faithful wind retrain gate — registered scope `{meta['scope']}`",
         "",
@@ -591,7 +667,7 @@ def render_markdown(result: dict) -> str:
         "",
         # ABL-418: what the PASS in the last column entitles the cell to. The
         # gate column is unchanged and still says whether the cell cleared D-7.
-        *grading_prose(GRADE_STREAM, levelling=levelling),
+        *grading_prose(GRADE_STREAM, levelling=levelling, g23_readability=readability),
         "",
         "| type | country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant causal 28d WAPE | constant oracle WAPE | climatology causal WAPE | climatology causal 28d WAPE | climatology oracle WAPE | level inflation (causal / 28d) | incumbent WAPE | MAE | bias | slope | corr | gate | grade |",
         "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|",
@@ -602,7 +678,8 @@ def render_markdown(result: dict) -> str:
         # A cell that scored no rows has None on both sides. It renders as
         # "Not measured", never as a number and never as a crash.
         skill = "Not measured" if chal is None or naive is None else f"{100 * (1 - chal / naive):+.1f}%"
-        grade = cell_grade(row, GRADE_STREAM, levelling=levelling).detail
+        grade = cell_grade(row, GRADE_STREAM, levelling=levelling,
+                           g23_readability=readability).detail
         lines.append(
             f"| {row['forecast_type']} | {row['country']} | {row['horizon_band']} | {row['gate']['n']:,} | "
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
@@ -619,7 +696,7 @@ def render_markdown(result: dict) -> str:
         )
     lines.extend(grade_summary_table(
         cells, GRADE_STREAM, lambda row: f"{row['country']} {row['forecast_type']}",
-        levelling=levelling))
+        levelling=levelling, g23_readability=readability))
     lines.extend(levels_table(result["training"], key="forecast_type"))
     basis_names = ", ".join(meta.get("gate_basis", []))
     lines.extend(["", "## Per-country all-D+2 summary", "",
@@ -878,7 +955,8 @@ def main() -> int:
     # are computed exactly as they were.  The stream selects ABL-385's registered
     # CV, and passing the wrong one would silently apply solar's wider floor --
     # `tests/test_gate_grading.py` reads this literal out of the AST.
-    attach_grades(gate_cells, GRADE_STREAM, levelling=causal_levelling_for(args.scope))
+    attach_grades(gate_cells, GRADE_STREAM, levelling=causal_levelling_for(args.scope),
+                  g23_readability=g23_readability_for(args.scope))
     passed = sum(row["gate"]["pass"] for row in gate_cells)
     contaminated = any(row["constant_runs"] for row in training)
     performance_pass = len(gate_cells) == registered_cells and passed == registered_cells
@@ -922,6 +1000,7 @@ def main() -> int:
                        "gate_window": {"start": str(gate_start), "end_exclusive": str(gate_end)},
                        "scope": args.scope, "registered_pairs": list(registered_pairs),
                        "causal_levelling": causal_levelling_for(args.scope),
+                       "g23_readability": g23_readability_for(args.scope),
                        "registered_cells": registered_cells, "gate_basis": list(gate_basis),
                        # ABL-389: the basis is what gates; this is what is
                        # merely reported beside it. Recorded so the two are

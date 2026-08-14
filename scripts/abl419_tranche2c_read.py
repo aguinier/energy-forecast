@@ -52,7 +52,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.evaluation.gate_grading import GRADE_SEVERITY, cell_grade, pair_grade  # noqa: E402
+from src.evaluation.gate_grading import (  # noqa: E402
+    GRADE_SEVERITY, SIGN_TEST, cell_grade, pair_grade,
+)
 
 ROOT = Path(__file__).parent.parent
 
@@ -342,7 +344,11 @@ def main() -> int:
     lines.append("| pair | pre-committed D-7 bar | band grades | ladder pair grade | **reported** | failed conditions | bar weaker than a flat line? |")
     lines.append("|---|---:|---|:---:|:---:|---|:---:|")
     for country in COUNTRIES:
-        grades = [cell_grade(cell, STREAM) for cell in cells if cell["country"] == country]
+        # Every 2c cell carries a recorded grade, so `cell_grade` rebuilds it and
+        # never recomputes -- but the form is named anyway (ABL-444): a default
+        # that only happens to be unreachable is the ABL-404 shape.
+        grades = [cell_grade(cell, STREAM, g23_readability=SIGN_TEST)
+                  for cell in cells if cell["country"] == country]
         if not grades:
             continue
         pair = pair_grade(grades)

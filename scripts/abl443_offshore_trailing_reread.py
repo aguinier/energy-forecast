@@ -44,7 +44,7 @@ from scripts.abl437_causal_levelling_reread import (  # noqa: E402
     _reference_columns, _scored_rows, _sha256, _trailing_scores, _validate,
 )
 from src.evaluation.gate_grading import (  # noqa: E402
-    LADDER_REFERENCES, grade_cell, pair_grade, readability_floor_pct,
+    LADDER_REFERENCES, SIGN_TEST, grade_cell, pair_grade, readability_floor_pct,
 )
 from src.evaluation.model_free_reference import (  # noqa: E402
     FIT_WINDOW, TRAILING_28D, TRAILING_WINDOW_DAYS, comparator_wape, level_inflation,
@@ -156,7 +156,14 @@ def read(root: Path, replica: str) -> dict:
                 continue
             trailing, extra = _trailing_scores(band_rows, actuals)
             amended_scores = {**cell["scores"], **trailing}
-            amended = grade_cell(amended_scores, STREAM, levelling=TRAILING_28D)
+            # ABL-444: still `sign_test`.  This document's amended column is
+            # ABL-443's published result and must keep reproducing -- and its own
+            # margins table already flags all six DE margins `not readable at one
+            # seed`, so the floored form would rewrite every one of its letters.
+            # The floored read of these cells is its own record,
+            # `reports/abl_444_g23_floor_reread.md`.
+            amended = grade_cell(amended_scores, STREAM, levelling=TRAILING_28D,
+                                 g23_readability=SIGN_TEST)
             before.append(published)
             after.append(amended)
 

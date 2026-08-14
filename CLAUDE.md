@@ -946,6 +946,67 @@ Three things that generalise:
   branch you are stacked on has already moved — a PR head is not stable while you
   work against it.
 
+### How wide a G2/G3 margin has to be is registered per scope too (ABL-444)
+
+**G1 carries a readability floor; G2 and G3 were registered as bare sign tests,
+`skill > 0`.** So a G2/G3 verdict could turn on a margin far inside the spread one
+seed resolves — ABL-437's re-read moved PL solar from `A` to `B` on **0.36%** of
+skill, 3.4% of the solar floor — and the ladder reported it with the letter it
+uses for a decisive result.
+
+**Read this as a coherence fix, not a new bar.** ABL-418 *already* applies
+`readability_floor_pct` to G2 and G3, on the same `skill vs X` column and in the
+same function, when it decides `U` against `U(+)`: the plus requires both to clear
+*readably*. So the same +2% margin was "not readable" if G1 happened to be
+unreadable and "G3 holds, grade A" if G1 happened to be clear. ABL-444 carries the
+existing test to the other branch and adds no constant of its own.
+
+A margin at or inside the floor now grades **`N` — not readable**: an abstention,
+not a failure and not a pass, and **not promotion-eligible**, on the rule ABL-418
+already states (*a condition that could not be measured is not satisfied*). It
+cannot wear `U`, which is undecided on the *gate*, nor `B`, which claims a failure.
+`G23_READABILITY` in each harness registers the form per scope and defaults to
+`floored`; all twelve published scopes are pinned to `sign_test`, so **no committed
+letter moves**. `reports/abl_444_g23_readability_floor_registration.md` and
+`experiments/ABL444/config.json` are the registration; the re-read of every
+committed cell under it is `reports/abl_444_g23_floor_reread.md`.
+
+Four things follow, and the last two are the ones that catch a reader out:
+
+- **Severity is `A < N < U < B < C`, and `N` is *better* than `B`.** A definite
+  failure outranks an abstention — a cell that also fails G4 reads `B`, because
+  there is something to report and `N` would bury it. `N` ranks above `U` because
+  an `N` cell cleared the registered gate readably where a `U` cell could not.
+  **Do not assert that the floored form raises severity monotonically**: a `B → N`
+  move lowers it while leaving the pair exactly as non-promotable. Assert it on
+  the `A` set, which is what the caveat actually claims.
+- **The margin prints either way**, per the CEO's constraint: the floor decides
+  gradeability, not the number. An `N` cell carries both denominators, the floor
+  and a reason naming the margin, and the per-pair table gained a **not readable**
+  column beside **failed conditions** so the two are never collapsed.
+- **The two denominators no longer agree, and the disagreement is one cell.**
+  ABL-418 measured `skill` against ABL-385's own-error form over its 48 cells and
+  found no cell moved. Over the programme's **476** G2/G3 condition-observations
+  **3** change readability status and **one cell letter moves** — 1b BG solar
+  36-48h, `N` on the registered column (+10.56% against a 10.65% floor) and `A` on
+  ABL-385's (+11.81%). No *pair* letter moves. Quote the 119-cell number, not
+  ABL-418's "they never disagree".
+- **A tightest-band margin is not a pair-level one.** The ABL-444 description names
+  PL solar (0.36pp) and CH `wind_onshore` (0.52pp) as the two flips inside the
+  floor. PL reproduces at pair level; **CH does not** — its 24-36h band fails G2
+  and G3 *readably* (−7.93%, −12.89%) and a pair takes its worst band, so CH stays
+  `B`. ABL-437's flip-margin column is labelled "tightest–widest" for this reason.
+- **A published record that predates the floor is graded on the default, and the
+  default is the amendment.** Five scripts read a committed record through
+  `grade_cell`/`cell_grade` — the ABL-418 retro-grade, ABL-437's and ABL-443's
+  re-reads, and ABL-419's and ABL-421's tranche reads — and every one now names
+  `SIGN_TEST` explicitly, including the two where the record carries a recorded
+  grade and the default is unreachable today. ABL-443's landed on main mid-issue
+  and went red on the merge with no textual conflict, which is the same shape as
+  the additive-key collision its own CLAUDE.md block describes. Its DE
+  `wind_offshore` is the eleventh mover: all six of its G2/G3 margins are inside
+  the floor, which its own record had already labelled *not readable at one seed*
+  while recording `g2_g3_floor_is_a_ladder_condition: false`.
 **A scope also registers where it writes** (ABL-387). `--artifact-dir`,
 `--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
 which `argparse` resolves *before* `--scope` is consulted — so a scoped run that

@@ -47,7 +47,7 @@ from pathlib import Path
 
 import pytest
 
-from src.evaluation.gate_grading import readability_floor_pct
+from src.evaluation.gate_grading import SIGN_TEST, readability_floor_pct
 from src.evaluation.model_free_reference import FIT_WINDOW
 
 REPO = Path(__file__).resolve().parents[1]
@@ -63,13 +63,22 @@ REPO = Path(__file__).resolve().parents[1]
 #: subset check that would also pass if a letter moved.
 ABL437_PROVENANCE_KEYS = frozenset({"causal_levelling", "level_inflation_pct"})
 
+#: ABL-444's two, added the same way and after the same record.
+#: `g23_readability` names whether G2/G3 were decided by a sign test or against
+#: the floor, and `not_readable` is empty on every cell here *because* this
+#: record is pinned to `sign_test` -- which is the pin asserted below. Same rule
+#: as above: strip, compare, then assert the pin, so a moved letter still fails.
+ABL444_PROVENANCE_KEYS = frozenset({"g23_readability", "not_readable"})
+
+ADDITIVE_PROVENANCE_KEYS = ABL437_PROVENANCE_KEYS | ABL444_PROVENANCE_KEYS
+
 
 def without_abl437_provenance(value):
-    """Strip ABL-437's provenance keys, at any depth, so a record committed
-    before ABL-437 can be compared to one produced after it."""
+    """Strip the additive provenance keys, at any depth, so a record committed
+    before ABL-437/ABL-444 can be compared to one produced after them."""
     if isinstance(value, dict):
         return {key: without_abl437_provenance(item) for key, item in value.items()
-                if key not in ABL437_PROVENANCE_KEYS}
+                if key not in ADDITIVE_PROVENANCE_KEYS}
     if isinstance(value, list):
         return [without_abl437_provenance(item) for item in value]
     return value
@@ -225,6 +234,11 @@ def test_the_committed_record_matches_a_live_grade(tranche, committed):
     # the letters above are reproduced rather than re-derived on a new reference.
     assert {grade["causal_levelling"] for grade in tranche["pair_grades"].values()} == {FIT_WINDOW}
     assert {cell["causal_levelling"] for cell in tranche["cells"]} == {FIT_WINDOW}
+    # ABL-444's pin, asserted the same way: this record's letters were decided by
+    # a sign test on G2/G3, so nothing here may abstain.
+    assert {grade["g23_readability"] for grade in tranche["pair_grades"].values()} == {SIGN_TEST}
+    assert {cell["g23_readability"] for cell in tranche["cells"]} == {SIGN_TEST}
+    assert not [cell for cell in tranche["cells"] if cell["not_readable"]]
 
 
 def test_the_record_names_the_bytes_it_graded(committed):

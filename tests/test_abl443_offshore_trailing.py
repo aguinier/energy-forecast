@@ -34,7 +34,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.evaluation.gate_grading import (  # noqa: E402
-    LADDER_REFERENCES, grade_cell, pair_grade, readability_floor_pct,
+    LADDER_REFERENCES, SIGN_TEST, grade_cell, pair_grade, readability_floor_pct,
 )
 from src.evaluation.model_free_reference import FIT_WINDOW, TRAILING_28D  # noqa: E402
 
@@ -121,7 +121,10 @@ def test_every_amended_grade_is_what_the_ladder_computes_from_its_own_scores():
         scores = dict(source["scores"])
         for name in LADDER_REFERENCES[TRAILING_28D].values():
             scores[name] = {"wape_pct": cell["wape"][name], "n": cell["comparator_n"][name]}
-        recomputed = grade_cell(scores, READ["stream"], levelling=TRAILING_28D)
+        # ABL-444: pinned, because this record's letters were decided by a sign
+        # test on G2/G3 and the module default is now the floored form.
+        recomputed = grade_cell(scores, READ["stream"], levelling=TRAILING_28D,
+                                g23_readability=SIGN_TEST)
         assert recomputed.label == cell["amended_grade"], (pair["pair"], cell["band"])
         assert [name for name, _ in recomputed.failed] == cell["amended_failed"]
         checked += 1
