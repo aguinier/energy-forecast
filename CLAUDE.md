@@ -522,7 +522,8 @@ Three things follow, and the third is the one that bites:
   after the fact. Whether `abl253` or `abl376` is re-read at 27 is ABL-401.
 
   **`abl316-t1b`'s pin is ABL-404 and it was missing for two months of merges.**
-  It is not one of `check_registration_tables`' three, so its absence resolved
+  `SCOPE_FEATURES` is not one of the tables `check_registration_tables` checks —
+  and after ABL-429 it is one of only two that are not — so its absence resolved
   through `features_for` to the 27 instead of aborting at import, and that scope's
   `SCOPE_OUTPUTS` row writes ABL-381's published PASS 6/6 — a `--scope abl316-t1b`
   run refitted BG and CH at the wrong challenger, overwrote the evidence in place
@@ -720,8 +721,9 @@ emitted a full report. Each harness now has a `SCOPE_OUTPUTS` table beside
 `SCOPES`/`GATE_BASIS` (`evaluate_wind_retrain.py:112`,
 `evaluate_solar_retrain.py:86`); the three flags default to `None` and resolve
 against it after parsing, so an explicit path still overrides. `abl195` and
-`abl253` keep their historical paths byte-for-byte. The three tables are one
-registration in three views and are cross-checked at **import** by
+`abl253` keep their historical paths byte-for-byte. Those three tables are one
+registration in three views (five on solar since ABL-429 — see below) and are
+cross-checked at **import** by
 `check_registration_tables` (`src/evaluation/gate_registration.py:39`, called at
 `evaluate_wind_retrain.py:285` and `evaluate_solar_retrain.py:536`), so a scope
 added to one and not the others fails before any fit rather than mid-run — it
@@ -730,28 +732,50 @@ than a failing test: the tables disagreeing is **not** a textual conflict, so
 GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
 platform will show it.
 
-**Registering a new scope means editing every registration table — but only
-three of them are import-checked, and that is true on both harnesses.** The call
-is `check_registration_tables(SCOPES=..., GATE_BASIS=..., SCOPE_OUTPUTS=...)` and
-nothing else. Solar carries **seven** tables: `FIT_RULES`, `SCOPE_FEATURES`,
-`SCOPE_TITLES` and `SCOPE_NOT_EVALUABLE` are **not** in that call, so a scope
-missing from any of them resolves through a module-level default **silently, at
-run time**. That is not hypothetical — it is exactly how ABL-404 happened, and it
-is why the rows that depend on it each carry a comment saying so. Adding a table
-to the check is not free: it raises on `import` for every branch already in
-flight, and `SCOPE_FEATURES` must stay absent-able because inheriting the current
-`FEATURE_COLUMNS` is the intended path for a new tranche (`abl316-t2a` does
-exactly that). Read the `check_registration_tables(...)` call in the harness you
-are editing rather than this sentence; that call is the list, and it is shorter
-than the set of tables you must still edit by hand.
+**Registering a new scope means editing every registration table, and since
+ABL-429 five of the seven are import-checked on solar.** The call is
+`check_registration_tables(SCOPES=..., GATE_BASIS=..., SCOPE_OUTPUTS=...,
+FIT_RULES=..., SCOPE_TITLES=...)`. **The two harnesses' calls now differ, and
+that is not one twin missing a fix** — the recurring failure mode this pair has
+(ABL-322/ABL-379, ABL-345/ABL-347): wind carries only the first three tables at
+all, so all three of its tables are checked. Solar carries seven and two stay
+out, each for a stated structural reason:
 
-> **Count the tables the same way you are told to count the call.** This
-> paragraph said **five** when the file already carried six — `SCOPES`,
-> `GATE_BASIS`, `SCOPE_OUTPUTS`, `FIT_RULES`, `SCOPE_FEATURES`, `SCOPE_TITLES`.
-> ABL-421 added the seventh and re-counted against the source instead of
-> incrementing the sentence. `grep -E "^[A-Z_]+ = \{"` in the harness is the
-> count; it is the one number in this section that cannot be checked by reading
-> the call site, which is exactly why it drifted.
+- `SCOPE_FEATURES` **cannot** join. `abl316-t2a`'s absence from it is correct and
+  published — inheriting the current `FEATURE_COLUMNS` is the intended path for a
+  new tranche — so requiring it would raise at import for a scope that is right.
+- `SCOPE_NOT_EVALUABLE` is the one to check hardest, because it is the only
+  remaining table that defaults **toward scoring**: a scope that forgets it scores
+  every cell it can build, which for a pair ABL-348 declares NOT-EVALUABLE is a
+  wrong verdict rather than self-documenting degradation.
+
+So a scope missing from either of those two still resolves through a module-level
+default **silently, at run time** — exactly how ABL-404 happened, which is why the
+rows that depend on it each carry a comment saying so.
+
+**What the check enforces is presence, not content.** It compares the tables'
+**keys**; it never looks at a value. A tranche that registers
+`exclude_impossible_night: True`, or a wrong title, imports and runs and exits 0
+like a compliant one. Enforcement buys you "somebody wrote a row here" and
+nothing more — the record of *what was chosen and why* is still the comment beside
+the row, and for `FIT_RULES` it is pinned by
+`tests/test_abl403_fit_rule_registration.py`.
+
+Adding a table to the check is not free: it raises on `import` for every branch
+already in flight, which is why ABL-429 waited for both repo queues to reach zero.
+Read the `check_registration_tables(...)` call in the harness you are editing
+rather than this sentence; that call is the list, and it is still shorter than the
+set of tables you must edit by hand.
+
+> **Count the tables the same way you are told to count the call — and check the
+> recipe, not just the number.** This paragraph said **five** when the file
+> carried six, and ABL-421 re-counted against the source to reach seven. But the
+> recipe it left behind, `grep -E "^[A-Z_]+ = \{"`, returned **9** at the very
+> commit that called it "the count": it also matches `DEFAULT_FIT_RULES` (keyed by
+> rule name, not by scope) and `NOT_EVALUABLE_CAUSES` (keyed by country). The
+> number was right and the recipe was wrong, which is the worse half — the recipe
+> is what the next editor actually runs. Run the grep, then subtract any table not
+> keyed by **scope name**; today that is those two, leaving seven.
 
 **`SCOPE_NOT_EVALUABLE` is the exception to watch, because it defaults toward
 scoring (ABL-421).** ABL-348 `not_evaluable` declares `EE/solar` and `FI/solar`

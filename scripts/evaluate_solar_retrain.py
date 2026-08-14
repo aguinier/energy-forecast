@@ -490,15 +490,20 @@ DEFAULT_FIT_RULES = {"exclude_impossible_night": False}
 # at the tail, so a standing rule parked there would be read by the next editor as
 # the docstring of whatever row lands under it.
 #
-# This comment is load-bearing precisely because this table is *not* one of the
-# three `check_registration_tables` cross-checks (see the call at the bottom of
-# this file).  A new scope that omits its row here does not fail at import; it
-# resolves through `DEFAULT_FIT_RULES`, which is also False -- so the omission
-# would produce the registered *behaviour* while leaving no record that anyone
-# chose it.  Right answer, absent registration, and the next reader cannot tell
-# the two apart.  Add the row.  A comment is the only record an unenforced table
-# gets, so this one is pinned by `tests/test_abl403_fit_rule_registration.py`
-# rather than left to survive the next merge on goodwill.
+# ABL-429 put this table inside `check_registration_tables` (see the call at the
+# bottom of this file), so a new scope that omits its row now fails at *import*
+# rather than resolving through `DEFAULT_FIT_RULES` -- which is also False, so
+# the omission used to produce the registered *behaviour* while leaving no record
+# that anyone chose it: right answer, absent registration, and the next reader
+# could not tell the two apart.
+#
+# That closes half of what this comment was written for, and not the half that
+# matters.  **The check compares keys, never values.**  A tranche registered
+# `True` here is a change to an adopted registration, and it imports, runs and
+# exits 0 exactly as a compliant one does.  So the record of what was chosen, and
+# why, is still text -- pinned by `tests/test_abl403_fit_rule_registration.py`,
+# which holds every `abl316-t2*` row to the registered False, rather than left to
+# survive the next merge on goodwill.
 #
 # The measurement behind the value: on BG the rule alone raises night MAE
 # +61.05 MW (8/8 seeds, p = 0.0078, outside a 6.96 MW null), drives night bias
@@ -531,9 +536,11 @@ FIT_RULES = {
     # read, which is the confound ABL-376 registered a separate scope to avoid.
     "abl316-t1b": {"exclude_impossible_night": False},
     # ABL-405 registers the rule **off**, which is also what `DEFAULT_FIT_RULES`
-    # would have given it -- stated rather than inherited, because this table is
-    # one of the three `check_registration_tables` does *not* check, so an absence
-    # here is indistinguishable from an oversight and defaults silently.
+    # would have given it -- stated rather than inherited.  Since ABL-429 the row
+    # itself is required at import, but `check_registration_tables` compares keys
+    # and not values, so its *presence* is enforced and its *content* is not: this
+    # text is still the only record that False was chosen rather than defaulted
+    # into.
     #
     # Off is the right value for two independent reasons, not merely the cheap one:
     #
@@ -555,9 +562,8 @@ FIT_RULES = {
     "abl316-t2a": {"exclude_impossible_night": False},
     # ABL-419 registers the rule **off**, which is also what `DEFAULT_FIT_RULES`
     # would have given it -- stated rather than inherited, for `abl316-t2a`'s
-    # reason: this table is one of the three `check_registration_tables` does *not*
-    # check, so an absence here is indistinguishable from an oversight and defaults
-    # silently.
+    # reason: ABL-429 requires the row but not its value, so an unstated False is
+    # indistinguishable from a False nobody chose.
     #
     # Off is right here for three reasons, and the third is specific to this
     # tranche:
@@ -683,8 +689,9 @@ SCOPE_FEATURES = {
     # `DEFAULT_SCOPE_FEATURES` -- the current 27.  Fitting the tranche at 27 was
     # the sole gate on re-tranching the remaining solar pairs, so inheriting the
     # default here is the intended path and not an omission, and this comment is
-    # what makes the two distinguishable: this table is not one of the three
-    # `check_registration_tables` checks, so an absence defaults silently.  The
+    # what makes the two distinguishable: this table is one of the two
+    # `check_registration_tables` does *not* check -- and cannot, since this very
+    # absence is correct -- so an absence defaults silently.  The
     # run records the resolved value either way -- `meta.feature_set`,
     # `meta.n_features` and `meta.feature_set_is_registered_for_scope`, which
     # reads False for this scope and prints as such in the report.
@@ -871,56 +878,35 @@ def not_evaluable_for(scope: str) -> frozenset:
     return frozenset(SCOPE_NOT_EVALUABLE.get(scope, ()))
 
 
-# ABL-387: the three tables above are one registration in three views.  Checked
-# at import, so a scope registered in one and not the others fails before any fit
-# -- and identically under `--help` and in the test suite -- rather than raising
-# `KeyError` partway through a gate run, or writing over another scope's evidence.
+# ABL-387: the registration tables above are one registration in five views.
+# Checked at import, so a scope registered in one and not the others fails before
+# any fit -- and identically under `--help` and in the test suite -- rather than
+# raising `KeyError` partway through a gate run, or writing over another scope's
+# evidence.
 #
-# ABL-376's two tables are deliberately **not** in this check, and the asymmetry
-# is the point rather than an oversight.  What makes the three strict is that
-# omitting an entry fails *destructively and silently*: a missing `SCOPE_OUTPUTS`
-# row sends a run's results over another scope's dispositioned evidence, and no
-# exit status shows it.  A missing `FIT_RULES` or `SCOPE_TITLES` row does not --
-# it resolves through `fit_rules_for`/`title_for` to the pre-ABL-376 behaviour,
-# and the report then says in as many words that the rule is not registered for
-# that scope.  Self-documenting degradation does not need an import-time abort.
+# ABL-429: `FIT_RULES` and `SCOPE_TITLES` are now in this check.  They were
+# deliberately excluded until ABL-419 merged: adding a required table raises on
+# import for every branch already in flight.  That window is closed.  The repo
+# queues are at zero, and an absent `FIT_RULES` or `SCOPE_TITLES` row is an
+# undocumented choice with no self-documenting degradation -- so they are enforced.
 #
-# The cost of getting this wrong is concrete and was measured, not imagined:
-# `ABL-381-tranche-1b` and `fix/abl-379-solar-gate-scope` are both live and both
-# add a solar scope to the three tables.  Had the new tables joined the strict
-# check, either merge order would produce a **textually CLEAN** merge that raises
-# on `import` -- taking `--help` and the whole suite with it -- with nothing on
-# GitHub to warn either author.  Adding a required table is not free; it is a
-# tax on every branch already in flight.
+# **The call below names five tables, and this file carries seven.**  The two not
+# in the call are excluded for stated structural reasons, not oversight:
 #
-# **The call below names three tables, and this file carries seven.**  ABL-419
-# counted them rather than assuming, and ABL-421 re-counted rather than inheriting
-# the sentence -- the count is the thing a reviewer cannot see from the call site,
-# and it moved.  `FIT_RULES`, `SCOPE_TITLES`, `SCOPE_FEATURES` and now
-# `SCOPE_NOT_EVALUABLE` are *not* arguments here, so a scope added to `SCOPES` and
-# omitted from any of those four imports cleanly, runs cleanly, exits 0 and
-# defaults silently.  A tranche registration is therefore a seven-table edit
-# checked three ways, and the other four are checked by hand at review.
+# - `SCOPE_FEATURES` **cannot** join this call: `abl316-t2a` is deliberately absent
+#   from it (inheriting the current `FEATURE_COLUMNS` is the intended path for a
+#   new tranche, ABL-404), so adding it here would raise `KeyError` at import for
+#   a scope whose absence is correct and published.
+#   `test_a_published_read_that_recorded_its_own_list_needs_no_scope_features_row`
+#   pins that absence and the two would fail against each other.
 #
-# `SCOPE_NOT_EVALUABLE`'s silent default is the most consequential of the four and
-# is the one to check hardest, because it defaults *toward scoring*: a scope that
-# forgets it scores every cell it can build, which for a pair ABL-348 declares
-# NOT-EVALUABLE is exactly the misread that registration forbids, reported as a
-# FAIL. The other three degrade self-documentingly; this one degrades into a
-# wrong verdict.  `tests/test_abl421_not_evaluable.py` holds the line for the one
-# scope that registers it.
-#
-# `SCOPE_FEATURES` in particular **cannot** join this call, and that is a
-# statement about the table rather than about the effort: `abl316-t2a` is
-# deliberately absent from it (see that table's comment, and ABL-404), so adding
-# it here would raise `KeyError` at import for a scope whose absence is correct
-# and published -- taking `--help` and the whole suite with it.
-# `test_a_published_read_that_recorded_its_own_list_needs_no_scope_features_row`
-# pins that absence, so the two would fail against each other.  `FIT_RULES` and
-# `SCOPE_TITLES` are complete today and could join; they are left out for the
-# reason argued directly above -- adding a required table is a tax on every
-# branch already in flight, and there are eight live at this commit.
-check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
+# - `SCOPE_NOT_EVALUABLE` defaults *toward scoring*: a scope that forgets it scores
+#   every cell it can build, which for a pair ABL-348 declares NOT-EVALUABLE is a
+#   wrong verdict, not self-documenting degradation.  `tests/test_abl421_not_evaluable.py`
+#   holds the line for the one scope that registers it, cross-derived from the
+#   pre-registration rather than restated, so the test cannot drift from the declaration.
+check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS,
+                          FIT_RULES=FIT_RULES, SCOPE_TITLES=SCOPE_TITLES)
 check_scope_outputs(SCOPE_OUTPUTS)
 
 
