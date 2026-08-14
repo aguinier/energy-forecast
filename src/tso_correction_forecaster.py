@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import config
 from .db import get_connection, save_forecasts
+from .tso_plausibility import guard_tso_frame
 from .runner_report import emit_record_count
 from .evaluation.tso_correction import (
     TSOCorrectionModel,
@@ -87,10 +88,19 @@ def load_tso_forecast_for_date(
             ORDER BY target_timestamp_utc
         """, conn, params=(country_code, start, end))
 
-    if not df.empty:
-        df["timestamp_utc"] = pd.to_datetime(
-            df["timestamp_utc"], format="mixed", utc=True
-        ).dt.tz_localize(None)
+        if not df.empty:
+            df["timestamp_utc"] = pd.to_datetime(
+                df["timestamp_utc"], format="mixed", utc=True
+            ).dt.tz_localize(None)
+            # This model's whole input is the TSO forecast — it predicts the
+            # TSO's own error and adds it back — so an implausible read is not
+            # a degraded feature, it is the entire prediction (ABL-431). NaN
+            # here means the hour is not corrected rather than corrected from
+            # a value three orders of magnitude out.
+            df = guard_tso_frame(
+                df, conn, country_code, "energy_generation_forecast", col,
+                frame_column="tso_forecast_mw",
+                context="tso_correction_forecaster")
 
     return df
 

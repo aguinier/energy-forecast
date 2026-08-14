@@ -1,0 +1,1133 @@
+{
+  "meta": {
+    "generated_at": "2026-08-14 00:49 UTC",
+    "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "replica_bytes": 9432453120,
+    "databases": {
+      "replica": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "features": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "sidecar": "C:\\Code\\able\\data\\forecasts_local.db",
+      "ambient_energy_db_path": "C:\\Code\\able\\data\\energy_dashboard.db",
+      "features_match_replica": true,
+      "ambient_matches_replica": true
+    },
+    "fit_window": {
+      "start": "2026-01-14 00:00:00",
+      "end_exclusive": "2026-07-11 00:00:00"
+    },
+    "gate_window": {
+      "start": "2026-07-11 00:00:00",
+      "end_exclusive": "2026-08-10 00:00:00"
+    },
+    "scope": "abl322-pilot",
+    "registered_pairs": [
+      [
+        "wind_offshore",
+        "DE"
+      ],
+      [
+        "wind_offshore",
+        "NL"
+      ]
+    ],
+    "registered_cells": 6,
+    "gate_basis": [
+      "challenger",
+      "seasonal_naive"
+    ],
+    "reported_comparators": [
+      "challenger",
+      "incumbent",
+      "seasonal_naive",
+      "persistence",
+      "constant_causal",
+      "constant_oracle",
+      "climatology_causal",
+      "climatology_oracle"
+    ],
+    "training_source": "energy_generation",
+    "registered_intended_n": {
+      "2-12h": 240,
+      "12-24h": 600,
+      "24-36h": 720,
+      "36-48h": 720,
+      "48-64h": 480
+    },
+    "schedule_implied_n": {
+      "2-12h": 210,
+      "12-24h": 570,
+      "24-36h": 720,
+      "36-48h": 720,
+      "48-64h": 510
+    },
+    "vintage_counts": {
+      "wind_offshore/xgboost": {
+        "generated_timestamps": 480,
+        "run_days": 31
+      },
+      "wind_onshore/catboost": {
+        "generated_timestamps": 720,
+        "run_days": 31
+      }
+    },
+    "selection": "latest vintage per country + target + model + horizon band"
+  },
+  "verdict": "PASS",
+  "recommendation": "The challenger clears the pre-registered D-7 bar in every served D+2 country-band cell. Preserve these experiment artifacts and ask the CEO to initiate Board review; do not promote from this issue.",
+  "training": [
+    {
+      "forecast_type": "wind_offshore",
+      "country": "DE",
+      "algorithm": "xgboost",
+      "params": {
+        "n_estimators": 500,
+        "max_depth": 8,
+        "learning_rate": 0.05,
+        "min_child_weight": 3,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "objective": "reg:squarederror",
+        "n_jobs": -1,
+        "random_state": 42,
+        "verbosity": 0
+      },
+      "audit": {
+        "intended_rows": 34176,
+        "retained_rows": 34176,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 4272,
+        "degraded_lag_1d_rows": 23674
+      },
+      "gate_build_audit": {
+        "intended_rows": 5760,
+        "retained_rows": 5760,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 720,
+        "degraded_lag_1d_rows": 3990
+      },
+      "model_free_reference_mw": {
+        "constant_causal": 3263.82040911751,
+        "constant_oracle": 2005.9885,
+        "climatology_causal": {
+          "0": 3541.111186797753,
+          "1": 3508.9548553370782,
+          "2": 3497.992834269663,
+          "3": 3519.437747191011,
+          "4": 3477.795629213483,
+          "5": 3421.873713483146,
+          "6": 3365.906720505618,
+          "7": 3267.9535491573038,
+          "8": 3147.4185660112357,
+          "9": 3022.919825842697,
+          "10": 2906.3890983146066,
+          "11": 2830.5844030898875,
+          "12": 2794.831699438202,
+          "13": 2811.6759466292133,
+          "14": 2932.1798188202247,
+          "15": 3119.622300561798,
+          "16": 3224.068209269663,
+          "17": 3274.8635491573036,
+          "18": 3307.7011081460673,
+          "19": 3366.832870786517,
+          "20": 3475.020433988764,
+          "21": 3487.722362359551,
+          "22": 3504.439610955056,
+          "23": 3524.3937794943818
+        },
+        "climatology_oracle": {
+          "0": 2154.8665,
+          "1": 2060.8737499999997,
+          "2": 2150.118875,
+          "3": 2374.1558750000004,
+          "4": 2157.999875,
+          "5": 1936.36325,
+          "6": 2157.7181250000003,
+          "7": 2013.0318750000001,
+          "8": 1518.520375,
+          "9": 1463.549,
+          "10": 1544.43275,
+          "11": 1685.333,
+          "12": 1685.317375,
+          "13": 1506.3653749999999,
+          "14": 1729.7917499999999,
+          "15": 1963.5196250000001,
+          "16": 2127.407875,
+          "17": 2194.62,
+          "18": 2468.1305,
+          "19": 2419.1237499999997,
+          "20": 2231.353875,
+          "21": 2023.92875,
+          "22": 2172.341,
+          "23": 1892.654875
+        }
+      },
+      "constant_runs": [],
+      "timings_sec": {
+        "fit_feature_build": 42.7,
+        "fit": 1.9,
+        "gate_build_and_predict": 6.9,
+        "pair_total": 51.6
+      },
+      "fit_rows": 34176,
+      "artifact_path": "C:\\Code\\able\\wt-abl436\\experiments\\ABL436\\artifacts\\DE\\wind_offshore\\model.joblib",
+      "artifact_sha256": "5900d9673d96c0d513277a0405ee9de85880a8db3ddd2c8a5424f134cf79777b"
+    },
+    {
+      "forecast_type": "wind_offshore",
+      "country": "NL",
+      "algorithm": "xgboost",
+      "params": {
+        "n_estimators": 500,
+        "max_depth": 8,
+        "learning_rate": 0.05,
+        "min_child_weight": 3,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "objective": "reg:squarederror",
+        "n_jobs": -1,
+        "random_state": 42,
+        "verbosity": 0
+      },
+      "audit": {
+        "intended_rows": 34176,
+        "retained_rows": 34176,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 4272,
+        "degraded_lag_1d_rows": 23674
+      },
+      "gate_build_audit": {
+        "intended_rows": 5760,
+        "retained_rows": 5760,
+        "excluded_missing_actual_or_feature": 0,
+        "unique_targets": 720,
+        "degraded_lag_1d_rows": 3990
+      },
+      "model_free_reference_mw": {
+        "constant_causal": 1704.090077539794,
+        "constant_oracle": 870.2541249999999,
+        "climatology_causal": {
+          "0": 1767.70275,
+          "1": 1768.7980294943818,
+          "2": 1765.9263581460675,
+          "3": 1762.5212415730339,
+          "4": 1729.4106825842696,
+          "5": 1743.7165730337078,
+          "6": 1729.1238033707866,
+          "7": 1650.883617977528,
+          "8": 1560.7609578651684,
+          "9": 1477.202032303371,
+          "10": 1395.2839648876404,
+          "11": 1346.4231039325844,
+          "12": 1344.582106741573,
+          "13": 1467.693941011236,
+          "14": 1651.4294887640451,
+          "15": 1749.9317191011237,
+          "16": 1841.7164733146067,
+          "17": 1871.4534691011238,
+          "18": 1909.7832626404495,
+          "19": 1896.7587092696629,
+          "20": 1904.3050098314604,
+          "21": 1902.8871994382023,
+          "22": 1856.3869087078651,
+          "23": 1803.4804578651683
+        },
+        "climatology_oracle": {
+          "0": 1060.213125,
+          "1": 1092.78525,
+          "2": 1105.6979999999999,
+          "3": 953.067,
+          "4": 971.502625,
+          "5": 832.4601250000001,
+          "6": 822.1503749999999,
+          "7": 728.33425,
+          "8": 696.8725,
+          "9": 663.4148749999999,
+          "10": 682.091875,
+          "11": 698.5775,
+          "12": 659.290625,
+          "13": 616.293125,
+          "14": 689.496625,
+          "15": 818.69325,
+          "16": 1006.506125,
+          "17": 1071.8876249999998,
+          "18": 1011.846125,
+          "19": 982.9758750000001,
+          "20": 1055.49425,
+          "21": 1087.0328749999999,
+          "22": 1103.49375,
+          "23": 1092.84375
+        }
+      },
+      "constant_runs": [],
+      "timings_sec": {
+        "fit_feature_build": 40.6,
+        "fit": 1.6,
+        "gate_build_and_predict": 6.8,
+        "pair_total": 49.0
+      },
+      "fit_rows": 34176,
+      "artifact_path": "C:\\Code\\able\\wt-abl436\\experiments\\ABL436\\artifacts\\NL\\wind_offshore\\model.joblib",
+      "artifact_sha256": "d7d65793edd87ed59be88e65ab60b58715df6208fbc932eb876bf5f8e6449e1c"
+    }
+  ],
+  "gate_cells": [
+    {
+      "forecast_type": "wind_offshore",
+      "country": "DE",
+      "horizon_band": "24-36h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 66.1105035626839,
+          "mae": 1660.3077489312066,
+          "bias_pct": -2.9929625984355424,
+          "slope": 0.0655441312316472,
+          "correlation": 0.14313688274805642
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 88.85618646684848,
+          "mae": 2231.545775347222,
+          "bias_pct": 2.8914444088058606,
+          "slope": -0.0387233878393301,
+          "correlation": -0.03790322218866452
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 71.83782027253864,
+          "mae": 1804.1443225694445,
+          "bias_pct": 0.573797607462118,
+          "slope": 0.2793864074300759,
+          "correlation": 0.28568741698723404
+        },
+        "constant_causal": {
+          "n": 720,
+          "wape_pct": 74.40104121879627,
+          "mae": 1868.5173853953718,
+          "bias_pct": 29.959527638067968,
+          "slope": 0.0,
+          "correlation": null
+        },
+        "constant_oracle": {
+          "n": 720,
+          "wape_pct": 62.86091148323933,
+          "mae": 1578.6970725694446,
+          "bias_pct": -20.12510333622024,
+          "slope": 3.582509670142332e-32,
+          "correlation": 3.090850873202968e-16
+        },
+        "climatology_causal": {
+          "n": 720,
+          "wape_pct": 73.73642897503208,
+          "mae": 1851.826227426654,
+          "bias_pct": 29.959527638067954,
+          "slope": 0.0186977768479785,
+          "correlation": 0.1459729839072027
+        },
+        "climatology_oracle": {
+          "n": 720,
+          "wape_pct": 62.124865554790986,
+          "mae": 1560.2119197916666,
+          "bias_pct": -20.974900525165733,
+          "slope": 0.021065155802152936,
+          "correlation": 0.14222457226140342
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720,
+        "constant_causal": 720,
+        "constant_oracle": 720,
+        "climatology_causal": 720,
+        "climatology_oracle": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      },
+      "grade": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        },
+        "failed": [],
+        "skill_pct": {
+          "seasonal_naive": 25.598310943325043,
+          "constant_causal": 11.14303982888063,
+          "climatology_causal": 10.342140944919365
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 34.40555082536596,
+          "constant_causal": 12.540424303759137,
+          "climatology_causal": 11.535119234294621
+        },
+        "floor_pct": 7.505415138351427,
+        "bar_weaker_than_a_flat_line": true
+      }
+    },
+    {
+      "forecast_type": "wind_offshore",
+      "country": "DE",
+      "horizon_band": "36-48h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 65.65669963588455,
+          "mae": 1648.9108583380805,
+          "bias_pct": -2.290091447397936,
+          "slope": 0.07252798606176554,
+          "correlation": 0.15685271809711876
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 88.85618646684848,
+          "mae": 2231.545775347222,
+          "bias_pct": 2.8914444088058606,
+          "slope": -0.0387233878393301,
+          "correlation": -0.03790322218866452
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 79.53430358826832,
+          "mae": 1997.434801388889,
+          "bias_pct": 1.2115359804425703,
+          "slope": 0.08398570005610288,
+          "correlation": 0.08653941609147082
+        },
+        "constant_causal": {
+          "n": 720,
+          "wape_pct": 74.40104121879627,
+          "mae": 1868.5173853953718,
+          "bias_pct": 29.959527638067968,
+          "slope": 0.0,
+          "correlation": null
+        },
+        "constant_oracle": {
+          "n": 720,
+          "wape_pct": 62.86091148323933,
+          "mae": 1578.6970725694446,
+          "bias_pct": -20.12510333622024,
+          "slope": 3.582509670142332e-32,
+          "correlation": 3.090850873202968e-16
+        },
+        "climatology_causal": {
+          "n": 720,
+          "wape_pct": 73.73642897503208,
+          "mae": 1851.826227426654,
+          "bias_pct": 29.959527638067954,
+          "slope": 0.0186977768479785,
+          "correlation": 0.1459729839072027
+        },
+        "climatology_oracle": {
+          "n": 720,
+          "wape_pct": 62.124865554790986,
+          "mae": 1560.2119197916666,
+          "bias_pct": -20.974900525165733,
+          "slope": 0.021065155802152936,
+          "correlation": 0.14222457226140342
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720,
+        "constant_causal": 720,
+        "constant_oracle": 720,
+        "climatology_causal": 720,
+        "climatology_oracle": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      },
+      "grade": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        },
+        "failed": [],
+        "skill_pct": {
+          "seasonal_naive": 26.10902825502136,
+          "constant_causal": 11.752982807319356,
+          "climatology_causal": 10.957581552916551
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 35.33453091553858,
+          "constant_causal": 13.318277695049588,
+          "climatology_causal": 12.306024189390678
+        },
+        "floor_pct": 7.505415138351427,
+        "bar_weaker_than_a_flat_line": true
+      }
+    },
+    {
+      "forecast_type": "wind_offshore",
+      "country": "DE",
+      "horizon_band": "48-64h",
+      "scores": {
+        "challenger": {
+          "n": 510,
+          "wape_pct": 66.14974066997667,
+          "mae": 1590.311712952857,
+          "bias_pct": -3.6747960603940553,
+          "slope": 0.06364792887612926,
+          "correlation": 0.13181755261067518
+        },
+        "seasonal_naive": {
+          "n": 510,
+          "wape_pct": 87.09227948356508,
+          "mae": 2093.793124019608,
+          "bias_pct": 2.277872069431485,
+          "slope": -0.006477244114847972,
+          "correlation": -0.006303900416063163
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 510,
+          "wape_pct": 87.03562694164339,
+          "mae": 2092.4311352941177,
+          "bias_pct": 2.04521659354251,
+          "slope": -0.012187532243963368,
+          "correlation": -0.012101152240823615
+        },
+        "constant_causal": {
+          "n": 510,
+          "wape_pct": 75.78989569663379,
+          "mae": 1822.0715248327,
+          "bias_pct": 35.76009778335861,
+          "slope": -6.518561609564208e-33,
+          "correlation": -1.3376879566222218e-17
+        },
+        "constant_oracle": {
+          "n": 510,
+          "wape_pct": 62.31595594311998,
+          "mae": 1498.1433583333333,
+          "bias_pct": -16.55999387970988,
+          "slope": -1.629640402391052e-33,
+          "correlation": -1.3376879566222218e-17
+        },
+        "climatology_causal": {
+          "n": 510,
+          "wape_pct": 73.6478319125505,
+          "mae": 1770.5739816644634,
+          "bias_pct": 32.12335857427013,
+          "slope": 0.019448881712685388,
+          "correlation": 0.146265430971033
+        },
+        "climatology_oracle": {
+          "n": 510,
+          "wape_pct": 61.31131170424097,
+          "mae": 1473.9906181372548,
+          "bias_pct": -20.138139593676616,
+          "slope": 0.025655544367301573,
+          "correlation": 0.15237702451412335
+        }
+      },
+      "comparator_n": {
+        "challenger": 510,
+        "seasonal_naive": 510,
+        "incumbent": 0,
+        "persistence": 510,
+        "constant_causal": 510,
+        "constant_oracle": 510,
+        "climatology_causal": 510,
+        "climatology_oracle": 510
+      },
+      "gate": {
+        "pass": true,
+        "n": 510,
+        "intended_n": 480,
+        "minimum_n": 456,
+        "beats_d7": true,
+        "enough_pairs": true
+      },
+      "grade": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        },
+        "failed": [],
+        "skill_pct": {
+          "seasonal_naive": 24.046378092033304,
+          "constant_causal": 12.719578168103073,
+          "climatology_causal": 10.181007434783796
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 31.65929087775485,
+          "constant_causal": 14.57323177539303,
+          "climatology_causal": 11.335027419052283
+        },
+        "floor_pct": 7.505415138351427,
+        "bar_weaker_than_a_flat_line": true
+      }
+    },
+    {
+      "forecast_type": "wind_offshore",
+      "country": "NL",
+      "horizon_band": "24-36h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 60.45612988075422,
+          "mae": 686.3657990815904,
+          "bias_pct": -14.271777869680747,
+          "slope": 0.21698072589042827,
+          "correlation": 0.4546390480698608
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 81.79006233278575,
+          "mae": 928.5725302083333,
+          "bias_pct": -3.064964316922323,
+          "slope": 0.13182216438207617,
+          "correlation": 0.14931011184141582
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 82.21861737125106,
+          "mae": 933.4379677083333,
+          "bias_pct": 13.898627572312241,
+          "slope": 0.3336712337550234,
+          "correlation": 0.29746291224066945
+        },
+        "constant_causal": {
+          "n": 720,
+          "wape_pct": 89.96673526247297,
+          "mae": 1021.4032929495681,
+          "bias_pct": 50.18414097847366,
+          "slope": -1.7826016983554335e-32,
+          "correlation": -2.653747742330213e-17
+        },
+        "constant_oracle": {
+          "n": 720,
+          "wape_pct": 71.74405193613164,
+          "mae": 814.5189517361111,
+          "bias_pct": -23.261381385025917,
+          "slope": -8.913008491777168e-33,
+          "correlation": -2.653747742330213e-17
+        },
+        "climatology_causal": {
+          "n": 720,
+          "wape_pct": 87.27902704773763,
+          "mae": 990.8894145365169,
+          "bias_pct": 50.18414097847366,
+          "slope": 0.038664771419623045,
+          "correlation": 0.222771630927291
+        },
+        "climatology_oracle": {
+          "n": 720,
+          "wape_pct": 70.88004807488329,
+          "mae": 804.7098107638889,
+          "bias_pct": -20.997237224320752,
+          "slope": 0.03632715140018997,
+          "correlation": 0.21217676229758495
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720,
+        "constant_causal": 720,
+        "constant_oracle": 720,
+        "climatology_causal": 720,
+        "climatology_oracle": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      },
+      "grade": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        },
+        "failed": [],
+        "skill_pct": {
+          "seasonal_naive": 26.083770868431987,
+          "constant_causal": 32.80168530693393,
+          "climatology_causal": 30.73235125812357
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 35.288286719826964,
+          "constant_causal": 48.813255893035986,
+          "climatology_causal": 44.36753927168317
+        },
+        "floor_pct": 7.505415138351427,
+        "bar_weaker_than_a_flat_line": false
+      }
+    },
+    {
+      "forecast_type": "wind_offshore",
+      "country": "NL",
+      "horizon_band": "36-48h",
+      "scores": {
+        "challenger": {
+          "n": 720,
+          "wape_pct": 61.258013477660576,
+          "mae": 695.469681133694,
+          "bias_pct": -12.057047865429245,
+          "slope": 0.2204565303222162,
+          "correlation": 0.435832708212473
+        },
+        "seasonal_naive": {
+          "n": 720,
+          "wape_pct": 81.79006233278575,
+          "mae": 928.5725302083333,
+          "bias_pct": -3.064964316922323,
+          "slope": 0.13182216438207617,
+          "correlation": 0.14931011184141582
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 720,
+          "wape_pct": 101.70126645402009,
+          "mae": 1154.6268534722221,
+          "bias_pct": 13.871193273691647,
+          "slope": 0.043086876870690724,
+          "correlation": 0.03839364087731963
+        },
+        "constant_causal": {
+          "n": 720,
+          "wape_pct": 89.96673526247297,
+          "mae": 1021.4032929495681,
+          "bias_pct": 50.18414097847366,
+          "slope": -1.7826016983554335e-32,
+          "correlation": -2.653747742330213e-17
+        },
+        "constant_oracle": {
+          "n": 720,
+          "wape_pct": 71.74405193613164,
+          "mae": 814.5189517361111,
+          "bias_pct": -23.261381385025917,
+          "slope": -8.913008491777168e-33,
+          "correlation": -2.653747742330213e-17
+        },
+        "climatology_causal": {
+          "n": 720,
+          "wape_pct": 87.27902704773763,
+          "mae": 990.8894145365169,
+          "bias_pct": 50.18414097847366,
+          "slope": 0.038664771419623045,
+          "correlation": 0.222771630927291
+        },
+        "climatology_oracle": {
+          "n": 720,
+          "wape_pct": 70.88004807488329,
+          "mae": 804.7098107638889,
+          "bias_pct": -20.997237224320752,
+          "slope": 0.03632715140018997,
+          "correlation": 0.21217676229758495
+        }
+      },
+      "comparator_n": {
+        "challenger": 720,
+        "seasonal_naive": 720,
+        "incumbent": 0,
+        "persistence": 720,
+        "constant_causal": 720,
+        "constant_oracle": 720,
+        "climatology_causal": 720,
+        "climatology_oracle": 720
+      },
+      "gate": {
+        "pass": true,
+        "n": 720,
+        "intended_n": 720,
+        "minimum_n": 684,
+        "beats_d7": true,
+        "enough_pairs": true
+      },
+      "grade": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        },
+        "failed": [],
+        "skill_pct": {
+          "seasonal_naive": 25.103353964427598,
+          "constant_causal": 31.91037409666616,
+          "climatology_causal": 29.81359262385539
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 33.517327267905536,
+          "constant_causal": 46.86525101778206,
+          "climatology_causal": 42.477730002730716
+        },
+        "floor_pct": 7.505415138351427,
+        "bar_weaker_than_a_flat_line": false
+      }
+    },
+    {
+      "forecast_type": "wind_offshore",
+      "country": "NL",
+      "horizon_band": "48-64h",
+      "scores": {
+        "challenger": {
+          "n": 510,
+          "wape_pct": 63.75049005612982,
+          "mae": 724.5021265048158,
+          "bias_pct": -14.514914075144159,
+          "slope": 0.21524810815570708,
+          "correlation": 0.43224944917030445
+        },
+        "seasonal_naive": {
+          "n": 510,
+          "wape_pct": 88.51091991235536,
+          "mae": 1005.8957921568627,
+          "bias_pct": -3.907540221433154,
+          "slope": 0.08225466115865276,
+          "correlation": 0.09294547301091932
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 510,
+          "wape_pct": 93.74639156487055,
+          "mae": 1065.3951049019608,
+          "bias_pct": 3.549322939480171,
+          "slope": 0.0987740654900769,
+          "correlation": 0.09815322947733857
+        },
+        "constant_causal": {
+          "n": 510,
+          "wape_pct": 92.99035072837877,
+          "mae": 1056.802963990095,
+          "bias_pct": 49.99180101699007,
+          "slope": 2.228957035500515e-31,
+          "correlation": 3.4224188370735174e-16
+        },
+        "constant_oracle": {
+          "n": 510,
+          "wape_pct": 73.27042888212344,
+          "mae": 832.6929171568628,
+          "bias_pct": -23.37920599064545,
+          "slope": 1.1144785177502575e-31,
+          "correlation": 3.4224188370735174e-16
+        },
+        "climatology_causal": {
+          "n": 510,
+          "wape_pct": 88.40596896349403,
+          "mae": 1004.7030611588456,
+          "bias_pct": 48.23936569449861,
+          "slope": 0.05093799848814634,
+          "correlation": 0.2591515587991448
+        },
+        "climatology_oracle": {
+          "n": 510,
+          "wape_pct": 72.33650475814049,
+          "mae": 822.0791946078432,
+          "bias_pct": -24.047817475330024,
+          "slope": 0.045067331219446026,
+          "correlation": 0.2558872278613295
+        }
+      },
+      "comparator_n": {
+        "challenger": 510,
+        "seasonal_naive": 510,
+        "incumbent": 0,
+        "persistence": 510,
+        "constant_causal": 510,
+        "constant_oracle": 510,
+        "climatology_causal": 510,
+        "climatology_oracle": 510
+      },
+      "gate": {
+        "pass": true,
+        "n": 510,
+        "intended_n": 480,
+        "minimum_n": 456,
+        "beats_d7": true,
+        "enough_pairs": true
+      },
+      "grade": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        },
+        "failed": [],
+        "skill_pct": {
+          "seasonal_naive": 27.974435110089956,
+          "constant_causal": 31.443972888818816,
+          "climatology_causal": 27.88893012138732
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 38.839591404591474,
+          "constant_causal": 45.8660955335471,
+          "climatology_causal": 38.6749637307196
+        },
+        "floor_pct": 7.505415138351427,
+        "bar_weaker_than_a_flat_line": false
+      }
+    }
+  ],
+  "country_d2": [
+    {
+      "forecast_type": "wind_offshore",
+      "country": "DE",
+      "n": 1950,
+      "scores": {
+        "challenger": {
+          "n": 1950,
+          "wape_pct": 65.95098618973518,
+          "mae": 1637.7930106870992,
+          "bias_pct": -2.9031436684356073,
+          "slope": 0.06840157880252866,
+          "correlation": 0.1466051328770396
+        },
+        "seasonal_naive": {
+          "n": 1950,
+          "wape_pct": 88.40957729611347,
+          "mae": 2195.5181588461537,
+          "bias_pct": 2.7360920935925925,
+          "slope": -0.030186144557826627,
+          "correlation": -0.0295030090354029
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 1950,
+          "wape_pct": 78.55969408102723,
+          "mae": 1950.911204230769,
+          "bias_pct": 1.1844845117254292,
+          "slope": 0.13498543361014603,
+          "correlation": 0.13743148466490396
+        },
+        "constant_causal": {
+          "n": 1950,
+          "wape_pct": 74.75268966312865,
+          "mae": 1856.370006478981,
+          "bias_pct": 31.42819228247926,
+          "slope": 2.6208263702361585e-32,
+          "correlation": 1.1168010339929722e-16
+        },
+        "constant_oracle": {
+          "n": 1950,
+          "wape_pct": 62.722932471779714,
+          "mae": 1557.6291780769234,
+          "bias_pct": -19.222442032057906,
+          "slope": 1.3104131851180792e-32,
+          "correlation": 1.1168010339929722e-16
+        },
+        "climatology_causal": {
+          "n": 1950,
+          "wape_pct": 73.7139968054339,
+          "mae": 1830.5756400734658,
+          "bias_pct": 30.507394815411473,
+          "slope": 0.019351474056359425,
+          "correlation": 0.1479856851210022
+        },
+        "climatology_oracle": {
+          "n": 1950,
+          "wape_pct": 61.91887929021704,
+          "mae": 1537.661733205128,
+          "bias_pct": -20.763038386596396,
+          "slope": 0.022523376249339224,
+          "correlation": 0.1463212649095144
+        }
+      },
+      "comparator_n": {
+        "challenger": 1950,
+        "seasonal_naive": 1950,
+        "incumbent": 0,
+        "persistence": 1950,
+        "constant_causal": 1950,
+        "constant_oracle": 1950,
+        "climatology_causal": 1950,
+        "climatology_oracle": 1950
+      },
+      "tso": {
+        "n": 1950,
+        "wape_pct": 21.12859500804052,
+        "mae": 524.6967062820513,
+        "bias_pct": -11.63596129002312,
+        "slope": 0.7732610578955074,
+        "correlation": 0.9275361463694494
+      }
+    },
+    {
+      "forecast_type": "wind_offshore",
+      "country": "NL",
+      "n": 1950,
+      "scores": {
+        "challenger": {
+          "n": 1950,
+          "wape_pct": 61.61437925873978,
+          "mae": 699.7013488576723,
+          "bias_pct": -13.517885703986869,
+          "slope": 0.2177646866251011,
+          "correlation": 0.4411673751241724
+        },
+        "seasonal_naive": {
+          "n": 1950,
+          "wape_pct": 83.54914301968569,
+          "mae": 948.7955371794872,
+          "bias_pct": -3.285495548736816,
+          "slope": 0.118255353963949,
+          "correlation": 0.1338551931174191
+        },
+        "incumbent": {
+          "n": 0,
+          "wape_pct": null,
+          "mae": null,
+          "bias_pct": null,
+          "slope": null,
+          "correlation": null
+        },
+        "persistence": {
+          "n": 1950,
+          "wape_pct": 92.42751752246824,
+          "mae": 1049.6195767948718,
+          "bias_pct": 11.179730002977012,
+          "slope": 0.16382388755280863,
+          "correlation": 0.14992863155900746
+        },
+        "constant_causal": {
+          "n": 1950,
+          "wape_pct": 90.75811991952257,
+          "mae": 1030.6616684524754,
+          "bias_pct": 50.13379896369964,
+          "slope": 1.3271531921289479e-31,
+          "correlation": 1.4941016459059762e-16
+        },
+        "constant_oracle": {
+          "n": 1950,
+          "wape_pct": 72.14355753118926,
+          "mae": 819.2721426923076,
+          "bias_pct": -23.292220156080525,
+          "slope": 8.092397512981389e-33,
+          "correlation": 2.4294335705788236e-17
+        },
+        "climatology_causal": {
+          "n": 1950,
+          "wape_pct": 87.57398669177044,
+          "mae": 994.5022144223566,
+          "bias_pct": 49.675126079422654,
+          "slope": 0.04201748179090062,
+          "correlation": 0.2329781060367129
+        },
+        "climatology_oracle": {
+          "n": 1950,
+          "wape_pct": 71.26125312088996,
+          "mae": 809.2525726923077,
+          "bias_pct": -21.795679497476677,
+          "slope": 0.038709064039713775,
+          "correlation": 0.22354473252520804
+        }
+      },
+      "comparator_n": {
+        "challenger": 1950,
+        "seasonal_naive": 1950,
+        "incumbent": 0,
+        "persistence": 1950,
+        "constant_causal": 1950,
+        "constant_oracle": 1950,
+        "climatology_causal": 1950,
+        "climatology_oracle": 1950
+      },
+      "tso": {
+        "n": 1950,
+        "wape_pct": 68.97252007358115,
+        "mae": 783.261406025641,
+        "bias_pct": -67.24191258960509,
+        "slope": 0.2241738578782888,
+        "correlation": 0.8042677504456471
+      }
+    }
+  ]
+}

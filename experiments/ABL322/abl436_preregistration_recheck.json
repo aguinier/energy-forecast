@@ -1,0 +1,182 @@
+{
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 9432453120,
+  "access": "sqlite mode=ro, uri=True (read-only)",
+  "source_table": "energy_generation",
+  "windows": {
+    "fit_start": "2026-01-14 00:00:00",
+    "gate_start": "2026-07-11 00:00:00",
+    "gate_end_exclusive": "2026-08-10 00:00:00",
+    "provenance": "inherited verbatim from experiments/ABL195/config.json"
+  },
+  "pairs": {
+    "DE:wind_offshore": {
+      "forecast_type": "wind_offshore",
+      "role": "ABL-322 scope",
+      "cadence_fit_to_gate": {
+        "rows": 19968,
+        "minute_offsets": {
+          "0": 4992,
+          "15": 4992,
+          "30": 4992,
+          "45": 4992
+        },
+        "distinct_minute_offsets": 4,
+        "rows_at_00": 4992,
+        "discarded_by_hourly_read": 14976
+      },
+      "aliasing": {
+        "comparable_hours": 4992,
+        "expected_samples_per_hour": 4,
+        "mean_mw": 3155.3001027644236,
+        "instant_vs_mean_mae_mw": 114.70434405048078,
+        "instant_vs_mean_wape_pct": 3.6352911074919922,
+        "instant_vs_mean_bias_mw": -0.5091053685897395,
+        "instant_vs_mean_p95_abs_mw": 356.0800624999997,
+        "max_abs_mw": 1250.1755000000003
+      },
+      "d7_baseline": [
+        {
+          "aggregation": "instant",
+          "gate_hours_available": 720,
+          "n_scored": 720,
+          "mean_actual_mw": 2513.2399194444447,
+          "d7_wape_pct": 88.81726507052062,
+          "d7_mae_mw": 2232.1909611111114
+        },
+        {
+          "aggregation": "hourly_mean",
+          "gate_hours_available": 720,
+          "n_scored": 720,
+          "mean_actual_mw": 2511.4129517361107,
+          "d7_wape_pct": 88.85618646684848,
+          "d7_mae_mw": 2231.545775347222
+        }
+      ]
+    },
+    "NL:wind_offshore": {
+      "forecast_type": "wind_offshore",
+      "role": "ABL-322 scope",
+      "cadence_fit_to_gate": {
+        "rows": 19968,
+        "minute_offsets": {
+          "0": 4992,
+          "15": 4992,
+          "30": 4992,
+          "45": 4992
+        },
+        "distinct_minute_offsets": 4,
+        "rows_at_00": 4992,
+        "discarded_by_hourly_read": 14976
+      },
+      "aliasing": {
+        "comparable_hours": 4992,
+        "expected_samples_per_hour": 4,
+        "mean_mw": 1621.9150786258012,
+        "instant_vs_mean_mae_mw": 79.34727974759615,
+        "instant_vs_mean_wape_pct": 4.8886038596428625,
+        "instant_vs_mean_bias_mw": -0.6914446113782068,
+        "instant_vs_mean_p95_abs_mw": 258.6550500000001,
+        "max_abs_mw": 1088.8002499999998
+      },
+      "d7_baseline": [
+        {
+          "aggregation": "instant",
+          "gate_hours_available": 720,
+          "n_scored": 720,
+          "mean_actual_mw": 1131.008822222222,
+          "d7_wape_pct": 81.78318618175301,
+          "d7_mae_mw": 925.8420888888888
+        },
+        {
+          "aggregation": "hourly_mean",
+          "gate_hours_available": 720,
+          "n_scored": 720,
+          "mean_actual_mw": 1134.3434184027778,
+          "d7_wape_pct": 81.79006233278575,
+          "d7_mae_mw": 928.5725302083333
+        }
+      ]
+    },
+    "BE:wind_offshore": {
+      "forecast_type": "wind_offshore",
+      "role": "ABL-195 reference (already served)",
+      "cadence_fit_to_gate": {
+        "rows": 4992,
+        "minute_offsets": {
+          "0": 4992
+        },
+        "distinct_minute_offsets": 1,
+        "rows_at_00": 4992,
+        "discarded_by_hourly_read": 0
+      },
+      "aliasing": {
+        "comparable_hours": 0,
+        "expected_samples_per_hour": 1,
+        "note": "hourly series; instant and mean coincide"
+      },
+      "d7_baseline": [
+        {
+          "aggregation": "instant",
+          "gate_hours_available": 720,
+          "n_scored": 720,
+          "mean_actual_mw": 469.91965972222226,
+          "d7_wape_pct": 104.8705127616456,
+          "d7_mae_mw": 501.51582986111106
+        },
+        {
+          "aggregation": "hourly_mean",
+          "gate_hours_available": 720,
+          "n_scored": 720,
+          "mean_actual_mw": 469.91965972222226,
+          "d7_wape_pct": 104.8705127616456,
+          "d7_mae_mw": 501.51582986111106
+        }
+      ]
+    },
+    "FR:wind_offshore": {
+      "forecast_type": "wind_offshore",
+      "role": "ABL-195 reference (already served)",
+      "cadence_fit_to_gate": {
+        "rows": 17895,
+        "minute_offsets": {
+          "0": 4473,
+          "15": 4474,
+          "30": 4474,
+          "45": 4474
+        },
+        "distinct_minute_offsets": 4,
+        "rows_at_00": 4473,
+        "discarded_by_hourly_read": 13422
+      },
+      "aliasing": {
+        "comparable_hours": 4473,
+        "expected_samples_per_hour": 4,
+        "mean_mw": 702.7133025933379,
+        "instant_vs_mean_mae_mw": 40.66631064162755,
+        "instant_vs_mean_wape_pct": 5.786194971489578,
+        "instant_vs_mean_bias_mw": -0.08463726805276095,
+        "instant_vs_mean_p95_abs_mw": 124.04749999999991,
+        "max_abs_mw": 691.8399999999999
+      },
+      "d7_baseline": [
+        {
+          "aggregation": "instant",
+          "gate_hours_available": 441,
+          "n_scored": 273,
+          "mean_actual_mw": 398.9223443223443,
+          "d7_wape_pct": 73.90128390060444,
+          "d7_mae_mw": 294.82091575091573
+        },
+        {
+          "aggregation": "hourly_mean",
+          "gate_hours_available": 442,
+          "n_scored": 274,
+          "mean_actual_mw": 397.38664233576645,
+          "d7_wape_pct": 73.4094708027404,
+          "d7_mae_mw": 291.73065693430664
+        }
+      ]
+    }
+  }
+}

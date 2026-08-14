@@ -1,17 +1,29 @@
-"""ABL-418: retro-grade tranches 2a and 2b from their published results files.
+"""Retro-grade an already-dispositioned tranche from its published results file.
 
-Pure arithmetic over two stored `results_*.json` files. No refit, no new fit, no
-replica read, no write to any dispositioned path. Both source files are opened
-read-only and their SHA-256 is recorded in the output, so a later reader can tell
+Pure arithmetic over stored `results_*.json` files. No refit, no new fit, no
+replica read, no write to any dispositioned path. Every source file is opened
+read-only and its SHA-256 is recorded in the output, so a later reader can tell
 whether the grades below were computed from the bytes that were dispositioned.
 
 The ladder itself lives in `src/evaluation/gate_grading.py` and is the same code
 both gate harnesses call -- this script only reads, groups and renders. Adding a
-second implementation here is the one thing it must not do.
+second implementation here is the one thing it must not do. That rule is why
+ABL-438 extended this script with a `--tranches` selector rather than writing a
+second grader for tranche 1b: the registry below gained a row, the arithmetic
+gained nothing.
+
+**A run writes where its issue writes.** The defaults reproduce ABL-418's own
+artifacts; any other selection must be given its own `--issue` and output paths,
+because regenerating a predecessor's report under a new tranche list would
+overwrite evidence that was already dispositioned (ABL-387, and the
+`SCOPE_OUTPUTS` incident in CLAUDE.md).
 
 Usage:
 
     .venv\\Scripts\\python.exe scripts/abl418_retro_grade.py --stdout
+    .venv\\Scripts\\python.exe scripts/abl418_retro_grade.py --tranches 1b \\
+        --issue ABL-438 --report-out reports/abl_438_retro_grade.md \\
+        --json-out reports/abl_438_retro_grade.json
 """
 
 from __future__ import annotations
@@ -25,7 +37,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.evaluation.gate_grading import (  # noqa: E402
-    CONDITIONS, PUBLISHED_FLOOR_PCT_K1, grade_cell, margin_pct_of_own_error,
+    CONDITIONS, PUBLISHED_FLOOR_PCT_K1, Z_95, grade_cell, margin_pct_of_own_error,
     pair_grade, readability_floor_pct, skill_pct,
 )
 from src.evaluation.model_free_reference import (  # noqa: E402
@@ -33,25 +45,54 @@ from src.evaluation.model_free_reference import (  # noqa: E402
 )
 
 
-#: The two tranches this issue retro-grades, with the stream whose registered CV
-#: sets their floor and the pair key their cells are grouped on. Both files are
-#: named in the ABL-418 description; nothing is discovered.
-TRANCHES = (
-    {"tranche": "2a", "stream": "solar", "scope": "abl316-t2a",
-     "results": "experiments/ABL348/results_abl405_tranche2a.json",
-     "pack": "reports/abl_405_tranche2a_findings.md",
-     "key": lambda cell: cell["country"]},
-    {"tranche": "2b", "stream": "wind", "scope": "abl406-tranche2b",
-     "results": "experiments/ABL348/results_abl406_tranche2b.json",
-     "pack": "reports/abl_406_evidence_pack.md",
-     "key": lambda cell: f"{cell['country']} {cell['forecast_type']}"},
-)
+#: A data hold that travels with a grade and is not derivable from the scores.
+#: Grade `A` reads *promotion-eligible, subject to any named data hold*, so a
+#: hold that lives only in a comment is a hold the next reader does not get.
+#: Keyed by tranche, then by pair. Rendered under every table the pair appears
+#: in and carried into the JSON, so an importer sees it too.
+HOLDS = {
+    "1b": {"BG": {"issue": "ABL-396", "kind": "night contamination, upstream",
+                  "statement":
+                      "76-85% of geometric-night hours carry above 1 MW, up to 1,097 MW, "
+                      "~5-6% of all energy booked after dark. Identical on both actuals "
+                      "tables, so it is upstream of this module. ABL-396's screen found BG "
+                      "an outlier by 3.7x and the only country whose displacement band is "
+                      "wide enough to threaten a verdict -- and that band is far wider than "
+                      "BG's margin over the oracle climatology.",
+                  "effect": "Grade A must not be reported for BG solar without this line."}},
+}
 
-#: The CEO's own reading, from the ABL-418 description, so the report can state
-#: agreement or name the cell that disagrees rather than quietly adopting it.
-#: "check it rather than adopt it, and if your arithmetic disagrees on a cell,
-#: your arithmetic wins and I want the cell named."
+#: The tranches this script can retro-grade, with the stream whose registered CV
+#: sets their floor and the pair key their cells are grouped on. Every file is
+#: named in the issue that asked for it; nothing is discovered. `2a`/`2b` are
+#: ABL-418's; `1b` is ABL-438's, whose committed record already carried the full
+#: eight-comparator reference suite -- ABL-418 simply never ran over it.
+TRANCHES = {
+    "1b": {"tranche": "1b", "stream": "solar", "scope": "abl316-t1b", "issue": "ABL-438",
+           "results": "experiments/ABL348/results_abl381_tranche1b.json",
+           "pack": "reports/abl_381_tranche1b_findings.md",
+           "key": lambda cell: cell["country"]},
+    "2a": {"tranche": "2a", "stream": "solar", "scope": "abl316-t2a", "issue": "ABL-418",
+           "results": "experiments/ABL348/results_abl405_tranche2a.json",
+           "pack": "reports/abl_405_tranche2a_findings.md",
+           "key": lambda cell: cell["country"]},
+    "2b": {"tranche": "2b", "stream": "wind", "scope": "abl406-tranche2b", "issue": "ABL-418",
+           "results": "experiments/ABL348/results_abl406_tranche2b.json",
+           "pack": "reports/abl_406_evidence_pack.md",
+           "key": lambda cell: f"{cell['country']} {cell['forecast_type']}"},
+}
+
+#: The tranche list ABL-418 published, and the default. Changing it would change
+#: `reports/abl_418_retro_grade.*` on the next regeneration, which is the thing
+#: `--tranches` exists to avoid.
+ABL418_TRANCHES = ("2a", "2b")
+
+#: The CEO's own reading, from the issue description that asked for each tranche,
+#: so the report can state agreement or name the cell that disagrees rather than
+#: quietly adopting it. "check it rather than adopt it, and if your arithmetic
+#: disagrees on a cell, your arithmetic wins and I want the cell named."
 DESCRIPTION_READING = {
+    "1b": {"BG": "A", "CH": "A"},
     "2a": {"BG": "A", "CH": "A", "CZ": "A", "HU": "U(+)", "PL": "A", "RO": "A",
            "SI": "A", "SK": "A"},
     "2b": {"ES wind_onshore": "C", "FI wind_onshore": "A", "GR wind_onshore": "A",
@@ -82,6 +123,7 @@ def read_tranche(root: Path, spec: dict) -> dict:
     path = root / spec["results"]
     results = json.loads(path.read_text(encoding="utf-8"))
     stream, floor = spec["stream"], readability_floor_pct(spec["stream"])
+    holds = HOLDS.get(spec["tranche"], {})
     order, pairs, graded = [], {}, []
     for cell in results["gate_cells"]:
         # ABL-437 pins this read to `fit_window`, the levelling ABL-418 was
@@ -98,20 +140,37 @@ def read_tranche(root: Path, spec: dict) -> dict:
             order.append(label)
             pairs[label] = []
         pairs[label].append(grade)
+        challenger = cell["scores"]["challenger"]["wape_pct"]
+        oracle_skill = {name: skill_pct(challenger, comparator_wape(cell["scores"], name))
+                        for name in ORACLES}
         graded.append({"pair": label, "band": cell["horizon_band"],
                        "n": cell["gate"]["n"], "gate_pass": cell["gate"]["pass"],
-                       "challenger_wape_pct": cell["scores"]["challenger"]["wape_pct"],
-                       "oracle_skill_pct": {name: skill_pct(cell["scores"]["challenger"]["wape_pct"],
-                                                            comparator_wape(cell["scores"], name))
-                                            for name in ORACLES},
+                       # The ladder cannot see minimum n: it grades a margin, so a
+                       # coverage-short cell that beats D-7 still grades A. Carried
+                       # beside every grade rather than left nested in `gate`,
+                       # where a flat lookup passes vacuously.
+                       "minimum_n": cell["gate"].get("minimum_n"),
+                       "enough_pairs": cell["gate"].get("enough_pairs"),
+                       "challenger_wape_pct": challenger,
+                       "oracle_skill_pct": oracle_skill,
+                       # An oracle gates nothing, but a win *inside the floor* is
+                       # not a readable win, and reporting it as one is the error
+                       # the floor exists to prevent. Derived, never asserted.
+                       "oracle_margin_readable": {
+                           name: None if value is None else bool(abs(value) > floor)
+                           for name, value in oracle_skill.items()},
+                       "hold": holds.get(label),
                        **grade.as_dict()})
     return {"tranche": spec["tranche"], "scope": spec["scope"], "stream": stream,
+            "issue": spec["issue"],
             "results_path": spec["results"], "results_sha256": _sha256(path),
             "evidence_pack": spec["pack"],
             "published_verdict": results["verdict"],
             "gate_window": results["meta"]["gate_window"],
             "training_source": results["meta"]["training_source"],
+            "reported_comparators": results["meta"].get("reported_comparators"),
             "floor_pct": floor, "published_floor_pct": PUBLISHED_FLOOR_PCT_K1[stream],
+            "holds": holds,
             "pair_order": order,
             "pair_grades": {label: pair_grade(pairs[label]).as_dict() for label in order},
             "cells": graded}
@@ -150,15 +209,52 @@ def sensitivity(tranche: dict, root: Path) -> list[dict]:
     return moved
 
 
-def render(tranches: list[dict], root: Path) -> str:
+def _boundary_tail(tranches: list[dict]) -> str:
+    """The closing clause of the boundary section.
+
+    ABL-418's own selection keeps ABL-418's published wording **verbatim**, so
+    that regenerating `reports/abl_418_retro_grade.md` reproduces the document
+    that was dispositioned rather than a re-worded one. Any other selection gets
+    the general statement, which is the one that is true of it -- the 2a clause
+    names a tranche that is not necessarily in the report.
+    """
+    if [tranche["tranche"] for tranche in tranches] == list(ABL418_TRANCHES):
+        return ("for tranche 2a that hold is live and named in its own published disposition, "
+                "which this document does not touch.")
+    return ("holds registered against a pair below are printed under that pair's table and carried in "
+            "the JSON, and none of them is derivable from the scores. A hold named only in a tranche's "
+            "own published disposition stays there; this document does not touch it.")
+
+
+def _subject(count: int) -> str:
+    """"This tranche fits" / "Both tranches fit" / "All tranches fit"."""
+    if count == 1:
+        return "This tranche fits"
+    return f"{'Both' if count == 2 else 'All'} tranches fit"
+
+
+def _join(items: list[str]) -> str:
+    """``a``, ``a and b``, ``a, b and c`` -- so a one-tranche run does not read
+    like a two-tranche run with a word missing."""
+    items = list(items)
+    if len(items) == 1:
+        return items[0]
+    return f"{', '.join(items[:-1])} and {items[-1]}"
+
+
+def render(tranches: list[dict], root: Path, issue: str = "ABL-418") -> str:
+    plural = "s" if len(tranches) > 1 else ""
+    named = _join([tranche["tranche"] for tranche in tranches])
+    listed = _join([f"`{tranche['results_path']}`" for tranche in tranches])
+    selection = "" if [tranche["tranche"] for tranche in tranches] == list(ABL418_TRANCHES) \
+        else f" --tranches {','.join(tranche['tranche'] for tranche in tranches)} --issue {issue}"
     lines = [
-        "# ABL-418 — graded gate disposition (G1–G4), and the retro-grade of tranches 2a and 2b",
+        f"# {issue} — graded gate disposition (G1–G4), and the retro-grade of tranche{plural} {named}",
         "",
         "**Generated from the stored results files, not restated in prose.** Every grade below is produced by "
         "`src/evaluation/gate_grading.py` — the same code both gate harnesses now call — reading "
-        "`experiments/ABL348/results_abl405_tranche2a.json` and "
-        "`experiments/ABL348/results_abl406_tranche2b.json`. No refit, no new fit, no replica read, no write to any "
-        "dispositioned path. Regenerate with `.venv\\Scripts\\python.exe scripts/abl418_retro_grade.py`.",
+        f"{listed}. No refit, no new fit, no replica read, no write to any "
+        f"dispositioned path. Regenerate with `.venv\\Scripts\\python.exe scripts/abl418_retro_grade.py{selection}`.",
         "",
         "## What is registered, and what is not",
         "",
@@ -204,27 +300,31 @@ def render(tranches: list[dict], root: Path) -> str:
         "ABL-385 registers `delta_min(k) = 1.96 * sqrt(c_A^2 + c_B^2) / sqrt(k)` as the minimum readable relative gap. "
         "Every reference on this ladder is **deterministic** — D-7, a flat line and an hour-of-day climatology do not "
         "move when the challenger is refitted — so `c_B = 0`, and the published two-arm margin is a factor of √2 too "
-        "wide. Both tranches fit once per cell, so k = 1.",
+        f"wide. {_subject(len(tranches))} once per cell, so k = 1.",
         "",
         "| stream | fleet p90 per-fit CV (ABL-385 §1) | two-arm δ_min at k=1 | **floor used** = δ_min/√2 | published in prose |",
         "|---|---:|---:|---:|---:|",
     ]
     )
-    for tranche in tranches:
+    for stream in dict.fromkeys(tranche["stream"] for tranche in tranches):
+        tranche = next(item for item in tranches if item["stream"] == stream)
         floor = tranche["floor_pct"]
-        lines.append(f"| {tranche['stream']} | {floor / 1.96:.4f}% | {floor * 2 ** 0.5:.4f}% | "
+        # The CV is rendered back out of the floor with the ladder's own z, not a
+        # retyped 1.96: two copies of a constant is how the floor drifts.
+        lines.append(f"| {stream} | {floor / Z_95:.4f}% | {floor * 2 ** 0.5:.4f}% | "
                      f"**{floor:.4f}%** | {tranche['published_floor_pct']:.2f}% |")
     lines.extend([
         "",
         "The prose values are 2-dp renderings and are not what the ladder uses; the exact `1.96 · c` value is. The gap "
-        "between them is under 0.01pp and no cell of either tranche sits inside it — checked per cell in §3.",
+        f"between them is under 0.01pp and no cell of {'either' if len(tranches) == 2 else 'any'} tranche sits inside "
+        f"it — checked per cell in §{len(tranches) + 1}.",
         "",
     ])
 
-    for tranche in tranches:
-        lines.extend(_render_tranche(tranche))
+    for number, tranche in enumerate(tranches, start=1):
+        lines.extend(_render_tranche(tranche, number))
 
-    lines.extend(["## 3. Sensitivity: which denominator, and the 2-dp rounding", "",
+    lines.extend([f"## {len(tranches) + 1}. Sensitivity: which denominator, and the 2-dp rounding", "",
                   "ABL-418 registers G1 on the printed `skill vs D-7` column, `100 · (1 − challenger/reference)`. "
                   "ABL-406 quoted its margins on the challenger's **own** error, `100 · (reference − challenger)/challenger`, "
                   "which is the denominator ABL-385's CV is measured in. The two always agree in sign and differ only in "
@@ -245,16 +345,15 @@ def render(tranches: list[dict], root: Path) -> str:
                      for row in moved)
     lines.extend([
         "",
-        "## 4. Boundary",
+        f"## {len(tranches) + 2}. Boundary",
         "",
         "No promotion, no serving-registry change, no ingest change, no refit, no replica write, no sidecar write. "
         "The grades land here, under a new path; `abl253`, `abl376`, `abl316-t1a`, `abl316-t1b`, `abl316-t2a` and "
         "`abl406-tranche2b` results files and reports are byte-unchanged, verified by blob hash against the merge base "
-        "and recorded on ABL-418.",
+        f"and recorded on {issue}.",
         "",
         "A grade is not a promotion recommendation and does not become one. Grade **A** means *promotion-eligible*, "
-        "subject to any named data hold — for tranche 2a that hold is live and named in its own published disposition, "
-        "which this document does not touch.",
+        f"subject to any named data hold — {_boundary_tail(tranches)}",
         "",
     ])
     return "\n".join(lines)
@@ -287,8 +386,33 @@ def _why_it_differs(label: str, expected: str, actual: str, cells: list[dict]) -
     return detail
 
 
-def _render_tranche(tranche: dict) -> list[str]:
-    number = "2" if tranche["tranche"] == "2b" else "1"
+def _coverage_note(tranche: dict) -> str:
+    """What the ladder cannot see: how much coverage the cell actually had.
+
+    A grade is a reading of a *margin*, so a cell that scraped past its minimum n
+    and beat D-7 grades exactly as well as one with full coverage. ABL-348's
+    `enough_pairs` is the check that does see it, and it belongs beside the grade
+    rather than nested in `gate` where a flat lookup passes vacuously.
+    """
+    cells = tranche["cells"]
+    short = [cell for cell in cells if cell["enough_pairs"] is False]
+    missing = [cell for cell in cells if cell["enough_pairs"] is None]
+    if missing:
+        return (f"`enough_pairs` is absent from {len(missing)} of {len(cells)} cells in this record, so ABL-348's "
+                f"coverage check cannot be reported here — treat the grades as ungated on coverage.")
+    covered = [cell for cell in cells if cell["minimum_n"]]
+    tightest = min(covered, key=lambda cell: cell["n"] / cell["minimum_n"], default=None)
+    lead = (f"All {len(cells)} cells clear ABL-348's minimum n" if not short
+            else f"**{len(short)} of {len(cells)} cells are short of ABL-348's minimum n** "
+                 f"({', '.join(f'{cell['pair']} {cell['band']}' for cell in short)})")
+    if tightest is None:
+        return f"{lead}."
+    return (f"{lead}; the tightest is {tightest['pair']} {tightest['band']} at n = {tightest['n']:,} against a "
+            f"minimum of {tightest['minimum_n']:,} (×{tightest['n'] / tightest['minimum_n']:.2f}). The ladder does "
+            f"not read this column — it grades a margin — so it is reported beside the grades, not folded into them.")
+
+
+def _render_tranche(tranche: dict, number: int) -> list[str]:
     reading = DESCRIPTION_READING[tranche["tranche"]]
     lines = [
         f"## {number}. Tranche {tranche['tranche']} — `{tranche['scope']}` ({tranche['stream']})",
@@ -299,24 +423,28 @@ def _render_tranche(tranche: dict) -> list[str]:
         f"Gate window {tranche['gate_window']['start']} → {tranche['gate_window']['end_exclusive']} (exclusive), "
         f"target series `{tranche['training_source']}`. Floor {tranche['floor_pct']:.4f}% at k=1.",
         "",
-        "| pair | band | n | gate | skill vs D-7 | vs constant causal | vs climatology causal | slope>0 & corr>0 | grade |",
-        "|---|---|---:|:---:|---:|---:|---:|:---:|:---:|",
+        "| pair | band | n | n ≥ min | gate | skill vs D-7 | vs constant causal | vs climatology causal | "
+        "slope>0 & corr>0 | grade |",
+        "|---|---|---:|:---:|:---:|---:|---:|---:|:---:|:---:|",
     ]
     for cell in tranche["cells"]:
         conditions = cell["conditions"]
         failed = ", ".join(item["condition"] for item in cell["failed"])
         label = cell["label"] if not failed else f"{cell['label']} — fails {failed}"
+        enough = ("yes" if cell["enough_pairs"] else "**no**"
+                  if cell["enough_pairs"] is False else "—")
         lines.append(
-            f"| {cell['pair']} | {cell['band']} | {cell['n']:,} | "
+            f"| {cell['pair']} | {cell['band']} | {cell['n']:,} | {enough} | "
             f"{'PASS' if cell['gate_pass'] else 'FAIL'} | "
             f"{_pct(cell['skill_pct']['seasonal_naive'])} | {_pct(cell['skill_pct']['constant_causal'])} | "
             f"{_pct(cell['skill_pct']['climatology_causal'])} | "
             f"{'yes' if conditions.get('G4') else 'no'} | **{label}** |")
+    lines.extend(["", _coverage_note(tranche), ""])
 
-    lines.extend(["", "| pair | bands | grade | failed conditions | bar weaker than a flat line? | "
-                  "beats constant oracle? | beats climatology oracle? | ABL-418 description | agrees? |",
+    lines.extend([f"| pair | bands | grade | failed conditions | bar weaker than a flat line? | "
+                  f"beats constant oracle? | beats climatology oracle? | {tranche['issue']} description | agrees? |",
                   "|---|---|:---:|---|:---:|:---:|:---:|:---:|:---:|"])
-    disagreements = []
+    disagreements, unreadable_wins = [], []
     for label in tranche["pair_order"]:
         grade = tranche["pair_grades"][label]
         cells = [cell for cell in tranche["cells"] if cell["pair"] == label]
@@ -326,9 +454,18 @@ def _render_tranche(tranche: dict) -> list[str]:
         oracles = []
         for name in ORACLES:
             values = [cell["oracle_skill_pct"][name] for cell in cells]
-            oracles.append("Not measured" if all(v is None for v in values)
-                           else "yes" if all(v is not None and v > 0 for v in values)
-                           else "no" if all(v is not None and v <= 0 for v in values) else "mixed")
+            verdict = ("Not measured" if all(v is None for v in values)
+                       else "yes" if all(v is not None and v > 0 for v in values)
+                       else "no" if all(v is not None and v <= 0 for v in values) else "mixed")
+            # A win an oracle cannot be *read* to have lost is not a win the
+            # floor lets anyone rank on. Same floor, same k, applied to the
+            # column that gates nothing -- because that is the column a reader
+            # will otherwise treat as the strong evidence.
+            if verdict == "yes" and not all(cell["oracle_margin_readable"][name] for cell in cells):
+                worst = min(values)
+                verdict = f"yes, inside the floor ({worst:+.2f}%)"
+                unreadable_wins.append((label, name, worst))
+            oracles.append(verdict)
         expected = reading.get(label, "—")
         agrees = grade["label"] == expected
         if not agrees:
@@ -342,10 +479,33 @@ def _render_tranche(tranche: dict) -> list[str]:
             counts.get(tranche["pair_grades"][label]["label"], 0) + 1
     lines.extend(["", "Pair grades: " + ", ".join(f"**{grade}** × {count}" for grade, count in sorted(counts.items())) + ".", ""])
 
+    if unreadable_wins:
+        lines.extend([
+            f"**Beating an oracle inside the floor is not beating it readably.** The floor is "
+            f"{tranche['floor_pct']:.4f}% at k=1 and it applies to any margin a reader ranks on, not only to the one "
+            f"G1 gates on. These wins are positive in every band and none of them is readable at one seed:",
+            "",
+        ])
+        lines.extend(f"- **{label}** vs `{name}`: {worst:+.2f}% at its worst band, against a "
+                     f"{tranche['floor_pct']:.2f}% floor."
+                     for label, name, worst in unreadable_wins)
+        lines.append("")
+
+    for label in tranche["pair_order"]:
+        hold = tranche["holds"].get(label)
+        if not hold:
+            continue
+        lines.extend([
+            f"**Live data hold on {label} — {hold['issue']} ({hold['kind']}).** {hold['statement']} "
+            f"{hold['effect']}",
+            "",
+        ])
+
     if not disagreements:
-        lines.extend(["Every pair reproduces the reading in the ABL-418 description.", ""])
+        lines.extend([f"Every pair reproduces the reading in the {tranche['issue']} description.", ""])
     else:
-        lines.append("**Disagreements with the ABL-418 description — the arithmetic wins, and the cells are named:**")
+        lines.append(f"**Disagreements with the {tranche['issue']} description — the arithmetic wins, and the cells "
+                     f"are named:**")
         lines.append("")
         lines.extend(f"- **{label}: the description reads `{expected}`, the ladder gives `{actual}`.** "
                      + _why_it_differs(label, expected, actual, cells)
@@ -358,17 +518,39 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--repo-root", default=str(Path(__file__).parent.parent),
-                        help="Repository root the two results files are read from.")
+                        help="Repository root the results files are read from.")
+    parser.add_argument("--tranches", default=",".join(ABL418_TRANCHES),
+                        help=f"Comma-separated tranche keys to grade, in order. "
+                             f"One of {', '.join(sorted(TRANCHES))}. "
+                             f"Default {','.join(ABL418_TRANCHES)} (ABL-418's own selection).")
+    parser.add_argument("--issue", default="ABL-418",
+                        help="Issue this run is published under; titles the report.")
     parser.add_argument("--report-out", default="reports/abl_418_retro_grade.md")
     parser.add_argument("--json-out", default="reports/abl_418_retro_grade.json")
     parser.add_argument("--stdout", action="store_true", help="Also print the report.")
     args = parser.parse_args()
 
-    root = Path(args.repo_root)
-    tranches = [read_tranche(root, spec) for spec in TRANCHES]
-    report = render(tranches, root)
+    selected = [key.strip() for key in args.tranches.split(",") if key.strip()]
+    unknown = [key for key in selected if key not in TRANCHES]
+    if unknown:
+        parser.error(f"unknown tranche(s) {', '.join(unknown)}; "
+                     f"known: {', '.join(sorted(TRANCHES))}")
+    # A non-default selection writing to the default paths would overwrite a
+    # dispositioned report with a different tranche list under its own heading --
+    # the SCOPE_OUTPUTS failure in CLAUDE.md, one directory over. Refused, not
+    # warned about.
+    if selected != list(ABL418_TRANCHES):
+        for name, value in (("--report-out", args.report_out), ("--json-out", args.json_out)):
+            if "abl_418_retro_grade" in value:
+                parser.error(f"selection {','.join(selected)} may not write ABL-418's {name} ({value}); "
+                             f"give this run its own output path")
 
-    record = {"issue": "ABL-418",
+    root = Path(args.repo_root)
+    tranches = [read_tranche(root, TRANCHES[key]) for key in selected]
+    report = render(tranches, root, args.issue)
+
+    record = {"issue": args.issue,
+              "tranche_selection": selected,
               "ladder": [{"condition": name, "role": role, "test": question}
                          for name, role, question in CONDITIONS],
               "tranches": [{**tranche,

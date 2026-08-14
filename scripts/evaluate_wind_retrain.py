@@ -475,6 +475,14 @@ REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistenc
 # at import, so a scope registered in one and not the others fails before any fit
 # -- and identically under `--help` and in the test suite -- rather than raising
 # `KeyError` partway through a gate run, or writing over another scope's evidence.
+#
+# ABL-429: this call names **three** where the solar twin names five, and that
+# divergence is deliberate rather than a fix landed in one twin only -- the
+# failure mode this pair actually has (ABL-322/ABL-379, ABL-345/ABL-347).  Solar
+# carries `FIT_RULES` and `SCOPE_TITLES`; this harness has neither table, so all
+# three of its registration tables are checked and there is nothing here to add.
+# If a fit rule or a title table is ever introduced on this side, it joins this
+# call in the same commit.
 check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
 check_scope_outputs(SCOPE_OUTPUTS)
 

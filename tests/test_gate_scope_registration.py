@@ -625,3 +625,50 @@ def test_solar_tranche1b_does_not_gate_on_the_incumbent(solar_gate_basis):
     """
     assert "incumbent" not in solar_gate_basis["abl316-t1b"]
     assert solar_gate_basis["abl316-t1b"] == ("challenger", "seasonal_naive")
+
+
+# --------------------------------------------------------------------------
+# ABL-429: FIT_RULES and SCOPE_TITLES are now import-enforced.
+# --------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def solar_fit_rules():
+    return {name: dict(rules) for name, rules
+            in _module_const(SOLAR_HARNESS.read_text(encoding="utf-8"), "FIT_RULES").items()}
+
+
+@pytest.fixture(scope="module")
+def solar_scope_titles():
+    return dict(_module_const(SOLAR_HARNESS.read_text(encoding="utf-8"), "SCOPE_TITLES"))
+
+
+def test_solar_every_scope_registers_a_fit_rule(solar_scopes, solar_fit_rules):
+    """Every registered solar scope must carry an explicit fit-rule entry.
+
+    ABL-429: FIT_RULES is now import-enforced by check_registration_tables.
+    This test pins the same property at the AST level so a scope that omits its
+    row is caught by two independent checks -- the import and this suite entry --
+    and the failure message names the table to edit rather than just the import
+    traceback.
+    """
+    assert set(solar_fit_rules) == set(solar_scopes), (
+        "FIT_RULES and SCOPES disagree; every registered solar scope needs a "
+        "registered fit-rule entry, and FIT_RULES must not carry extra keys. "
+        f"In SCOPES but not FIT_RULES: {sorted(set(solar_scopes) - set(solar_fit_rules))}. "
+        f"In FIT_RULES but not SCOPES: {sorted(set(solar_fit_rules) - set(solar_scopes))}."
+    )
+
+
+def test_solar_every_scope_registers_a_title(solar_scopes, solar_scope_titles):
+    """Every registered solar scope must carry an explicit SCOPE_TITLES entry.
+
+    ABL-429: SCOPE_TITLES is now import-enforced by check_registration_tables.
+    A missing title generates a derived heading from the scope slug, which makes
+    a scope's evidence pack unidentifiable from its H1 alone.
+    """
+    assert set(solar_scope_titles) == set(solar_scopes), (
+        "SCOPE_TITLES and SCOPES disagree; every registered solar scope needs a "
+        "registered title, and SCOPE_TITLES must not carry extra keys. "
+        f"In SCOPES but not SCOPE_TITLES: {sorted(set(solar_scopes) - set(solar_scope_titles))}. "
+        f"In SCOPE_TITLES but not SCOPES: {sorted(set(solar_scope_titles) - set(solar_scopes))}."
+    )
