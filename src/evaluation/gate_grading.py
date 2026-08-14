@@ -83,6 +83,40 @@ appears in the ladder.
 scored no rows reads ``Not measured``, and the cell it belongs to cannot grade
 ``A`` on a criterion nobody measured -- the net-position gate's ``INCOMPLETE``
 rule, one level down. Such a condition is named in ``failed`` like any other.
+
+ABL-437: which causal references G2 and G3 read
+-----------------------------------------------
+
+G2 and G3 were registered on ``constant_causal`` and ``climatology_causal``,
+which are levelled on the **fit** window and scored on the **gate** window.
+ABL-437 measured what that costs on a seasonal series: across every committed
+tranche record the causal constant runs up to **205% worse** than the
+correctly-levelled oracle constant (NL ``wind_onshore``, 225.54% against
+73.85%), with nine more wind pairs between 21% and 102% and every solar pair
+between 0% and 8%. A reference inflated that far is a strawman, and G2/G3 clear
+it for free -- the third instance of the ABL-406 / ABL-417 / ABL-435 pattern.
+
+The amendment keeps both conditions on the ladder and **re-levels the reference
+they read**, to ``constant_causal_28d`` / ``climatology_causal_28d``: the same
+two predictors over the 28 days ending at each row's own ``generated_at``. The
+alternative considered and rejected was flagging G2/G3 not evaluable outside a
+registered level band, which discards a measurable number to buy an abstention
+and abstains on a pair that beats the corrected references as readily as on one
+that loses to them (``reports/abl_437_causal_levelling_registration.md`` has the
+comparison).
+
+Two properties are load-bearing and are what make this an amendment rather than
+a re-registration:
+
+* **Which pair a scope reads is registered, not global.** ``CAUSAL_LEVELLING``
+  in each harness pins every already-published scope to
+  ``model_free_reference.FIT_WINDOW``, so a dispositioned read still reproduces
+  and every letter already published still means what it meant. New scopes
+  default to ``TRAILING_28D``.
+* **The registered bar is still not re-opened.** G1 is seasonal-naive D-7,
+  unchanged; ABL-348's windows, bands, metric, baseline, minimum n and source
+  are untouched, so this is not a change ``voids_this_registration`` names. Both
+  oracle references stay reported and on no ladder.
 """
 
 from __future__ import annotations
@@ -90,7 +124,9 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
-from src.evaluation.model_free_reference import comparator_wape
+from src.evaluation.model_free_reference import (
+    FIT_WINDOW, TRAILING_28D, comparator_wape, level_inflation,
+)
 
 
 #: Two-sided 95% call, matching ABL-385's registration.
@@ -123,14 +159,48 @@ PUBLISHED_FLOOR_PCT_K1 = {"solar": 10.64, "wind": 7.51}
 #: bury it.
 GRADE_SEVERITY = {"A": 0, "U": 1, "B": 2, "C": 3}
 
-#: What each ladder condition asks, for the report. The letter is the identity
-#: used in `failed`, so a named failure and a table column cannot drift apart.
-CONDITIONS = (
-    ("G1", "gate", "beats seasonal_naive D-7 by more than the readability floor"),
-    ("G2", "level", "beats constant_causal -- a flat line at the fit-window mean"),
-    ("G3", "shape", "beats climatology_causal -- an hour-of-day mean over the fit window"),
-    ("G4", "direction", "slope > 0 and correlation > 0"),
-)
+#: The two causal references G2 and G3 are scored against, per registered
+#: levelling form (ABL-437). The oracle references appear in neither entry and
+#: are on no ladder, which is the property ABL-389 registered and this amendment
+#: does not touch.
+LADDER_REFERENCES = {
+    FIT_WINDOW: {"G2": "constant_causal", "G3": "climatology_causal"},
+    TRAILING_28D: {"G2": "constant_causal_28d", "G3": "climatology_causal_28d"},
+}
+
+#: How each levelling form describes its two references, for the report. Kept
+#: beside `LADDER_REFERENCES` so a column name and the sentence explaining it
+#: cannot drift apart.
+_REFERENCE_PROSE = {
+    FIT_WINDOW: {"G2": "beats constant_causal -- a flat line at the fit-window mean",
+                 "G3": "beats climatology_causal -- an hour-of-day mean over the fit window"},
+    TRAILING_28D: {"G2": "beats constant_causal_28d -- a flat line at the mean of the 28 days "
+                         "ending at the forecast issue instant",
+                   "G3": "beats climatology_causal_28d -- an hour-of-day mean over the same "
+                         "trailing 28 days"},
+}
+
+
+def conditions_for(levelling: str = TRAILING_28D) -> tuple:
+    """What each ladder condition asks, for the report, under one levelling.
+
+    The letter is the identity used in `failed`, so a named failure and a table
+    column cannot drift apart -- and since ABL-437 the *reference* a letter
+    names depends on the scope's registered levelling, so the question text has
+    to be derived rather than written down once.
+    """
+    prose = _REFERENCE_PROSE[levelling]
+    return (
+        ("G1", "gate", "beats seasonal_naive D-7 by more than the readability floor"),
+        ("G2", "level", prose["G2"]),
+        ("G3", "shape", prose["G3"]),
+        ("G4", "direction", "slope > 0 and correlation > 0"),
+    )
+
+
+#: The pre-ABL-437 constant, kept as the fit-window rendering so a caller that
+#: never had a levelling to pass still reads the ladder it was written against.
+CONDITIONS = conditions_for(FIT_WINDOW)
 
 
 def readability_floor_pct(stream: str, k: int = 1) -> float:
@@ -205,6 +275,11 @@ class CellGrade:
     own_error_margin: dict = field(default_factory=dict)
     floor_pct: float = 0.0
     bar_weak: bool | None = None
+    #: Which pair of causal references G2/G3 were read against (ABL-437).
+    levelling: str = FIT_WINDOW
+    #: The causal constant's WAPE over the oracle constant's, in percent, per
+    #: causal reference. Reported, never gating -- a property of the reference.
+    level_inflation_pct: dict = field(default_factory=dict)
 
     @property
     def label(self) -> str:
@@ -226,7 +301,9 @@ class CellGrade:
                 "failed": [{"condition": name, "reason": reason} for name, reason in self.failed],
                 "skill_pct": dict(self.skill),
                 "own_error_margin_pct": dict(self.own_error_margin),
-                "floor_pct": self.floor_pct, "bar_weaker_than_a_flat_line": self.bar_weak}
+                "floor_pct": self.floor_pct, "bar_weaker_than_a_flat_line": self.bar_weak,
+                "causal_levelling": self.levelling,
+                "level_inflation_pct": dict(self.level_inflation_pct)}
 
     @classmethod
     def from_dict(cls, record: dict) -> "CellGrade":
@@ -243,62 +320,86 @@ class CellGrade:
                    skill=dict(record.get("skill_pct") or {}),
                    own_error_margin=dict(record.get("own_error_margin_pct") or {}),
                    floor_pct=record.get("floor_pct", 0.0),
-                   bar_weak=record.get("bar_weaker_than_a_flat_line"))
+                   bar_weak=record.get("bar_weaker_than_a_flat_line"),
+                   levelling=record.get("causal_levelling", FIT_WINDOW),
+                   level_inflation_pct=dict(record.get("level_inflation_pct") or {}))
 
 
-def cell_grade(cell: dict, stream: str, k: int = 1) -> CellGrade:
+def cell_grade(cell: dict, stream: str, k: int = 1,
+               levelling: str = TRAILING_28D) -> CellGrade:
     """One cell's grade: the one the run recorded, or computed if it recorded none.
 
     The fallback is what lets a ``results.json`` written before ABL-418 be
     graded — which is the whole of the tranche 2a/2b retro-grade — and what lets
     a stored read be re-rendered without re-deciding it.
+
+    A record written before ABL-437 carries no ``causal_levelling`` key and
+    rebuilds as :data:`FIT_WINDOW`, because that is what it was decided under.
+    Absence dates the read; it is not a default anyone chose after the fact.
     """
     recorded = cell.get("grade")
     if recorded:
         return CellGrade.from_dict(recorded)
-    return grade_cell(cell["scores"], stream, k)
+    return grade_cell(cell["scores"], stream, k, levelling)
 
 
-#: The reference each condition is scored against, and the ladder letter it
-#: answers. `G4` is a sign test on the challenger alone and is not here.
-_SCORED_CONDITIONS = (("G1", "seasonal_naive"), ("G2", "constant_causal"),
-                      ("G3", "climatology_causal"))
+def scored_conditions(levelling: str = TRAILING_28D) -> tuple:
+    """The reference each condition is scored against, and the letter it answers.
+
+    ``G4`` is a sign test on the challenger alone and is not here. ``G1`` is
+    seasonal-naive D-7 under every levelling: ABL-437 re-levels the two causal
+    *references*, and re-levelling the registered bar would be re-opening it.
+    """
+    references = LADDER_REFERENCES[levelling]
+    return (("G1", "seasonal_naive"), ("G2", references["G2"]), ("G3", references["G3"]))
 
 
-def grade_cell(scores: dict, stream: str, k: int = 1) -> CellGrade:
+def grade_cell(scores: dict, stream: str, k: int = 1,
+               levelling: str = TRAILING_28D) -> CellGrade:
     """Grade one gate cell from the scores the harness already computed.
 
     ``scores`` is a cell's ``scores`` mapping as written to ``results.json``:
-    ``challenger``, ``seasonal_naive`` and the ABL-389 model-free references,
-    each a dict with ``wape_pct``, ``slope`` and ``correlation``.
+    ``challenger``, ``seasonal_naive`` and the ABL-389/ABL-437 model-free
+    references, each a dict with ``wape_pct``, ``slope`` and ``correlation``.
+
+    ``levelling`` selects which causal pair G2 and G3 read (ABL-437). It is a
+    per-scope registration in the harness, never a run-time choice: a read that
+    could pick its own references after seeing them is the thing this ladder was
+    pre-registered to prevent.
     """
     floor = readability_floor_pct(stream, k)
+    conditions_asked = conditions_for(levelling)
+    scored = scored_conditions(levelling)
     challenger = (scores.get("challenger") or {}).get("wape_pct")
     skill = {name: skill_pct(challenger, comparator_wape(scores, name))
-             for _, name in _SCORED_CONDITIONS}
+             for _, name in scored}
     own = {name: margin_pct_of_own_error(challenger, comparator_wape(scores, name))
-           for _, name in _SCORED_CONDITIONS}
+           for _, name in scored}
+    inflation = {name: level_inflation(scores, name)
+                 for name in ("constant_causal", "constant_causal_28d")}
 
     if skill["seasonal_naive"] is None:
         # No gate margin at all: the cell scored nothing, or D-7 did. It is not
         # a C -- nothing lost a race here.
         return CellGrade(grade=None, skill=skill, own_error_margin=own,
-                         floor_pct=floor, bar_weak=bar_weaker_than_a_flat_line(scores))
+                         floor_pct=floor, bar_weak=bar_weaker_than_a_flat_line(scores),
+                         levelling=levelling, level_inflation_pct=inflation)
 
     slope = (scores.get("challenger") or {}).get("slope")
     correlation = (scores.get("challenger") or {}).get("correlation")
     directional = (None if slope is None or correlation is None
                    else bool(slope > 0 and correlation > 0))
+    level, shape = (name for _, name in scored if name != "seasonal_naive")
     conditions = {
         "G1": bool(skill["seasonal_naive"] > floor),
-        "G2": None if skill["constant_causal"] is None else bool(skill["constant_causal"] > 0),
-        "G3": None if skill["climatology_causal"] is None else bool(skill["climatology_causal"] > 0),
+        "G2": None if skill[level] is None else bool(skill[level] > 0),
+        "G3": None if skill[shape] is None else bool(skill[shape] > 0),
         "G4": directional,
     }
     unreadable = abs(skill["seasonal_naive"]) <= floor
 
     failed = []
-    for name, _, question in CONDITIONS:
+    for name, _, question in conditions_asked:
         if name == "G1":
             continue
         if conditions[name] is None:
@@ -306,28 +407,28 @@ def grade_cell(scores: dict, stream: str, k: int = 1) -> CellGrade:
         elif not conditions[name]:
             failed.append((name, question))
 
+    common = {"skill": skill, "own_error_margin": own, "floor_pct": floor,
+              "bar_weak": bar_weaker_than_a_flat_line(scores),
+              "levelling": levelling, "level_inflation_pct": inflation}
     if unreadable:
         # G2/G3 must clear *readably* for the plus, on the same floor G1 uses.
         # G4 is a sign test, so there is no margin to read and it enters as-is.
         readable = all(skill[name] is not None and skill[name] > floor
-                       for _, name in _SCORED_CONDITIONS if name != "seasonal_naive")
+                       for name in (level, shape))
         return CellGrade(grade="U", plus=bool(readable and conditions["G4"]),
-                         conditions=conditions, failed=tuple(failed), skill=skill,
-                         own_error_margin=own, floor_pct=floor,
-                         bar_weak=bar_weaker_than_a_flat_line(scores))
+                         conditions=conditions, failed=tuple(failed), **common)
     if not conditions["G1"]:
         # A readable loss to the registered bar. Nothing below G1 can rescue it,
         # but the other conditions are still recorded rather than skipped.
         return CellGrade(grade="C", conditions=conditions,
                          failed=(("G1", "readable loss to seasonal_naive D-7"), *failed),
-                         skill=skill, own_error_margin=own, floor_pct=floor,
-                         bar_weak=bar_weaker_than_a_flat_line(scores))
+                         **common)
     return CellGrade(grade="B" if failed else "A", conditions=conditions,
-                     failed=tuple(failed), skill=skill, own_error_margin=own,
-                     floor_pct=floor, bar_weak=bar_weaker_than_a_flat_line(scores))
+                     failed=tuple(failed), **common)
 
 
-def attach_grades(cells: list[dict], stream: str, k: int = 1) -> list[dict]:
+def attach_grades(cells: list[dict], stream: str, k: int = 1,
+                  levelling: str = TRAILING_28D) -> list[dict]:
     """Add a ``grade`` block to every gate cell, in place, and return them.
 
     One call site per harness, right where ``gate_cells`` is assembled, so the
@@ -336,7 +437,7 @@ def attach_grades(cells: list[dict], stream: str, k: int = 1) -> list[dict]:
     them through this same function rather than reimplementing the ladder.
     """
     for cell in cells:
-        cell["grade"] = grade_cell(cell["scores"], stream, k).as_dict()
+        cell["grade"] = grade_cell(cell["scores"], stream, k, levelling).as_dict()
     return cells
 
 
@@ -359,12 +460,31 @@ def pair_grade(cell_grades) -> CellGrade:
     return CellGrade(grade="U", plus=plus, conditions=worst.conditions,
                      failed=worst.failed, skill=worst.skill,
                      own_error_margin=worst.own_error_margin,
-                     floor_pct=worst.floor_pct, bar_weak=worst.bar_weak)
+                     floor_pct=worst.floor_pct, bar_weak=worst.bar_weak,
+                     levelling=worst.levelling,
+                     level_inflation_pct=worst.level_inflation_pct)
 
 
-def grading_prose(stream: str, k: int = 1) -> list[str]:
+def grading_prose(stream: str, k: int = 1, levelling: str = TRAILING_28D) -> list[str]:
     """The paragraph that says what the grade column is and what it is not."""
     floor = readability_floor_pct(stream, k)
+    references = LADDER_REFERENCES[levelling]
+    amendment = (
+        [f"**Causal levelling (ABL-437): `{levelling}`.** G2 and G3 read `{references['G2']}` and "
+         f"`{references['G3']}` — the flat line and the hour-of-day mean over the **28 days ending at each row's own "
+         f"forecast issue instant**, not over the whole fit window. The fit-window forms are levelled on "
+         f"2026-01-14 → 2026-07-11 and scored on high summer, which on a seasonal series makes them a strawman: measured "
+         f"across every committed tranche record, a causal constant runs up to **205% worse** than the correctly-levelled "
+         f"oracle constant (NL `wind_onshore`), which passes G2/G3 for free. The trailing form is strictly causal — same "
+         f"anchor and same filtered series as the challenger's own `target_value_roll_168h_mean` feature. Both fit-window "
+         f"references stay **reported** beside it, and the `level inflation` column prints the residual, so nothing is "
+         f"discarded. **G1 is unchanged**: the registered D-7 bar is not re-opened, and no oracle is on the ladder."]
+        if levelling == TRAILING_28D else
+        [f"**Causal levelling (ABL-437): `{levelling}`.** G2 and G3 read `{references['G2']}` and "
+         f"`{references['G3']}` — levelled on the fit window, which is what this scope was registered and published "
+         f"under. ABL-437 measured that form to be inflated by up to 205% on a seasonal pair and re-levels it for new "
+         f"scopes; this scope keeps the reference its published letters were decided against, and the trailing columns "
+         f"are reported beside it so the difference is readable rather than asserted."])
     return [
         f"Graded disposition (ABL-418) — the registered bar is **not** re-opened. Seasonal-naive D-7 is still the gate, "
         f"ABL-348's windows, bands, metric, minimum n and source are unchanged, and a cell that clears D-7 still reads PASS. "
@@ -375,7 +495,7 @@ def grading_prose(stream: str, k: int = 1) -> list[str]:
         "",
         f"**G1** gate: beats D-7 by more than the readability floor — ABL-385's `delta_min(k)` with `c_B = 0`, since every "
         f"reference here is deterministic, which is **{floor:.2f}%** for this stream at k={k}. **G2** level: beats "
-        f"`constant_causal`. **G3** shape: beats `climatology_causal`. **G4** direction: slope > 0 and corr > 0. "
+        f"`{references['G2']}`. **G3** shape: beats `{references['G3']}`. **G4** direction: slope > 0 and corr > 0. "
         f"**A** = all four in every band (promotion-eligible, subject to any named data hold); **B** = G1 holds and one or "
         f"more of G2/G3/G4 fails, named; **C** = a readable loss to D-7; **U** = the G1 margin sits inside the floor, so the "
         f"cell is unreadable at one seed — **U(+)** where G2–G4 clear readably, meaning *re-read at k>1 seeds*, not *reject*.",
@@ -384,10 +504,13 @@ def grading_prose(stream: str, k: int = 1) -> list[str]:
         "available, so losing to one bounds what a verdict means rather than voiding it. The bar-weakness flag — does "
         "`constant_causal` clear the registered D-7 bar on its own? — is reported for the same reason. Neither is on the "
         "ladder. A condition that could not be measured is not satisfied, and is named like any other failure.",
+        "",
+        *amendment,
     ]
 
 
-def grade_summary_table(cells: list[dict], stream: str, key, k: int = 1) -> list[str]:
+def grade_summary_table(cells: list[dict], stream: str, key, k: int = 1,
+                        levelling: str = TRAILING_28D) -> list[str]:
     """The per-pair grade roll-up, under the per-cell table.
 
     ``key`` maps a cell to its pair label, so the wind harness can key on
@@ -401,7 +524,7 @@ def grade_summary_table(cells: list[dict], stream: str, key, k: int = 1) -> list
         if label not in pairs:
             order.append(label)
             pairs[label] = []
-        pairs[label].append(cell_grade(cell, stream, k))
+        pairs[label].append(cell_grade(cell, stream, k, levelling))
     lines = ["", "### Graded disposition, per pair", "",
              "| pair | bands | grade | failed conditions | bar weaker than a flat line? |",
              "|---|---|:---:|---|:---:|"]

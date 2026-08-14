@@ -28,7 +28,9 @@ from src.evaluation.gate_grading import (  # noqa: E402
     CONDITIONS, PUBLISHED_FLOOR_PCT_K1, grade_cell, margin_pct_of_own_error,
     pair_grade, readability_floor_pct, skill_pct,
 )
-from src.evaluation.model_free_reference import comparator_wape  # noqa: E402
+from src.evaluation.model_free_reference import (  # noqa: E402
+    FIT_WINDOW, comparator_wape,
+)
 
 
 #: The two tranches this issue retro-grades, with the stream whose registered CV
@@ -82,7 +84,15 @@ def read_tranche(root: Path, spec: dict) -> dict:
     stream, floor = spec["stream"], readability_floor_pct(spec["stream"])
     order, pairs, graded = [], {}, []
     for cell in results["gate_cells"]:
-        grade = grade_cell(cell["scores"], stream)
+        # ABL-437 pins this read to `fit_window`, the levelling ABL-418 was
+        # published on. Tranches 2a and 2b carry no trailing reference column
+        # at all -- they were fitted before ABL-437 existed -- so grading them
+        # on the amended default would silently turn every G2 and G3 into "not
+        # measured" and re-write a published report as a page of Bs. The
+        # amended read of these same tranches is a separate record
+        # (`reports/abl_437_causal_levelling_reread.md`), which is what a
+        # re-grade is: a new document, not an edit to the old one.
+        grade = grade_cell(cell["scores"], stream, levelling=FIT_WINDOW)
         label = spec["key"](cell)
         if label not in pairs:
             order.append(label)
