@@ -490,15 +490,20 @@ DEFAULT_FIT_RULES = {"exclude_impossible_night": False}
 # at the tail, so a standing rule parked there would be read by the next editor as
 # the docstring of whatever row lands under it.
 #
-# This comment is load-bearing precisely because this table is *not* one of the
-# three `check_registration_tables` cross-checks (see the call at the bottom of
-# this file).  A new scope that omits its row here does not fail at import; it
-# resolves through `DEFAULT_FIT_RULES`, which is also False -- so the omission
-# would produce the registered *behaviour* while leaving no record that anyone
-# chose it.  Right answer, absent registration, and the next reader cannot tell
-# the two apart.  Add the row.  A comment is the only record an unenforced table
-# gets, so this one is pinned by `tests/test_abl403_fit_rule_registration.py`
-# rather than left to survive the next merge on goodwill.
+# ABL-429 put this table inside `check_registration_tables` (see the call at the
+# bottom of this file), so a new scope that omits its row now fails at *import*
+# rather than resolving through `DEFAULT_FIT_RULES` -- which is also False, so
+# the omission used to produce the registered *behaviour* while leaving no record
+# that anyone chose it: right answer, absent registration, and the next reader
+# could not tell the two apart.
+#
+# That closes half of what this comment was written for, and not the half that
+# matters.  **The check compares keys, never values.**  A tranche registered
+# `True` here is a change to an adopted registration, and it imports, runs and
+# exits 0 exactly as a compliant one does.  So the record of what was chosen, and
+# why, is still text -- pinned by `tests/test_abl403_fit_rule_registration.py`,
+# which holds every `abl316-t2*` row to the registered False, rather than left to
+# survive the next merge on goodwill.
 #
 # The measurement behind the value: on BG the rule alone raises night MAE
 # +61.05 MW (8/8 seeds, p = 0.0078, outside a 6.96 MW null), drives night bias
@@ -531,9 +536,11 @@ FIT_RULES = {
     # read, which is the confound ABL-376 registered a separate scope to avoid.
     "abl316-t1b": {"exclude_impossible_night": False},
     # ABL-405 registers the rule **off**, which is also what `DEFAULT_FIT_RULES`
-    # would have given it -- stated rather than inherited, because this table is
-    # one of the three `check_registration_tables` does *not* check, so an absence
-    # here is indistinguishable from an oversight and defaults silently.
+    # would have given it -- stated rather than inherited.  Since ABL-429 the row
+    # itself is required at import, but `check_registration_tables` compares keys
+    # and not values, so its *presence* is enforced and its *content* is not: this
+    # text is still the only record that False was chosen rather than defaulted
+    # into.
     #
     # Off is the right value for two independent reasons, not merely the cheap one:
     #
@@ -555,9 +562,8 @@ FIT_RULES = {
     "abl316-t2a": {"exclude_impossible_night": False},
     # ABL-419 registers the rule **off**, which is also what `DEFAULT_FIT_RULES`
     # would have given it -- stated rather than inherited, for `abl316-t2a`'s
-    # reason: this table is one of the three `check_registration_tables` does *not*
-    # check, so an absence here is indistinguishable from an oversight and defaults
-    # silently.
+    # reason: ABL-429 requires the row but not its value, so an unstated False is
+    # indistinguishable from a False nobody chose.
     #
     # Off is right here for three reasons, and the third is specific to this
     # tranche:
@@ -683,8 +689,9 @@ SCOPE_FEATURES = {
     # `DEFAULT_SCOPE_FEATURES` -- the current 27.  Fitting the tranche at 27 was
     # the sole gate on re-tranching the remaining solar pairs, so inheriting the
     # default here is the intended path and not an omission, and this comment is
-    # what makes the two distinguishable: this table is not one of the three
-    # `check_registration_tables` checks, so an absence defaults silently.  The
+    # what makes the two distinguishable: this table is one of the two
+    # `check_registration_tables` does *not* check -- and cannot, since this very
+    # absence is correct -- so an absence defaults silently.  The
     # run records the resolved value either way -- `meta.feature_set`,
     # `meta.n_features` and `meta.feature_set_is_registered_for_scope`, which
     # reads False for this scope and prints as such in the report.

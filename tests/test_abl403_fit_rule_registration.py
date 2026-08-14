@@ -55,9 +55,10 @@ def test_the_registration_is_still_in_the_harness(source: str) -> None:
     missing = [m for m in REGISTRATION_MARKERS if m not in source]
     assert not missing, (
         "the ABL-403 standing fit-rule registration has lost "
-        f"{missing!r} from {HARNESS.name}. `FIT_RULES` is not import-checked, "
-        "so this comment is the only record that the value was chosen rather "
-        "than inherited from DEFAULT_FIT_RULES. Restore it or re-register."
+        f"{missing!r} from {HARNESS.name}. Since ABL-429 `check_registration_tables` "
+        "requires a `FIT_RULES` row per scope, but it compares keys and not "
+        "values -- so this comment is still the only record that False was chosen "
+        "rather than defaulted into. Restore it or re-register."
     )
 
 
