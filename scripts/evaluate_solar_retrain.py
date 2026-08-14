@@ -954,6 +954,13 @@ UNCHECKED_REGISTRATION_TABLES = {
     # ABL-348 declares NOT-EVALUABLE that is a wrong verdict rather than
     # self-documenting degradation.
     "SCOPE_NOT_EVALUABLE": "only the scopes ABL-348 declares carry a row",
+    # Defaults toward ABL-437's levelling amendment (TRAILING_28D) for any scope
+    # that does not pin a different reference.  Requiring it here would force every
+    # existing scope to carry an explicit row, deleting the default-toward-amendment
+    # behaviour and breaking the first tranche that legitimately inherits it.
+    # Per-published-scope enforcement is handled by
+    # `tests/test_gate_scope_registration.py`'s stale-declaration check.
+    "CAUSAL_LEVELLING": "defaults toward ABL-437's amendment; pins checked per published scope",
 }
 
 # `tests/test_abl421_not_evaluable.py` holds the line for the one scope that
