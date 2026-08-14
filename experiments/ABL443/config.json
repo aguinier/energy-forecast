@@ -1,0 +1,72 @@
+{
+  "issue": "ABL-443",
+  "parent": "ABL-316",
+  "scope": "abl443-offshore-trailing",
+  "title": "Trailing-reference read of DE/NL wind_offshore on the ABL-437 levelling",
+  "status": "PRE-REGISTERED - frozen before the trailing references were computed for either pair",
+  "registered_at": "2026-08-14T02:00:00Z",
+  "registered_by": "Forecasting Scientist",
+  "evidence_pack": "reports/abl_443_trailing_reference_registration.md",
+  "what_this_is": "A second read of the two DE/NL wind_offshore pairs ABL-436 graded, at the causal reference ABL-437 registers (`trailing_28d`) instead of the one ABL-436 was read under (`fit_window`). Arithmetic over ABL-436's committed record plus the two trailing references recomputed on the same rows. No refit, no new model, no new fit.",
+  "what_this_is_not": [
+    "It is not a correction of ABL-436. That read stands at its own path, at its own scope id, with its own letters, and is byte-unchanged by this one.",
+    "It is not a new levelling. `trailing_28d` is ABL-437's, registered at `experiments/ABL437/config.json` and frozen before it graded any pair; this issue inherits it and does not amend it.",
+    "It is not a promotion or a promotion recommendation.",
+    "It is not a re-opening of the registered bar. Seasonal-naive D-7 is G1 under both levellings."
+  ],
+  "why_a_separate_scope_id": "ABL-401's ruling. ABL-436's `abl322-pilot` record is published and pinned to `fit_window` in `CAUSAL_LEVELLING`, so re-reading it in place would make a committed page of letters disagree with the run that regenerates it. A second reference read is a second scope, not an edit.",
+  "inherited_registration": {
+    "levelling": "trailing_28d",
+    "source": "experiments/ABL437/config.json",
+    "definition": "constant_causal_28d and climatology_causal_28d - the same flat line and the same hour-of-day mean over the 28 days ending at the row's own `generated_at`, anchored at `generated_at.floor('h')`, inclusive, spanning 28*24 - 1 hours back, on the same ABL-188-filtered target series the gate actuals and the D-7 baseline are read from.",
+    "ladder": "ABL-418 G1-G4 unchanged. G1 seasonal-naive D-7 with the ABL-385 readability floor (7.51% wind at k=1); G2 constant_causal_28d; G3 climatology_causal_28d; G4 slope > 0 and corr > 0.",
+    "oracles": "constant_oracle and climatology_oracle stay reported and gate nothing, under both levellings."
+  },
+  "input_record": {
+    "path": "experiments/ABL322/results_abl436_offshore_reread.json",
+    "sha256": "ef0f647449072fa00cbc9851",
+    "git_blob": "a9d0e814cd8a",
+    "scope_it_was_read_under": "abl322-pilot",
+    "levelling_it_was_read_under": "fit_window",
+    "pairs": ["DE wind_offshore", "NL wind_offshore"],
+    "cells": 6,
+    "published_grades": {"DE wind_offshore": "A", "NL wind_offshore": "A"},
+    "note": "`meta.feature_columns` is absent from this record, which under ABL-404's rule dates the read rather than leaving it unresolved. Wind's 24-column list has not moved, so the wind fallback in `_feature_columns` is the list this record was fitted on. That fallback is only reached at all if the schedule alone fails to reproduce a published reference."
+  },
+  "outputs": {
+    "json_out": "reports/abl_443_offshore_trailing_reread.json",
+    "report_out": "reports/abl_443_offshore_trailing_reread.md",
+    "findings": "reports/abl_443_findings.md"
+  },
+  "paths_this_read_must_not_write": [
+    "experiments/ABL322/results_abl436_offshore_reread.json",
+    "experiments/ABL322/abl436_preregistration_recheck.json",
+    "experiments/ABL322/results.json",
+    "reports/abl_436_offshore_reference_grade.md",
+    "reports/abl_436_offshore_evidence_pack.md",
+    "reports/abl_322_pilot_gate.md",
+    "reports/abl_437_causal_levelling_reread.json",
+    "reports/abl_437_causal_levelling_reread.md"
+  ],
+  "row_set_rule": "The rows are proved, not assumed. Each cell's scored rows are rebuilt from ABL-348's eight registered run instants and then checked by recomputing that cell's published `constant_causal` and `climatology_causal` WAPE *and* MAE from it to 1e-09. A cell that does not reproduce to that tolerance is reported NOT RECONSTRUCTIBLE and is graded by nobody.",
+  "reconstruction_tolerance": 1e-09,
+  "g2_g3_readability_floor": {
+    "landed": false,
+    "checked_against": "reports/abl_437_causal_levelling_reread.md section 2",
+    "ruling": "ABL-437 declined to widen G2/G3 from a sign test to a floor test, on the grounds that it would be a second registration change on top of the levelling one. This read does not make that change either.",
+    "what_this_read_does_instead": "Every G2 and G3 margin is printed with its sign and its magnitude, beside the same 7.51% k=1 wind floor G1 gates on, and a margin inside that floor is labelled `not readable at one seed` in the report. The label is a diagnostic on the margin, not a ladder condition, and it does not move a letter.",
+    "consequence_registered_in_advance": "A letter that turns on a sub-floor G2/G3 margin is reported as the ladder computes it AND flagged as not demonstrated at one seed. Both statements are made; neither is suppressed."
+  },
+  "margins_reported_in_every_case": "Including where the verdict is `not readable` and including where no letter moves. A margin that is not printed cannot be checked.",
+  "what_would_void_this_registration": [
+    "Any change to the trailing window length, its anchor, the two column names, or the set of references the ladder reads, after this read has been computed.",
+    "Any edit to `experiments/ABL322/results_abl436_offshore_reread.json`.",
+    "Regrading on a row set that did not reproduce its published references to 1e-09.",
+    "Adding a G2/G3 floor condition to the ladder after seeing which letters it would move."
+  ],
+  "honesty_note_on_what_was_already_visible": "ABL-436's fit-window columns, its inflation figures and DE's losses to both oracles were public before this registration was written - the issue quotes them. What was NOT computed for either pair at the time this file was committed is the trailing-28d column itself, or any letter derived from it. This registration is frozen against that column, and the two commits are separate so the order is checkable in git.",
+  "contamination": "ABL-67 is net-position-only and ABL-109/ABL-111 are load-only; neither intersects wind_offshore. ABL-71's known wrong-write modes are load and net position, which is a provenance caveat rather than proof that wind ingest is pristine. This read touches no ingest, no source table and no window, so it can neither introduce nor repair any of them. The `energy_generation` revision-vintage caveat ABL-439 measured on NL wind_onshore is restated per pair in the findings.",
+  "promotion": "This read recommends no promotion. Promotion remains a pre-registered gate read plus a Board decision, and neither pair's serving status is touched.",
+  "replica": "C:\\Code\\able\\data\\energy_dashboard.db, opened read-only (mode=ro, uri=True). 9,432,453,120 bytes.",
+  "interpreter": ".venv\\Scripts\\python.exe (Python 3.14.3)"
+}

@@ -901,6 +901,51 @@ Five things follow, and the third is the one that bites:
   — so the real residual is smaller, but it is **reported per cell** rather than
   assumed away. Do not quote the corrected reference as exact.
 
+### What the corrected reference did to two real pairs, and what it costs to land (ABL-443)
+
+**A letter moving is the small half of the finding; the margins are the big
+half.** DE and NL `wind_offshore` were re-read at `trailing_28d` under a new scope
+`abl443-offshore-trailing` (ABL-436's `abl322-pilot` read stands byte-unchanged,
+per ABL-401). One letter moved — DE **A → B**, fails G3 at 48-64h by 0.47pp — and
+that is not the number to quote. **All six of DE's G2/G3 margins collapse from
++10.18…+12.72pp to +0.33…+1.32pp and −0.47pp, every one inside the 7.51% floor.**
+Its published double-digit margins *were the reference's mis-levelling*, so DE has
+demonstrated neither level nor shape in **either direction**; its G1 (+24…+26pp vs
+D-7) is untouched and ABL-436's PASS stands. NL holds **A** at +18.80…+21.78pp,
+still readable at ~2.5–2.9× the floor, and beats both oracles readably. Read the
+margin table before the letter table, on any re-read.
+
+Three things that generalise:
+
+- **Screen the level change against `energy_renewable` before crediting
+  seasonality.** ABL-439 found NL `wind_onshore`'s 3× shift on `energy_generation`
+  was a *revision vintage*, and a vintage seam is indistinguishable from
+  seasonality in the inflation diagnostic — the challenger is fitted straight
+  through it either way. Here the two tables agree within **0–5% in every month**
+  for both pairs, so the 1.63×/1.96× shift is the real winter→summer cycle. That
+  screen is one query and it is the difference between a finding and an artifact.
+- **The correction is partial and its residual does not rank with the raw one.**
+  Inflation fell 18–27% → **5.5–8.0%**, but NL's *residual* is larger than DE's
+  even though NL's raw figure was worse — a trailing window lags a level that is
+  still falling. Rank on the residual, not on the improvement.
+- **`grade_cell` gaining two additive keys turns strict dict equality red on
+  merge.** ABL-437 adds `causal_levelling` and `level_inflation_pct` and
+  deliberately does not regenerate `reports/abl_418_retro_grade.json` (its §8);
+  ABL-438 landed on main meanwhile with `fresh == stored` against those exact
+  bytes. Green on each side, **2 failed on the merge**, no textual conflict, and
+  the collision is in a file neither branch's issue is about — so neither PR's own
+  test run can see it. The fix is `without_abl437_provenance` in
+  `tests/test_abl438_retro_grade_1b.py`: strip the two provenance keys at any
+  depth, compare, then assert the `fit_window` pin **separately** — which keeps a
+  moved letter failing, where a bare subset check would not. **Do not "fix" this by
+  regenerating the committed record**; that overwrites a published page of letters
+  to make a test pass.
+- **Two branches can find the same merge collision and fix it twice.** ABL-443 and
+  ABL-437 both hit this within one pass and wrote different helpers for it; the
+  base branch's won. Before writing a merge fix, re-fetch and check whether the
+  branch you are stacked on has already moved — a PR head is not stable while you
+  work against it.
+
 **A scope also registers where it writes** (ABL-387). `--artifact-dir`,
 `--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
 which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
