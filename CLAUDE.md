@@ -712,6 +712,45 @@ it. Neither tranche's verdict, report or results file moves; the grades land
 under a new path and the six dispositioned scopes are byte-unchanged by blob
 hash.
 
+**The retro-grade takes a `--tranches` selector; it is not one script per
+tranche** (ABL-438). Tranche 1b (BG/CH solar, ABL-381) was never graded — not
+because its record lacked anything, but because ABL-418 ran over 2a and 2b only.
+Its `meta.reported_comparators` already listed all eight, so grading it needed
+**no refit and no re-read**, and it landed by adding a row to `TRANCHES` in
+`scripts/abl418_retro_grade.py` rather than by writing a second grader. **1b
+solar: A × 2 (BG, CH)** — six cells, all four conditions in every band, all six
+clearing `enough_pairs`. Recorded in `reports/abl_438_retro_grade.json` and
+qualified in `reports/abl_438_tranche1b_findings.md`.
+
+Three rules came out of that, and they apply to the next tranche too.
+
+- **A selection writes where its issue writes.** The defaults reproduce ABL-418's
+  artifacts; any other selection is **refused** if it points at
+  `abl_418_retro_grade.*`. This is the `SCOPE_OUTPUTS` failure below, one
+  directory over — a run that keeps a default output path rewrites a
+  dispositioned report under a heading that no longer describes it, and exits 0.
+- **The floor applies to any margin a reader ranks on**, not only to the one G1
+  gates on (ABL-417). Both 1b pairs beat the *oracle* hour-of-day climatology in
+  every band and neither readably: BG by **+1.41%** at its worst band, CH by
+  **+3.47%**, against a 10.65% floor. The renderer now prints `yes, inside the
+  floor (+x%)` rather than `yes`. Three of ABL-418's own pairs are in that
+  position (2a CH +8.15%, 2a RO +5.93%, 2b FI `wind_onshore` +7.48% against a
+  7.51% floor); its published report predates the qualifier and is not rewritten
+  here, so **regenerating `abl_418_retro_grade.md` no longer reproduces the
+  committed file** — the delta is the `n ≥ min` column, the coverage note and
+  those three cells, and no grade moves. Whether that report is regenerated is a
+  CEO call, filed separately.
+- **A hold is data, not prose.** Grade A reads *promotion-eligible, subject to
+  any named data hold*, so the hold is registered in `HOLDS`, carried into the
+  JSON and rendered under its pair's table. BG solar's is ABL-396's live
+  night-contamination hold, whose displacement band is far wider than the +1.41%
+  above. A grade of A must not be reported for BG solar without it.
+
+**`enough_pairs` is reported beside every grade**, because the ladder cannot see
+it: a grade reads a *margin*, so a coverage-short cell that beat D-7 would grade
+`A` exactly as a full-coverage one does. It nests under `gate`, where a flat
+lookup passes vacuously — assert the value, not its presence.
+
 **A scope also registers where it writes** (ABL-387). `--artifact-dir`,
 `--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
 which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
