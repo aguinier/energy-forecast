@@ -45,8 +45,41 @@ from pathlib import Path
 import pytest
 
 from src.evaluation.gate_grading import readability_floor_pct
+from src.evaluation.model_free_reference import FIT_WINDOW
 
 REPO = Path(__file__).resolve().parents[1]
+
+#: Keys a grade block gained *after* the ABL-418 and ABL-438 records were
+#: committed. ABL-437 added both and deliberately did not regenerate
+#: `reports/abl_418_retro_grade.json` (its section 8): a re-run adds these two,
+#: and changes no value and no letter, so leaving the committed bytes alone keeps
+#: the whole published set unchanged. Strict dict equality against those bytes
+#: therefore stops being the right assertion the moment ABL-437 lands, while "no
+#: stored value moved" stays exactly as strong.
+ADDITIVE_SINCE_THE_RECORD = {"causal_levelling", "level_inflation_pct"}
+
+
+def assert_grade_unmoved(fresh: dict, stored: dict, where: str) -> None:
+    """Every stored key present and unchanged; additions only from the set above.
+
+    Deliberately not ``fresh == stored``: a record committed before a purely
+    additive field existed cannot satisfy that. Equally deliberately not a subset
+    check, which would let a *value* move silently. Both halves are asserted --
+    nothing stored changed, and nothing new appeared that was not registered as
+    additive -- plus the pin itself, because `causal_levelling` on an ABL-418
+    grade must read `fit_window` or those published letters were decided against
+    references the script no longer reads.
+    """
+    added, dropped = set(fresh) - set(stored), set(stored) - set(fresh)
+    assert not added - ADDITIVE_SINCE_THE_RECORD, (
+        f"{where}: unregistered new key(s) {sorted(added - ADDITIVE_SINCE_THE_RECORD)}")
+    assert not dropped, f"{where}: key(s) dropped {sorted(dropped)}"
+    for key, value in stored.items():
+        assert fresh[key] == value, f"{where}: {key} moved, {value!r} -> {fresh[key]!r}"
+    if "causal_levelling" in fresh:
+        assert fresh["causal_levelling"] == FIT_WINDOW, (
+            f"{where}: ABL-418's published letters are pinned to the fit-window references")
+
 
 _SPEC = importlib.util.spec_from_file_location(
     "abl418_retro_grade", REPO / "scripts" / "abl418_retro_grade.py")
@@ -193,8 +226,12 @@ def test_the_committed_record_matches_a_live_grade(tranche, committed):
     assert committed["issue"] == "ABL-438"
     assert committed["tranche_selection"] == ["1b"]
     stored, = committed["tranches"]
-    assert stored["cells"] == tranche["cells"]
-    assert stored["pair_grades"] == tranche["pair_grades"]
+    assert len(stored["cells"]) == len(tranche["cells"])
+    for index, cell in enumerate(stored["cells"]):
+        assert_grade_unmoved(tranche["cells"][index], cell, f"1b cell {index}")
+    assert set(stored["pair_grades"]) == set(tranche["pair_grades"])
+    for pair, grade in stored["pair_grades"].items():
+        assert_grade_unmoved(tranche["pair_grades"][pair], grade, f"1b {pair}")
 
 
 def test_the_record_names_the_bytes_it_graded(committed):
@@ -224,7 +261,10 @@ def test_abl418s_own_selection_still_produces_abl418s_own_grades():
     assert [tranche["tranche"] for tranche in committed["tranches"]] == list(rg.ABL418_TRANCHES)
     for stored in committed["tranches"]:
         fresh = rg.read_tranche(REPO, rg.TRANCHES[stored["tranche"]])
-        assert fresh["pair_grades"] == stored["pair_grades"], stored["tranche"]
+        assert set(fresh["pair_grades"]) == set(stored["pair_grades"]), stored["tranche"]
+        for pair, grade in stored["pair_grades"].items():
+            assert_grade_unmoved(fresh["pair_grades"][pair], grade,
+                                 f"{stored['tranche']} {pair}")
         assert [cell["label"] for cell in fresh["cells"]] == \
             [cell["label"] for cell in stored["cells"]], stored["tranche"]
         assert [cell["skill_pct"] for cell in fresh["cells"]] == \

@@ -129,13 +129,23 @@ def test_every_amended_grade_is_what_the_ladder_computes_from_its_own_scores():
 
 
 def test_every_published_grade_is_ABL436s_committed_letter():
-    """The 'before' column is read out of ABL-436's record, never recomputed."""
+    """The 'before' column is read out of ABL-436's record, never recomputed.
+
+    ABL-436's record predates ABL-437, so its grade blocks carry no
+    `causal_levelling` key at all. That absence is not a gap to paper over: it is
+    the case `CellGrade.from_dict` resolves to `fit_window`, which is what those
+    letters were decided on. Asserted through that read-back rather than off the
+    raw key, because the read-back is the path this report actually used.
+    """
+    from src.evaluation.gate_grading import CellGrade
     for pair, cell in _cells():
         source = next(item for item in SOURCE["gate_cells"]
                       if item["country"] == pair["country"]
                       and item["horizon_band"] == cell["band"])
         assert cell["published_grade"] == source["grade"]["label"], (pair["pair"], cell["band"])
-        assert source["grade"]["causal_levelling"] == FIT_WINDOW
+        assert "causal_levelling" not in source["grade"], (
+            "ABL-436's record has gained a levelling key -- it was edited")
+        assert CellGrade.from_dict(source["grade"]).levelling == FIT_WINDOW
 
 
 def test_each_pair_grade_is_its_worst_band_under_both_levellings():
