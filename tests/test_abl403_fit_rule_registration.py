@@ -4,12 +4,11 @@ The CEO adopted PR #58 with a registration that binds scopes which did not exist
 when it was made: **`exclude_impossible_night: False` for every remaining
 ABL-316 solar tranche, ES and EE included** -- 2c (ABL-419) and 2d (ABL-421).
 
-`FIT_RULES` is one of the three registration tables `check_registration_tables`
-does *not* enforce, and `DEFAULT_FIT_RULES` is also False. So a tranche that
-omits its row produces the registered *behaviour* with no record that anyone
-chose it, and the next reader cannot tell a decision from an oversight. A
-comment is the only record such a table gets -- which makes an *unpinned*
-comment not a record at all.
+ABL-429: `FIT_RULES` is now one of the five tables `check_registration_tables`
+enforces (import-time), so an omitted row raises before any fit. The standing
+DEFAULT_FIT_RULES fallback still exists for the resolution path described in the
+ABL-403 registration comment, but a scope that omits its row now fails at import
+rather than silently inheriting the default.
 
 That is not hypothetical. The registration first landed as a trailing block at
 the tail of `FIT_RULES`, which is exactly where new tranche rows are appended:
@@ -148,20 +147,35 @@ def test_the_registration_names_where_its_evidence_lives(source: str) -> None:
     )
 
 
-def test_fit_rules_is_still_outside_the_import_check(source: str) -> None:
-    """If this fails, the comment's central caveat is stale -- rewrite it.
+def test_fit_rules_is_inside_the_import_check(source: str) -> None:
+    """ABL-429: FIT_RULES must be in check_registration_tables.
 
-    The registration explains at length that `FIT_RULES` is unenforced. Adding
-    it to `check_registration_tables` would be a good change and would make that
-    paragraph wrong; this fails so the prose is corrected with the code rather
-    than after it.
+    A future cleanup that removes it would silently un-enforce the table --
+    scopes could drift out of sync without failing at import.
     """
     call = re.search(
         r"check_registration_tables\((.*?)\)", source, re.DOTALL
     )
     assert call is not None, "check_registration_tables call not found"
-    assert "FIT_RULES" not in call.group(1), (
-        "`FIT_RULES` is now import-checked. That is an improvement, but the "
-        "ABL-403 registration above the table still says it is not -- update "
-        "that paragraph in the same change."
+    assert "FIT_RULES" in call.group(1), (
+        "`FIT_RULES` has been removed from `check_registration_tables`. "
+        "ABL-429 added it so a scope missing a fit-rule row fails at import. "
+        "Restore it -- and if `DEFAULT_FIT_RULES` makes the abort undesirable, "
+        "add a note explaining the new policy rather than silently dropping the guard."
+    )
+
+
+def test_scope_titles_is_inside_the_import_check(source: str) -> None:
+    """ABL-429: SCOPE_TITLES must be in check_registration_tables.
+
+    A missing title row silently generates a derived heading, making a scope's
+    evidence pack unidentifiable from its H1 alone.
+    """
+    call = re.search(
+        r"check_registration_tables\((.*?)\)", source, re.DOTALL
+    )
+    assert call is not None, "check_registration_tables call not found"
+    assert "SCOPE_TITLES" in call.group(1), (
+        "`SCOPE_TITLES` has been removed from `check_registration_tables`. "
+        "ABL-429 added it so a scope missing a title row fails at import. Restore it."
     )

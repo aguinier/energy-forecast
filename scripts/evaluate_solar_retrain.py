@@ -540,28 +540,27 @@ def title_for(scope: str) -> str:
     return SCOPE_TITLES.get(scope, f"{scope} — Serve-faithful solar retrain gate")
 
 
-# ABL-387: the three tables above are one registration in three views.  Checked
-# at import, so a scope registered in one and not the others fails before any fit
-# -- and identically under `--help` and in the test suite -- rather than raising
-# `KeyError` partway through a gate run, or writing over another scope's evidence.
+# ABL-387: the registration tables above are one registration in five views.
+# Checked at import, so a scope registered in one and not the others fails before
+# any fit -- and identically under `--help` and in the test suite -- rather than
+# raising `KeyError` partway through a gate run, or writing over another scope's
+# evidence.
 #
-# ABL-376's two tables are deliberately **not** in this check, and the asymmetry
-# is the point rather than an oversight.  What makes the three strict is that
-# omitting an entry fails *destructively and silently*: a missing `SCOPE_OUTPUTS`
-# row sends a run's results over another scope's dispositioned evidence, and no
-# exit status shows it.  A missing `FIT_RULES` or `SCOPE_TITLES` row does not --
-# it resolves through `fit_rules_for`/`title_for` to the pre-ABL-376 behaviour,
-# and the report then says in as many words that the rule is not registered for
-# that scope.  Self-documenting degradation does not need an import-time abort.
-#
-# The cost of getting this wrong is concrete and was measured, not imagined:
-# `ABL-381-tranche-1b` and `fix/abl-379-solar-gate-scope` are both live and both
-# add a solar scope to the three tables.  Had the new tables joined the strict
-# check, either merge order would produce a **textually CLEAN** merge that raises
-# on `import` -- taking `--help` and the whole suite with it -- with nothing on
-# GitHub to warn either author.  Adding a required table is not free; it is a
-# tax on every branch already in flight.
-check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
+# ABL-429: `FIT_RULES` and `SCOPE_TITLES` are now in this check.  They were
+# deliberately excluded until ABL-419 merged: adding a required table raises on
+# import for every branch already in flight, and at the time `ABL-381-tranche-1b`
+# and `fix/abl-379-solar-gate-scope` were both live, both adding a scope to three
+# of the five tables.  That window is closed.  The repo queues are at zero, and
+# the cost of getting this wrong going forward -- a scope missing its fit rule
+# is indistinguishable from a deliberate "inherit the default" -- now outweighs
+# the cost of the import-time tax.  The asymmetry the previous comment described
+# no longer holds: `SCOPE_FEATURES` was the one table that must stay absent-able
+# (inheriting the default is the *intended path* for a new tranche, not an
+# omission), and it is still not in this call for that reason.  `FIT_RULES` and
+# `SCOPE_TITLES` have no such safe default -- an absent row is an undocumented
+# choice -- so they are enforced.
+check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS,
+                          FIT_RULES=FIT_RULES, SCOPE_TITLES=SCOPE_TITLES)
 check_scope_outputs(SCOPE_OUTPUTS)
 
 
