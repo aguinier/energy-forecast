@@ -385,8 +385,9 @@ screen finally measuring the hourly frame the model is fitted on.
 
 ### TSO day-ahead forecasts are guarded on the way in (ABL-431)
 
-`energy_generation_forecast` and `energy_load_forecast` carry ENTSO-E's
-published day-ahead forecasts verbatim, and verbatim includes a **×1000 unit
+`energy_generation_forecast`, `energy_load_forecast` and the `source='tso'`
+half of `forecast_vintage_archive` carry ENTSO-E's published day-ahead
+forecasts verbatim, and verbatim includes a **×1000 unit
 error**: HU's `wind_onshore_mw` reads **140,996 MW** against a fleet whose
 p99.5 over five years is 283 MW. Dividing those 96 quarter-hours by 1000
 reproduces HU's own measured generation for the same day (35.8–141.0 MW
@@ -395,12 +396,12 @@ the shape is right and only the scale is wrong — which is why it is invisible
 to every correlation- or shape-based check.
 
 **Extent, measured on the replica 2026-08-14 and regenerable with
-`scripts/abl431_tso_plausibility_census.py`: 213 of 14,610,819
-column-observations (0.0015%)**, in three incidents — HU 2026-02-04 (96 rows,
-one full CET market day, hitting `wind_onshore_mw` and the `total_forecast_mw`
-it dominates), MK 2022-04-10 (10 rows), SK 2022-09-25 (1 row). **Zero rows in
-`energy_load_forecast`.** So it is not one row, and it is not widespread
-either.
+`scripts/abl431_tso_plausibility_census.py`: 320 of 26,805,465
+column-observations (0.00119%)**, in three incidents — HU 2026-02-04 (96 rows,
+one full CET market day, hitting `wind_onshore_mw`, its archived twin, and the
+`total_forecast_mw` it dominates), MK 2022-04-10 (10 rows), SK 2022-09-25
+(1 row). **Zero load rows anywhere.** So it is not one row, and it is not
+widespread either.
 
 `src/tso_plausibility.py` nulls a read value above `PLAUSIBILITY_TOLERANCE`
 (3.0) times a per-country, per-column reference scale, logs one warning naming
@@ -427,16 +428,17 @@ Four things about it are load-bearing:
   reason — which bounds it: a contaminated cluster covering more than 1 − q
   (0.5%, ~10 days of a five-year quarter-hourly series) would raise its own bar.
   HU's is 0.0487%.
-- **3.0 is a measurement, not a convention.** Across all 146 evaluable pairs,
-  `max / reference` runs HU 497.7× · HU total 37.3× · SK 8.70× · MK 6.05× ·
+- **3.0 is a measurement, not a convention.** Across all 257 evaluable pairs,
+  `max / reference` runs HU 497.7× · HU total 37.3× · SK 8.70× · MK 6.07× ·
   MK total 4.12× — then nothing until PT solar at **1.82×**, PT wind_offshore
   1.77×, NL load 1.60×, p90 1.41×. 3.0 sits inside a measured empty band 2.3×
   wide. The census prints that ladder every run, so a healthy pair climbing
-  toward the tolerance is visible before a fit meets it.
+  toward the tolerance is visible before a fit meets it. Adding the archive
+  (ABL-458) moved neither edge of that band.
 - **It is one-sided, and it refuses to evaluate rather than rejecting
   everything.** A published 0.0 is never flagged at any tolerance, so ABL-71's
   published zeros and ABL-109's 56 legitimate DE overnight solar zeros are
-  untouched by construction. **28 of the 174 pairs are all-zero series** —
+  untouched by construction. **56 of the 318 pairs are all-zero series** —
   landlocked countries reporting `wind_offshore_mw = 0.0` forever — where the
   reference is 0.0 and `value > 3 × 0` would flag every non-zero value a new
   fleet ever published. `ReferenceScale.evaluable` is False there and the series
@@ -452,10 +454,30 @@ Four things about it are load-bearing:
   *is* everything available.
 
 `tests/test_tso_plausibility.py` pins all of it, including a static sweep that
-fails if any `src/` module names one of the two tables without calling the
+fails if any `src/` module names one of the three tables without calling the
 guard or appearing on an exempt list with a reason. **That sweep is what ABL-247
 will trip when it adds its feature read** — which is the point: this issue is
 that issue's precondition.
+
+**The archive is registered but not yet read (ABL-458).** ABL-431 wired the two
+live tables; ABL-247 reads neither of them. It needs *issued* vintages — what a
+TSO published at a given run time — and `forecast_vintage_archive` is the only
+place those exist. The same 96 HU rows are in it, at the identical 140,996.245
+over the identical window, so a two-table guard would have left the poison on
+the one read path it was built for, with the sweep passing. The archive is
+**tall** where the others are wide (one `forecast_value` column, discriminated
+by `source` and `forecast_type`, horizon in `model_name`), so it needed no new
+rule — same reference, same tolerance, same one-sidedness — only a read shape.
+That shape lives in `forecast_read`, which both this module and the census call,
+because two callers computing the reference differently is the defect one level
+up. Two exclusions there, both of which can only *lower* the bar: `source='ml'`
+rows are our own forecasts, not a published TSO series; and `tso-week_ahead`
+reaches **4.76% of a pair's rows** (DK load), an order of magnitude past the
+0.5% cluster the quantile tolerates, so it could lift the threshold above its
+own unit error. No archive counterpart to `total_forecast_mw` — the archive
+stores no aggregate row. **ABL-247's read site is still to be written; when it
+is, it calls `guard_tso_frame(..., 'forecast_vintage_archive', <forecast_type>,
+frame_column='forecast_value')` before any resample.**
 
 **Which table an individual renewable type is read from is a property of the
 model artifact, not a global** (ABL-331). `model_data["training_source"]` is

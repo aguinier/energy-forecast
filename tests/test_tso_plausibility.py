@@ -25,8 +25,11 @@ from src.tso_plausibility import (  # noqa: E402
     PLAUSIBILITY_TOLERANCE,
     REFERENCE_QUANTILE,
     TSO_FORECAST_SOURCES,
+    VINTAGE_ARCHIVE_DAY_AHEAD_MODEL,
+    VINTAGE_ARCHIVE_TABLE,
     UnknownTsoSourceError,
     clear_reference_cache,
+    forecast_read,
     guard_series,
     guard_tso_frame,
     guard_tso_series,
@@ -38,6 +41,7 @@ REPO_ROOT = Path(__file__).parent.parent
 
 GEN_FORECAST = "energy_generation_forecast"
 LOAD_FORECAST = "energy_load_forecast"
+ARCHIVE = VINTAGE_ARCHIVE_TABLE
 
 
 @pytest.fixture(autouse=True)
@@ -48,7 +52,7 @@ def _no_cross_test_cache():
     clear_reference_cache()
 
 
-def _db(gen_forecast=(), generation=(), load_forecast=(), load=()):
+def _db(gen_forecast=(), generation=(), load_forecast=(), load=(), archive=()):
     """A throwaway replica-shaped database, in memory.
 
     Deliberately not the real replica: these tests pin the guard's *rules*, and
@@ -69,7 +73,19 @@ def _db(gen_forecast=(), generation=(), load_forecast=(), load=()):
             forecast_value_mw REAL, forecast_type TEXT DEFAULT 'day_ahead');
         CREATE TABLE energy_load (
             country_code TEXT, timestamp_utc TIMESTAMP, load_mw REAL);
+        CREATE TABLE forecast_vintage_archive (
+            source TEXT NOT NULL CHECK (source IN ('ml', 'tso')),
+            forecast_type TEXT NOT NULL, country_code TEXT NOT NULL,
+            target_timestamp_utc TEXT NOT NULL, model_name TEXT NOT NULL,
+            run_timestamp_utc TEXT NOT NULL, horizon_hours INTEGER,
+            forecast_value REAL NOT NULL, first_seen_at TEXT NOT NULL);
     """)
+    conn.executemany(
+        "INSERT INTO forecast_vintage_archive "
+        "(source, forecast_type, country_code, target_timestamp_utc, model_name, "
+        " run_timestamp_utc, forecast_value, first_seen_at) "
+        "VALUES (?, ?, ?, ?, ?, '2026-02-01T00:00:00Z', ?, '2026-02-01T00:00:00Z')",
+        archive)
     conn.executemany(
         "INSERT INTO energy_generation_forecast "
         "(country_code, target_timestamp_utc, wind_onshore_mw, forecast_type) "
@@ -94,6 +110,13 @@ def _hours(n, start="2026-02-01"):
 
 def _rows(country, values, start="2026-02-01"):
     return [(country, str(t), float(v)) for t, v in zip(_hours(len(values), start), values)]
+
+
+def _archive_rows(country, values, forecast_type="wind_onshore",
+                  model_name="tso-day_ahead", source="tso", start="2026-02-01"):
+    """The same series, shaped for the tall archive."""
+    return [(source, forecast_type, country, str(t), model_name, float(v))
+            for t, v in zip(_hours(len(values), start), values)]
 
 
 # --------------------------------------------------------------------------
@@ -469,6 +492,151 @@ def test_the_guard_reports_what_it_did():
 
 
 # --------------------------------------------------------------------------
+# The vintage archive -- the table ABL-247 actually fits on (ABL-458)
+# --------------------------------------------------------------------------
+
+def test_the_hu_signature_is_refused_in_the_vintage_archive_too():
+    """The same 96 rows live in the archive, and that is where ABL-247 reads.
+
+    ABL-431 wired the two live tables. The archive is a *tall* table -- one
+    `forecast_value` column discriminated by `source`/`forecast_type` -- so it
+    needed no new rule, only a read shape. It is the same poison: on the live
+    replica the archive's HU `wind_onshore` maxes at the identical 140,996.245
+    over the identical 2026-02-03 23:00 .. 2026-02-04 22:45 window.
+    """
+    conn = _db(archive=_archive_rows("HU", [50.0] * 500),
+               generation=_rows("HU", [50.0] * 500))
+
+    series = pd.Series([40.0, 140996.245], index=_hours(2))
+    guarded = guard_tso_series(series, conn, "HU", ARCHIVE, "wind_onshore")
+
+    assert guarded.iloc[0] == 40.0
+    assert pd.isna(guarded.iloc[1])
+
+
+def test_the_archive_is_held_to_the_same_fleet_as_the_live_table():
+    """A variable does not change fleet by being archived.
+
+    Pinned as an equality between the two registrations rather than by
+    restating the actuals counterpart, so the two cannot drift apart: whatever
+    scale the live column is held to, the archived one is held to as well.
+    """
+    twins = {
+        "solar": (GEN_FORECAST, "solar_mw"),
+        "wind_onshore": (GEN_FORECAST, "wind_onshore_mw"),
+        "wind_offshore": (GEN_FORECAST, "wind_offshore_mw"),
+        "load": (LOAD_FORECAST, "forecast_value_mw"),
+    }
+    for variable, live_key in twins.items():
+        assert (ARCHIVE, variable) in TSO_FORECAST_SOURCES, \
+            f"the archive stores forecast_type='{variable}' with no registered scale"
+        assert TSO_FORECAST_SOURCES[(ARCHIVE, variable)] == \
+            TSO_FORECAST_SOURCES[live_key], \
+            f"archived {variable} is scaled against a different fleet than {live_key}"
+
+    # And nothing else: the archive holds no aggregate row, so registering a
+    # `total` would invent a series the table does not have.
+    archived = {c for t, c in TSO_FORECAST_SOURCES if t == ARCHIVE}
+    assert archived == set(twins)
+
+
+def test_a_week_ahead_unit_error_cannot_set_the_bar_that_catches_it():
+    """The reference is the day-ahead slice alone, and this is why.
+
+    `tso-week_ahead` reaches 4.76% of a pair's archived rows (DK load, measured
+    2026-08-14) -- an order of magnitude past the 1 - q = 0.5% contaminated
+    cluster the quantile tolerates. Were it pooled in, a week-ahead scale error
+    would sit in its own p99.5 tail and lift the threshold above itself. Here
+    30 poisoned week-ahead rows against 500 clean day-ahead ones would carry
+    the reference from 50 MW to 140,996 MW and let the value through.
+    """
+    conn = _db(archive=_archive_rows("HU", [50.0] * 500) +
+                       _archive_rows("HU", [140996.245] * 30,
+                                     model_name="tso-week_ahead",
+                                     start="2027-01-01"))
+
+    scale = reference_scale(conn, "HU", ARCHIVE, "wind_onshore")
+
+    assert scale.reference_mw == pytest.approx(50.0)
+    assert scale.n_forecast == 500  # the week-ahead rows are not in the sample
+    guarded = guard_tso_series(pd.Series([140996.245], index=_hours(1)),
+                               conn, "HU", ARCHIVE, "wind_onshore")
+    assert pd.isna(guarded.iloc[0])
+
+
+def test_our_own_model_output_does_not_set_the_tso_reference():
+    """The archive interleaves `source='ml'` rows -- our forecasts, not a TSO's.
+
+    They measure the same fleet but are not a published TSO series, and a
+    challenger that overshot would otherwise raise the bar the TSO read is held
+    to. Excluded by the same clause that picks the day-ahead product.
+    """
+    conn = _db(archive=_archive_rows("HU", [50.0] * 500) +
+                       _archive_rows("HU", [900000.0] * 200, source="ml",
+                                     model_name="chronos2", start="2027-01-01"))
+
+    scale = reference_scale(conn, "HU", ARCHIVE, "wind_onshore")
+
+    assert scale.reference_mw == pytest.approx(50.0)
+    assert scale.n_forecast == 500
+
+
+def test_the_archive_discriminators_are_bound_not_interpolated():
+    """`forecast_read` is the one definition of the read shape, for both
+    callers, and it parameterises the values it filters on rather than pasting
+    them into SQL."""
+    expression, where, params = forecast_read(ARCHIVE, "wind_onshore")
+    assert expression == "forecast_value"
+    assert where.count("?") == len(params) == 3
+    assert params == ["tso", VINTAGE_ARCHIVE_DAY_AHEAD_MODEL, "wind_onshore"]
+    assert "wind_onshore" not in where
+
+    # The wide tables keep their own shape: the variable is the column, and
+    # `forecast_type` names the horizon rather than the variable.
+    expression, where, params = forecast_read(GEN_FORECAST, "wind_onshore_mw")
+    assert expression == "wind_onshore_mw"
+    assert where.count("?") == len(params) == 1
+    assert params == ["day_ahead"]
+
+
+def test_an_unregistered_archive_variable_raises_rather_than_guessing():
+    """No default on the tall table either -- `forecast_type` is free text in
+    the schema, so a new variable arriving in the archive must be registered
+    rather than scaled against whatever the read happens to select."""
+    conn = _db()
+    with pytest.raises(UnknownTsoSourceError):
+        reference_scale(conn, "HU", ARCHIVE, "hydro_total")
+
+
+def test_a_zero_reference_in_the_archive_still_refuses_to_evaluate():
+    """The all-zero landlocked-offshore case, on the tall table. 56 of the 318
+    census pairs have no fleet to scale against; the guard must pass them
+    through rather than flag every non-zero value a new fleet ever publishes."""
+    conn = _db(archive=_archive_rows("HU", [0.0] * 500,
+                                     forecast_type="wind_offshore"))
+
+    scale = reference_scale(conn, "HU", ARCHIVE, "wind_offshore")
+
+    assert not scale.evaluable
+    guarded = guard_tso_series(pd.Series([12.0], index=_hours(1)),
+                               conn, "HU", ARCHIVE, "wind_offshore")
+    assert guarded.iloc[0] == 12.0
+
+
+def test_the_archive_bounds_its_reference_on_target_timestamp_for_a_backtest():
+    """`as_of` has to reach the tall table too, or a backtest reconstructing a
+    past vintage would silently take its scale from the whole archive."""
+    ramp = _archive_rows("NL", [10.0] * 500 + [900.0] * 500)
+    conn = _db(archive=ramp)
+
+    full = reference_scale(conn, "NL", ARCHIVE, "wind_onshore")
+    early = reference_scale(conn, "NL", ARCHIVE, "wind_onshore",
+                            as_of=str(_hours(1000)[400]))
+
+    assert early.reference_mw < full.reference_mw
+
+
+# --------------------------------------------------------------------------
 # The read sites are wired, checked statically
 # --------------------------------------------------------------------------
 
@@ -511,9 +679,14 @@ def test_every_wired_read_site_calls_the_guard(relative_path):
 def test_no_unguarded_module_reads_a_tso_forecast_table():
     """The inverse, so the list above cannot quietly go stale.
 
-    Any `src/` module naming one of the two TSO forecast tables is either on the
-    guarded list or on the acknowledged-exempt list below, with a reason. This
-    is the check that fires when ABL-247 adds its feature read.
+    Any `src/` module naming one of the three TSO forecast tables is either on
+    the guarded list or on the acknowledged-exempt list below, with a reason.
+    This is the check that fires when ABL-247 adds its feature read.
+
+    `forecast_vintage_archive` is in the list because ABL-247 reads *that*
+    table, not the two live ones -- it needs issued vintages, and the archive is
+    the only place they exist. Without it here this test would have passed while
+    ABL-247 fitted straight through the guard on the same 96 HU rows (ABL-458).
     """
     exempt = {
         # Column->covariate mapping only; the read itself is input_builder's.
@@ -530,7 +703,8 @@ def test_no_unguarded_module_reads_a_tso_forecast_table():
         "src/chronos_forecaster.py",
         "src/chronos_train.py",
     }
-    tables = ("energy_generation_forecast", "energy_load_forecast")
+    tables = ("energy_generation_forecast", "energy_load_forecast",
+              VINTAGE_ARCHIVE_TABLE)
     unguarded = []
     for path in sorted((REPO_ROOT / "src").rglob("*.py")):
         relative = path.relative_to(REPO_ROOT).as_posix()
