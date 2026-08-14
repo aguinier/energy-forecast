@@ -249,7 +249,44 @@ and 2d registers it off.
 
 ---
 
-## 9. What this does and does not license
+## 9. The numbers survive the merge, and here is the proof
+
+These fits were run against the tree at `18301b2` (tranche 2c's head). While they
+ran, `main` gained ABL-425, ABL-417 and an ABL-403 follow-up, and ABL-425 edits
+`src/solar_geometry.py`, `src/solar_features.py` and `src/db.py` — three files
+that between them produce two of this challenger's 27 features, load its target
+series, and aggregate it to hourly. A gate record computed on one tree and merged
+into another is worth nothing unless that gap is closed.
+
+It is closed by comparison rather than by assertion. Every function and constant
+this read depends on was AST-compared between `18301b2` and `origin/main` with
+docstrings stripped:
+
+| symbol | verdict |
+|---|---|
+| `solar_geometry.sun_elevation_deg` | identical |
+| `solar_geometry.is_night_hour` | identical (docstring only) |
+| `solar_geometry.SOLAR_REPRESENTATIVE_POINTS` | identical |
+| `solar_geometry.NIGHT_ELEVATION_THRESHOLD_DEG` | identical |
+| `solar_features.night_mask` | identical (docstring only) |
+| `solar_features._solar_geometry_features` | identical |
+| `solar_features.SOLAR_GEOMETRY_FEATURES` | identical |
+| `db.load_renewable_type_data` | identical |
+| `db.aggregate_renewable_to_hourly` | identical |
+| `db.RENEWABLE_TYPE_COLUMNS` | identical |
+
+ABL-425's additions are a new registry (`NIGHT_GENERATION_POSSIBLE`) and a new
+exception, both reached only when `exclude_impossible_night` is **on** — and this
+scope registers it off. With `random_seed` pinned at 42 and every input function
+unchanged, the fit is deterministic and these numbers are the numbers the merged
+tree produces. Full suite on the merged tree: **1128 passed**.
+
+Note that two of the ten symbols moved *textually*. Comparing raw source, or an
+`ast.dump` that still carries docstrings, reports them as changed and would have
+sent this to an 18-minute re-run for nothing; comparing the code says why they did
+not move. That is the cheaper and the stronger statement.
+
+## 10. What this does and does not license
 
 - **No promotion, no serving-registry change, no ingest change.** Evidence only,
   per the issue's boundary. No write to `forecasts`; artifacts land in
