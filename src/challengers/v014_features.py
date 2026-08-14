@@ -93,6 +93,8 @@ from typing import Iterable, Optional
 import numpy as np
 import pandas as pd
 
+from ..tso_plausibility import guard_tso_series
+
 logger = logging.getLogger("energy_forecast.v014")
 
 
@@ -239,6 +241,27 @@ def _to_series(df: pd.DataFrame, hourly_mean: bool = False) -> pd.Series:
     return series
 
 
+def _guarded_hourly(series: pd.Series, conn, country: str,
+                    table: str, column: str) -> pd.Series:
+    """Apply the ABL-431 TSO plausibility guard, *then* take the hourly mean.
+
+    Order is load-bearing. HU's 2026-02-04 defect is quarter-hourly, and
+    averaging first would fold a 140,996 MW quarter into its hour before the
+    guard could see it — leaving a 35,249 MW hour that is still three orders out
+    but is no longer the value the guard was measured against, and is no longer
+    attributable to a quarter. Guard at the resolution the row was published at.
+
+    A refused value becomes NaN, so the hour it sat in is a mean over the
+    quarters that survived, and an hour that loses every quarter drops out
+    entirely — the same `dropna` path any genuinely absent hour takes.
+    """
+    guarded = guard_tso_series(series, conn, country, table, column,
+                               context="v014_features")
+    if guarded.empty:
+        return guarded
+    return guarded.resample("h").mean().dropna()
+
+
 def load_net_position(conn, country: str, start, end) -> pd.Series:
     lo, hi = _widened(start, end)
     return _to_series(pd.read_sql_query(
@@ -257,22 +280,25 @@ def load_price(conn, country: str, start, end) -> pd.Series:
 
 def load_load_forecast(conn, country: str, start, end) -> pd.Series:
     lo, hi = _widened(start, end)
-    return _to_series(pd.read_sql_query(
+    raw = _to_series(pd.read_sql_query(
         "SELECT target_timestamp_utc, forecast_value_mw FROM energy_load_forecast "
         "WHERE country_code = ? AND forecast_type = 'day_ahead' "
         "AND target_timestamp_utc >= ? AND target_timestamp_utc <= ? "
-        "ORDER BY target_timestamp_utc", conn, params=(country, lo, hi)), hourly_mean=True)
+        "ORDER BY target_timestamp_utc", conn, params=(country, lo, hi)))
+    return _guarded_hourly(raw, conn, country, "energy_load_forecast",
+                           "forecast_value_mw")
 
 
 def load_generation_forecast(conn, country: str, column: str, start, end) -> pd.Series:
     if column not in GENERATION_FORECAST_COLUMNS:
         raise ValueError(f"unexpected generation-forecast column {column!r}")
     lo, hi = _widened(start, end)
-    return _to_series(pd.read_sql_query(
+    raw = _to_series(pd.read_sql_query(
         f"SELECT target_timestamp_utc, {column} FROM energy_generation_forecast "
         "WHERE country_code = ? AND forecast_type = 'day_ahead' "
         "AND target_timestamp_utc >= ? AND target_timestamp_utc <= ? "
-        "ORDER BY target_timestamp_utc", conn, params=(country, lo, hi)), hourly_mean=True)
+        "ORDER BY target_timestamp_utc", conn, params=(country, lo, hi)))
+    return _guarded_hourly(raw, conn, country, "energy_generation_forecast", column)
 
 
 def load_net_crossborder_flow(conn, country: str, start, end) -> pd.Series:

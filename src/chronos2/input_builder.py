@@ -29,6 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import config
 from src.chronos2.covariate_mapper import build_covariate_map
+from ..tso_plausibility import guard_tso_series
 
 logger = logging.getLogger("energy_forecast.chronos2")
 
@@ -306,6 +307,29 @@ def _load_weather_forecast_range(
     return df
 
 
+def _guarded_tso_hourly(df: pd.DataFrame, conn, country_code: str,
+                        table: str, column: str) -> pd.Series:
+    """Shared tail of both TSO reads: plausibility guard, then hourly mean.
+
+    These two series are suffix-1 covariates, so a value three orders of
+    magnitude out does not merely mislead the model for its own hour — it sets
+    the scale the whole covariate is normalised on. The guard runs at the
+    published resolution and *before* the resample, so a bad quarter cannot be
+    smeared across its hour first (ABL-431).
+    """
+    if df.empty:
+        return pd.Series(dtype=float)
+
+    df = df.copy()
+    df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="mixed",
+                                         utc=True).dt.tz_localize(None)
+    df = df.drop_duplicates(subset="timestamp_utc", keep="last")
+    series = df.set_index("timestamp_utc")["value"]
+    series = guard_tso_series(series, conn, country_code, table, column,
+                              context="chronos2.input_builder")
+    return series.resample("h").mean()
+
+
 def _load_tso_load_forecast(
     country_code: str,
     start_date: str,
@@ -323,15 +347,10 @@ def _load_tso_load_forecast(
     conn = _get_connection()
     try:
         df = pd.read_sql_query(query, conn, params=(country_code, start_date, end_date))
+        return _guarded_tso_hourly(df, conn, country_code,
+                                   "energy_load_forecast", "forecast_value_mw")
     finally:
         conn.close()
-
-    if df.empty:
-        return pd.Series(dtype=float)
-
-    df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="mixed", utc=True).dt.tz_localize(None)
-    df = df.drop_duplicates(subset="timestamp_utc", keep="last")
-    return df.set_index("timestamp_utc")["value"].resample("h").mean()
 
 
 def _load_generation_forecast(
@@ -352,15 +371,10 @@ def _load_generation_forecast(
     conn = _get_connection()
     try:
         df = pd.read_sql_query(query, conn, params=(country_code, start_date, end_date))
+        return _guarded_tso_hourly(df, conn, country_code,
+                                   "energy_generation_forecast", column)
     finally:
         conn.close()
-
-    if df.empty:
-        return pd.Series(dtype=float)
-
-    df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="mixed", utc=True).dt.tz_localize(None)
-    df = df.drop_duplicates(subset="timestamp_utc", keep="last")
-    return df.set_index("timestamp_utc")["value"].resample("h").mean()
 
 
 def _load_price_series(

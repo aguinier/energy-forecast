@@ -17,6 +17,7 @@ import pandas as pd
 
 from src.baselines import aligned_point_baselines
 from src.db import RENEWABLE_TYPE_COLUMNS
+from src.tso_plausibility import guard_tso_series
 from src.evaluation.net_position import (
     GATE_EXCLUDED_COUNTRIES,
     as_of_for_vintage,
@@ -478,13 +479,26 @@ def _load_tso(cfg: ScorecardConfig, forecast_type: str) -> pd.DataFrame:
                 WHERE {timestamp_col} >= ? AND {timestamp_col} < ?
                   AND forecast_type = 'day_ahead' AND {value_col} IS NOT NULL""",
             con, params=(str(cfg.start), str(cfg.end)))
+        if df.empty:
+            return pd.DataFrame(columns=["country_code", "target_ts", "tso"])
+        df["target_ts"] = normalize_timestamps(df[timestamp_col])
+        df = df.dropna(subset=["target_ts"])
+        # The TSO column here is a scored comparator, so an implausible value is
+        # not a modelling nuisance but a wrong published number about TSO. The
+        # guard nulls it per country (ABL-431), which this scorecard already
+        # reads as "not measured" and reports with its own n — the alternative
+        # is a country-window WAPE computed against a value three orders of
+        # magnitude out. The reference is resolved per country, so the query
+        # stays one pass over every country.
+        for country, index in df.groupby("country_code").groups.items():
+            values = pd.Series(df.loc[index, "tso"].to_numpy(),
+                               index=pd.DatetimeIndex(df.loc[index, "target_ts"]))
+            guarded = guard_tso_series(values, con, str(country), table, value_col,
+                                       context=f"scorecard:{forecast_type}")
+            df.loc[index, "tso"] = guarded.to_numpy()
     finally:
         con.close()
-    if df.empty:
-        return pd.DataFrame(columns=["country_code", "target_ts", "tso"])
-    df["target_ts"] = normalize_timestamps(df[timestamp_col])
     return (df[["country_code", "target_ts", "tso"]]
-            .dropna(subset=["target_ts"])
             .drop_duplicates(["country_code", "target_ts"], keep="last"))
 
 
