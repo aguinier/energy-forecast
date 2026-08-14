@@ -176,6 +176,51 @@ SCOPES = {
                          ("wind_onshore", "HR"), ("wind_onshore", "HU"),
                          ("wind_onshore", "LT"), ("wind_onshore", "LV"),
                          ("wind_onshore", "NL"), ("wind_onshore", "RO")),
+    # ABL-435 -- ABL-316 tranche 2f: BG and CH `wind_onshore` again, under the
+    # same frozen registration at `experiments/ABL348/config.json`.  2 pairs x 3
+    # bands = 6 cells.
+    #
+    # **This is the one scope that deliberately repeats another's pairs**, and
+    # the reason is worth stating where the duplication is, because
+    # `test_tranche2e_is_disjoint_from_the_earlier_wind_tranches` states the
+    # opposite rule for every *new* tranche: a pair appearing in two scopes gets
+    # fitted twice under one registration and reported under two verdicts.  That
+    # rule is about *coverage* -- 2e must add pairs, not re-litigate 1a's -- and
+    # what makes a re-read legitimate is the mechanism it is done by.  Doctrine
+    # already names it: do not re-read a dispositioned scope in place, register a
+    # new one.  So `abl380-tranche1a` keeps its pairs, its outputs and its
+    # published verdict byte-for-byte, and this scope stands beside it.
+    #
+    # What the re-read is for.  Tranche 1a was fitted on 2026-08-13 at 08:32Z --
+    # *before* ABL-389 (the four model-free references, `75adff8`) and before
+    # ABL-418 (the G1-G4 ladder, `5bf2f4f`).  ABL-418 retro-graded 2a and 2b from
+    # their stored `results_*.json` because those records already carried
+    # `constant_causal` and `climatology_causal` as columns; 1a's carries
+    # `challenger, seasonal_naive, incumbent, persistence` and nothing else, so
+    # G2 and G3 cannot be computed from it by arithmetic at all.  The grade needs
+    # the columns, the columns need the run, and 1a is therefore the only ABL-316
+    # wind read with no model-free reference in its machine record and no grade.
+    #
+    # It is also the read that predicted its own problem, in prose, against its
+    # own passing result (`reports/abl_380_tranche1a_findings.md` Sec.4): CH
+    # cleared all three cells at 47.42% WAPE while a hindsight constant scored
+    # 40.29%, slope 0.094, correlation 0.176 -- which is a G2 and a G4 failure on
+    # the ladder that did not exist yet -- and BG's registered 93.75% D-7 bar is
+    # cleared outright by a causal constant at 82.77% with no model.  That
+    # paragraph is the reason ABL-389 exists.  The tranche verdict on record is
+    # still an unqualified `PASS 6/6`.
+    #
+    # Nothing about the registration moves.  Same two pairs, same windows, same
+    # bands, same metric, same seasonal-naive D-7 bar, same minimum n, same
+    # `energy_generation` source, same catboost algorithm and seed -- ABL-348's,
+    # not restated here for the reason every tranche above says.  A re-read that
+    # also moved the bar would be shopping the registration in the one direction
+    # that is hardest to see, since it would be doing it to a pair whose old
+    # numbers are already published.
+    #
+    # Nothing here is a migration: BG and CH serve no wind model, so this scope
+    # refits no live pair -- the property every scope above holds.
+    "abl435-tranche2f": (("wind_onshore", "BG"), ("wind_onshore", "CH")),
 }
 
 # ABL-387: where a scope writes is part of its registration, not a flag default.
@@ -262,6 +307,36 @@ SCOPE_OUTPUTS = {
     "abl417-tranche2e": {"artifact_dir": "experiments/ABL417/artifacts",
                          "json_out": "experiments/ABL348/results_abl417_tranche2e.json",
                          "report_out": "reports/abl_417_wind_onshore_tranche2e.md"},
+    # ABL-435.  This entry is the whole safety mechanism for a re-read, and it is
+    # the reason a re-read is a *scope* rather than a re-run of an old one.  All
+    # three paths are new.  `abl380-tranche1a`'s triple directly above -- the
+    # `experiments/ABL348/artifacts` directory, the
+    # `results_abl380_tranche1a.json` its findings pack cites at line 9, and
+    # `reports/abl_380_wind_onshore_tranche1a.md` -- is untouched by this run,
+    # and `check_scope_outputs` refuses at import if any of the three is ever
+    # shared.  That is a stronger guarantee than intent: the ABL-404 failure was
+    # a scope silently overwriting a published read *under its own heading*, and
+    # a scope that re-fits an already-published pair is the exact shape that
+    # would do it again.
+    #
+    # `experiments/ABL435/artifacts` is one level deep and ends `artifacts`, so
+    # `.gitignore:56` -- which matches on the directory name -- keeps two more
+    # CatBoost binaries out of the commit.  It is deliberately *not* tranche 1a's
+    # artifact directory: `save_gate_artifact` keys a file on (country, type),
+    # and this scope's pairs are BG and CH, so a shared directory would not
+    # merely accumulate -- it would overwrite the two artifacts whose SHA-256
+    # values ABL-380's fit-audit table publishes, and the report citing them
+    # would then name hashes no file on disk has.
+    #
+    # The `json_out` sits under `ABL348` beside its siblings because that is the
+    # registration these fits are read under, and is deliberately not named
+    # `results.json`: at that name `.gitignore:53` swallows the machine record,
+    # and an untracked gate record is the one thing a reviewer cannot diff --
+    # which is precisely the deficiency in tranche 1a's record that this scope
+    # exists to repair.
+    "abl435-tranche2f": {"artifact_dir": "experiments/ABL435/artifacts",
+                         "json_out": "experiments/ABL348/results_abl435_tranche2f.json",
+                         "report_out": "reports/abl_435_wind_onshore_tranche2f.md"},
 }
 COLUMNS = {"wind_offshore": "wind_offshore_mw", "wind_onshore": "wind_onshore_mw"}
 
@@ -315,6 +390,17 @@ GATE_BASIS = {
     # own intersection, where it reads "Not measured" by construction rather than
     # by omission, exactly as ABL-348 records for all 37 tranche pairs.
     "abl417-tranche2e": ("challenger", "seasonal_naive"),
+    # ABL-435: byte-for-byte `abl380-tranche1a`'s basis, and that identity is the
+    # point rather than a convenience.  The re-read's job is to add the ABL-389
+    # reference columns and the ABL-418 grade to a pair set already read; if it
+    # also changed which rows enter a cell, the new challenger WAPE would not be
+    # comparable to the published one and the reproduction claim would be
+    # untestable.  Re-measured on the live replica (9,432,453,120 bytes) on
+    # 2026-08-14 rather than inherited: BG and CH still hold zero
+    # `renewable_type='wind_onshore'` rows in `forecasts`, so a four-way basis
+    # would still intersect all 6 cells to n=0.  The incumbent stays reported on
+    # its own intersection, where it reads "Not measured".
+    "abl435-tranche2f": ("challenger", "seasonal_naive"),
 }
 #: Always reported, each on its own intersection with the gate basis, so that a
 #: comparator which never exists reads "Not measured" instead of voiding the gate.
