@@ -672,3 +672,91 @@ def test_solar_every_scope_registers_a_title(solar_scopes, solar_scope_titles):
         f"In SCOPES but not SCOPE_TITLES: {sorted(set(solar_scopes) - set(solar_scope_titles))}. "
         f"In SCOPE_TITLES but not SCOPES: {sorted(set(solar_scope_titles) - set(solar_scopes))}."
     )
+
+
+# --------------------------------------------------------------------------
+# ABL-429: the counting recipe is executable, not prose.
+#
+# ABL-421 left `grep -E "^[A-Z_]+ = \{"` as "the count" of registration tables.
+# It was wrong at the commit that wrote it -- 9 rather than the 7 asserted --
+# because it also matches `DEFAULT_FIT_RULES` (keyed by rule name) and
+# `NOT_EVALUABLE_CAUSES` (keyed by country). A *per-scope* registration table is
+# one whose keys are scope names, which is decidable from the source, so it is
+# decided here instead of counted by hand into a sentence that drifts.
+#
+# The property: every per-scope table is either inside
+# `check_registration_tables` or declared in `UNCHECKED_REGISTRATION_TABLES`
+# with the reason it cannot join. A new table added by a later tranche fails
+# this until its author chooses -- which is the ABL-404 failure mode (a silent
+# module-level default nobody elected) converted into a failing assertion.
+# --------------------------------------------------------------------------
+
+def _per_scope_tables(source: str) -> dict:
+    """Module-level dict literals keyed by scope name.
+
+    A table qualifies when at least one key is a registered scope. That admits
+    partial tables (`SCOPE_FEATURES`, `SCOPE_NOT_EVALUABLE`) and excludes dicts
+    keyed by anything else -- rule names, country codes, algorithms.
+    """
+    tree = ast.parse(source)
+    scope_names = set(_module_const(source, "SCOPES"))
+    tables = {}
+    for node in tree.body:
+        if not (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and isinstance(node.value, ast.Dict)):
+            continue
+        name = node.targets[0].id
+        if not name.isupper():
+            continue
+        try:
+            value = ast.literal_eval(node.value)
+        except ValueError:
+            # A table whose values are names rather than literals (e.g. a shared
+            # constant per scope) still has literal *keys*, which is all we need.
+            value = {k.value: None for k in node.value.keys
+                     if isinstance(k, ast.Constant)}
+        if set(value) & scope_names:
+            tables[name] = value
+    return tables
+
+
+def _checked_tables(source: str) -> set:
+    """The keyword names passed to `check_registration_tables`."""
+    for node in ast.walk(ast.parse(source)):
+        if (isinstance(node, ast.Call)
+                and getattr(node.func, "id", "") == "check_registration_tables"):
+            return {kw.arg for kw in node.keywords}
+    raise AssertionError("check_registration_tables call not found")
+
+
+@pytest.mark.parametrize("harness", [HARNESS, SOLAR_HARNESS], ids=["wind", "solar"])
+def test_every_per_scope_table_is_checked_or_declares_why_not(harness):
+    source = harness.read_text(encoding="utf-8")
+    per_scope = set(_per_scope_tables(source))
+    checked = _checked_tables(source)
+    declared = set(_module_const(source, "UNCHECKED_REGISTRATION_TABLES"))
+
+    undeclared = per_scope - checked - declared
+    assert not undeclared, (
+        f"{harness.name}: {sorted(undeclared)} are keyed by scope name but are "
+        "neither in `check_registration_tables` nor declared in "
+        "`UNCHECKED_REGISTRATION_TABLES`. A scope omitted from such a table "
+        "resolves through a module-level default silently, at run time -- which "
+        "is how ABL-404 refitted a dispositioned scope at the wrong challenger "
+        "and exited 0. Either add the table to the call, or add it to "
+        "`UNCHECKED_REGISTRATION_TABLES` with the reason it cannot join."
+    )
+
+    stale = declared - per_scope
+    assert not stale, (
+        f"{harness.name}: {sorted(stale)} are declared unchecked but are no "
+        "longer per-scope registration tables. Remove the declaration so the "
+        "exemption list cannot outlive the table it exempts."
+    )
+
+    overlap = declared & checked
+    assert not overlap, (
+        f"{harness.name}: {sorted(overlap)} are both checked and declared "
+        "unchecked. The declaration is now false -- drop it."
+    )

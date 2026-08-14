@@ -482,7 +482,23 @@ REPORTED_COMPARATORS = ("challenger", "incumbent", "seasonal_naive", "persistenc
 # carries `FIT_RULES` and `SCOPE_TITLES`; this harness has neither table, so all
 # three of its registration tables are checked and there is nothing here to add.
 # If a fit rule or a title table is ever introduced on this side, it joins this
-# call in the same commit.
+# call in the same commit -- or declares below why it cannot.
+#
+#: Per-scope registration tables deliberately outside `check_registration_tables`,
+#: each mapped to why it cannot join.  `tests/test_gate_scope_registration.py`
+#: derives the set of per-scope tables from this source -- a table whose keys are
+#: scope names -- and fails until a new one is either added to the call or declared
+#: here, so it cannot arrive as a silent module-level default (the ABL-404 failure
+#: mode).
+UNCHECKED_REGISTRATION_TABLES = {
+    # Defaults toward ABL-437's levelling amendment (TRAILING_28D) for any scope
+    # that does not pin a different reference.  Requiring it here would force every
+    # existing scope to carry an explicit row, deleting the default-toward-amendment
+    # behaviour and breaking the first tranche that legitimately inherits it.
+    # Per-published-scope enforcement is handled by
+    # `tests/test_gate_scope_registration.py`'s stale-declaration check.
+    "CAUSAL_LEVELLING": "defaults toward ABL-437's amendment; pins checked per published scope",
+}
 check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
 check_scope_outputs(SCOPE_OUTPUTS)
 

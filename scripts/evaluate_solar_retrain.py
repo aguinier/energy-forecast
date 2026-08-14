@@ -926,21 +926,52 @@ def not_evaluable_for(scope: str) -> frozenset:
 # queues are at zero, and an absent `FIT_RULES` or `SCOPE_TITLES` row is an
 # undocumented choice with no self-documenting degradation -- so they are enforced.
 #
-# **The call below names five tables, and this file carries seven.**  The two not
-# in the call are excluded for stated structural reasons, not oversight:
+# **How many tables are in the call, and how many exist, is no longer prose.**
+# ABL-421 left a counting recipe -- `grep -E "^[A-Z_]+ = \{"` -- that was wrong at
+# the commit that called it "the count": it returns 9 here, because it also matches
+# `DEFAULT_FIT_RULES` (keyed by rule name) and `NOT_EVALUABLE_CAUSES` (keyed by
+# country).  A per-scope registration table is one whose **keys are scope names**,
+# and that is decidable from the source, so `tests/test_gate_scope_registration.py`
+# decides it: every such table must appear either in the call below or in
+# `UNCHECKED_REGISTRATION_TABLES`, with the reason it cannot join.  A new table
+# added by a later tranche fails that test until its author chooses, which is the
+# ABL-404 failure mode -- a silent module-level default nobody elected -- converted
+# into a failing assertion.
 #
-# - `SCOPE_FEATURES` **cannot** join this call: `abl316-t2a` is deliberately absent
-#   from it (inheriting the current `FEATURE_COLUMNS` is the intended path for a
-#   new tranche, ABL-404), so adding it here would raise `KeyError` at import for
-#   a scope whose absence is correct and published.
-#   `test_a_published_read_that_recorded_its_own_list_needs_no_scope_features_row`
-#   pins that absence and the two would fail against each other.
+#: Per-scope registration tables deliberately outside `check_registration_tables`,
+#: each mapped to why it cannot join.  Adding a key here is a review decision, not
+#: a formality: it declares that an omitted row for this table defaults silently.
+UNCHECKED_REGISTRATION_TABLES = {
+    # `abl316-t2a` is deliberately absent from it (inheriting the current
+    # `FEATURE_COLUMNS` is the intended path for a new tranche, ABL-404), so
+    # requiring it would raise `KeyError` at import for a scope whose absence is
+    # correct and published.
+    # `test_a_published_read_that_recorded_its_own_list_needs_no_scope_features_row`
+    # pins that absence and the two would fail against each other.
+    "SCOPE_FEATURES": "abl316-t2a's absence is correct and published (ABL-404)",
+    # This one defaults *toward scoring*, which makes it the one to check hardest:
+    # a scope that forgets it scores every cell it can build, and for a pair
+    # ABL-348 declares NOT-EVALUABLE that is a wrong verdict rather than
+    # self-documenting degradation.
+    "SCOPE_NOT_EVALUABLE": "only the scopes ABL-348 declares carry a row",
+    # Defaults toward ABL-437's levelling amendment (TRAILING_28D) for any scope
+    # that does not pin a different reference.  Requiring it here would force every
+    # existing scope to carry an explicit row, deleting the default-toward-amendment
+    # behaviour and breaking the first tranche that legitimately inherits it.
+    # Per-published-scope enforcement is handled by
+    # `tests/test_gate_scope_registration.py`'s stale-declaration check.
+    "CAUSAL_LEVELLING": "defaults toward ABL-437's amendment; pins checked per published scope",
+}
+
+# `tests/test_abl421_not_evaluable.py` holds the line for the one scope that
+# registers `SCOPE_NOT_EVALUABLE`, cross-derived from the pre-registration rather
+# than restated, so the test cannot drift from the declaration.
 #
-# - `SCOPE_NOT_EVALUABLE` defaults *toward scoring*: a scope that forgets it scores
-#   every cell it can build, which for a pair ABL-348 declares NOT-EVALUABLE is a
-#   wrong verdict, not self-documenting degradation.  `tests/test_abl421_not_evaluable.py`
-#   holds the line for the one scope that registers it, cross-derived from the
-#   pre-registration rather than restated, so the test cannot drift from the declaration.
+# What this call enforces is **presence, not content**: it compares the tables'
+# keys and never reads a value.  A scope registered with the wrong fit rule or the
+# wrong title imports, runs and exits 0 like a compliant one.  The value is held
+# by the comment beside the row, and for `FIT_RULES` by
+# `tests/test_abl403_fit_rule_registration.py`.
 check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS,
                           FIT_RULES=FIT_RULES, SCOPE_TITLES=SCOPE_TITLES)
 check_scope_outputs(SCOPE_OUTPUTS)
