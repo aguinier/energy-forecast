@@ -733,17 +733,59 @@ platform will show it.
 **Registering a new scope means editing every registration table — but only
 three of them are import-checked, and that is true on both harnesses.** The call
 is `check_registration_tables(SCOPES=..., GATE_BASIS=..., SCOPE_OUTPUTS=...)` and
-nothing else. Solar carries **five** tables: `FIT_RULES`, `SCOPE_FEATURES` and
-`SCOPE_TITLES` are **not** in that call, so a scope missing from any of them
-resolves through a module-level default **silently, at run time**. That is not
-hypothetical — it is exactly how ABL-404 happened, and it is why the rows that
-depend on it each carry a comment saying so. Adding a table to the check is not
-free: it raises on `import` for every branch already in flight, and
-`SCOPE_FEATURES` must stay absent-able because inheriting the current
+nothing else. Solar carries **seven** tables: `FIT_RULES`, `SCOPE_FEATURES`,
+`SCOPE_TITLES` and `SCOPE_NOT_EVALUABLE` are **not** in that call, so a scope
+missing from any of them resolves through a module-level default **silently, at
+run time**. That is not hypothetical — it is exactly how ABL-404 happened, and it
+is why the rows that depend on it each carry a comment saying so. Adding a table
+to the check is not free: it raises on `import` for every branch already in
+flight, and `SCOPE_FEATURES` must stay absent-able because inheriting the current
 `FEATURE_COLUMNS` is the intended path for a new tranche (`abl316-t2a` does
 exactly that). Read the `check_registration_tables(...)` call in the harness you
 are editing rather than this sentence; that call is the list, and it is shorter
 than the set of tables you must still edit by hand.
+
+> **Count the tables the same way you are told to count the call.** This
+> paragraph said **five** when the file already carried six — `SCOPES`,
+> `GATE_BASIS`, `SCOPE_OUTPUTS`, `FIT_RULES`, `SCOPE_FEATURES`, `SCOPE_TITLES`.
+> ABL-421 added the seventh and re-counted against the source instead of
+> incrementing the sentence. `grep -E "^[A-Z_]+ = \{"` in the harness is the
+> count; it is the one number in this section that cannot be checked by reading
+> the call site, which is exactly why it drifted.
+
+**`SCOPE_NOT_EVALUABLE` is the exception to watch, because it defaults toward
+scoring (ABL-421).** ABL-348 `not_evaluable` declares `EE/solar` and `FI/solar`
+unscorable on 24-36h and 36-48h, before any fit existed, with a rule the harness
+had no way to obey: *"It is not a FAIL and must not be counted as one; a gate
+read that scores it has misread this registration."* `gate_cell` builds a cell
+for every country-band that yields rows and marks it `pass: False` when `n` falls
+under the registered minimum — so those four cells arrive as ordinary *failed*
+cells and are counted into the bar. Tranches 2a-2c dodged this by excluding both
+pairs; tranche 2d is the one they belong to. A declared cell is now subtracted
+from `registered_cells` and routed to a `not_evaluable_cells` list that `passed`,
+`disposition` and `attach_grades` never read — still measured and printed, so the
+declaration is auditable, but carrying no gate outcome and no grade. Three things
+follow:
+
+- **The table is a transcription, not a discretion.** A scope that could declare
+  its own cells unscorable is a scope that can drop whatever scores badly.
+  `tests/test_abl421_not_evaluable.py` derives the declaration from
+  `experiments/ABL348/config.json` and compares, so it can only ever mirror the
+  pre-registration.
+- **Only the bands the registration names.** ABL-348's `note_48_64h` says the
+  48-64h band scales proportionally rather than being hard-bounded by
+  `n_d7_scorable`, and that a declared pair "may still clear 456 in that band and
+  should be reported if it does" — so 48-64h stays on the bar for both pairs.
+  Where such a cell falls short it is a **coverage shortfall**
+  (`enough_pairs: False`), not a loss to D-7; the cell dict carries the two flags
+  separately.
+- **Only one of the two shortfalls is ours.** EE's is an ABL-188 bit-identical
+  zero run present in *both* source tables, so reverting the source would not
+  recover it. FI's is `energy_generation` holding 663 of 720 gate hours against
+  `energy_renewable`'s 717 — `source_dependent: true`, a cost of ABL-348's source
+  change and a finding for whoever owns that decision rather than a fact about
+  FI's model. The `source_dependent` flag is asserted by the same test for
+  exactly this reason.
 
 **What the fit was allowed to see is part of the registration too (ABL-376).**
 `FIT_RULES` (`evaluate_solar_retrain.py`) carries `exclude_impossible_night` per
