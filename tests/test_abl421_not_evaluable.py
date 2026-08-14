@@ -207,7 +207,7 @@ def test_the_declared_table_is_not_in_the_import_time_check():
                 if isinstance(node, ast.Call)
                 and getattr(node.func, "id", "") == "check_registration_tables")
     named = {kw.arg for kw in call.keywords}
-    assert named == {"SCOPES", "GATE_BASIS", "SCOPE_OUTPUTS"}
+    assert named == {"SCOPES", "GATE_BASIS", "SCOPE_OUTPUTS", "FIT_RULES", "SCOPE_TITLES"}
     assert "SCOPE_NOT_EVALUABLE" not in named
 
 

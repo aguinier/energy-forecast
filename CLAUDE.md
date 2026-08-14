@@ -383,6 +383,80 @@ eligible to train where it was previously skipped. Expect it to appear the
 next time a training sweep runs; it is not a new data problem, it is the
 screen finally measuring the hourly frame the model is fitted on.
 
+### TSO day-ahead forecasts are guarded on the way in (ABL-431)
+
+`energy_generation_forecast` and `energy_load_forecast` carry ENTSO-E's
+published day-ahead forecasts verbatim, and verbatim includes a **×1000 unit
+error**: HU's `wind_onshore_mw` reads **140,996 MW** against a fleet whose
+p99.5 over five years is 283 MW. Dividing those 96 quarter-hours by 1000
+reproduces HU's own measured generation for the same day (35.8–141.0 MW
+predicted against 36.8–133.0 MW observed, rising together through the day), so
+the shape is right and only the scale is wrong — which is why it is invisible
+to every correlation- or shape-based check.
+
+**Extent, measured on the replica 2026-08-14 and regenerable with
+`scripts/abl431_tso_plausibility_census.py`: 213 of 14,610,819
+column-observations (0.0015%)**, in three incidents — HU 2026-02-04 (96 rows,
+one full CET market day, hitting `wind_onshore_mw` and the `total_forecast_mw`
+it dominates), MK 2022-04-10 (10 rows), SK 2022-09-25 (1 row). **Zero rows in
+`energy_load_forecast`.** So it is not one row, and it is not widespread
+either.
+
+`src/tso_plausibility.py` nulls a read value above `PLAUSIBILITY_TOLERANCE`
+(3.0) times a per-country, per-column reference scale, logs one warning naming
+the country, column, threshold, magnitude and window, and **never touches the
+stored row** — a value that looks impossible is sometimes just not published
+yet. Wired into `v014_features`, `chronos2/input_builder`, `scorecard`'s TSO
+comparator and both `tso_correction` read sites; the guard runs at the
+published resolution and *before* any hourly resample, so a bad quarter cannot
+be smeared across its hour first.
+
+Four things about it are load-bearing:
+
+- **The reference is derived, not registered.** There is no installed-capacity
+  table on the replica, and a committed one would go stale in the direction
+  that matters — NL solar grew from nothing to 7.9 GW inside this history and a
+  frozen bound would start rejecting real growth. It is
+  `max(p99.5(actuals), p99.5(day-ahead forecasts))` over the whole series,
+  recomputed at read time and cached per process. **Both sides, because neither
+  alone is sound**: NL's `energy_generation.solar_mw` tops out at 428.8 MW while
+  NL's own published solar forecast reaches 7,871 MW, so an actuals-only anchor
+  would reject 18× of legitimate NL solar; and the forecast table is the
+  defect's own home, so a forecast-only anchor could be set by the rows it is
+  meant to catch. It is a quantile rather than a maximum for that second
+  reason — which bounds it: a contaminated cluster covering more than 1 − q
+  (0.5%, ~10 days of a five-year quarter-hourly series) would raise its own bar.
+  HU's is 0.0487%.
+- **3.0 is a measurement, not a convention.** Across all 146 evaluable pairs,
+  `max / reference` runs HU 497.7× · HU total 37.3× · SK 8.70× · MK 6.05× ·
+  MK total 4.12× — then nothing until PT solar at **1.82×**, PT wind_offshore
+  1.77×, NL load 1.60×, p90 1.41×. 3.0 sits inside a measured empty band 2.3×
+  wide. The census prints that ladder every run, so a healthy pair climbing
+  toward the tolerance is visible before a fit meets it.
+- **It is one-sided, and it refuses to evaluate rather than rejecting
+  everything.** A published 0.0 is never flagged at any tolerance, so ABL-71's
+  published zeros and ABL-109's 56 legitimate DE overnight solar zeros are
+  untouched by construction. **28 of the 174 pairs are all-zero series** —
+  landlocked countries reporting `wind_offshore_mw = 0.0` forever — where the
+  reference is 0.0 and `value > 3 × 0` would flag every non-zero value a new
+  fleet ever published. `ReferenceScale.evaluable` is False there and the series
+  passes through carrying the reason. Same mechanism means a **brand-new
+  fleet's first output is unguarded**, which is the deliberate direction: an
+  unguarded new fleet is a bounded cost, a guard that deletes a country's first
+  real generation is not.
+- **No default, and `as_of` is the caller's choice.** An unregistered
+  `(table, column)` raises `UnknownTsoSourceError` rather than guarding against
+  a guessed scale. `reference_scale(..., as_of=...)` bounds both sides for a
+  backtest reconstructing a past vintage; the default is the whole history,
+  which is serve-faithful for serving because at serve time the whole history
+  *is* everything available.
+
+`tests/test_tso_plausibility.py` pins all of it, including a static sweep that
+fails if any `src/` module names one of the two tables without calling the
+guard or appearing on an exempt list with a reason. **That sweep is what ABL-247
+will trip when it adds its feature read** — which is the point: this issue is
+that issue's precondition.
+
 **Which table an individual renewable type is read from is a property of the
 model artifact, not a global** (ABL-331). `model_data["training_source"]` is
 written by `Forecaster.save`/`_get_model_data` and read back by
@@ -522,7 +596,8 @@ Three things follow, and the third is the one that bites:
   after the fact. Whether `abl253` or `abl376` is re-read at 27 is ABL-401.
 
   **`abl316-t1b`'s pin is ABL-404 and it was missing for two months of merges.**
-  It is not one of `check_registration_tables`' three, so its absence resolved
+  `SCOPE_FEATURES` is not one of the tables `check_registration_tables` checks —
+  and after ABL-429 it is one of only two that are not — so its absence resolved
   through `features_for` to the 27 instead of aborting at import, and that scope's
   `SCOPE_OUTPUTS` row writes ABL-381's published PASS 6/6 — a `--scope abl316-t1b`
   run refitted BG and CH at the wrong challenger, overwrote the evidence in place
@@ -712,6 +787,45 @@ it. Neither tranche's verdict, report or results file moves; the grades land
 under a new path and the six dispositioned scopes are byte-unchanged by blob
 hash.
 
+**The retro-grade takes a `--tranches` selector; it is not one script per
+tranche** (ABL-438). Tranche 1b (BG/CH solar, ABL-381) was never graded — not
+because its record lacked anything, but because ABL-418 ran over 2a and 2b only.
+Its `meta.reported_comparators` already listed all eight, so grading it needed
+**no refit and no re-read**, and it landed by adding a row to `TRANCHES` in
+`scripts/abl418_retro_grade.py` rather than by writing a second grader. **1b
+solar: A × 2 (BG, CH)** — six cells, all four conditions in every band, all six
+clearing `enough_pairs`. Recorded in `reports/abl_438_retro_grade.json` and
+qualified in `reports/abl_438_tranche1b_findings.md`.
+
+Three rules came out of that, and they apply to the next tranche too.
+
+- **A selection writes where its issue writes.** The defaults reproduce ABL-418's
+  artifacts; any other selection is **refused** if it points at
+  `abl_418_retro_grade.*`. This is the `SCOPE_OUTPUTS` failure below, one
+  directory over — a run that keeps a default output path rewrites a
+  dispositioned report under a heading that no longer describes it, and exits 0.
+- **The floor applies to any margin a reader ranks on**, not only to the one G1
+  gates on (ABL-417). Both 1b pairs beat the *oracle* hour-of-day climatology in
+  every band and neither readably: BG by **+1.41%** at its worst band, CH by
+  **+3.47%**, against a 10.65% floor. The renderer now prints `yes, inside the
+  floor (+x%)` rather than `yes`. Three of ABL-418's own pairs are in that
+  position (2a CH +8.15%, 2a RO +5.93%, 2b FI `wind_onshore` +7.48% against a
+  7.51% floor); its published report predates the qualifier and is not rewritten
+  here, so **regenerating `abl_418_retro_grade.md` no longer reproduces the
+  committed file** — the delta is the `n ≥ min` column, the coverage note and
+  those three cells, and no grade moves. Whether that report is regenerated is a
+  CEO call, filed separately.
+- **A hold is data, not prose.** Grade A reads *promotion-eligible, subject to
+  any named data hold*, so the hold is registered in `HOLDS`, carried into the
+  JSON and rendered under its pair's table. BG solar's is ABL-396's live
+  night-contamination hold, whose displacement band is far wider than the +1.41%
+  above. A grade of A must not be reported for BG solar without it.
+
+**`enough_pairs` is reported beside every grade**, because the ladder cannot see
+it: a grade reads a *margin*, so a coverage-short cell that beat D-7 would grade
+`A` exactly as a full-coverage one does. It nests under `gate`, where a flat
+lookup passes vacuously — assert the value, not its presence.
+
 ### Which causal reference G2 and G3 read is registered per scope (ABL-437)
 
 **The two `*_causal` references are levelled on the fit window and scored on the
@@ -765,10 +879,15 @@ Five things follow, and the third is the one that bites:
   published scope is **pinned to `fit_window`** and
   `test_every_published_scope_pins_its_levelling` derives that set from
   `SCOPE_OUTPUTS` **and git** rather than from a list. `scripts/abl418_retro_grade.py`
-  is pinned for the same reason: its two tranches carry no trailing column at
-  all, so the amended default would rewrite a published page of A's as B's.
-  The table is deliberately **not** in `check_registration_tables` — three PRs
-  were open at registration, one already `CONFLICTING` on that call.
+  is pinned for the same reason, and pinned at the *cell* rather than per tranche,
+  so it covers ABL-438's `1b` row above and whatever `TRANCHES` gains next: none
+  of the three committed records carries a trailing column at all — checked, not
+  assumed — so the amended default would rewrite a published page of A's as B's.
+  The table is deliberately **not** passed to `check_registration_tables`, and
+  that is structural rather than cautious: that check requires every scope in the
+  union to appear in *every* table it is given, so registering `CAUSAL_LEVELLING`
+  there would force each scope to be pinned and delete the default this bullet
+  exists to describe.
 - **The ladder's rules did not move, only the reference.** Given two reference
   pairs carrying identical numbers, every case grades identically under either
   levelling; that is asserted directly rather than argued. G1 is still
@@ -790,8 +909,9 @@ emitted a full report. Each harness now has a `SCOPE_OUTPUTS` table beside
 `SCOPES`/`GATE_BASIS` (`evaluate_wind_retrain.py:112`,
 `evaluate_solar_retrain.py:86`); the three flags default to `None` and resolve
 against it after parsing, so an explicit path still overrides. `abl195` and
-`abl253` keep their historical paths byte-for-byte. The three tables are one
-registration in three views and are cross-checked at **import** by
+`abl253` keep their historical paths byte-for-byte. Those three tables are one
+registration in three views (five on solar since ABL-429 — see below) and are
+cross-checked at **import** by
 `check_registration_tables` (`src/evaluation/gate_registration.py:39`, called at
 `evaluate_wind_retrain.py:285` and `evaluate_solar_retrain.py:536`), so a scope
 added to one and not the others fails before any fit rather than mid-run — it
@@ -800,28 +920,50 @@ than a failing test: the tables disagreeing is **not** a textual conflict, so
 GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
 platform will show it.
 
-**Registering a new scope means editing every registration table — but only
-three of them are import-checked, and that is true on both harnesses.** The call
-is `check_registration_tables(SCOPES=..., GATE_BASIS=..., SCOPE_OUTPUTS=...)` and
-nothing else. Solar carries **seven** tables: `FIT_RULES`, `SCOPE_FEATURES`,
-`SCOPE_TITLES` and `SCOPE_NOT_EVALUABLE` are **not** in that call, so a scope
-missing from any of them resolves through a module-level default **silently, at
-run time**. That is not hypothetical — it is exactly how ABL-404 happened, and it
-is why the rows that depend on it each carry a comment saying so. Adding a table
-to the check is not free: it raises on `import` for every branch already in
-flight, and `SCOPE_FEATURES` must stay absent-able because inheriting the current
-`FEATURE_COLUMNS` is the intended path for a new tranche (`abl316-t2a` does
-exactly that). Read the `check_registration_tables(...)` call in the harness you
-are editing rather than this sentence; that call is the list, and it is shorter
-than the set of tables you must still edit by hand.
+**Registering a new scope means editing every registration table, and since
+ABL-429 five of the seven are import-checked on solar.** The call is
+`check_registration_tables(SCOPES=..., GATE_BASIS=..., SCOPE_OUTPUTS=...,
+FIT_RULES=..., SCOPE_TITLES=...)`. **The two harnesses' calls now differ, and
+that is not one twin missing a fix** — the recurring failure mode this pair has
+(ABL-322/ABL-379, ABL-345/ABL-347): wind carries only the first three tables at
+all, so all three of its tables are checked. Solar carries seven and two stay
+out, each for a stated structural reason:
 
-> **Count the tables the same way you are told to count the call.** This
-> paragraph said **five** when the file already carried six — `SCOPES`,
-> `GATE_BASIS`, `SCOPE_OUTPUTS`, `FIT_RULES`, `SCOPE_FEATURES`, `SCOPE_TITLES`.
-> ABL-421 added the seventh and re-counted against the source instead of
-> incrementing the sentence. `grep -E "^[A-Z_]+ = \{"` in the harness is the
-> count; it is the one number in this section that cannot be checked by reading
-> the call site, which is exactly why it drifted.
+- `SCOPE_FEATURES` **cannot** join. `abl316-t2a`'s absence from it is correct and
+  published — inheriting the current `FEATURE_COLUMNS` is the intended path for a
+  new tranche — so requiring it would raise at import for a scope that is right.
+- `SCOPE_NOT_EVALUABLE` is the one to check hardest, because it is the only
+  remaining table that defaults **toward scoring**: a scope that forgets it scores
+  every cell it can build, which for a pair ABL-348 declares NOT-EVALUABLE is a
+  wrong verdict rather than self-documenting degradation.
+
+So a scope missing from either of those two still resolves through a module-level
+default **silently, at run time** — exactly how ABL-404 happened, which is why the
+rows that depend on it each carry a comment saying so.
+
+**What the check enforces is presence, not content.** It compares the tables'
+**keys**; it never looks at a value. A tranche that registers
+`exclude_impossible_night: True`, or a wrong title, imports and runs and exits 0
+like a compliant one. Enforcement buys you "somebody wrote a row here" and
+nothing more — the record of *what was chosen and why* is still the comment beside
+the row, and for `FIT_RULES` it is pinned by
+`tests/test_abl403_fit_rule_registration.py`.
+
+Adding a table to the check is not free: it raises on `import` for every branch
+already in flight, which is why ABL-429 waited for both repo queues to reach zero.
+Read the `check_registration_tables(...)` call in the harness you are editing
+rather than this sentence; that call is the list, and it is still shorter than the
+set of tables you must edit by hand.
+
+> **Count the tables the same way you are told to count the call — and check the
+> recipe, not just the number.** This paragraph said **five** when the file
+> carried six, and ABL-421 re-counted against the source to reach seven. But the
+> recipe it left behind, `grep -E "^[A-Z_]+ = \{"`, returned **9** at the very
+> commit that called it "the count": it also matches `DEFAULT_FIT_RULES` (keyed by
+> rule name, not by scope) and `NOT_EVALUABLE_CAUSES` (keyed by country). The
+> number was right and the recipe was wrong, which is the worse half — the recipe
+> is what the next editor actually runs. Run the grep, then subtract any table not
+> keyed by **scope name**; today that is those two, leaving seven.
 
 **`SCOPE_NOT_EVALUABLE` is the exception to watch, because it defaults toward
 scoring (ABL-421).** ABL-348 `not_evaluable` declares `EE/solar` and `FI/solar`
