@@ -1029,6 +1029,64 @@ Four things follow, and the last two are the ones that catch a reader out:
   `wind_offshore` is the eleventh mover: all six of its G2/G3 margins are inside
   the floor, which its own record had already labelled *not readable at one seed*
   while recording `g2_g3_floor_is_a_ladder_condition: false`.
+
+### The ladder reads the cell's minimum n before its margin (ABL-434)
+
+Everything above grades a **margin**. `grade_cell` is handed a cell's `scores`
+and nothing else — never `gate.n`, `gate.minimum_n` or `gate.enough_pairs` — so a
+cell that beat D-7 by more than the floor while falling **short of its registered
+minimum n** graded `A`, which means promotion-eligible. Tranche 2d is where the
+combination first arose (1a/1b/2a/2b/2c are fully covered): **EE and FI solar
+48-64h clear D-7 by +29.0% and +36.8% and miss 456 rows, FI by three**, so
+`grade: A` sat beside `pass: false` inside the same cell with nothing in the
+record to reconcile them. It is the only one of ABL-316's four open corrections
+that can put a *false A* into promotion evidence — ABL-426 and ABL-440 make a
+pair unreadable, which is visible.
+
+A cell that fails the new `G0` grades **`X` — not readable at the registered
+coverage**: it does not have the rows, so nothing on the ladder below it is
+decidable, and it is not promotion-eligible. Registration
+`experiments/ABL434/config.json`, evidence
+`reports/abl_434_coverage_gate_registration.md`.
+
+Four things follow, and the second is the one that decides where you put a fix
+like this.
+
+- **It is not a new bar and there is no per-scope table.** `enough_pairs` already
+  decides the gate `pass`; what moved is only whether the *grade* may disagree
+  with it. Unlike `CAUSAL_LEVELLING` and `G23_READABILITY` there is nothing to
+  register per scope, because the direction is one-way — a table could only ever
+  be used to let a scope declare its own cells covered.
+- **`grade_cell` stays a function of `scores` alone, and the gate lives one level
+  up.** `cell_grade` and `attach_grades` are handed a whole cell, so they read its
+  coverage; both harnesses record and render through those two, so no future
+  tranche can write a coverage-blind `A`. Keeping `grade_cell` ungated is what
+  leaves the four published margin-only re-reads (ABL-418's retro-grade, ABL-437,
+  ABL-443, ABL-444) reproducing byte-for-byte instead of being silently re-graded.
+  Those four are registered with reasons in
+  `tests/test_abl434_coverage_gate.py::MARGIN_ONLY_READERS` and an AST sweep fails
+  any unregistered `grade_cell` caller — the `tso_plausibility` pattern.
+- **The gate applies to a grade rebuilt from a record, not just a computed one.**
+  That is the whole point: a stored `A` beside the record's own
+  `enough_pairs: false` is the defect, and every later reader now gets the hold
+  without keeping its own books, which is what ABL-421 had to do by hand.
+  Unrecorded coverage is **not** a pass — a cell with no `gate` block grades `X`
+  naming that, which is why every committed record was checked to carry the column
+  (143 of 143) before landing it.
+- **Severity is `A < N < U < X < B < C`, and `X` is *better* than `B`.** Deeper
+  than `U` (a `U` cell has the rows and cannot resolve the margin), shallower than
+  a definite failure, on ABL-444's rule that grading it `X` at pair level would
+  bury a band that had the rows and lost readably. A pair takes its worst band, so
+  one short band takes the pair — stricter than ABL-421's hold, which fired only
+  when *no* band was decidable; the two agree on every cell measured so far.
+
+**Two letters move and nothing is regenerated**: EE and FI solar 48-64h, `A` →
+`X`, cell and pair, both already reported as `—` with a named coverage hold in
+ABL-421's pack. 2d's `FAIL` verdict does not move — `passed` and `disposition`
+never read a grade. Re-running ABL-421's read would print `X` in its ladder column
+where the committed file prints `A`; that regeneration is a disposition and is the
+CEO's call, filed separately.
+
 **A scope also registers where it writes** (ABL-387). `--artifact-dir`,
 `--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
 which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
