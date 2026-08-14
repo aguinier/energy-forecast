@@ -383,6 +383,80 @@ eligible to train where it was previously skipped. Expect it to appear the
 next time a training sweep runs; it is not a new data problem, it is the
 screen finally measuring the hourly frame the model is fitted on.
 
+### TSO day-ahead forecasts are guarded on the way in (ABL-431)
+
+`energy_generation_forecast` and `energy_load_forecast` carry ENTSO-E's
+published day-ahead forecasts verbatim, and verbatim includes a **×1000 unit
+error**: HU's `wind_onshore_mw` reads **140,996 MW** against a fleet whose
+p99.5 over five years is 283 MW. Dividing those 96 quarter-hours by 1000
+reproduces HU's own measured generation for the same day (35.8–141.0 MW
+predicted against 36.8–133.0 MW observed, rising together through the day), so
+the shape is right and only the scale is wrong — which is why it is invisible
+to every correlation- or shape-based check.
+
+**Extent, measured on the replica 2026-08-14 and regenerable with
+`scripts/abl431_tso_plausibility_census.py`: 213 of 14,610,819
+column-observations (0.0015%)**, in three incidents — HU 2026-02-04 (96 rows,
+one full CET market day, hitting `wind_onshore_mw` and the `total_forecast_mw`
+it dominates), MK 2022-04-10 (10 rows), SK 2022-09-25 (1 row). **Zero rows in
+`energy_load_forecast`.** So it is not one row, and it is not widespread
+either.
+
+`src/tso_plausibility.py` nulls a read value above `PLAUSIBILITY_TOLERANCE`
+(3.0) times a per-country, per-column reference scale, logs one warning naming
+the country, column, threshold, magnitude and window, and **never touches the
+stored row** — a value that looks impossible is sometimes just not published
+yet. Wired into `v014_features`, `chronos2/input_builder`, `scorecard`'s TSO
+comparator and both `tso_correction` read sites; the guard runs at the
+published resolution and *before* any hourly resample, so a bad quarter cannot
+be smeared across its hour first.
+
+Four things about it are load-bearing:
+
+- **The reference is derived, not registered.** There is no installed-capacity
+  table on the replica, and a committed one would go stale in the direction
+  that matters — NL solar grew from nothing to 7.9 GW inside this history and a
+  frozen bound would start rejecting real growth. It is
+  `max(p99.5(actuals), p99.5(day-ahead forecasts))` over the whole series,
+  recomputed at read time and cached per process. **Both sides, because neither
+  alone is sound**: NL's `energy_generation.solar_mw` tops out at 428.8 MW while
+  NL's own published solar forecast reaches 7,871 MW, so an actuals-only anchor
+  would reject 18× of legitimate NL solar; and the forecast table is the
+  defect's own home, so a forecast-only anchor could be set by the rows it is
+  meant to catch. It is a quantile rather than a maximum for that second
+  reason — which bounds it: a contaminated cluster covering more than 1 − q
+  (0.5%, ~10 days of a five-year quarter-hourly series) would raise its own bar.
+  HU's is 0.0487%.
+- **3.0 is a measurement, not a convention.** Across all 146 evaluable pairs,
+  `max / reference` runs HU 497.7× · HU total 37.3× · SK 8.70× · MK 6.05× ·
+  MK total 4.12× — then nothing until PT solar at **1.82×**, PT wind_offshore
+  1.77×, NL load 1.60×, p90 1.41×. 3.0 sits inside a measured empty band 2.3×
+  wide. The census prints that ladder every run, so a healthy pair climbing
+  toward the tolerance is visible before a fit meets it.
+- **It is one-sided, and it refuses to evaluate rather than rejecting
+  everything.** A published 0.0 is never flagged at any tolerance, so ABL-71's
+  published zeros and ABL-109's 56 legitimate DE overnight solar zeros are
+  untouched by construction. **28 of the 174 pairs are all-zero series** —
+  landlocked countries reporting `wind_offshore_mw = 0.0` forever — where the
+  reference is 0.0 and `value > 3 × 0` would flag every non-zero value a new
+  fleet ever published. `ReferenceScale.evaluable` is False there and the series
+  passes through carrying the reason. Same mechanism means a **brand-new
+  fleet's first output is unguarded**, which is the deliberate direction: an
+  unguarded new fleet is a bounded cost, a guard that deletes a country's first
+  real generation is not.
+- **No default, and `as_of` is the caller's choice.** An unregistered
+  `(table, column)` raises `UnknownTsoSourceError` rather than guarding against
+  a guessed scale. `reference_scale(..., as_of=...)` bounds both sides for a
+  backtest reconstructing a past vintage; the default is the whole history,
+  which is serve-faithful for serving because at serve time the whole history
+  *is* everything available.
+
+`tests/test_tso_plausibility.py` pins all of it, including a static sweep that
+fails if any `src/` module names one of the two tables without calling the
+guard or appearing on an exempt list with a reason. **That sweep is what ABL-247
+will trip when it adds its feature read** — which is the point: this issue is
+that issue's precondition.
+
 **Which table an individual renewable type is read from is a property of the
 model artifact, not a global** (ABL-331). `model_data["training_source"]` is
 written by `Forecaster.save`/`_get_model_data` and read back by

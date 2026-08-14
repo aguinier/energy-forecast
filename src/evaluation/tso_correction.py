@@ -33,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import config
 
 from ..db import get_connection
+from ..tso_plausibility import guard_tso_frame
 from .metrics import calculate_point_metrics, skill_score, diebold_mariano_test
 from .backtest import BacktestResult
 
@@ -85,12 +86,24 @@ def load_tso_vs_actual(
             ORDER BY target_timestamp_utc
         """, conn, params=(country_code, start_date, end_date))
 
+        if not forecasts.empty:
+            forecasts["timestamp_utc"] = pd.to_datetime(
+                forecasts["timestamp_utc"], format="mixed", utc=True
+            ).dt.tz_localize(None)
+            # The fitted target here is `actual - tso_forecast`, so one
+            # implausible read becomes a training label three orders of
+            # magnitude out — the exact shape ABL-431 exists to keep out of a
+            # fit. Guarded to NaN, and the dropna below removes the hour.
+            forecasts = guard_tso_frame(
+                forecasts, conn, country_code, "energy_generation_forecast", col,
+                frame_column="tso_forecast_mw",
+                context="evaluation.tso_correction")
+
     if actuals.empty or forecasts.empty:
         logger.warning(f"No data for {country_code}/{renewable_type}")
         return pd.DataFrame()
 
     actuals["timestamp_utc"] = pd.to_datetime(actuals["timestamp_utc"], format="mixed", utc=True).dt.tz_localize(None)
-    forecasts["timestamp_utc"] = pd.to_datetime(forecasts["timestamp_utc"], format="mixed", utc=True).dt.tz_localize(None)
 
     # Resample actuals to hourly (TSO forecasts are hourly)
     actuals = actuals.set_index("timestamp_utc").resample("h").mean().reset_index()
