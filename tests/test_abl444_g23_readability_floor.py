@@ -23,6 +23,7 @@ Five things need holding, and they fail in different directions.
 from __future__ import annotations
 
 import ast
+import hashlib
 import importlib.util
 import json
 import subprocess
@@ -476,3 +477,124 @@ def test_the_prose_says_which_form_and_what_n_means(stream):
     assert f"{readability_floor_pct(stream):.2f}%" in floored
     signed = " ".join(grading_prose(stream, g23_readability=SIGN_TEST))
     assert "sign test" in signed and "abl_444_g23_floor_reread.md" in signed
+
+
+# ---------------------------------------------------------------------------
+# 6. The committed re-read
+
+
+_REREAD_SPEC = importlib.util.spec_from_file_location(
+    "abl444_g23_floor_reread", ROOT / "scripts" / "abl444_g23_floor_reread.py")
+rr = importlib.util.module_from_spec(_REREAD_SPEC)
+_REREAD_SPEC.loader.exec_module(rr)
+
+FLOOR_RECORD = ROOT / "reports" / "abl_444_g23_floor_reread.json"
+
+
+@pytest.fixture(scope="module")
+def committed():
+    return json.loads(FLOOR_RECORD.read_text(encoding="utf-8"))
+
+
+@pytest.fixture(scope="module")
+def fresh():
+    """The re-read computed live, through the committed path -- not read back."""
+    return rr.read(ROOT)
+
+
+def test_the_committed_reread_matches_a_live_run(committed, fresh):
+    """The record is arithmetic over files on disk, so it must regenerate exactly.
+    `generated_at` is the only field allowed to move."""
+    for record in (committed, fresh):
+        record.pop("generated_at", None)
+    assert fresh == committed
+
+
+def test_the_reread_names_the_bytes_it_graded(committed):
+    """A later reader can tell whether these letters came from the bytes that
+    were dispositioned -- the ABL-438 rule, one document over."""
+    assert committed["source_reread_sha256"] == \
+        hashlib.sha256((ROOT / rr.SOURCE_REREAD).read_bytes()).hexdigest()
+    for tranche in committed["tranches"]:
+        assert tranche["record_sha256"] == \
+            hashlib.sha256((ROOT / tranche["record"]).read_bytes()).hexdigest()
+
+
+def test_the_sign_test_arms_reproduce_abl437s_published_letters(committed, reread):
+    """This document's `floored` column is a comparison, not a restatement, and
+    that is only true if its `sign_test` columns reproduce ABL-437's -- through a
+    different path, since the challenger side here is read from each tranche's
+    own committed record rather than from ABL-437's."""
+    published = {(tranche["tranche"], pair["pair"]):
+                 (pair["published_pair_grade"], pair["amended_pair_grade"])
+                 for tranche in reread["tranches"] for pair in tranche["pairs"]}
+    checked = 0
+    for tranche in committed["tranches"]:
+        for pair in tranche["pairs"]:
+            grades = pair["pair_grades"]
+            assert (grades[f"{FIT_WINDOW}/{SIGN_TEST}"],
+                    grades[f"{TRAILING_28D}/{SIGN_TEST}"]) == \
+                published[(tranche["tranche"], pair["pair"])], pair["pair"]
+            checked += 1
+    assert checked == 39
+
+
+def test_the_reread_covers_every_cell_abl437_covered(committed, reread):
+    cells = sum(len(pair["cells"])
+                for tranche in committed["tranches"] for pair in tranche["pairs"])
+    assert cells == sum(len(pair["cells"])
+                        for tranche in reread["tranches"] for pair in tranche["pairs"])
+    assert cells == 113
+
+
+def test_ee_and_fi_solars_only_gated_band_is_coverage_short_and_sub_floor(committed):
+    """Section 3 of the findings, and the reason it is a compounding finding for
+    ABL-434 rather than a duplicate of it.
+
+    ABL-421 declares both pairs NOT-EVALUABLE on 24-36h and 36-48h, so 48-64h is
+    the only band either carries a letter on -- and that cell failed the gate on
+    coverage *and* passes G3 on a margin no seed resolves. Neither guard alone
+    makes the letter honest.
+    """
+    short = [(tranche["tranche"], pair["pair"], cell)
+             for tranche in committed["tranches"] for pair in tranche["pairs"]
+             for cell in pair["cells"] if not cell["enough_pairs"]]
+    assert [(t, p, cell["band"]) for t, p, cell in short] == \
+        [("2d", "EE solar", "48-64h"), ("2d", "FI solar", "48-64h")]
+    for _, _, cell in short:
+        assert cell["gate_pass"] is False
+        assert cell["n"] < cell["minimum_n"]
+        assert cell["labels"][f"{TRAILING_28D}/{SIGN_TEST}"] == "A"
+        assert cell["labels"][f"{TRAILING_28D}/{FLOORED}"] == "N"
+        margin = cell["grades"][f"{TRAILING_28D}/{FLOORED}"]["skill_pct"]["climatology_causal_28d"]
+        assert 0 < margin < 1.0
+
+
+def test_bg_solars_hold_travels_with_both_of_its_moves(committed):
+    """A grade of N that reads as "just re-run it at k>1" is as wrong as an A
+    without the hold: BG's night-contamination displacement is far wider than the
+    margin the floor abstains on."""
+    held = [(tranche["tranche"], pair["pair"]) for tranche in committed["tranches"]
+            for pair in tranche["pairs"] if pair["hold"]]
+    assert held == [("1b", "BG solar"), ("2a", "BG solar")]
+    for tranche in committed["tranches"]:
+        for pair in tranche["pairs"]:
+            if pair["hold"]:
+                assert "ABL-396" in pair["hold"]
+                assert pair["pair_grades"][f"{TRAILING_28D}/{FLOORED}"] == "N"
+
+
+def test_the_reread_refuses_to_write_where_another_read_writes():
+    """The `SCOPE_OUTPUTS` failure one directory over: a run that kept a default
+    output path rewrote a dispositioned record and exited 0."""
+    for marker in rr.PROTECTED:
+        assert marker in " ".join(("abl_437_x", "abl_438_x", "abl_418_x"))
+    argv = sys.argv
+    try:
+        sys.argv = ["abl444_g23_floor_reread.py", "--json-out",
+                    "reports/abl_437_causal_levelling_reread.json"]
+        with pytest.raises(SystemExit) as caught:
+            rr.main()
+        assert "refusing to write" in str(caught.value)
+    finally:
+        sys.argv = argv
