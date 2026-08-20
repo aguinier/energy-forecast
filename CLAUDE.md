@@ -1173,6 +1173,28 @@ never read a grade. Re-running ABL-421's read would print `X` in its ladder colu
 where the committed file prints `A`; that regeneration is a disposition and is the
 CEO's call, filed separately.
 
+### The TSO forecast is never a gate criterion (Board directive 2026-08-14)
+
+The TSO day-ahead and week-ahead series are **reported beside every gate read and never scored
+as a condition**, under any levelling and any readability form.
+
+A registration that made a TSO comparison a conjunct of a pass, a fail, or a grade would be
+**invalid on its face** and must be refused rather than debated.  This is a Board directive of
+2026-08-14 (ABL-316 comment, item 1), standing, and is not a per-scope choice.
+
+Concretely:
+- `LADDER_REFERENCES` in `src/evaluation/gate_grading.py` names only `constant_causal` /
+  `climatology_causal` (fit_window) and their `_28d` forms (trailing_28d).  No TSO entry
+  appears under either levelling; `conditions_for()` builds G1–G4 from `seasonal_naive` and
+  those two references only.
+- Both harnesses print beside every scoped report: "Baseline: literal seasonal-naive D-7.
+  TSO is revision-contaminated context only and is not a gate criterion."
+  (`scripts/evaluate_solar_retrain.py:1205`,
+  `scripts/evaluate_wind_retrain.py:644`)
+
+Beating the TSO is the long-term goal; it is a benchmark to *report*, never a conjunct in any
+pass/fail or grade.
+
 **A scope also registers where it writes** (ABL-387). `--artifact-dir`,
 `--json-out` and `--report-out` used to carry fixed ABL-195/ABL-253 defaults,
 which `argparse` resolves *before* `--scope` is consulted — so a scoped run that
