@@ -1,0 +1,887 @@
+{
+  "meta": {
+    "issue": "ABL-467",
+    "parent": "ABL-316",
+    "scope": "abl467-t2c-regrade",
+    "regrade_of": "abl427-t2c-reread",
+    "registration": "experiments/ABL467/config.json",
+    "evidence_pack": "reports/abl_467_seed_interval_readability_registration.md",
+    "readability_test": "student_t",
+    "k": 12,
+    "stream": "solar",
+    "levelling": "fit_window",
+    "g23_readability": "sign_test",
+    "seeds": [
+      42,
+      1337,
+      2718,
+      7,
+      13,
+      101,
+      271,
+      314,
+      577,
+      863,
+      1024,
+      1729
+    ],
+    "fit_window": {
+      "start": "2026-01-14 00:00:00",
+      "end_exclusive": "2026-07-11 00:00:00"
+    },
+    "gate_window": {
+      "start": "2026-07-11 00:00:00",
+      "end_exclusive": "2026-08-10 00:00:00"
+    },
+    "delta_min_floor_pct_at_k12": 3.0738812146154277,
+    "delta_min_floor_pct_at_k1": 10.648236880290906,
+    "refit": false,
+    "replica_opened": false,
+    "artifact_saved": false,
+    "sources": {
+      "reports/abl_427_tranche2c_seed_reread.json": {
+        "blob": "47e2d9a7fe1073bae84b695c4fbe206490fe6ef3",
+        "sha256": "a6cb5620aa62991330edc613a6dfbf4d86953064d5192bb8154425ec75d24bee",
+        "pinned_blob_matches": true
+      },
+      "experiments/ABL348/results_abl419_tranche2c.json": {
+        "sha256": "bf4c9e7371c632df5f4d3aa209e76ebacc8f96798a20420cd77f259e7cc1697c",
+        "used_for": "slope and correlation (G4) only"
+      }
+    },
+    "what_moves": "G1 only. G2/G3 are sign tests on 77-93% margins under this scope's registered form; G4 is a sign test on the challenger's own slope and correlation and is carried from ABL-419 unchanged."
+  },
+  "cells": [
+    {
+      "country": "IT",
+      "horizon_band": "24-36h",
+      "k": 12,
+      "n": 720,
+      "minimum_n": 684,
+      "meets_minimum_n": true,
+      "skill_vs_d7_pct": 3.9855652071479897,
+      "published": {
+        "letter": "U(+)",
+        "disposition": "U",
+        "floor_pct": 4.771756396713317,
+        "floor_basis": "ABL-427's upper 95% chi-square bound on the measured CV",
+        "conditions": {
+          "G1": false,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        }
+      },
+      "amended": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        },
+        "failed": [],
+        "not_readable": [],
+        "skill_pct": {
+          "seasonal_naive": 3.9855652071479897,
+          "constant_causal": 93.24989682028865,
+          "climatology_causal": 77.4041409955107
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 4.151006268741483,
+          "constant_causal": 1381.4588360748048,
+          "climatology_causal": 342.5589661368138
+        },
+        "floor_pct": 3.0738812146154277,
+        "bar_weaker_than_a_flat_line": false,
+        "causal_levelling": "fit_window",
+        "level_inflation_pct": {
+          "constant_causal": 1.8125460669197846,
+          "constant_causal_28d": 5.914026655324256
+        },
+        "g23_readability": "sign_test",
+        "enough_pairs": true,
+        "readability_test": "student_t",
+        "half_width_pct": {
+          "seasonal_naive": 3.0210178659493234,
+          "constant_causal": 0.21238663068636254,
+          "climatology_causal": 0.7109607414375573
+        },
+        "seed_interval": {
+          "seasonal_naive": {
+            "n_seeds": 12,
+            "mean_skill_pct": 3.9855652071479923,
+            "sd_skill_pp": 4.754740312905764,
+            "se_skill_pp": 1.3725752997914544,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 3.0210178659493234,
+            "ci95_pct": [
+              0.9645473411986689,
+              7.006583073097316
+            ],
+            "draws_losing": 2
+          },
+          "constant_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 93.24989682028865,
+            "sd_skill_pp": 0.33427252656426903,
+            "se_skill_pp": 0.09649616659728853,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 0.21238663068636254,
+            "ci95_pct": [
+              93.03751018960229,
+              93.46228345097502
+            ],
+            "draws_losing": 0
+          },
+          "climatology_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 77.4041409955107,
+            "sd_skill_pp": 1.1189717665387786,
+            "se_skill_pp": 0.32301932531337746,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 0.7109607414375573,
+            "ci95_pct": [
+              76.69318025407314,
+              78.11510173694826
+            ],
+            "draws_losing": 0
+          }
+        }
+      },
+      "amended_disposition": "A",
+      "unamended_delta_min_at_k12": {
+        "letter": "A",
+        "ladder_label": "A",
+        "floor_pct": 3.0738812146154277,
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        }
+      },
+      "seed_interval": {
+        "n_seeds": 12,
+        "mean_skill_pct": 3.9855652071479923,
+        "sd_skill_pp": 4.754740312905764,
+        "se_skill_pp": 1.3725752997914544,
+        "t_crit_95": 2.200985160091639,
+        "half_width_pp": 3.0210178659493234,
+        "ci95_pct": [
+          0.9645473411986689,
+          7.006583073097316
+        ],
+        "draws_losing": 2
+      },
+      "moves": true,
+      "g4_carried_from_abl419": {
+        "slope": 0.9596863781211531,
+        "correlation": 0.9963146403014227
+      }
+    },
+    {
+      "country": "IT",
+      "horizon_band": "36-48h",
+      "k": 12,
+      "n": 720,
+      "minimum_n": 684,
+      "meets_minimum_n": true,
+      "skill_vs_d7_pct": 2.685868324844598,
+      "published": {
+        "letter": "U(+)",
+        "disposition": "U",
+        "floor_pct": 4.755566992956483,
+        "floor_basis": "ABL-427's upper 95% chi-square bound on the measured CV",
+        "conditions": {
+          "G1": false,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        }
+      },
+      "amended": {
+        "grade": "U",
+        "plus": true,
+        "label": "U(+)",
+        "conditions": {
+          "G1": false,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        },
+        "failed": [],
+        "not_readable": [],
+        "skill_pct": {
+          "seasonal_naive": 2.685868324844598,
+          "constant_causal": 93.15852422535723,
+          "climatology_causal": 77.09827274180007
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 2.759998243431178,
+          "constant_causal": 1361.6729386171307,
+          "climatology_causal": 336.6482880202635
+        },
+        "floor_pct": 3.0738812146154277,
+        "bar_weaker_than_a_flat_line": false,
+        "causal_levelling": "fit_window",
+        "level_inflation_pct": {
+          "constant_causal": 1.8125460669197846,
+          "constant_causal_28d": 5.851477163465435
+        },
+        "g23_readability": "sign_test",
+        "enough_pairs": true,
+        "readability_test": "student_t",
+        "half_width_pct": {
+          "seasonal_naive": 3.0515234764587267,
+          "constant_causal": 0.21453126673971012,
+          "climatology_causal": 0.7181398752355458
+        },
+        "seed_interval": {
+          "seasonal_naive": {
+            "n_seeds": 12,
+            "mean_skill_pct": 2.6858683248445963,
+            "sd_skill_pp": 4.80275269234043,
+            "se_skill_pp": 1.3864352798869737,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 3.0515234764587267,
+            "ci95_pct": [
+              -0.3656551516141304,
+              5.737391801303323
+            ],
+            "draws_losing": 2
+          },
+          "constant_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 93.15852422535723,
+            "sd_skill_pp": 0.33764794106091867,
+            "se_skill_pp": 0.09747056483142215,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 0.21453126673971012,
+            "ci95_pct": [
+              92.94399295861751,
+              93.37305549209694
+            ],
+            "draws_losing": 0
+          },
+          "climatology_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 77.09827274180007,
+            "sd_skill_pp": 1.130270910865525,
+            "se_skill_pp": 0.32628110732270715,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 0.7181398752355458,
+            "ci95_pct": [
+              76.38013286656452,
+              77.81641261703562
+            ],
+            "draws_losing": 0
+          }
+        }
+      },
+      "amended_disposition": "U",
+      "unamended_delta_min_at_k12": {
+        "letter": "U",
+        "ladder_label": "U(+)",
+        "floor_pct": 3.0738812146154277,
+        "conditions": {
+          "G1": false,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        }
+      },
+      "seed_interval": {
+        "n_seeds": 12,
+        "mean_skill_pct": 2.6858683248445963,
+        "sd_skill_pp": 4.80275269234043,
+        "se_skill_pp": 1.3864352798869737,
+        "t_crit_95": 2.200985160091639,
+        "half_width_pp": 3.0515234764587267,
+        "ci95_pct": [
+          -0.3656551516141304,
+          5.737391801303323
+        ],
+        "draws_losing": 2
+      },
+      "moves": false,
+      "g4_carried_from_abl419": {
+        "slope": 0.9597427968751715,
+        "correlation": 0.9962173539472855
+      }
+    },
+    {
+      "country": "IT",
+      "horizon_band": "48-64h",
+      "k": 12,
+      "n": 510,
+      "minimum_n": 456,
+      "meets_minimum_n": true,
+      "skill_vs_d7_pct": 6.290284559736947,
+      "published": {
+        "letter": "A",
+        "disposition": "A",
+        "floor_pct": 4.884624717976266,
+        "floor_basis": "ABL-427's upper 95% chi-square bound on the measured CV",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        }
+      },
+      "amended": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        },
+        "failed": [],
+        "not_readable": [],
+        "skill_pct": {
+          "seasonal_naive": 6.290284559736947,
+          "constant_causal": 93.00463753437704,
+          "climatology_causal": 78.5424049629144
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 6.712521247326598,
+          "constant_causal": 1329.5184915924817,
+          "climatology_causal": 366.0354519095359
+        },
+        "floor_pct": 3.0738812146154277,
+        "bar_weaker_than_a_flat_line": false,
+        "causal_levelling": "fit_window",
+        "level_inflation_pct": {
+          "constant_causal": -5.1300631512304795,
+          "constant_causal_28d": -7.546977167042835
+        },
+        "g23_readability": "sign_test",
+        "enough_pairs": true,
+        "readability_test": "student_t",
+        "half_width_pct": {
+          "seasonal_naive": 3.018243829961235,
+          "constant_causal": 0.22530971843221678,
+          "climatology_causal": 0.6911156812526615
+        },
+        "seed_interval": {
+          "seasonal_naive": {
+            "n_seeds": 12,
+            "mean_skill_pct": 6.290284559736947,
+            "sd_skill_pp": 4.750374294124254,
+            "se_skill_pp": 1.3713149387320582,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 3.018243829961235,
+            "ci95_pct": [
+              3.2720407297757124,
+              9.308528389698182
+            ],
+            "draws_losing": 1
+          },
+          "constant_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 93.00463753437704,
+            "sd_skill_pp": 0.35461200451473224,
+            "se_skill_pp": 0.10236766813222672,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 0.22530971843221678,
+            "ci95_pct": [
+              92.77932781594482,
+              93.22994725280925
+            ],
+            "draws_losing": 0
+          },
+          "climatology_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 78.5424049629144,
+            "sd_skill_pp": 1.0877378871444527,
+            "se_skill_pp": 0.3140028809753023,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 0.6911156812526615,
+            "ci95_pct": [
+              77.85128928166174,
+              79.23352064416707
+            ],
+            "draws_losing": 0
+          }
+        }
+      },
+      "amended_disposition": "A",
+      "unamended_delta_min_at_k12": {
+        "letter": "A",
+        "ladder_label": "A",
+        "floor_pct": 3.0738812146154277,
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        }
+      },
+      "seed_interval": {
+        "n_seeds": 12,
+        "mean_skill_pct": 6.290284559736947,
+        "sd_skill_pp": 4.750374294124254,
+        "se_skill_pp": 1.3713149387320582,
+        "t_crit_95": 2.200985160091639,
+        "half_width_pp": 3.018243829961235,
+        "ci95_pct": [
+          3.2720407297757124,
+          9.308528389698182
+        ],
+        "draws_losing": 1
+      },
+      "moves": false,
+      "g4_carried_from_abl419": {
+        "slope": 0.9625119411329136,
+        "correlation": 0.9956756863263699
+      }
+    },
+    {
+      "country": "HR",
+      "horizon_band": "24-36h",
+      "k": 12,
+      "n": 720,
+      "minimum_n": 684,
+      "meets_minimum_n": true,
+      "skill_vs_d7_pct": 5.392733044983666,
+      "published": {
+        "letter": "A",
+        "disposition": "A",
+        "floor_pct": 5.071742069560667,
+        "floor_basis": "ABL-427's upper 95% chi-square bound on the measured CV",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        }
+      },
+      "amended": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        },
+        "failed": [],
+        "not_readable": [],
+        "skill_pct": {
+          "seasonal_naive": 5.392733044983666,
+          "constant_causal": 84.01223214525024,
+          "climatology_causal": 60.958416379491354
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 5.700125601924208,
+          "constant_causal": 525.4781837496548,
+          "climatology_causal": 156.13715102342758
+        },
+        "floor_pct": 3.0738812146154277,
+        "bar_weaker_than_a_flat_line": false,
+        "causal_levelling": "fit_window",
+        "level_inflation_pct": {
+          "constant_causal": 0.03974948752054619,
+          "constant_causal_28d": 3.634058515548211
+        },
+        "g23_readability": "sign_test",
+        "enough_pairs": true,
+        "readability_test": "student_t",
+        "half_width_pct": {
+          "seasonal_naive": 3.163881106099245,
+          "constant_causal": 0.5346671378679063,
+          "climatology_causal": 1.305638908561363
+        },
+        "seed_interval": {
+          "seasonal_naive": {
+            "n_seeds": 12,
+            "mean_skill_pct": 5.392733044983654,
+            "sd_skill_pp": 4.979590888875369,
+            "se_skill_pp": 1.437484070073201,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 3.163881106099245,
+            "ci95_pct": [
+              2.228851938884409,
+              8.556614151082899
+            ],
+            "draws_losing": 2
+          },
+          "constant_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 84.01223214525024,
+            "sd_skill_pp": 0.8415055809700144,
+            "se_skill_pp": 0.24292173684880514,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 0.5346671378679063,
+            "ci95_pct": [
+              83.47756500738232,
+              84.54689928311815
+            ],
+            "draws_losing": 0
+          },
+          "climatology_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 60.95841637949135,
+            "sd_skill_pp": 2.05492791770836,
+            "se_skill_pp": 0.5932065932270995,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 1.305638908561363,
+            "ci95_pct": [
+              59.65277747092998,
+              62.26405528805271
+            ],
+            "draws_losing": 0
+          }
+        }
+      },
+      "amended_disposition": "A",
+      "unamended_delta_min_at_k12": {
+        "letter": "A",
+        "ladder_label": "A",
+        "floor_pct": 3.0738812146154277,
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        }
+      },
+      "seed_interval": {
+        "n_seeds": 12,
+        "mean_skill_pct": 5.392733044983654,
+        "sd_skill_pp": 4.979590888875369,
+        "se_skill_pp": 1.437484070073201,
+        "t_crit_95": 2.200985160091639,
+        "half_width_pp": 3.163881106099245,
+        "ci95_pct": [
+          2.228851938884409,
+          8.556614151082899
+        ],
+        "draws_losing": 2
+      },
+      "moves": false,
+      "g4_carried_from_abl419": {
+        "slope": 0.8646473031446364,
+        "correlation": 0.9812499844337509
+      }
+    },
+    {
+      "country": "HR",
+      "horizon_band": "36-48h",
+      "k": 12,
+      "n": 720,
+      "minimum_n": 684,
+      "meets_minimum_n": true,
+      "skill_vs_d7_pct": 5.370353140715967,
+      "published": {
+        "letter": "A",
+        "disposition": "A",
+        "floor_pct": 4.991201114209303,
+        "floor_basis": "ABL-427's upper 95% chi-square bound on the measured CV",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        }
+      },
+      "amended": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        },
+        "failed": [],
+        "not_readable": [],
+        "skill_pct": {
+          "seasonal_naive": 5.370353140715967,
+          "constant_causal": 84.0084501449287,
+          "climatology_causal": 60.94918086374284
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 5.675127530277883,
+          "constant_causal": 525.3302582068843,
+          "climatology_causal": 156.0765746067383
+        },
+        "floor_pct": 3.0738812146154277,
+        "bar_weaker_than_a_flat_line": false,
+        "causal_levelling": "fit_window",
+        "level_inflation_pct": {
+          "constant_causal": 0.03974948752054619,
+          "constant_causal_28d": 3.5780747852948824
+        },
+        "g23_readability": "sign_test",
+        "enough_pairs": true,
+        "readability_test": "student_t",
+        "half_width_pct": {
+          "seasonal_naive": 3.1143741683202704,
+          "constant_causal": 0.5263009155481544,
+          "climatology_causal": 1.2852088791006009
+        },
+        "seed_interval": {
+          "seasonal_naive": {
+            "n_seeds": 12,
+            "mean_skill_pct": 5.37035314071598,
+            "sd_skill_pp": 4.901672570192325,
+            "se_skill_pp": 1.4149909889399719,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 3.1143741683202704,
+            "ci95_pct": [
+              2.2559789723957095,
+              8.48472730903625
+            ],
+            "draws_losing": 2
+          },
+          "constant_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 84.0084501449287,
+            "sd_skill_pp": 0.8283380936211912,
+            "se_skill_pp": 0.2391206106661081,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 0.5263009155481544,
+            "ci95_pct": [
+              83.48214922938055,
+              84.53475106047685
+            ],
+            "draws_losing": 0
+          },
+          "climatology_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 60.949180863742846,
+            "sd_skill_pp": 2.022773362859207,
+            "se_skill_pp": 0.5839243727781839,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 1.2852088791006009,
+            "ci95_pct": [
+              59.663971984642245,
+              62.23438974284345
+            ],
+            "draws_losing": 0
+          }
+        }
+      },
+      "amended_disposition": "A",
+      "unamended_delta_min_at_k12": {
+        "letter": "A",
+        "ladder_label": "A",
+        "floor_pct": 3.0738812146154277,
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        }
+      },
+      "seed_interval": {
+        "n_seeds": 12,
+        "mean_skill_pct": 5.37035314071598,
+        "sd_skill_pp": 4.901672570192325,
+        "se_skill_pp": 1.4149909889399719,
+        "t_crit_95": 2.200985160091639,
+        "half_width_pp": 3.1143741683202704,
+        "ci95_pct": [
+          2.2559789723957095,
+          8.48472730903625
+        ],
+        "draws_losing": 2
+      },
+      "moves": false,
+      "g4_carried_from_abl419": {
+        "slope": 0.8648359810968081,
+        "correlation": 0.980481839778276
+      }
+    },
+    {
+      "country": "HR",
+      "horizon_band": "48-64h",
+      "k": 12,
+      "n": 510,
+      "minimum_n": 456,
+      "meets_minimum_n": true,
+      "skill_vs_d7_pct": 4.62172148328257,
+      "published": {
+        "letter": "U(+)",
+        "disposition": "U",
+        "floor_pct": 5.012394456213951,
+        "floor_basis": "ABL-427's upper 95% chi-square bound on the measured CV",
+        "conditions": {
+          "G1": false,
+          "G2": true,
+          "G3": true,
+          "G4": true
+        }
+      },
+      "amended": {
+        "grade": "A",
+        "plus": false,
+        "label": "A",
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        },
+        "failed": [],
+        "not_readable": [],
+        "skill_pct": {
+          "seasonal_naive": 4.62172148328257,
+          "constant_causal": 82.65035013447856,
+          "climatology_causal": 60.16193354598849
+        },
+        "own_error_margin_pct": {
+          "seasonal_naive": 4.845675089923645,
+          "constant_causal": 476.3805078206659,
+          "climatology_causal": 151.01619857840885
+        },
+        "floor_pct": 3.0738812146154277,
+        "bar_weaker_than_a_flat_line": false,
+        "causal_levelling": "fit_window",
+        "level_inflation_pct": {
+          "constant_causal": -2.7877045892616525,
+          "constant_causal_28d": -6.185412065956475
+        },
+        "g23_readability": "sign_test",
+        "enough_pairs": true,
+        "readability_test": "student_t",
+        "half_width_pct": {
+          "seasonal_naive": 3.1523412148223198,
+          "constant_causal": 0.5734221374548449,
+          "climatology_causal": 1.3166853161414471
+        },
+        "seed_interval": {
+          "seasonal_naive": {
+            "n_seeds": 12,
+            "mean_skill_pct": 4.621721483282584,
+            "sd_skill_pp": 4.96142840566751,
+            "se_skill_pp": 1.4322410127885965,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 3.1523412148223198,
+            "ci95_pct": [
+              1.469380268460264,
+              7.7740626981049035
+            ],
+            "draws_losing": 3
+          },
+          "constant_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 82.65035013447856,
+            "sd_skill_pp": 0.9025015654491589,
+            "se_skill_pp": 0.2605297608780653,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 0.5734221374548449,
+            "ci95_pct": [
+              82.07692799702372,
+              83.2237722719334
+            ],
+            "draws_losing": 0
+          },
+          "climatology_causal": {
+            "n_seeds": 12,
+            "mean_skill_pct": 60.1619335459885,
+            "sd_skill_pp": 2.072313713411792,
+            "se_skill_pp": 0.5982254401418257,
+            "t_crit_95": 2.200985160091639,
+            "half_width_pp": 1.3166853161414471,
+            "ci95_pct": [
+              58.84524822984705,
+              61.47861886212994
+            ],
+            "draws_losing": 0
+          }
+        }
+      },
+      "amended_disposition": "A",
+      "unamended_delta_min_at_k12": {
+        "letter": "A",
+        "ladder_label": "A",
+        "floor_pct": 3.0738812146154277,
+        "conditions": {
+          "G1": true,
+          "G2": true,
+          "G3": true,
+          "G4": true,
+          "G0": true
+        }
+      },
+      "seed_interval": {
+        "n_seeds": 12,
+        "mean_skill_pct": 4.621721483282584,
+        "sd_skill_pp": 4.96142840566751,
+        "se_skill_pp": 1.4322410127885965,
+        "t_crit_95": 2.200985160091639,
+        "half_width_pp": 3.1523412148223198,
+        "ci95_pct": [
+          1.469380268460264,
+          7.7740626981049035
+        ],
+        "draws_losing": 3
+      },
+      "moves": true,
+      "g4_carried_from_abl419": {
+        "slope": 0.8623032403156755,
+        "correlation": 0.9772234163277008
+      }
+    }
+  ],
+  "pair_grades": {
+    "IT": {
+      "published_letter": "U(+)",
+      "published_disposition": "U",
+      "amended_letter": "U",
+      "amended_ladder_label": "U(+)",
+      "amended_bands": [
+        "A",
+        "U",
+        "A"
+      ],
+      "moves": false
+    },
+    "HR": {
+      "published_letter": "U(+)",
+      "published_disposition": "U",
+      "amended_letter": "A",
+      "amended_ladder_label": "A",
+      "amended_bands": [
+        "A",
+        "A",
+        "A"
+      ],
+      "moves": true
+    }
+  },
+  "prediction_registered_before_this_ran": {
+    "source": "ABL-427 section 7.3, and experiments/ABL467/config.json",
+    "expected": {
+      "IT_24-36h": "A",
+      "IT_36-48h": "U",
+      "IT_48-64h": "A",
+      "HR_24-36h": "A",
+      "HR_36-48h": "A",
+      "HR_48-64h": "A",
+      "IT_pair": "U",
+      "HR_pair": "A"
+    }
+  }
+}

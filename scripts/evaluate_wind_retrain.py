@@ -27,8 +27,8 @@ import config
 from src import db
 from src.data_quality import find_suspect_constant_runs
 from src.evaluation.gate_grading import (
-    FLOORED, SIGN_TEST, attach_grades, cell_grade, grade_summary_table,
-    grading_prose,
+    DELTA_MIN, FLOORED, SIGN_TEST, STUDENT_T, attach_grades, cell_grade,
+    grade_summary_table, grading_prose,
 )
 from src.evaluation.model_free_reference import (
     FIT_WINDOW, MODEL_FREE_COMPARATORS, TRAILING_28D,
@@ -453,6 +453,33 @@ def g23_readability_for(scope: str) -> str:
     return G23_READABILITY.get(scope, FLOORED)
 
 
+# ABL-467: which readability test a read at k > 1 seeds is decided by.  The
+# argument is stated once, over the solar copy of this table, because solar is
+# where the only k > 1 gate read in the programme exists (ABL-427's IT and HR).
+# The short form: `delta_min` imports a fleet percentile because a k = 1 read has
+# no spread of its own; at k > 1 the cell's own draws give the exact small-sample
+# test and the import is unnecessary.
+#
+# No wind scope has ever been read at k > 1, so every row below is pinning a
+# form that has never had an opportunity to bind.  They are pinned anyway: this
+# amendment is **not** one-way -- a sharper test can raise a letter as well as
+# lower one -- and a published scope that could be re-read under a different rule
+# without a new registration is exactly what ABL-404 is the lesson about.
+SEED_READABILITY = {
+    "abl195": DELTA_MIN,
+    "abl322-pilot": DELTA_MIN,
+    "abl380-tranche1a": DELTA_MIN,
+    "abl406-tranche2b": DELTA_MIN,
+    "abl417-tranche2e": DELTA_MIN,
+    "abl435-tranche2f": DELTA_MIN,
+}
+
+
+def seed_readability_for(scope: str) -> str:
+    """The scope's registered k>1 readability test, or ABL-467's amended default."""
+    return SEED_READABILITY.get(scope, STUDENT_T)
+
+
 # The columns that must be *simultaneously finite* for a row to enter a gate
 # cell.  This is a registered property of the scope, not a detail: ABL-322 ran
 # with the four-way basis below and every one of its 6 cells came back n=0, all
@@ -571,6 +598,10 @@ UNCHECKED_REGISTRATION_TABLES = {
     # rather than awards, and that published scopes are pinned by value in
     # `test_every_published_scope_pins_a_sign_test` rather than by presence here.
     "G23_READABILITY": "defaults toward ABL-444's amendment (abstain); published pins asserted by value",
+    # ABL-467: the third member of the same family, exempt on the same structural
+    # grounds.  It binds only a read at k > 1, of which wind has none, and at
+    # k = 1 the fall-through cannot change a letter under either value.
+    "SEED_READABILITY": "defaults toward ABL-467's amendment; binds only k>1 reads, of which wind has none",
 }
 check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS)
 check_scope_outputs(SCOPE_OUTPUTS)
@@ -633,6 +664,11 @@ def render_markdown(result: dict) -> str:
     # ABL-444, same rule and same reason: a record with no `g23_readability` key
     # was decided by a sign test, so re-rendering it must not floor it.
     readability = meta.get("g23_readability", SIGN_TEST)
+    # ABL-467, same rule and same reason: a record with no `seed_readability` key
+    # was decided against `delta_min`, and `k` defaults to 1 because every record
+    # written before this amendment is a one-fit read.
+    seed_test = meta.get("seed_readability", DELTA_MIN)
+    seeds = meta.get("k", 1)
     lines = [
         f"# Serve-faithful wind retrain gate — registered scope `{meta['scope']}`",
         "",
@@ -667,7 +703,8 @@ def render_markdown(result: dict) -> str:
         "",
         # ABL-418: what the PASS in the last column entitles the cell to. The
         # gate column is unchanged and still says whether the cell cleared D-7.
-        *grading_prose(GRADE_STREAM, levelling=levelling, g23_readability=readability),
+        *grading_prose(GRADE_STREAM, k=seeds, levelling=levelling, g23_readability=readability,
+                       seed_readability=seed_test),
         "",
         "| type | country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant causal 28d WAPE | constant oracle WAPE | climatology causal WAPE | climatology causal 28d WAPE | climatology oracle WAPE | level inflation (causal / 28d) | incumbent WAPE | MAE | bias | slope | corr | gate | grade |",
         "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|",
@@ -678,8 +715,9 @@ def render_markdown(result: dict) -> str:
         # A cell that scored no rows has None on both sides. It renders as
         # "Not measured", never as a number and never as a crash.
         skill = "Not measured" if chal is None or naive is None else f"{100 * (1 - chal / naive):+.1f}%"
-        grade = cell_grade(row, GRADE_STREAM, levelling=levelling,
-                           g23_readability=readability).detail
+        grade = cell_grade(row, GRADE_STREAM, k=seeds, levelling=levelling,
+                           g23_readability=readability,
+                           seed_readability=seed_test).detail
         lines.append(
             f"| {row['forecast_type']} | {row['country']} | {row['horizon_band']} | {row['gate']['n']:,} | "
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
@@ -696,7 +734,8 @@ def render_markdown(result: dict) -> str:
         )
     lines.extend(grade_summary_table(
         cells, GRADE_STREAM, lambda row: f"{row['country']} {row['forecast_type']}",
-        levelling=levelling, g23_readability=readability))
+        k=seeds, levelling=levelling, g23_readability=readability,
+        seed_readability=seed_test))
     lines.extend(levels_table(result["training"], key="forecast_type"))
     basis_names = ", ".join(meta.get("gate_basis", []))
     lines.extend(["", "## Per-country all-D+2 summary", "",
@@ -955,8 +994,13 @@ def main() -> int:
     # are computed exactly as they were.  The stream selects ABL-385's registered
     # CV, and passing the wrong one would silently apply solar's wider floor --
     # `tests/test_gate_grading.py` reads this literal out of the AST.
+    # ABL-467: wired through for the same reason as on solar -- this harness fits
+    # one model per cell, so no cell carries per-seed WAPEs and `delta_min`
+    # decides regardless; a k>1 harness should inherit the registered form rather
+    # than invent one.
     attach_grades(gate_cells, GRADE_STREAM, levelling=causal_levelling_for(args.scope),
-                  g23_readability=g23_readability_for(args.scope))
+                  g23_readability=g23_readability_for(args.scope),
+                  seed_readability=seed_readability_for(args.scope))
     passed = sum(row["gate"]["pass"] for row in gate_cells)
     contaminated = any(row["constant_runs"] for row in training)
     performance_pass = len(gate_cells) == registered_cells and passed == registered_cells
@@ -1001,6 +1045,7 @@ def main() -> int:
                        "scope": args.scope, "registered_pairs": list(registered_pairs),
                        "causal_levelling": causal_levelling_for(args.scope),
                        "g23_readability": g23_readability_for(args.scope),
+                       "seed_readability": seed_readability_for(args.scope),
                        "registered_cells": registered_cells, "gate_basis": list(gate_basis),
                        # ABL-389: the basis is what gates; this is what is
                        # merely reported beside it. Recorded so the two are

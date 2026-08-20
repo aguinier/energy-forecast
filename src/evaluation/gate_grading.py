@@ -167,6 +167,68 @@ Three properties, in the order they were argued:
   untouched -- ``voids_this_registration`` is not triggered -- and ABL-434 (the
   ladder cannot see minimum n) is a different guard, landed separately below.
 
+ABL-467: which readability test a read at k > 1 is decided by
+-------------------------------------------------------------
+
+``delta_min`` is a **delta-method approximation**, and it exists for a specific
+reason: a **k = 1** read carries no internal estimate of its own spread, so the
+spread must be imported from a fleet percentile. That is the right and only tool
+at k = 1, and it is untouched here.
+
+**At k > 1 the import is unnecessary.** Skill vs a reference is
+``100 * (1 - wape_j / reference)`` for each of the k fits; every reference on
+this ladder is deterministic, so those are k honest draws of exactly the quantity
+being graded. Student's t on them is the exact small-sample test, and its degrees
+of freedom are already what accounts for the sd having been estimated. Importing
+a fleet percentile instead answers *how much do fits of this stream vary* when
+the question asked is *how much does this cell vary*.
+
+**The decision rule does not change form.** A condition is readable iff
+``|margin| > half_width``, exactly as before; ``CI excludes 0`` and
+``|mean| > t * se`` are the same statement. What the amendment changes is the
+**estimator of** ``half_width``:
+
+============  =========================================================
+``k = 1``     ``delta_min`` -- ``1.96 * c_A_fleet_p90 / sqrt(k)``,
+              imported, because the cell has no spread of its own.
+``k > 1``     ``t_{0.975, k-1} * sd(draws) / sqrt(k)`` -- measured, from
+              the cell's own k draws.
+============  =========================================================
+
+Four properties are load-bearing:
+
+* **The point estimate is untouched.** Because every reference is deterministic,
+  skill is affine in WAPE, so the mean of the per-seed skills equals the skill of
+  the mean WAPE *identically* -- measured at under ``1.3e-14`` pp on all six
+  ABL-427 cells. The ladder still grades the same registered ``skill vs X``
+  column; only the width it is compared against is re-estimated.
+* **It is not the more permissive test, and it moves letters both ways.** It is
+  stricter than the unamended fleet floor whenever the cell's own seed CV exceeds
+  roughly ``(z / t_{k-1}) * c_A_fleet_p90`` -- about 93% of it at k = 12. On
+  ABL-427's six cells three sit above that line and three below: **all three HR
+  cells are graded against a half-width wider than the unamended floor at
+  k = 12** and still clear it.
+* **``c_B = 0`` is what licenses it.** One set of per-seed *challenger* WAPEs
+  yields the draws against every reference, because no reference on this ladder
+  moves when the challenger is refitted. That is the same property the floor's
+  ``sqrt(2)`` correction already rests on. Adding a stochastic reference voids
+  this registration.
+* **It is registered per scope, because it can raise a grade.** Unlike ABL-434's
+  coverage gate, this one is not one-way, so ``SEED_READABILITY`` in each harness
+  pins every published scope to ``delta_min``. At k = 1 the t test has no degrees
+  of freedom and the code falls back structurally regardless of the table, so no
+  published letter can move by either route -- checked over every committed
+  record: **631 graded cells, of which 613 are at k = 1** (floor 10.6482 /
+  7.5054) **and 18 are the six ABL-427 cells published under three candidate
+  floors**, which is the entire k > 1 corpus and is pinned to ``delta_min``.
+
+The normality assumption is stated rather than waved at: with 12 draws it is not
+testable to useful power. It is not load-bearing on the read that motivated the
+amendment -- a Wilcoxon signed-rank test and a percentile bootstrap over seeds
+agree with the t interval on **all six** ABL-427 cells, and only a sign test
+disagrees, on two cells and in opposite directions.
+``reports/abl_467_seed_interval_readability_registration.md`` prices all four.
+
 ABL-434: the ladder reads the cell's coverage first
 ----------------------------------------------------
 
@@ -221,6 +283,7 @@ report is re-graded by this change -- see
 from __future__ import annotations
 
 import math
+import statistics
 from dataclasses import dataclass, field
 
 from src.evaluation.model_free_reference import (
@@ -287,6 +350,51 @@ COVERAGE_CONDITION = ("G0", "readable",
 SIGN_TEST = "sign_test"
 FLOORED = "floored"
 
+#: ABL-467: which readability test decides a read. `delta_min` is ABL-385's
+#: imported fleet floor -- the only tool available at k = 1, and what every
+#: published letter was decided under. `student_t` is the amendment, and applies
+#: only where the read actually hands the ladder its per-seed draws.
+DELTA_MIN = "delta_min"
+STUDENT_T = "student_t"
+
+#: Both forms, for a caller validating a registration table.
+SEED_READABILITY_FORMS = (DELTA_MIN, STUDENT_T)
+
+#: Two-sided 95% Student-t critical values, by degrees of freedom (k - 1).
+#:
+#: Pinned rather than imported from `scipy` for the same reason
+#: :data:`STREAM_FLEET_CV_P90` is pinned rather than read from its report: this
+#: module decides registered verdicts and must not move when a dependency is
+#: upgraded. A reviewer can check any row against a printed t-table by eye, and
+#: `tests/test_abl467_seed_interval.py` checks every row against
+#: `scipy.stats.t.ppf(0.975, df)`.
+#:
+#: `df = 1` is present and is not usable in practice -- a 12.71 multiplier on a
+#: 2-draw sd will not clear anything -- but it is the honest value, and omitting
+#: it would make k = 2 raise rather than abstain.
+T_CRIT_95 = {
+    1: 12.706204736174694, 2: 4.302652729749462, 3: 3.1824463052837078,
+    4: 2.7764451051977934, 5: 2.5705818356363146, 6: 2.4469118511449786,
+    7: 2.364624251592784, 8: 2.306004135204166, 9: 2.262157162798205,
+    10: 2.2281388519862744, 11: 2.200985160091639, 12: 2.1788128296672284,
+    13: 2.1603686564627913, 14: 2.144786687917804, 15: 2.1314495455597755,
+    16: 2.1199052992212546, 17: 2.1098155778333156, 18: 2.1009220402410382,
+    19: 2.0930240544083087, 20: 2.085963447265864, 21: 2.0796138447276795,
+    22: 2.0738730679040254, 23: 2.0686576104190486, 24: 2.0638985616280245,
+    25: 2.0595385527532977, 26: 2.0555294386428735, 27: 2.0518305164802846,
+    28: 2.0484071417952454, 29: 2.045229642132704, 30: 2.0422724563012378,
+}
+
+#: Above `df = 30` the table stops and the critical value is taken as
+#: :data:`Z_95`. The error is **anti-conservative and bounded by 3.9%** of the
+#: correct half-width -- t at df = 31 is 2.0395 against 1.96 -- and it shrinks
+#: monotonically toward zero from there (2.0% at df = 60, 1.0% at df = 120). A
+#: gate read at k > 31 seeds does not exist and would not be cheap. Stated here
+#: rather than hidden in a `.get` default, because a silent fallback to a *looser*
+#: critical value is exactly the kind of unelected default ABL-404 is the lesson
+#: about.
+T_CRIT_95_MAX_DF = 30
+
 #: Both forms, for a caller validating a registration table. `floored` is the
 #: default for a scope that registers nothing; see the harness tables for why
 #: that direction, and `reports/abl_444_g23_readability_floor_registration.md`
@@ -347,6 +455,63 @@ def readability_floor_pct(stream: str, k: int = 1) -> float:
     if k < 1:
         raise ValueError(f"k must be at least 1, got {k}")
     return Z_95 * STREAM_FLEET_CV_P90[stream] * 100.0 / math.sqrt(k)
+
+
+def t_crit_95(df: int) -> float:
+    """The two-sided 95% Student-t critical value for ``df`` degrees of freedom.
+
+    :data:`Z_95` above :data:`T_CRIT_95_MAX_DF`, which is anti-conservative by at
+    most 3.9% of the correct half-width and is documented there rather than
+    defaulted silently.
+    """
+    if df < 1:
+        raise ValueError(f"df must be at least 1, got {df} -- "
+                         "a single draw has no internal estimate of its spread")
+    return T_CRIT_95[df] if df <= T_CRIT_95_MAX_DF else Z_95
+
+
+def seed_skill_draws(seed_wapes, reference_wape):
+    """``100 * (1 - wape_j / reference)`` for each of the k fits.
+
+    The k draws of the graded quantity itself. One set of per-seed **challenger**
+    WAPEs is enough for every reference on this ladder because none of them moves
+    when the challenger is refitted -- the ``c_B = 0`` property the floor's own
+    ``sqrt(2)`` correction rests on. A stochastic reference would need its own
+    draws and voids this registration.
+
+    ``None`` where the reference was not measured or scored zero error, matching
+    :func:`skill_pct`.
+    """
+    if not seed_wapes or reference_wape is None or not reference_wape:
+        return None
+    return [100.0 * (1.0 - wape / reference_wape) for wape in seed_wapes]
+
+
+def skill_interval(draws):
+    """The two-sided 95% Student-t interval on k skill draws.
+
+    Returns the whole derivation, not just the verdict, so a read can be checked
+    by hand: ``n_seeds``, ``mean_skill_pct``, ``sd_skill_pp``, ``se_skill_pp``,
+    ``t_crit_95``, ``half_width_pp``, ``ci95_pct`` and ``draws_losing`` -- the
+    count of individual fits on the wrong side of the reference, which is a
+    property no interval shows and which was the most actionable number in
+    ABL-427's read.
+
+    ``None`` for fewer than two draws: there is nothing to take a t of, which is
+    precisely why ``delta_min`` exists and stays the k = 1 tool.
+    """
+    if draws is None or len(draws) < 2:
+        return None
+    k = len(draws)
+    mean = statistics.fmean(draws)
+    sd = statistics.stdev(draws)
+    se = sd / math.sqrt(k)
+    crit = t_crit_95(k - 1)
+    half_width = crit * se
+    return {"n_seeds": k, "mean_skill_pct": mean, "sd_skill_pp": sd,
+            "se_skill_pp": se, "t_crit_95": crit, "half_width_pp": half_width,
+            "ci95_pct": [mean - half_width, mean + half_width],
+            "draws_losing": sum(1 for draw in draws if draw <= 0.0)}
 
 
 def skill_pct(challenger, reference):
@@ -425,6 +590,24 @@ class CellGrade:
     #: :func:`grade_cell` does by construction, and what every published
     #: margin-only re-read is. Absence dates the read; it is not a pass.
     enough_pairs: bool | None = None
+    #: ABL-467: which readability test decided this read, :data:`DELTA_MIN` or
+    #: :data:`STUDENT_T`. Every published letter is ``delta_min``.
+    readability_test: str = DELTA_MIN
+    #: The half-width each condition was actually decided against, per reference.
+    #: Empty under ``delta_min``, where :attr:`floor_pct` is that width for every
+    #: condition -- read it through :meth:`half_width_for` rather than directly.
+    half_width_pct: dict = field(default_factory=dict)
+    #: The full Student-t derivation per reference, so the read is checkable by
+    #: hand. Empty under ``delta_min``.
+    seed_interval: dict = field(default_factory=dict)
+
+    def half_width_for(self, reference: str) -> float:
+        """The width this cell's margin against ``reference`` was judged against.
+
+        One accessor for both forms, so a caller cannot read :attr:`floor_pct` on
+        a ``student_t`` cell and report a width that decided nothing.
+        """
+        return self.half_width_pct.get(reference, self.floor_pct)
 
     @property
     def label(self) -> str:
@@ -463,6 +646,18 @@ class CellGrade:
         # `abl444_g23_floor_reread.py`).
         if self.enough_pairs is not None:
             record["enough_pairs"] = self.enough_pairs
+        # ABL-467, on the same rule: emitted only where the read was actually
+        # decided by the seed interval, because the key's presence is what dates
+        # the read. Every k = 1 grade therefore serialises byte-identically to
+        # what this module wrote before the amendment, which is the property
+        # `test_a_k1_record_is_byte_identical_to_the_pre_amendment_form` pins --
+        # and `floor_pct` stays on both forms so the two widths can be compared
+        # from the record alone rather than recomputed.
+        if self.readability_test != DELTA_MIN:
+            record["readability_test"] = self.readability_test
+            record["half_width_pct"] = dict(self.half_width_pct)
+            record["seed_interval"] = {name: dict(interval)
+                                       for name, interval in self.seed_interval.items()}
         return record
 
     @classmethod
@@ -486,7 +681,31 @@ class CellGrade:
                    levelling=record.get("causal_levelling", FIT_WINDOW),
                    level_inflation_pct=dict(record.get("level_inflation_pct") or {}),
                    g23_readability=record.get("g23_readability", SIGN_TEST),
-                   enough_pairs=record.get("enough_pairs"))
+                   enough_pairs=record.get("enough_pairs"),
+                   readability_test=record.get("readability_test", DELTA_MIN),
+                   half_width_pct=dict(record.get("half_width_pct") or {}),
+                   seed_interval={name: dict(interval) for name, interval
+                                  in (record.get("seed_interval") or {}).items()})
+
+
+#: Where a k > 1 read records the draws ABL-467's test is taken on. A dict keyed
+#: by seed (what ABL-427 wrote) or a plain list; a dict keeps its insertion order,
+#: which is the scope's registered seed order, and the interval is order-invariant
+#: either way.
+SEED_WAPES_KEY = "challenger_wape_pct_per_seed"
+
+
+def seed_wapes_from(cell: dict):
+    """The challenger's per-seed WAPEs a cell recorded, or ``None``.
+
+    ``None`` -- the k = 1 case and every published cell -- is what makes
+    :func:`cell_grade` fall back to ``delta_min`` without the caller electing
+    anything.
+    """
+    recorded = cell.get(SEED_WAPES_KEY)
+    if not recorded:
+        return None
+    return list(recorded.values()) if isinstance(recorded, dict) else list(recorded)
 
 
 def coverage_reason(gate: dict | None) -> str:
@@ -532,7 +751,13 @@ def gated_on_coverage(grade: CellGrade, gate: dict | None) -> CellGrade:
               "bar_weak": grade.bar_weak, "levelling": grade.levelling,
               "level_inflation_pct": grade.level_inflation_pct,
               "g23_readability": grade.g23_readability,
-              "not_readable": grade.not_readable}
+              "not_readable": grade.not_readable,
+              # ABL-467: carried through, so a coverage-held cell still shows the
+              # interval its margin was read against. `X` is a statement about the
+              # rows, not a reason to discard the measurement that was taken.
+              "readability_test": grade.readability_test,
+              "half_width_pct": grade.half_width_pct,
+              "seed_interval": grade.seed_interval}
     # `failed` is rebuilt without any G0 the caller's record already carried, so
     # the reason below is the one this read derived rather than a stale copy.
     failed = tuple((name, reason) for name, reason in grade.failed if name != condition)
@@ -546,7 +771,8 @@ def gated_on_coverage(grade: CellGrade, gate: dict | None) -> CellGrade:
 
 def cell_grade(cell: dict, stream: str, k: int = 1,
                levelling: str = TRAILING_28D,
-               g23_readability: str = FLOORED) -> CellGrade:
+               g23_readability: str = FLOORED,
+               seed_readability: str = STUDENT_T) -> CellGrade:
     """One cell's grade: the one the run recorded, or computed if it recorded none.
 
     The fallback is what lets a ``results.json`` written before ABL-418 be
@@ -566,8 +792,16 @@ def cell_grade(cell: dict, stream: str, k: int = 1,
     disagreeing, with nothing attached to reconcile them.
     """
     recorded = cell.get("grade")
+    # ABL-467's draws are read here for the same reason ABL-434's coverage is:
+    # this function holds the whole cell. They apply only to a grade this call
+    # *computes* -- a recorded grade is the record of what that read decided, and
+    # re-deciding it under a later registration is what ABL-437 forbade. ABL-434's
+    # coverage gate is the one thing applied to both, because a stored `A` beside
+    # `enough_pairs: false` is a contradiction rather than a dated read.
     grade = (CellGrade.from_dict(recorded) if recorded
-             else grade_cell(cell["scores"], stream, k, levelling, g23_readability))
+             else grade_cell(cell["scores"], stream, k, levelling, g23_readability,
+                             seed_wapes=seed_wapes_from(cell),
+                             seed_readability=seed_readability))
     return gated_on_coverage(grade, cell.get("gate"))
 
 
@@ -584,22 +818,42 @@ def scored_conditions(levelling: str = TRAILING_28D) -> tuple:
 
 def grade_cell(scores: dict, stream: str, k: int = 1,
                levelling: str = TRAILING_28D,
-               g23_readability: str = FLOORED) -> CellGrade:
+               g23_readability: str = FLOORED,
+               seed_wapes=None,
+               seed_readability: str = STUDENT_T) -> CellGrade:
     """Grade one gate cell from the scores the harness already computed.
 
     ``scores`` is a cell's ``scores`` mapping as written to ``results.json``:
     ``challenger``, ``seasonal_naive`` and the ABL-389/ABL-437 model-free
     references, each a dict with ``wape_pct``, ``slope`` and ``correlation``.
 
-    ``levelling`` selects which causal pair G2 and G3 read (ABL-437), and
+    ``levelling`` selects which causal pair G2 and G3 read (ABL-437),
     ``g23_readability`` whether they are decided by a sign test or against the
-    readability floor (ABL-444). Both are per-scope registrations in the harness,
-    never run-time choices: a read that could pick its own references or its own
-    decision rule after seeing them is the thing this ladder was pre-registered
-    to prevent.
+    readability floor (ABL-444), and ``seed_readability`` which readability test
+    a k > 1 read is decided by (ABL-467). All three are per-scope registrations
+    in the harness, never run-time choices: a read that could pick its own
+    references or its own decision rule after seeing them is the thing this
+    ladder was pre-registered to prevent.
+
+    ``seed_wapes`` is ABL-467's addition and the only thing here that is not a
+    function of ``scores``. It is the challenger's **per-seed WAPE**, one per
+    fit, and it is passed rather than folded into ``scores`` deliberately:
+    ``scores`` is a mapping of *comparator to its scored metrics*, and a list of
+    draws is not that. Passing the draws rather than a precomputed interval is
+    also deliberate -- the ladder then owns the one implementation of its own
+    test, where a caller handing in an interval could have built it under a
+    different rule (one-sided, ``z`` rather than ``t``, the wrong ``df``) and
+    this function could not tell.
+
+    Omit it and nothing changes: ``delta_min`` decides, exactly as before. That
+    default is what leaves ABL-434's property standing -- ``grade_cell`` remains
+    re-runnable over a stored record with ``scores`` alone, and every published
+    margin-only re-read reproduces byte-for-byte.
     """
     if g23_readability not in G23_READABILITY_FORMS:
         raise ValueError(f"unknown G2/G3 readability form: {g23_readability!r}")
+    if seed_readability not in SEED_READABILITY_FORMS:
+        raise ValueError(f"unknown seed readability form: {seed_readability!r}")
     floor = readability_floor_pct(stream, k)
     conditions_asked = conditions_for(levelling)
     scored = scored_conditions(levelling)
@@ -611,13 +865,53 @@ def grade_cell(scores: dict, stream: str, k: int = 1,
     inflation = {name: level_inflation(scores, name)
                  for name in ("constant_causal", "constant_causal_28d")}
 
+    draws = None if seed_wapes is None else tuple(seed_wapes)
+    if draws is not None:
+        if len(draws) != k:
+            raise ValueError(
+                f"k={k} but {len(draws)} per-seed WAPEs were passed. The seed count "
+                "is what the interval's degrees of freedom are built from, so the "
+                "two cannot be allowed to disagree.")
+        # The draws must belong to *this* cell: their mean is the WAPE the printed
+        # skill column was computed from. Pasting another cell's draws in would
+        # otherwise centre the interval somewhere the point estimate is not, and
+        # the grade would be decided on a spread around the wrong number.
+        if challenger is not None and draws and not math.isclose(
+                statistics.fmean(draws), challenger, rel_tol=1e-9, abs_tol=1e-12):
+            raise ValueError(
+                f"the per-seed WAPEs average {statistics.fmean(draws)!r} but the cell "
+                f"records a challenger WAPE of {challenger!r}. A k>1 read must record "
+                "the mean over its own seeds, or the interval and the graded margin "
+                "describe different quantities.")
+
+    # ABL-467: the cell's own k draws, where the read supplied them and its scope
+    # registers the amended test. Every reference is deterministic, so one set of
+    # challenger draws yields the draws against all of them.
+    intervals = {}
+    if seed_readability == STUDENT_T and draws is not None and len(draws) >= 2:
+        for _, name in scored:
+            interval = skill_interval(seed_skill_draws(draws, comparator_wape(scores, name)))
+            if interval is not None:
+                intervals[name] = interval
+    # A reference with no interval keeps the imported floor, and `half_width_pct`
+    # records exactly which conditions were decided by which -- so a partial read
+    # is visible in the record rather than averaged into one misleading number.
+    half_widths = {name: interval["half_width_pp"] for name, interval in intervals.items()}
+    readability_test = STUDENT_T if half_widths else DELTA_MIN
+
+    def width(name: str) -> float:
+        return half_widths.get(name, floor)
+
+    seed_fields = {"readability_test": readability_test,
+                   "half_width_pct": half_widths, "seed_interval": intervals}
+
     if skill["seasonal_naive"] is None:
         # No gate margin at all: the cell scored nothing, or D-7 did. It is not
         # a C -- nothing lost a race here.
         return CellGrade(grade=None, skill=skill, own_error_margin=own,
                          floor_pct=floor, bar_weak=bar_weaker_than_a_flat_line(scores),
                          levelling=levelling, level_inflation_pct=inflation,
-                         g23_readability=g23_readability)
+                         g23_readability=g23_readability, **seed_fields)
 
     slope = (scores.get("challenger") or {}).get("slope")
     correlation = (scores.get("challenger") or {}).get("correlation")
@@ -625,12 +919,15 @@ def grade_cell(scores: dict, stream: str, k: int = 1,
                    else bool(slope > 0 and correlation > 0))
     level, shape = (name for _, name in scored if name != "seasonal_naive")
     conditions = {
-        "G1": bool(skill["seasonal_naive"] > floor),
+        "G1": bool(skill["seasonal_naive"] > width("seasonal_naive")),
         "G2": None if skill[level] is None else bool(skill[level] > 0),
         "G3": None if skill[shape] is None else bool(skill[shape] > 0),
         "G4": directional,
     }
-    unreadable = abs(skill["seasonal_naive"]) <= floor
+    # ABL-467: `|margin| > half_width` is the same rule ABL-418 registered; only
+    # the estimator of the width moves at k > 1. Under `delta_min` this is
+    # `floor` for every condition and the branch is byte-for-byte the old one.
+    unreadable = abs(skill["seasonal_naive"]) <= width("seasonal_naive")
 
     # ABL-444: under `floored`, a G2/G3 margin inside the floor is neither a pass
     # nor a failure. `G4` is a sign test on the challenger's own slope and
@@ -644,11 +941,17 @@ def grade_cell(scores: dict, stream: str, k: int = 1,
         if conditions[name] is None:
             failed.append((name, f"not measured ({question})"))
             continue
-        margin = skill.get(reference_of.get(name))
+        reference = reference_of.get(name)
+        margin = skill.get(reference)
         if (g23_readability == FLOORED and margin is not None
-                and abs(margin) <= floor):
+                and abs(margin) <= width(reference)):
+            # The reason names the width that actually decided, and where it came
+            # from, so a `N` on a k>1 read cannot be mistaken for one taken
+            # against the imported fleet floor.
+            source = ("readability floor" if reference not in half_widths else
+                      f"95% Student-t half-width on {intervals[reference]['n_seeds']} seeds")
             not_readable.append((name, f"margin {margin:+.2f}% sits inside the "
-                                       f"{floor:.2f}% readability floor ({question})"))
+                                       f"{width(reference):.2f}% {source} ({question})"))
             continue
         if not conditions[name]:
             failed.append((name, question))
@@ -656,13 +959,14 @@ def grade_cell(scores: dict, stream: str, k: int = 1,
     common = {"skill": skill, "own_error_margin": own, "floor_pct": floor,
               "bar_weak": bar_weaker_than_a_flat_line(scores),
               "levelling": levelling, "level_inflation_pct": inflation,
-              "g23_readability": g23_readability, "not_readable": tuple(not_readable)}
+              "g23_readability": g23_readability, "not_readable": tuple(not_readable),
+              **seed_fields}
     if unreadable:
         # G2/G3 must clear *readably* for the plus, on the same floor G1 uses.
         # This test predates ABL-444 and is where the floor was already applied
         # to these two conditions -- the amendment carries it to the other branch
         # rather than introducing it. G4 enters as-is, being a sign test.
-        readable = all(skill[name] is not None and skill[name] > floor
+        readable = all(skill[name] is not None and skill[name] > width(name)
                        for name in (level, shape))
         return CellGrade(grade="U", plus=bool(readable and conditions["G4"]),
                          conditions=conditions, failed=tuple(failed), **common)
@@ -683,7 +987,8 @@ def grade_cell(scores: dict, stream: str, k: int = 1,
 
 def attach_grades(cells: list[dict], stream: str, k: int = 1,
                   levelling: str = TRAILING_28D,
-                  g23_readability: str = FLOORED) -> list[dict]:
+                  g23_readability: str = FLOORED,
+                  seed_readability: str = STUDENT_T) -> list[dict]:
     """Add a ``grade`` block to every gate cell, in place, and return them.
 
     One call site per harness, right where ``gate_cells`` is assembled, so the
@@ -696,7 +1001,9 @@ def attach_grades(cells: list[dict], stream: str, k: int = 1,
     minimum n, rather than being held later by whoever reads the record.
     """
     for cell in cells:
-        grade = grade_cell(cell["scores"], stream, k, levelling, g23_readability)
+        grade = grade_cell(cell["scores"], stream, k, levelling, g23_readability,
+                           seed_wapes=seed_wapes_from(cell),
+                           seed_readability=seed_readability)
         cell["grade"] = gated_on_coverage(grade, cell.get("gate")).as_dict()
     return cells
 
@@ -737,14 +1044,35 @@ def pair_grade(cell_grades) -> CellGrade:
                      level_inflation_pct=worst.level_inflation_pct,
                      g23_readability=worst.g23_readability,
                      not_readable=worst.not_readable,
-                     enough_pairs=worst.enough_pairs)
+                     enough_pairs=worst.enough_pairs,
+                     readability_test=worst.readability_test,
+                     half_width_pct=worst.half_width_pct,
+                     seed_interval=worst.seed_interval)
 
 
 def grading_prose(stream: str, k: int = 1, levelling: str = TRAILING_28D,
-                  g23_readability: str = FLOORED) -> list[str]:
+                  g23_readability: str = FLOORED,
+                  seed_readability: str = STUDENT_T) -> list[str]:
     """The paragraph that says what the grade column is and what it is not."""
     floor = readability_floor_pct(stream, k)
     references = LADDER_REFERENCES[levelling]
+    seed_test = (
+        [f"**Readability test (ABL-467): `{seed_readability}`.** This read has k={k} fits per cell, so each "
+         f"condition is decided against the **two-sided 95% Student-t interval on its own k skill draws** — "
+         f"`t(0.975, {k - 1}) * sd / sqrt({k})`, per reference, printed on every cell — and not against the "
+         f"**{floor:.2f}%** `delta_min` floor, which stays reported beside it. `delta_min` imports a fleet "
+         f"percentile because a k=1 read has no spread of its own; at k>1 that import is unnecessary and the cell's "
+         f"own draws are the exact small-sample test. **The point estimate does not move** — skill is affine in WAPE "
+         f"against a deterministic reference, so the mean of the draws *is* the printed `skill vs X` column. This is "
+         f"not the more permissive test: it is stricter than `delta_min` wherever the cell's own seed CV exceeds "
+         f"about `z/t` of the fleet p90."]
+        if seed_readability == STUDENT_T and k > 1 else
+        [f"**Readability test (ABL-467): `{seed_readability}`.** Every condition is decided against ABL-385's "
+         f"imported `delta_min` floor, **{floor:.2f}%** for this stream at k={k}"
+         + (", which is the only tool available: a single fit carries no internal estimate of its own spread."
+            if k == 1 else
+            ", which is what this scope was registered and published under. ABL-467 registers the Student-t "
+            "interval on the seed draws for new k>1 scopes.")])
     readability = (
         [f"**G2/G3 readability (ABL-444): `{g23_readability}`.** G2 and G3 are decided against the same "
          f"**{floor:.2f}%** floor G1 carries, not by a bare sign test. A margin inside it is **`N` — not readable**: "
@@ -804,12 +1132,15 @@ def grading_prose(stream: str, k: int = 1, levelling: str = TRAILING_28D,
         *amendment,
         "",
         *readability,
+        "",
+        *seed_test,
     ]
 
 
 def grade_summary_table(cells: list[dict], stream: str, key, k: int = 1,
                         levelling: str = TRAILING_28D,
-                        g23_readability: str = FLOORED) -> list[str]:
+                        g23_readability: str = FLOORED,
+                        seed_readability: str = STUDENT_T) -> list[str]:
     """The per-pair grade roll-up, under the per-cell table.
 
     ``key`` maps a cell to its pair label, so the wind harness can key on
@@ -823,7 +1154,8 @@ def grade_summary_table(cells: list[dict], stream: str, key, k: int = 1,
         if label not in pairs:
             order.append(label)
             pairs[label] = []
-        pairs[label].append(cell_grade(cell, stream, k, levelling, g23_readability))
+        pairs[label].append(cell_grade(cell, stream, k, levelling, g23_readability,
+                                       seed_readability))
     lines = ["", "### Graded disposition, per pair", "",
              "| pair | bands | grade | failed conditions | not readable | "
              "bar weaker than a flat line? |",

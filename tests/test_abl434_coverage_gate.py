@@ -312,6 +312,20 @@ MARGIN_ONLY_READERS = {
     "scripts/abl444_g23_floor_reread.py":
         "the published G2/G3 floor re-read, asserted byte-identical to a live run "
         "by tests/test_abl444_g23_readability_floor.py",
+    # Added by ABL-467, and it is a **repair of a red main** rather than a new
+    # decision to publish an ungated grade. ABL-427 (PR #80) and ABL-434 (PR #79)
+    # merged back to back, each green on the base it was branched from: #80 landed
+    # a fifth `grade_cell` caller and #79 landed the registry that has to name it,
+    # and neither branch could see the other. This assertion has been failing on
+    # `main` since ca3c7f8, on a tree neither author ever ran.
+    #
+    # The entry is the one ABL-434 would have written had the script existed then
+    # -- checked, not assumed: all six of ABL-427's cells clear their registered
+    # minimum n (720/684, 720/684, 510/456, and the same three for HR), so routing
+    # it through the coverage gate would change no letter.
+    "scripts/abl427_tranche2c_seed_reread.py":
+        "the published k=12 seed re-read of tranche 2c; all six of its cells meet "
+        "their registered minimum n, and it prints `meets_minimum_n` per cell",
 }
 
 

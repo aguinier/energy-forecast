@@ -24,8 +24,8 @@ import config
 from src import db
 from src.data_quality import find_suspect_constant_runs
 from src.evaluation.gate_grading import (
-    FLOORED, SIGN_TEST, attach_grades, cell_grade, grade_summary_table,
-    grading_prose,
+    DELTA_MIN, FLOORED, SIGN_TEST, STUDENT_T, attach_grades, cell_grade,
+    grade_summary_table, grading_prose,
 )
 from src.evaluation.model_free_reference import (
     FIT_WINDOW, MODEL_FREE_COMPARATORS, TRAILING_28D,
@@ -533,6 +533,61 @@ def g23_readability_for(scope: str) -> str:
     return G23_READABILITY.get(scope, FLOORED)
 
 
+# ABL-467: which readability test a read at k > 1 seeds is decided by.  The wind
+# harness carries the twin of this table; the argument is stated once, here,
+# because solar is where the only k > 1 gate read in the programme exists
+# (ABL-427's IT and HR).
+#
+# `delta_min` imports a fleet percentile for the spread, which is the right and
+# only tool at k = 1 -- a single fit carries no internal estimate of its own
+# variability.  At k > 1 the cell has k honest draws of the graded quantity and
+# Student's t on them is the exact small-sample test, so the import is
+# unnecessary and its degrees of freedom already account for the sd having been
+# estimated.  `reports/abl_467_seed_interval_readability_registration.md` is the
+# argument, and prices a sign test, a Wilcoxon signed-rank test and a bootstrap
+# over seeds against it.
+#
+# **This table exists because, unlike ABL-434's coverage gate, this amendment is
+# not one-way** -- a sharper test can raise a letter as well as lower one.  Every
+# published scope is therefore pinned to `delta_min`, the form its committed
+# letters were decided under.  Two independent things have to hold for a
+# published letter to move and neither does: the scope would have to be listed
+# below with `student_t`, *and* the read would have to be at k > 1.  Every
+# committed graded cell in the programme is k = 1 (613 of them, checked), and at
+# k = 1 the t test has no degrees of freedom, so `grade_cell` falls back to
+# `delta_min` structurally whatever this table says.
+#
+# It is deliberately **not** in the `check_registration_tables` call below, and
+# is declared in `UNCHECKED_REGISTRATION_TABLES` with that reason, for the same
+# structural grounds as `CAUSAL_LEVELLING` and `G23_READABILITY`: that check
+# requires every scope in the union to appear in every table it is given, so
+# requiring this one would force each scope to be pinned and delete the
+# default-toward-amendment behaviour.  What a missing row costs here is bounded
+# differently from those two and is worth naming: a new k > 1 scope that forgets
+# a row gets the *amended* test, which is the one this registration argues is
+# correct -- and a new k = 1 scope, which is every scope to date, cannot be
+# affected at all.
+SEED_READABILITY = {
+    "abl253": DELTA_MIN,
+    "abl316-t1b": DELTA_MIN,
+    "abl316-t2a": DELTA_MIN,
+    "abl316-t2c": DELTA_MIN,
+    "abl316-t2d": DELTA_MIN,
+    "abl376": DELTA_MIN,
+    # ABL-427's k = 12 re-read of tranche 2c.  Pinned to the form its published
+    # pack was decided under -- which is stricter still than `delta_min` here,
+    # being ABL-427's own chi-square upper bound on the measured CV rather than
+    # this module's fleet floor.  The amended re-grade is a separate scope and a
+    # separate document, exactly as ABL-444's re-read was.
+    "abl427-t2c-reread": DELTA_MIN,
+}
+
+
+def seed_readability_for(scope: str) -> str:
+    """The scope's registered k>1 readability test, or ABL-467's amended default."""
+    return SEED_READABILITY.get(scope, STUDENT_T)
+
+
 # ABL-376: what the fit is allowed to *see* is a registered property of the scope
 # too, and for the same reason as the basis -- two gate reads are not comparable
 # unless both say what they trained on.  `energy_renewable` carries solar for FR
@@ -1017,6 +1072,20 @@ UNCHECKED_REGISTRATION_TABLES = {
     # is `SIGN_TEST`, which is strictly stronger than the presence check this
     # call would give.
     "G23_READABILITY": "defaults toward ABL-444's amendment (abstain); published pins asserted by value",
+    # ABL-467: the third member of the same family, exempt on the same structural
+    # grounds -- requiring it would force every scope to be pinned and delete the
+    # default-toward-amendment behaviour.
+    #
+    # Its fall-through is the *less* conservative direction, unlike ABL-444's, so
+    # the hazard has to be answered differently.  It is answered by k. A
+    # fall-through row can only bind a read at k > 1, because at k = 1 there is
+    # nothing to take a t of and `grade_cell` uses `delta_min` whatever this table
+    # says.  Every committed graded cell in the programme is k = 1, so no
+    # published letter is reachable by this default under any value -- and the
+    # published scopes are pinned by *value* in
+    # `test_every_published_scope_pins_delta_min` rather than by presence here,
+    # which is the same strictly-stronger check `G23_READABILITY` relies on.
+    "SEED_READABILITY": "defaults toward ABL-467's amendment; binds only k>1 reads; published pins asserted by value",
 }
 
 # `tests/test_abl421_not_evaluable.py` holds the line for the one scope that
@@ -1193,6 +1262,12 @@ def render_markdown(result: dict) -> str:
     # ABL-444, same rule and same reason: a record with no `g23_readability` key
     # was decided by a sign test, so re-rendering it must not floor it.
     readability = meta.get("g23_readability", SIGN_TEST)
+    # ABL-467, same rule and same reason: a record with no `seed_readability` key
+    # was decided against `delta_min`, and a re-render must not re-decide it
+    # against an interval its author never took. `k` defaults to 1 for the same
+    # reason -- every record written before this amendment is a one-fit read.
+    seed_test = meta.get("seed_readability", DELTA_MIN)
+    seeds = meta.get("k", 1)
     # ABL-376: the title used to be the ABL-253 literal, which put that issue's
     # name on every other scope's report. `abl253` keeps its exact heading, so
     # the dispositioned read still renders byte-for-byte.
@@ -1235,7 +1310,8 @@ def render_markdown(result: dict) -> str:
         "",
         # ABL-418: what the PASS in the last column entitles the cell to. The
         # gate column is unchanged and still says whether the cell cleared D-7.
-        *grading_prose(GRADE_STREAM, levelling=levelling, g23_readability=readability),
+        *grading_prose(GRADE_STREAM, k=seeds, levelling=levelling, g23_readability=readability,
+                       seed_readability=seed_test),
         "",
         "| country | horizon | n | challenger WAPE | D-7 WAPE | skill vs D-7 | constant causal WAPE | constant causal 28d WAPE | constant oracle WAPE | climatology causal WAPE | climatology causal 28d WAPE | climatology oracle WAPE | level inflation (causal / 28d) | incumbent WAPE | MAE | bias | slope | corr | gate | grade |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|",
@@ -1246,8 +1322,9 @@ def render_markdown(result: dict) -> str:
         # A cell that scored no rows has None on both sides. It renders as
         # "Not measured", never as a number and never as a crash.
         skill = "Not measured" if chal is None or naive is None else f"{100 * (1 - chal / naive):+.1f}%"
-        grade = cell_grade(row, GRADE_STREAM, levelling=levelling,
-                           g23_readability=readability).detail
+        grade = cell_grade(row, GRADE_STREAM, k=seeds, levelling=levelling,
+                           g23_readability=readability,
+                           seed_readability=seed_test).detail
         lines.append(
             f"| {row['country']} | {row['horizon_band']} | {row['gate']['n']:,} | "
             f"{_fmt(scores['challenger']['wape_pct'], '%')} | {_fmt(scores['seasonal_naive']['wape_pct'], '%')} | "
@@ -1263,7 +1340,8 @@ def render_markdown(result: dict) -> str:
             f"{_fmt(scores['challenger']['correlation'])} | {'PASS' if row['gate']['pass'] else 'FAIL'} | {grade} |"
         )
     lines.extend(grade_summary_table(cells, GRADE_STREAM, lambda row: row["country"],
-                                     levelling=levelling, g23_readability=readability))
+                                     k=seeds, levelling=levelling, g23_readability=readability,
+                                     seed_readability=seed_test))
     lines.extend(not_evaluable_table(result))
     lines.extend(levels_table(result["training"]))
     # The protocol-count sentence below is a measured ABL-253 fact about that
@@ -1561,8 +1639,13 @@ def main() -> int:
     # as they were.  The stream selects ABL-385's registered CV, and passing the
     # wrong one would silently apply wind's narrower floor --
     # `tests/test_gate_grading.py` reads this literal out of the AST.
+    # ABL-467: `seed_readability` is passed but this harness fits one model per
+    # cell, so no cell carries per-seed WAPEs and `delta_min` decides whatever the
+    # table says. It is wired through rather than omitted so that a k>1 harness
+    # inherits the registered form instead of inventing one.
     attach_grades(gate_cells, GRADE_STREAM, levelling=causal_levelling_for(args.scope),
-                  g23_readability=g23_readability_for(args.scope))
+                  g23_readability=g23_readability_for(args.scope),
+                  seed_readability=seed_readability_for(args.scope))
     passed = sum(row["gate"]["pass"] for row in gate_cells)
     contaminated = any(row["constant_runs"] for row in training)
     verdict, recommendation = disposition(gate_cells, registered_cells, contaminated)
@@ -1578,6 +1661,7 @@ def main() -> int:
                        "scope": args.scope, "registered_countries": list(registered_countries),
                        "causal_levelling": causal_levelling_for(args.scope),
                        "g23_readability": g23_readability_for(args.scope),
+                       "seed_readability": seed_readability_for(args.scope),
                        # ABL-421: the *evaluable* cell count, which is the grid
                        # minus whatever the registration declared unscorable. The
                        # grid size is recorded beside it rather than left to be

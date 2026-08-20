@@ -1,0 +1,135 @@
+{
+  "issue": "ABL-467",
+  "parent": "ABL-316",
+  "filed_by": "ABL-427 section 7.3, which required this amendment to be argued in its own issue rather than taken inside the read whose letter it moves",
+  "title": "Pre-registered amendment: at k > 1 the readability test is the Student-t interval on the seed draws",
+  "status": "PRE-REGISTERED - frozen before the amended ladder is read against any pair",
+  "registered_at": "2026-08-14T00:00:00Z",
+  "registered_by": "Forecasting Scientist",
+  "evidence_pack": "reports/abl_467_seed_interval_readability_registration.md",
+
+  "what_this_amends": "Where the half-width in the ladder's `|margin| > half_width` rule comes from, for a read at k > 1 seeds. Nothing else.",
+  "what_this_does_not_amend": {
+    "the_registered_bar": "Seasonal-naive D-7. ABL-348's windows, bands, metric, baseline, minimum n and source are untouched, so `voids_this_registration` on ABL-348 is not triggered.",
+    "the_point_estimate": "The graded column is still `100 * (1 - challenger / reference)`. Against a deterministic reference skill is affine in WAPE, so the mean of the per-seed skills IS the printed column - measured at under 1.3e-14 pp on all six ABL-427 cells.",
+    "k_equals_1": "`delta_min` is unchanged and remains the only tool at k = 1, where there are no degrees of freedom to take a t on. Every published letter is a k = 1 letter.",
+    "the_ladder_conditions": "G1-G4 ask what they asked. G4 is a sign test on the challenger's own slope and correlation and has no margin to read against any width.",
+    "the_oracle_references": "Still reported, still on no ladder (ABL-389).",
+    "abl434_coverage": "A different guard on a different property, not folded in."
+  },
+
+  "defect": {
+    "mechanism": "`delta_min(k) = 1.96 * c_A / sqrt(k)` imports c_A from a fleet 90th-percentile CV measured over other pairs. That import exists because a k = 1 read carries no internal estimate of its own spread. At k > 1 the cell has k honest draws of the graded quantity and the import answers the wrong question - how much do fits of this stream vary, rather than how much does this cell vary.",
+    "double_count": "Pairing a chi-square upper bound on c_A with a z critical value counts the same estimation uncertainty twice: once widening the CV to its upper confidence limit, once again using the critical value that assumes the CV is known. That pairing is what ABL-427's scope-level rule did.",
+    "why_student_t": "Student's t on the k draws is the exact small-sample test, and its degrees of freedom ARE the correction for the sd having been estimated.",
+    "rule_is_unchanged_in_form": "A condition is readable iff |margin| > half_width. `CI excludes 0` and `|mean| > t * se` are the same statement, so only the estimator of half_width moves."
+  },
+
+  "the_amendment": {
+    "k_equals_1": "half_width = 1.96 * c_A_fleet_p90 / sqrt(k), imported (ABL-385, unchanged)",
+    "k_greater_than_1": "half_width = t(0.975, k-1) * sd(draws) / sqrt(k), measured from the cell's own draws",
+    "per_condition": "G1, G2 and G3 have different denominators, so each gets its own half-width. All three derive from one set of per-seed CHALLENGER WAPEs, because no reference on this ladder moves when the challenger is refitted.",
+    "c_B_zero_is_load_bearing": "The same property the floor's own sqrt(2) correction rests on. A stochastic reference would need its own draws and voids this registration.",
+    "three_way_outcome": "CI entirely above 0 -> the condition holds; CI contains 0 -> U (or N under ABL-444's floored form for G2/G3); CI entirely below 0 -> C. Exactly the mapping delta_min already had.",
+    "critical_values": "T_CRIT_95 pinned in `src/evaluation/gate_grading.py` for df 1..30, checked against scipy in tests, so no registered verdict can move on a dependency upgrade. Above df = 30 the value falls back to z, anti-conservative by at most 3.9% of the correct half-width and shrinking; no such read exists.",
+    "not_the_more_permissive_test": "The t half-width exceeds the unamended fleet floor whenever the cell's own seed CV exceeds about (z / t_{k-1}) of the fleet p90 - roughly 93% of it at k = 12. On ABL-427's six cells three sit above that line: ALL THREE HR CELLS are graded against a half-width WIDER than the unamended floor at k = 12 and still clear it."
+  },
+
+  "api": {
+    "draws_not_a_precomputed_interval": "Decided deliberately, per the issue. The ladder owns the one implementation of its own test; a caller handing in an interval could have built it one-sided, with z, or with the wrong df, and grade_cell could not tell. An interval is also really three intervals whose selection depends on the scope's registered levelling, which would leak this registration into every caller.",
+    "scores_is_not_widened": "`seed_wapes` is an explicit parameter. `scores` stays a mapping of comparator to scored metrics; a list of draws is not that.",
+    "abl434_property_preserved": "`seed_wapes` defaults to None, so grade_cell with scores alone is byte-for-byte the function ABL-434 registers. The draws are read off the CELL by cell_grade and attach_grades - the same two functions ABL-434 uses for coverage, for the same reason.",
+    "guards": [
+      "len(seed_wapes) != k raises: the seed count is what the degrees of freedom are built from",
+      "draws whose mean is not the cell's recorded challenger WAPE raise: catches a paste from another cell, which would otherwise centre the interval on one cell's mean while grading another's margin"
+    ],
+    "recorded_only_when_used": "`readability_test`, `half_width_pct` and `seed_interval` are serialised only where the read was seed-decided, on ABL-434's rule that the key's presence dates the read. `floor_pct` stays on both forms so the two widths are comparable from the record alone."
+  },
+
+  "scope_registration": {
+    "table": "SEED_READABILITY, in both gate harnesses",
+    "forms": ["delta_min", "student_t"],
+    "published_scopes_pinned_to": "delta_min",
+    "published_solar_scopes": ["abl253", "abl316-t1b", "abl316-t2a", "abl316-t2c", "abl316-t2d", "abl376", "abl427-t2c-reread"],
+    "published_wind_scopes": ["abl195", "abl322-pilot", "abl380-tranche1a", "abl406-tranche2b", "abl417-tranche2e", "abl435-tranche2f"],
+    "unregistered_scope_default": "student_t",
+    "why_a_table_at_all": "Unlike ABL-434's coverage gate this amendment is NOT one-way - a sharper test can raise a letter as well as lower one - so published scopes are pinned rather than relying on direction.",
+    "why_the_default_is_safe_anyway": "Two independent things must hold for a published letter to move and neither does: the scope must be listed with student_t, AND the read must be at k > 1. Every committed graded cell in the programme is k = 1 (613 checked), and at k = 1 grade_cell falls back to delta_min structurally whatever the table says.",
+    "not_in_check_registration_tables": "Structural, as for CAUSAL_LEVELLING and G23_READABILITY: that check requires every scope in the union to appear in every table it is given, so requiring this one would force each scope to be pinned and delete the default-toward-amendment behaviour. Published pins are asserted by VALUE in tests/test_abl467_seed_interval.py::test_every_published_scope_pins_delta_min, which is strictly stronger than presence."
+  },
+
+  "affected_set_verified_before_registration": {
+    "method": "Three independent checks, all in tests/test_abl467_seed_interval.py, measured against main at ca3c7f8 which already contains ABL-427's record",
+    "no_call_site_passes_k_greater_than_1": true,
+    "committed_graded_cell_records": 631,
+    "records_at_k_equals_1": 613,
+    "distinct_k1_floor_pct_values": {"solar": 10.6482, "wind": 7.5054},
+    "records_at_k_greater_than_1": 18,
+    "records_at_k_greater_than_1_location": "all 18 in reports/abl_427_tranche2c_seed_reread.json - six cells published under three candidate floors each. No other file carries a non-k=1 floor at all.",
+    "replay_calls_byte_identical_to_pre_amendment_module": 1568,
+    "committed_score_blocks_replayed": 196,
+    "replay_baseline": "origin/main's gate_grading.py, i.e. after ABL-434 merged",
+    "assertion_is_an_equality": "so a second k > 1 read landing anywhere goes red until it is named",
+    "conclusion": "The only k > 1 graded cells in the programme are ABL-427's six, exactly as the issue states. abl427-t2c-reread is pinned to delta_min so its published letters stand."
+  },
+
+  "red_main_found_and_repaired": {
+    "what": "test_every_ungated_caller_is_registered_with_a_reason has been failing on main since ca3c7f8, independently of this branch.",
+    "why": "ABL-427 (PR #80) and ABL-434 (PR #79) merged back to back on 2026-08-14. #80 landed a fifth grade_cell caller (scripts/abl427_tranche2c_seed_reread.py) and #79 landed MARGIN_ONLY_READERS, the registry that has to name every such caller. Each branch was green on the base it was cut from; neither could see the other.",
+    "verified_how": "checked out origin/main detached and ran tests/test_abl434_coverage_gate.py alone, before making any change",
+    "fix": "the registry entry ABL-434 would have written had the script existed. ABL-427's read is margin-only and fully covered - all six cells clear their registered minimum n (720/684, 720/684, 510/456 and the same three for HR, checked against the record) - so routing it through the coverage gate would change no letter.",
+    "not_a_new_decision": "This is a repair of a broken assertion, not a decision to publish an ungated grade."
+  },
+
+  "disclosure": {
+    "this_could_not_be_registered_blind": "ABL-427's pack published the six Student-t intervals and the letters they imply (section 4 of reports/abl_427_tranche2c_seed_reread_findings.md, PR #80), and its section 7.3 predicted this issue's outcome in writing before this issue was assigned. The affected set was already public.",
+    "what_pre_registration_still_buys": [
+      "the argument is made on properties of the two estimators, not on which pair they favour",
+      "the outcome is fixed before the re-grade runs, pinned in EXPECTED_UNDER_THE_AMENDMENT",
+      "the alternatives are priced on the same six cells, including the two that would make HR U"
+    ]
+  },
+
+  "prediction_registered_before_the_regrade": {
+    "IT_24-36h": "A", "IT_36-48h": "U", "IT_48-64h": "A",
+    "HR_24-36h": "A", "HR_36-48h": "A", "HR_48-64h": "A",
+    "IT_pair": "U", "HR_pair": "A",
+    "cells_moving": 2,
+    "pair_letters_moving": 1,
+    "source": "ABL-427 section 7.3, published before this issue was assigned",
+    "pinned_in": "tests/test_abl467_seed_interval.py::EXPECTED_UNDER_THE_AMENDMENT"
+  },
+
+  "alternatives_priced": {
+    "measured_on": "ABL-427's six cells, k = 12",
+    "student_t": "IT U / HR A - registered",
+    "wilcoxon_signed_rank": "IT U / HR A - agrees on all six cells; the standing fallback if a future read's draws are visibly skewed. Amending to it would be a new registration.",
+    "percentile_bootstrap_20k": "IT U / HR A - agrees on all six cells, but not deterministic: across 10 RNG seeds IT 36-48h's lower bound ranged -0.117 to -0.005. A registered verdict must reproduce exactly.",
+    "sign_test": "IT A / HR U - the lone dissenter, and it dissents in BOTH directions, exactly inverting the pair verdicts. It discards magnitude, and at n = 12 its attainable p-values are so coarse (9/12 -> 0.146, 10/12 -> 0.039, nothing between) that it has about three usable outcomes.",
+    "why_t": [
+      "exact under its assumption, and that assumption is the one delta_min already makes implicitly - a normal-theory interval with an imported sd rather than a measured one. Choosing t reduces the number of unstated assumptions.",
+      "deterministic and closed-form, so a registered verdict reproduces exactly",
+      "no dependency on the decision path: T_CRIT_95 is pinned and checked against scipy in tests"
+    ]
+  },
+
+  "how_the_already_graded_pair_is_handled": {
+    "rule": "No committed record is edited or regenerated. The amended read is a new scope, abl467-t2c-regrade, and a new document - the route ABL-444's re-read took.",
+    "method": "Arithmetic over ABL-427's committed per-seed WAPEs. No refit, no replica write, no artifact saved.",
+    "order": "This registration is committed before the re-grade is computed, and the two are separate commits.",
+    "input": "reports/abl_427_tranche2c_seed_reread.json, merged to main as PR #80 at dbc37af while this issue was in flight. It was open when this branch was cut. The re-grade reads the committed file and pins its blob hash 47e2d9a7fe1073bae84b695c4fbe206490fe6ef3, so it is reproducible from this tree alone and cannot silently read a different vintage. The registration and the amendment have no dependency on it either way - their tests pin the six cells by raw per-seed WAPE, inline."
+  },
+
+  "caveats": {
+    "normality": "Assumed by t and not testable to useful power at k = 12 - Shapiro-Wilk returns p = 0.11 to 0.55 on all six, which is failure to reject, not evidence of normality. Answered by the two distribution-free tests agreeing on every cell rather than by the Shapiro result.",
+    "bands_share_a_fit": "ABL-427's caveat, inherited: the three bands of one country are not three independent estimates, so a pair letter is not a joint 95% statement.",
+    "multiplicity": "Not corrected. Each cell is a separate 95% test, exactly as delta_min was applied per cell; the amendment changes the width, not the number of tests.",
+    "the_two_floors_nearly_coinciding_at_k12": "Arithmetic, not a theorem: these cells' measured CV sits below the fleet p90 by about the factor by which t(11) exceeds z. Not to be expected at another k or on another stream."
+  },
+
+  "contamination": "ABL-67 is net_position-only; ABL-109 and ABL-111 are energy_load-only - none of those tables is read here. ABL-71's known wrong-write modes are load and net position, a provenance caveat on this window rather than proof that solar ingest is pristine. ABL-332's sub-hourly aggregation fires on both pairs and is the registered behaviour. Carried from ABL-427 and unchanged by an arithmetic amendment.",
+
+  "voids_this_registration": "any stochastic reference joining the ladder (c_B ceases to be 0 and every width here must be recomputed); any change to which conditions the interval applies to; any change to the confidence level, the critical-value table, or the three-way mapping of the interval onto A/U/C; any change to ABL-348's windows, bands, metric, baseline, minimum n or source.",
+
+  "promotion": "This amends how a grade is read. It promotes nothing and recommends nothing. HR resolving A makes it promotion-ELIGIBLE under ABL-418, which is necessary and not sufficient - and ABL-427 section 5 measured that 1 to 3 of 12 fits per cell lose to seasonal-naive D-7 outright, sd of skill 4.75-4.98pp against mean margins of 2.69-6.29pp. Promotion is a CEO-to-Board decision on an evidence pack."
+}
