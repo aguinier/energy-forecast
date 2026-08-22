@@ -173,12 +173,46 @@ CZ 24.10 → 23.96, HU 18.35 → 18.18, PL 26.11 → 25.99, RO 24.41 → 24.29,
 SI 22.28 → 21.65, SK 19.14 → 18.78. **BG and CH are unchanged to the digit.**
 
 That split is the signature of ABL-332's hourly averaging, not of replica
-revision: BG and CH are hourly-native, and every country that moved is one the
-loader now aggregates from 15-minute rows instead of sub-sampling the `:00`
-instant. ABL-405 ran **after** ABL-332 and its published D-7 reproduces today to
-the printed digit, so ABL-405 and this read share loader semantics and remain
-comparable. What is *not* comparable is either of them against ABL-348's
-2026-08-12 bars, and that is a caveat on the bars, not on the reads.
+revision. ABL-332 landed on `src/db.py` at **2026-08-12 19:43 UTC** (`70f835e`);
+ABL-348's bars were taken earlier that day and ABL-405 ran 2026-08-13 20:18 UTC,
+so the bars are pre-ABL-332 and ABL-405 is post. BG and CH are hourly-native, and
+every country that moved is one the loader now aggregates from 15-minute rows
+instead of sub-sampling the `:00` instant. ABL-322's twin registration was
+restated for exactly this reason on the same night (`2ddec62`); ABL-348's was not,
+and `experiments/ABL348/config.json` does not mention ABL-332 anywhere. **Filed
+separately** — it affects every 15-minute pair in the programme, and no verdict
+turns on it, because the harness recomputes D-7 inside the gate window.
+
+### The replica-vintage confound is measured, and it is ~0.04pp
+
+This is the control the whole A/B rests on, so it is taken before the challenger
+exists rather than argued afterwards. D-7 is **model-free**: if ABL-405's
+published D-7 still reproduces on today's replica, then nothing the two reads are
+scored against has moved between them, and a challenger difference is the table.
+
+| | ABL-405's harness D-7, 24–36h (2026-08-13) | this screen on `energy_renewable` (2026-08-22) | ABL-348's registered bar (2026-08-12) |
+|---|---:|---:|---:|
+| BG | 24.40 | 24.40 | 24.40 |
+| CH | 12.67 | 12.67 | 12.67 |
+| CZ | 23.96 | 23.96 | 24.10 |
+| HU | 18.18 | 18.18 | 18.35 |
+| PL | 26.00 | 26.00 | 26.11 |
+| RO | 24.29 | 24.29 | 24.41 |
+| SI | 21.65 | 21.65 | 22.28 |
+| SK | 18.82 | 18.78 | 19.14 |
+
+**Seven of eight reproduce exactly.** SK moves by 0.04pp, which is a real
+revision inside a frozen window and is the measured upper bound on the vintage
+confound for this comparison. Everything else in the middle column is unmoved
+nine days later.
+
+Note that the two columns are not the same estimator — ABL-405's is the harness's
+per-band D-7 on the finite intersection, this screen's is a whole-gate-window D-7
+on the plain hourly series — so their agreeing to 2 dp on seven pairs is a
+stronger statement than a like-for-like match would be.
+
+§6's per-cell D-7 delta between the two arms is the same control taken again,
+inside the harness, at full precision.
 
 ---
 
