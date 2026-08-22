@@ -97,6 +97,20 @@ def _delta(b, a):
     return None if a is None or b is None else b - a
 
 
+def _verdict(cell: dict) -> str:
+    """PASS / FAIL / no gate block, from ABL-434's `gate.pass`.
+
+    Rendered as the string the reports print rather than the raw bool, so a
+    verdict change reads as `PASS -> FAIL` in the summary instead of `True ->
+    False` -- these two arms are read side by side with two harness reports that
+    print the words.
+    """
+    block = cell.get("gate")
+    if not isinstance(block, dict) or "pass" not in block:
+        return "not recorded"
+    return "PASS" if block["pass"] else "FAIL"
+
+
 def _grade(cell: dict) -> str:
     # `abl316-t2a` and `abl316-t2a-generation` both pin FIT_WINDOW levelling and
     # SIGN_TEST readability, and both are k = 1, so the same call serves both
@@ -104,8 +118,19 @@ def _grade(cell: dict) -> str:
     # `cell_grade`'s defaults are TRAILING_28D/FLOORED, which is neither arm's
     # registration, and a silently re-levelled letter is exactly what ABL-437
     # forbade.
+    # `.label`, not `.grade`: the ladder distinguishes `U` from `U(+)` and the
+    # bare field flattens the two. Three of ABL-405's published 2a cells are
+    # `U(+)`, so reading `.grade` here would report a grade change on HU that is
+    # only a rendering.
     return cell_grade(cell, STREAM, K, levelling=FIT_WINDOW,
-                      g23_readability=SIGN_TEST, seed_readability=DELTA_MIN).letter
+                      g23_readability=SIGN_TEST, seed_readability=DELTA_MIN).label
+
+
+def _grade_conditions(cell: dict) -> dict:
+    """G1..G4 for the cell, so a letter change can be attributed to a condition."""
+    return cell_grade(cell, STREAM, K, levelling=FIT_WINDOW,
+                      g23_readability=SIGN_TEST,
+                      seed_readability=DELTA_MIN).conditions
 
 
 def compare(a_record: dict, b_record: dict) -> dict:
@@ -119,14 +144,28 @@ def compare(a_record: dict, b_record: dict) -> dict:
     rows = []
     for key in sorted(set(a_cells) & set(b_cells)):
         a, b = a_cells[key], b_cells[key]
+        # `gate` is ABL-434's coverage block, not a verdict string: it carries
+        # `pass`, `beats_d7`, `enough_pairs` and the cell's own n. Comparing the
+        # whole block would fire `gate_changed` on an n difference -- which CZ and
+        # PL have between the two tables -- and report a coverage change as a
+        # verdict change. The verdict is `pass`; the rest is reported beside it.
         row = {
             "country": key[0], "horizon_band": key[1],
             "n": {"renewable": _n(a, "challenger"), "generation": _n(b, "challenger")},
-            "gate": {"renewable": a["gate"], "generation": b["gate"]},
-            "gate_changed": a["gate"] != b["gate"],
-            "grade": {"renewable": _grade(a), "generation": _grade(b)},
+            "gate": {"renewable": _verdict(a), "generation": _verdict(b),
+                     "block_renewable": a.get("gate"), "block_generation": b.get("gate")},
+            "grade": {"renewable": _grade(a), "generation": _grade(b),
+                      "conditions_renewable": _grade_conditions(a),
+                      "conditions_generation": _grade_conditions(b)},
             "references": {},
         }
+        row["gate_changed"] = row["gate"]["renewable"] != row["gate"]["generation"]
+        # Reported separately, because the two fail for different reasons: a
+        # `beats_d7` change is the model, an `enough_pairs` change is coverage,
+        # and ABL-421's rule is that an unmeasured condition is not a satisfied one.
+        row["gate_components_changed"] = sorted(
+            component for component in ("beats_d7", "enough_pairs")
+            if (a.get("gate") or {}).get(component) != (b.get("gate") or {}).get(component))
         row["grade_changed"] = row["grade"]["renewable"] != row["grade"]["generation"]
         ca, cb = _wape(a, "challenger"), _wape(b, "challenger")
         row["challenger_wape_pct"] = {"renewable": ca, "generation": cb,
