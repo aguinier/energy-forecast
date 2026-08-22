@@ -324,3 +324,86 @@ def test_the_corrected_read_writes_nowhere_the_published_read_writes(scope_outpu
     published, corrected = scope_outputs["abl316-t2a"], scope_outputs["abl316-t2a-generation"]
     for key in ("artifact_dir", "json_out", "report_out"):
         assert published[key] != corrected[key], f"both scopes register {key} {published[key]!r}"
+
+
+# ------------------------------------------------------ the off-registration line
+
+
+def _minimal_result(harness, scope, source, registered_source):
+    """The smallest `result` dict `render_markdown` will accept.
+
+    Built from the harness's own registration tables rather than literals, so this
+    fixture cannot drift from them -- the idiom `tests/test_solar_gate_source.py`
+    uses for the same reason.
+    """
+    from src.evaluation.scorecard import ScorecardConfig, opened_databases
+    databases = opened_databases(ScorecardConfig("r.db", None, "2026-07-11", "2026-08-10"),
+                                 "r.db", "r.db")
+    return {
+        "meta": {"generated_at": "2026-08-22 00:00 UTC", "replica_db": "r.db",
+                 "replica_bytes": 1, "databases": databases,
+                 "training_source": source,
+                 "registered_source": registered_source,
+                 "source_is_scope_registered": source == registered_source,
+                 "scope": scope,
+                 "registered_countries": list(harness.SCOPES[scope]),
+                 "registered_cells": len(harness.SCOPES[scope]) * len(harness.PRIMARY_BANDS),
+                 "gate_basis": list(harness.GATE_BASIS[scope]),
+                 "fit_window": {"start": "2026-01-14", "end_exclusive": "2026-07-11"},
+                 "gate_window": {"start": "2026-07-11", "end_exclusive": "2026-08-10"}},
+        "verdict": "PASS", "recommendation": "-", "gate_cells": [], "country_d2": [],
+        "training": [{"country": "BG", "algorithm": "catboost",
+                      "audit": {"retained_rows": 1, "intended_rows": 1, "unique_targets": 1,
+                                "excluded_missing_actual_or_feature": 0,
+                                "degraded_lag_1d_rows": 0},
+                      "constant_runs": [], "artifact_sha256": "abc"}],
+    }
+
+
+def test_a_compliant_run_says_nothing_new(harness):
+    """The line must be silent when the two agree, or it moves published text.
+
+    Every compliant run is this case, so a version of this that always printed
+    would change the report of every scope in the table for a condition none of
+    them is in.
+    """
+    markdown = harness.render_markdown(
+        _minimal_result(harness, "abl316-t2a-generation",
+                        "energy_generation", "energy_generation"))
+    assert "OFF-REGISTRATION" not in markdown
+    assert "contamination screen: `energy_generation`." in markdown
+
+
+def test_an_off_registration_run_says_so_on_the_page(harness):
+    """Both tables named, in the report, not only in the machine record.
+
+    This is the half of the guard that addresses how ABL-426 was actually noticed:
+    a reader opened the findings pack and the machine record and found two
+    different tables, with nothing on either page saying which was the
+    registration. A run in that state now cannot produce a page that looks
+    compliant.
+    """
+    markdown = harness.render_markdown(
+        _minimal_result(harness, "abl316-t2a-generation",
+                        "energy_renewable", "energy_generation"))
+    assert "OFF-REGISTRATION" in markdown
+    assert "`abl316-t2a-generation` registers `energy_generation`" in markdown
+    assert "this run read `energy_renewable`" in markdown
+
+
+def test_a_record_written_before_this_field_existed_renders_unchanged(harness):
+    """ABL-405's committed record has no `source_is_scope_registered` key.
+
+    It must render as it always did. Retro-flagging it from `SCOPE_SOURCES` was
+    considered and rejected: that table records what each scope *was read on*, so
+    `abl316-t2a` looks compliant against its own row by construction. The record
+    of the violation belongs in ABL-405's pack, which states it in prose, and in
+    this table's comment -- not in a boolean that would read as though the run had
+    measured something it did not.
+    """
+    result = _minimal_result(harness, "abl316-t2a", "energy_renewable", "energy_renewable")
+    del result["meta"]["source_is_scope_registered"]
+    del result["meta"]["registered_source"]
+    markdown = harness.render_markdown(result)
+    assert "OFF-REGISTRATION" not in markdown
+    assert "contamination screen: `energy_renewable`." in markdown
