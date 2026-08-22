@@ -200,6 +200,49 @@ SCOPES = {
     # **zero** for each of EE, FI, LT, LV, NL and SE.  So this scope refits no live
     # pair, the property `abl253` protects.
     "abl316-t2d": ("EE", "FI", "LT", "LV", "NL", "SE"),
+    # ABL-426 -- tranche 2a re-read on the table ABL-348 registered.  The same
+    # eight countries as `abl316-t2a` above, in the same order, under the same
+    # frozen registration at `experiments/ABL348/config.json`.  8 x 3 = 24 cells.
+    #
+    # **This scope exists because `abl316-t2a` was read on the wrong table.**  Its
+    # machine record carries `meta.training_source == "energy_renewable"`: the run
+    # was made without `--renewable-source energy_generation` and fell through to
+    # the global default at `db.RENEWABLE_TYPE_SOURCE_TABLE`.  ABL-348 registers
+    # `training_source.table == "energy_generation"` and lists the source table
+    # under `voids_this_registration`, and it anticipated this exact failure in
+    # `harness_prerequisite`: "until [ABL-345] lands, a harness run for these pairs
+    # fits on `energy_renewable` through the global default and this registration
+    # is not satisfied."  ABL-345 had landed; the flag was simply not passed.
+    # `SCOPE_SOURCES` below is the guard that makes that unreachable.
+    #
+    # A **new scope, never a re-base of `abl316-t2a`**.  That scope's
+    # `SCOPE_OUTPUTS` row is published evidence -- ABL-405's disposition is live
+    # and ABL-418 retro-graded all 24 of its cells off that record -- so re-reading
+    # it in place would move dispositioned numbers under a heading still naming
+    # ABL-405, which is the ABL-387 failure mode and, on this very harness, the
+    # ABL-404 one.  Nothing this scope runs touches a path `abl316-t2a` writes;
+    # `check_scope_outputs` enforces it and
+    # `test_tranche2a_generation_writes_nowhere_tranche2a_writes` pins it.
+    #
+    # Everything except the source table is held at `abl316-t2a`'s registered
+    # value -- countries, bands, gate basis, fit rule, causal levelling,
+    # readability, and the feature vector (both scopes are absent from
+    # `SCOPE_FEATURES`, see the argument there) -- so the pair is a **controlled
+    # A/B on the source table alone**.  That is the whole design: the difference
+    # between the two records is what a 0.63-0.77% shorter fit series moves, and
+    # nothing else.
+    #
+    # No new registration is opened.  Windows, bands, metric, baseline and minimum
+    # n are ABL-348's, unchanged and deliberately not restated here.
+    #
+    # No country here serves a solar model: measured on the live replica
+    # (10,175,365,120 bytes, mode=ro) on 2026-08-22, `forecasts` holds solar rows
+    # for BE/FR/AT/DE only (35,860 / 34,488 / 34,416 / 33,888) and **zero** for
+    # each of BG, CH, CZ, HU, PL, RO, SI and SK.  So this scope refits no live
+    # pair, the property `abl253` protects.  The replica is a *later* snapshot
+    # than the 9,432,453,120 bytes ABL-405 read; what that costs the A/B is
+    # measured rather than assumed, and reported in this scope's evidence pack.
+    "abl316-t2a-generation": ("BG", "CH", "CZ", "HU", "PL", "RO", "SI", "SK"),
     # ABL-376: ABL-253's countries, window and basis with exactly one thing
     # changed -- the fit drops night rows the sun says cannot exist (`FIT_RULES`
     # below).  Registered as its own scope rather than as a flag on `abl253`
@@ -358,6 +401,33 @@ SCOPE_OUTPUTS = {
     "abl316-t2d": {"artifact_dir": "experiments/ABL421/artifacts",
                    "json_out": "experiments/ABL348/results_abl421_tranche2d.json",
                    "report_out": "reports/abl_421_solar_tranche2d.md"},
+    # ABL-426.  Same three-way shape as the tranche rows above, and this is the
+    # row that carries the most weight of any of them: this scope names the same
+    # eight countries as `abl316-t2a`, so it is the one scope in the table for
+    # which a shared path would silently overwrite a *dispositioned* read rather
+    # than merely crowd a directory.
+    #
+    # `artifact_dir` is `experiments/ABL426/artifacts` -- its own directory, one
+    # level deep so `.gitignore:56` (`experiments/*/artifacts/`, which matches on
+    # the *directory name*) still takes it and no binary CatBoost bundle becomes
+    # committable.  Sharing `experiments/ABL405/artifacts` would overwrite
+    # `experiments/ABL405/artifacts/<CC>/solar/model.joblib` for all eight
+    # countries -- the artifacts whose SHA-256 ABL-405's machine record cites --
+    # and `git status` would show nothing, because both directories are ignored.
+    # That is the ABL-381/ABL-405 near-miss recorded on the `abl316-t2a` row
+    # above, with eight countries in place of two.
+    #
+    # `json_out` takes the tracked form -- one level deep and deliberately **not**
+    # named `results.json`, which `.gitignore:53` matches by exact filename -- and
+    # sits under ABL348 for the reason `abl316-t1b` gives: the registration these
+    # fits are read under is `experiments/ABL348/config.json`.  It matters more
+    # than usual here: this record's only purpose is to be **differenced against**
+    # `results_abl405_tranche2a.json`, and a difference a reviewer cannot run
+    # `git diff` over is a claim rather than evidence.
+    "abl316-t2a-generation": {
+        "artifact_dir": "experiments/ABL426/artifacts",
+        "json_out": "experiments/ABL348/results_abl426_tranche2a_generation.json",
+        "report_out": "reports/abl_426_solar_tranche2a_generation.md"},
     # ABL-376 takes the tracked form the section above recommends, and for the
     # reason given there: this read is meant to be dispositioned against
     # `abl253`, and a `results.json` is the one gate record `git checkout --`
@@ -426,6 +496,15 @@ GATE_BASIS = {
     # most.  The incumbent is still reported on its own intersection, where it reads
     # "Not measured" by construction rather than by omission.
     "abl316-t2d": ("challenger", "seasonal_naive"),
+    # ABL-426: byte-identical to `abl316-t2a`'s above, and that identity is the
+    # point rather than a saving.  This scope is a controlled A/B against that one
+    # on the source table alone; moving the gate basis at the same time would
+    # confound the two, which is the argument `abl376`'s entry below makes about
+    # the fit rule.  The underlying reason still holds independently -- all eight
+    # countries hold **zero** solar rows in `forecasts` at the 2026-08-22 replica
+    # (see this scope's `SCOPES` entry), so under the four-way basis all 24 cells
+    # would intersect to n=0 and the run would render UNREADABLE.
+    "abl316-t2a-generation": ("challenger", "seasonal_naive"),
     # Deliberately identical to `abl253`'s.  The A/B is on the fit rule; moving
     # the basis at the same time would confound the two.
     "abl376": ("challenger", "incumbent", "seasonal_naive", "persistence"),
@@ -489,6 +568,13 @@ CAUSAL_LEVELLING = {
     "abl316-t2a": FIT_WINDOW,
     "abl316-t2c": FIT_WINDOW,
     "abl316-t2d": FIT_WINDOW,
+    # ABL-426: pinned to `abl316-t2a`'s value, not to ABL-437's default.  This
+    # scope's only reason to exist is to be differenced against that one, and the
+    # levelling decides which reference the causal comparators are taken against;
+    # letting this scope inherit `TRAILING_28D` while `abl316-t2a` is pinned to
+    # `FIT_WINDOW` would make every reference column in the diff a comparison of
+    # two different measurements.
+    "abl316-t2a-generation": FIT_WINDOW,
     "abl376": FIT_WINDOW,
 }
 
@@ -524,6 +610,10 @@ G23_READABILITY = {
     "abl316-t2a": SIGN_TEST,
     "abl316-t2c": SIGN_TEST,
     "abl316-t2d": SIGN_TEST,
+    # ABL-426: pinned to `abl316-t2a`'s value for the same reason
+    # `CAUSAL_LEVELLING` is -- the diff against that scope must not carry a
+    # grading-rule change alongside the source change.
+    "abl316-t2a-generation": SIGN_TEST,
     "abl376": SIGN_TEST,
 }
 
@@ -573,6 +663,12 @@ SEED_READABILITY = {
     "abl316-t2a": DELTA_MIN,
     "abl316-t2c": DELTA_MIN,
     "abl316-t2d": DELTA_MIN,
+    # ABL-426: pinned to `abl316-t2a`'s value, for `CAUSAL_LEVELLING`'s reason.
+    # Structurally inert -- this read is k = 1, where `grade_cell` falls back to
+    # `delta_min` whatever this table says -- but a scope whose entire value is a
+    # controlled difference should not rest any column of that difference on a
+    # default that could later move under only one of the two arms.
+    "abl316-t2a-generation": DELTA_MIN,
     "abl376": DELTA_MIN,
     # ABL-427's k = 12 re-read of tranche 2c.  Pinned to the form its published
     # pack was decided under -- which is stricter still than `delta_min` here,
@@ -758,6 +854,26 @@ FIT_RULES = {
     #   EE's floor is bounded exactly and for free by `f` instead, which is what
     #   this tranche's evidence pack prints on the face of its table.
     "abl316-t2d": {"exclude_impossible_night": False},
+    # ABL-426 registers the rule **off**, which is what `abl316-t2a` registered
+    # and also what `DEFAULT_FIT_RULES` would have given it -- stated rather than
+    # inherited, for `abl316-t2a`'s reason: `check_registration_tables` compares
+    # keys and not values, so an unstated False is indistinguishable from a False
+    # nobody chose.
+    #
+    # Off is not a preference here, it is forced.  This scope is a controlled A/B
+    # against `abl316-t2a` on the source table alone; turning the rule on would
+    # move the fit frame at the same time as the table and make the whole
+    # difference unattributable -- the confound ABL-376 registered a separate
+    # scope to avoid, and the same argument `abl316-t2a`'s own row makes about the
+    # feature vector.  ABL-348's registration does not contain the rule either,
+    # and this tranche is read under it unchanged.
+    #
+    # BG remains the country the rule would most move (ABL-381 §5: 76-85% of its
+    # night hours carrying 152-246 MW).  That is reported as a finding in this
+    # scope's evidence pack exactly as it is in ABL-405's; it is not a reason to
+    # edit this row.  Re-fitting any of these eight under the rule is a real
+    # experiment and belongs in its own scope.
+    "abl316-t2a-generation": {"exclude_impossible_night": False},
 }
 
 # ABL-395: and so is the feature *vector*, for exactly the reason stated above
@@ -865,6 +981,27 @@ SCOPE_FEATURES = {
     # recorded names.  So this scope is covered on the commit that publishes it,
     # with nothing hand-maintained here, and moving `FEATURE_COLUMNS` to 28 fails
     # the suite rather than silently re-basing fifteen dispositioned cells.
+    #
+    # ABL-426 (`abl316-t2a-generation`) is **absent for the same reason and
+    # deliberately**, and here the absence is doing a third job on top of the two
+    # above.  This scope is a controlled A/B against `abl316-t2a`, which is absent
+    # from this table; giving *this* one a row would break the symmetry twice
+    # over.  It would flip `meta.feature_set_is_registered_for_scope` to True in
+    # one arm and leave it False in the other -- a difference between the two
+    # machine records that is not a difference between the two reads -- and, since
+    # the only honest row available is `FEATURE_COLUMNS`, it would bind to the
+    # same mutable constant the default already binds to while printing a claim
+    # about this registration that is not true of it.  ABL-404 made exactly that
+    # argument, and it is why neither the 2a row nor the 2c row exists.
+    #
+    # Both arms therefore resolve through `DEFAULT_SCOPE_FEATURES` **in the same
+    # process on the same commit**, which is a stronger guarantee of an identical
+    # feature vector than two pins could give: they cannot disagree even in
+    # principle.  What pins this read afterwards is the record the fit writes --
+    # `meta.feature_columns`, the 27 literal names -- and
+    # `test_a_dispositioned_scope_still_resolves_to_the_list_it_was_read_on`,
+    # which derives its scope list from `SCOPE_OUTPUTS` and picks this scope up on
+    # the commit that publishes it.
 }
 
 # The report's H1.  This was the string literal "ABL-253 -- Serve-faithful solar
@@ -887,7 +1024,19 @@ SCOPE_TITLES = {
     # read from ABL-381's on the two countries they share; a reader quoting the H1
     # of either report should not have to reach the `feature_set` field to know
     # which challenger it describes.
-    "abl316-t2a": "ABL-405 — Serve-faithful solar retrain gate, ABL-316 tranche 2a: 8 continental countries on energy_generation at 27 features",
+    #
+    # ABL-426 corrected `energy_generation` -> `energy_renewable` in this string.
+    # It is a **label**, not evidence: the run it heads read `energy_renewable`
+    # (`meta.training_source`) and this heading claimed the table ABL-348
+    # registers rather than the one the run took, which is the most visible face
+    # of that defect -- the H1 is the first thing quoted out of an evidence pack
+    # and `meta.training_source` is not.  The corresponding line in the committed
+    # `reports/abl_405_solar_tranche2a.md` is corrected to match, so re-running
+    # this scope still reproduces its published report; the machine record is
+    # untouched and its SHA-256 `895e1259c0da3921...`, cited by
+    # `reports/abl_418_retro_grade.md`, is unmoved.  What the heading no longer
+    # does is contradict the record two lines below it.
+    "abl316-t2a": "ABL-405 — Serve-faithful solar retrain gate, ABL-316 tranche 2a: 8 continental countries on energy_renewable at 27 features",
     # ABL-419, registered for the same reason the two above are: `title_for`'s
     # fallback would head a 15-cell evidence pack "abl316-t2c", and a scope slug is
     # a key, not a title.  The heading names the source table and the feature set
@@ -902,6 +1051,18 @@ SCOPE_TITLES = {
     # because that is the one thing about this read a reader must not have to
     # discover: 6 countries x 3 bands is 18, and this scope reads 14 of them.
     "abl316-t2d": "ABL-421 — Serve-faithful solar retrain gate, ABL-316 tranche 2d: 6 northern countries on energy_generation at 27 features, 14 evaluable cells of 18",
+    # ABL-426, registered for the same reason the four above are, and with one
+    # extra job: this heading has to be impossible to confuse with ABL-405's,
+    # because the two reports describe the same eight countries over the same
+    # windows and differ only in the table.  It therefore says **re-read** and
+    # names the table in the same slot where ABL-405's heading names its own.
+    #
+    # ABL-405's heading is where this defect is most visible from the outside: it
+    # reads "on energy_generation" over a run whose machine record says
+    # `energy_renewable`.  ABL-426 corrects that string in place -- it is a
+    # mislabel of a read, not evidence about it -- and this row is where the claim
+    # it was making becomes true of a real read.
+    "abl316-t2a-generation": "ABL-426 — Serve-faithful solar retrain gate, ABL-316 tranche 2a re-read on the registered energy_generation: 8 continental countries at 27 features",
 }
 
 # ABL-421.  Which country-band cells the frozen registration declares
@@ -978,6 +1139,112 @@ NOT_EVALUABLE_CAUSES = {
     "FI": ("`energy_generation` holds 663 of 720 gate hours against `energy_renewable`'s 717 "
            "(the ABL-322 s3.3 phenomenon); **source-dependent**"),
 }
+
+
+# ABL-426: **which table a scope is read on is part of its registration, not a
+# flag default.**  This is `SCOPE_OUTPUTS`' argument applied to what a run reads
+# instead of to where it writes, and it exists because the read side failed in
+# exactly the way ABL-387 predicted for the write side.
+#
+# What happened: `--renewable-source` (ABL-345) is opt-in, so `source` resolved to
+# `args.renewable_source or db.RENEWABLE_TYPE_SOURCE_TABLE` -- a *global* constant
+# consulted without reference to the scope.  ABL-405 ran `--scope abl316-t2a`
+# without the flag.  ABL-348 registers `training_source.table ==
+# "energy_generation"` for all 37 tranche pairs and names the source table in
+# `voids_this_registration`; the run fell through to `energy_renewable`, fitted,
+# scored, graded and emitted a 24-cell evidence pack, and exited 0.  Nothing in
+# the run's own output contradicted it -- the harness faithfully recorded
+# `meta.training_source: energy_renewable` -- while the report heading and the
+# findings pack both said `energy_generation`.  ABL-348 had even written the
+# failure down in advance, in `harness_prerequisite`: "until [ABL-345] lands, a
+# harness run for these pairs fits on `energy_renewable` through the global
+# default and this registration is not satisfied."  ABL-345 had landed.  The
+# missing piece was never the flag; it was that nothing tied the flag to the
+# scope.
+#
+# So the source is elected here, per scope, in the file, in review, before the
+# fit -- and `source_for` below replaces the global constant as the resolved
+# default.  An unflagged run of any scope now reads **that scope's** registered
+# table.  Had this table existed, ABL-405's unflagged run would have read
+# `energy_generation` and there would have been no defect to file.
+#
+# **This one IS in `check_registration_tables`**, unlike `SCOPE_FEATURES` and
+# `SCOPE_NOT_EVALUABLE`.  The constraint recorded on ABL-387/ABL-404 is that the
+# check aborts on scopes whose *absence is deliberate*, and no absence is
+# deliberate here: every scope is read on exactly one table, always, and there is
+# no third state.  Because this table's keys are exactly `SCOPES`' keys, joining
+# the call also widens no other table's obligation -- `every_scope` is unchanged.
+# A scope that forgets a row fails at import, which is the whole point: the
+# alternative is `UNCHECKED_REGISTRATION_TABLES`, whose contract is "an omitted
+# row for this table defaults silently", and a silent default is precisely the
+# mechanism that produced ABL-426.
+#
+# The flag is deliberately **not** removed and an explicit `--renewable-source`
+# still wins, so ABL-345's contract holds and an exploratory read of any scope on
+# the other table is still one flag away.  What such a run can no longer do is
+# pass unnoticed: `main` records `meta.source_is_scope_registered`, and the
+# report prints the registered table beside the one that was read whenever the
+# two differ.  That is the same idiom `meta.feature_set_is_registered_for_scope`
+# already uses for the feature vector.
+#
+#: Scope name -> the source table that scope's registration names.
+SCOPE_SOURCES = {
+    # ABL-253 was read on `energy_renewable` and its evidence is dispositioned, so
+    # this is the published fact, not a preference.  It is also what the global
+    # default gives, which is why an unflagged `abl253` run still reproduces
+    # ABL-253 byte-for-byte -- the property that harness's docstring promises and
+    # `test_an_unflagged_run_still_reads_the_default_table` pins.  ABL-321
+    # withheld the global switch (3 of the 10 serving pairs are materially worse
+    # on `energy_generation`), so this is the correct table for a serving-country
+    # read as well as the historical one.
+    "abl253": "energy_renewable",
+    # ABL-376 is ABL-253's controlled A/B on the fit rule alone, so it must be
+    # read on ABL-253's table for the same reason it keeps ABL-253's basis and
+    # windows.  Its committed record agrees (`energy_renewable`).
+    "abl376": "energy_renewable",
+    # The ABL-348 tranches.  All of these carry
+    # `meta.training_source == "energy_generation"` in their committed records,
+    # so every row below is the published fact and this table changes no read
+    # that has already happened.
+    "abl316-t1b": "energy_generation",
+    "abl316-t2c": "energy_generation",
+    "abl316-t2d": "energy_generation",
+    # **The exception, and the reason this table exists.**  `energy_renewable` is
+    # what ABL-405's run actually read -- `meta.training_source` in
+    # `experiments/ABL348/results_abl405_tranche2a.json` -- and NOT what ABL-348
+    # registers for these eight pairs, which is `energy_generation`.
+    #
+    # The row records the read, not the registration, and that is deliberate:
+    # every other row in this table is both at once, and this is the one place
+    # they diverge.  Pinning it to `energy_generation` would be the ABL-404
+    # failure mode -- an unflagged `--scope abl316-t2a` would then silently refit
+    # eight countries on a different table and overwrite a *dispositioned*
+    # 24-cell evidence pack in place, under a heading still naming ABL-405.  What
+    # this table is for is that a re-run of a published scope reproduces its
+    # published read; correcting the read is what `abl316-t2a-generation` below
+    # is, and it is a separate scope precisely so this row can stay honest.
+    #
+    # This is therefore a *record of a registration violation*, sitting in a
+    # registration table.  ABL-426's evidence pack sizes it; ABL-405's disposition
+    # is not withdrawn by this row.
+    "abl316-t2a": "energy_renewable",
+    # ABL-426: the read ABL-348 registered, on the table ABL-348 registered.  This
+    # row is the corrected half of the pair above, and the two rows side by side
+    # are the machine-readable form of the whole finding.
+    "abl316-t2a-generation": "energy_generation",
+}
+
+
+def source_for(scope: str) -> str:
+    """The source table the scope's registration names (ABL-426).
+
+    A plain lookup and deliberately not a `.get(..., DEFAULT)`: an unregistered
+    scope must raise rather than resolve, because falling through to a global
+    default is the defect this table was added to remove. `check_registration_tables`
+    makes that `KeyError` unreachable from a run -- it fires at import instead --
+    so this is the second of two locks on the same door rather than the only one.
+    """
+    return SCOPE_SOURCES[scope]
 
 
 def fit_rules_for(scope: str) -> dict:
@@ -1098,7 +1365,13 @@ UNCHECKED_REGISTRATION_TABLES = {
 # by the comment beside the row, and for `FIT_RULES` by
 # `tests/test_abl403_fit_rule_registration.py`.
 check_registration_tables(SCOPES=SCOPES, GATE_BASIS=GATE_BASIS, SCOPE_OUTPUTS=SCOPE_OUTPUTS,
-                          FIT_RULES=FIT_RULES, SCOPE_TITLES=SCOPE_TITLES)
+                          FIT_RULES=FIT_RULES, SCOPE_TITLES=SCOPE_TITLES,
+                          # ABL-426.  Sixth view of the same registration, and the
+                          # argument for joining rather than exempting is written
+                          # beside the table itself: no absence is deliberate here,
+                          # and its keys are `SCOPES`' keys, so it widens no other
+                          # table's obligation.
+                          SCOPE_SOURCES=SCOPE_SOURCES)
 check_scope_outputs(SCOPE_OUTPUTS)
 
 
@@ -1286,7 +1559,18 @@ def render_markdown(result: dict) -> str:
         # history, and `energy_renewable` zero-fills what `energy_generation`
         # leaves NULL. Two runs of this report are not comparable unless both
         # say which table they read, so it is stated, never defaulted silently.
-        f"Target series, features, baselines and contamination screen: `{meta['training_source']}`.",
+        f"Target series, features, baselines and contamination screen: `{meta['training_source']}`."
+        # ABL-426: and whether that is the table this scope registers. Silent when
+        # the two agree, which is every compliant run, so no published report's
+        # text moves; loud when they do not, because that is the one case a reader
+        # cannot detect from anything else on the page. ABL-405's report said
+        # `energy_renewable` here under a heading that said `energy_generation`,
+        # and nothing in between told the reader which was the registration.
+        + ("" if meta.get("source_is_scope_registered", True) else
+           f" **OFF-REGISTRATION**: scope `{meta.get('scope')}` registers "
+           f"`{meta.get('registered_source')}`, and this run read "
+           f"`{meta['training_source']}`. Every number below is off the "
+           "registration this scope cites."),
         # ABL-395. Stated for the same reason the source table is: the feature
         # vector moved when the ABL-338 geometry pair was added to it, so two
         # reads of this gate are not comparable unless both name the set they
@@ -1495,8 +1779,11 @@ def main() -> int:
                         choices=list(db._RENEWABLE_TYPE_SOURCES),
                         help="Source table for the fitted series, its lag and rolling "
                              "features, the D-7/persistence baselines, the gate actuals "
-                             "and the contamination screen (default: "
-                             f"{db.RENEWABLE_TYPE_SOURCE_TABLE})")
+                             "and the contamination screen. ABL-426: defaults to the "
+                             "table the SELECTED SCOPE registers (SCOPE_SOURCES), not to "
+                             "a global constant. Passing a table the scope does not "
+                             "register is permitted and is recorded as off-registration "
+                             "in meta.source_is_scope_registered and in the report.")
     args = parser.parse_args()
     fit_start, gate_start, gate_end = map(pd.Timestamp, (args.fit_start, args.gate_start, args.gate_end))
     if not fit_start < gate_start < gate_end:
@@ -1509,7 +1796,16 @@ def main() -> int:
     # `forecaster.py:132`), but then the run's source would be a default applied
     # in three places rather than one recorded fact — and the report could not
     # name the table it read.
-    source = args.renewable_source or db.RENEWABLE_TYPE_SOURCE_TABLE
+    #
+    # ABL-426: the fall-through is the **scope's** registered table, not
+    # `db.RENEWABLE_TYPE_SOURCE_TABLE`. That global constant is what ABL-405's
+    # unflagged run resolved to, off-registration, for eight countries. An
+    # explicit flag still wins — ABL-345's contract — but a run that takes a table
+    # its scope does not register now says so in the record and in the report
+    # instead of being indistinguishable from a compliant one.
+    registered_source = source_for(args.scope)
+    source = args.renewable_source or registered_source
+    source_is_scope_registered = source == registered_source
 
     cfg = ScorecardConfig(str(replica), args.sidecar_db, gate_start, gate_end,
                           models={"solar": "catboost"})
@@ -1658,6 +1954,17 @@ def main() -> int:
                        # what this issue cost was the *absence* of the record.
                        "databases": opened_databases(cfg, str(replica), config.DATABASE_PATH),
                        "training_source": source,
+                       # ABL-426: the table the *scope* registers, recorded beside
+                       # the table the run read, so the two can never again be
+                       # reconciled only by reading the command line. The boolean
+                       # is the same idiom `feature_set_is_registered_for_scope`
+                       # uses one field below, and for the same reason: a reader
+                       # of the machine record must be able to see that a read was
+                       # off-registration without holding the registration in
+                       # their head. False on exactly one committed record in the
+                       # programme — ABL-405's — which is what this field is for.
+                       "registered_source": registered_source,
+                       "source_is_scope_registered": source_is_scope_registered,
                        "scope": args.scope, "registered_countries": list(registered_countries),
                        "causal_levelling": causal_levelling_for(args.scope),
                        "g23_readability": g23_readability_for(args.scope),

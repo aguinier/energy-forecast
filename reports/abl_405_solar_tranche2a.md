@@ -1,4 +1,4 @@
-# ABL-405 — Serve-faithful solar retrain gate, ABL-316 tranche 2a: 8 continental countries on energy_generation at 27 features
+# ABL-405 — Serve-faithful solar retrain gate, ABL-316 tranche 2a: 8 continental countries on energy_renewable at 27 features
 
 **Disposition: PERFORMANCE PASS — HOLD FOR CONTAMINATION ADJUDICATION**
 

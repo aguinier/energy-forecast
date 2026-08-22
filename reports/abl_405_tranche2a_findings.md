@@ -2,13 +2,39 @@
 
 Parent **ABL-316**. Registration **ABL-348** (`experiments/ABL348/config.json`),
 unchanged. Scope `abl316-t2a` = BG, CH, CZ, HU, PL, RO, SI, SK on
-`energy_generation`. **8 countries × 3 primary D+2 bands = 24 cells.**
+**`energy_renewable`**. **8 countries × 3 primary D+2 bands = 24 cells.**
 
 Machine record: `experiments/ABL348/results_abl405_tranche2a.json`.
 Harness report: `reports/abl_405_solar_tranche2a.md`.
 Margin read: `reports/abl_405_gate_delta.json`
 (`scripts/abl405_gate_delta.py`).
 Night-floor screen: `reports/abl_405_night_floor_probe.json`.
+
+> ### Label correction, ABL-426 (2026-08-22)
+>
+> **This pack originally said the read was taken on `energy_generation`. It was
+> not.** The run was made without `--renewable-source energy_generation` and fell
+> through to the harness's global default, so the fitted series, its lag and
+> rolling features, the D-7 and persistence baselines, the gate actuals and the
+> ABL-188 screen were all read on **`energy_renewable`**. The machine record says
+> so and always did — `meta.training_source` in
+> `experiments/ABL348/results_abl405_tranche2a.json`, whose SHA-256
+> `895e1259c0da3921…` is cited by `reports/abl_418_retro_grade.md` and is
+> **byte-unchanged by this correction**. ABL-348 registers `energy_generation`
+> for all 37 tranche pairs and lists the source table under
+> `voids_this_registration`, so this read is off the registration it cites.
+>
+> **Nothing numeric in this pack has been touched.** Three label sites were
+> corrected — the line above, the protocol table below, and the H1 of the
+> generated harness report — and this note was added. §3's night-floor screen is
+> *not* one of them: it genuinely read `energy_generation`, which is the second
+> half of the finding (§3 characterises a series this fit never saw). Every
+> number, verdict and grade stands as published.
+>
+> ABL-426 re-reads all eight countries on the registered table as scope
+> `abl316-t2a-generation`, side by side with this one:
+> `reports/abl_426_tranche2a_generation_findings.md`. That read, not this
+> correction, is what tells you whether the table mattered.
 
 > **No promotion is requested or implied.** No serving-registry change, no write
 > to `forecasts`, no ingest change, no dashboard change, no replica write. The
@@ -29,7 +55,7 @@ or was checked.
 | fit targets | 2026-01-14 → 2026-07-11 (exclusive) |
 | gate targets | 2026-07-11 → 2026-08-10 (exclusive), out-of-sample by target timestamp |
 | metric / baseline | WAPE / literal seasonal-naive D-7, recomputed on the same table |
-| source table | `energy_generation` |
+| source table | **`energy_renewable`** — corrected by ABL-426; see the note above §1. ABL-348 registers `energy_generation`, and this read did not take it. |
 | algorithm | CatBoost, seed 42 (`config.random_seed`) |
 | interpreter | `C:\Code\able\energy-forecast\.venv\Scripts\python.exe` — Python 3.14.3 |
 | replica | `C:\Code\able\data\energy_dashboard.db`, **9,432,453,120 bytes**, `mode=ro` |
@@ -144,7 +170,20 @@ floor is the single best predictor of whether it helps or hurts.
 Night is `solar_features.night_mask` — the sun geometrically below −8° for the
 **whole** hour at the country's capacity-weighted point — so a non-zero night
 actual is not a timezone offset or a mask artefact. Threshold 1 MW, ABL-338's.
-Source `energy_generation`, the table this tranche fits on.
+Source `energy_generation`, the table ABL-348 registers for this tranche.
+
+> **ABL-426 correction.** This screen read `energy_generation` — the probe's own
+> record confirms it (`reports/abl_405_night_floor_probe.json`, `"source":
+> "energy_generation"`, `n_rows` 4,272 = the full fit window) — but **the fit did
+> not**. It read `energy_renewable`. The two arms were meant to be one series and
+> are not, so the floor tabulated below is a property of the registered table and
+> not of the series this challenger was trained on. That matters most exactly
+> where this section matters most: BG's 76.4% / 6.37%, which is the evidence
+> behind the tranche's contamination hold. The `energy_renewable` arm that would
+> have closed the gap is the one the probe crash at the end of this section
+> dropped. ABL-426's re-read fits on `energy_generation`, so it is the first read
+> of these eight countries where this screen and the fitted series are the same
+> series.
 
 | country | window | night hrs >1 MW | night mean | night max | **share of energy at night** |
 |---|---|---:|---:|---:|---:|
@@ -213,6 +252,16 @@ The script was written for BG/CH, which are full in both. Screening the fleet �
 ABL-396's whole job — hits this on the first pass. **The `energy_generation`
 screen above is unaffected**; only the second source arm was dropped, and this
 tranche is registered on `energy_generation`.
+
+> **ABL-426 correction.** The last clause is true of the registration and was
+> read here as though it were also true of the run. It was not: this tranche was
+> *fitted* on `energy_renewable`. So the dropped arm was not the redundant one —
+> it was the arm describing the series this challenger actually trained on, and
+> its loss is why nothing in this pack screens the fitted series for a night
+> floor. Not a hypothetical gap: CZ's fit window is 4,151 hours on
+> `energy_renewable` against 4,272 on `energy_generation` (2026-08-22 replica),
+> 93 of the 121 missing hours being ABL-188 zero-fill this table carries and the
+> registered one does not.
 
 ---
 
