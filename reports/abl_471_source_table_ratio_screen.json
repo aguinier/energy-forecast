@@ -1,0 +1,1876 @@
+{
+  "issue": "ABL-471",
+  "extends": "ABL-439",
+  "replica_db": "C:/Code/able/data/energy_dashboard.db",
+  "replica_bytes": 10220126208,
+  "descriptive_band": {
+    "low": 0.99,
+    "high": 1.07,
+    "note": "ledger 5.6's description of where clean pairs landed; ABL-439's own rule is abs(ratio-1) > 0.15"
+  },
+  "windows_registered": {
+    "abl439_comparator": {
+      "start": "2026-05-01",
+      "end_exclusive": "2026-07-01"
+    },
+    "abl348_fit_window": {
+      "start": "2026-01-14",
+      "end_exclusive": "2026-07-11"
+    },
+    "abl348_gate_window": {
+      "start": "2026-07-11",
+      "end_exclusive": "2026-08-10"
+    }
+  },
+  "pairs": [
+    {
+      "country": "DE",
+      "forecast_type": "wind_offshore",
+      "column": "wind_offshore_mw",
+      "why_unscreened": "unscreened: record outside the screen's glob directory",
+      "windows": {
+        "abl439_comparator": {
+          "start": "2026-05-01",
+          "end_exclusive": "2026-07-01",
+          "n_hours_generation": 1464,
+          "n_hours_renewable": 1464,
+          "n_hours_common": 1464,
+          "generation_mean_mw": 2062.0377,
+          "renewable_mean_mw": 2062.0377,
+          "ratio": 1.0,
+          "hours_agreeing_within_1pct": 1464,
+          "pct_hours_agreeing_within_1pct": 100.0
+        },
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4272,
+          "n_hours_renewable": 4245,
+          "n_hours_common": 4245,
+          "generation_mean_mw": 3245.3154,
+          "renewable_mean_mw": 3239.8021,
+          "ratio": 1.0017,
+          "hours_agreeing_within_1pct": 3735,
+          "pct_hours_agreeing_within_1pct": 87.99
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 720,
+          "n_hours_renewable": 720,
+          "n_hours_common": 720,
+          "generation_mean_mw": 2511.413,
+          "renewable_mean_mw": 2511.413,
+          "ratio": 1.0,
+          "hours_agreeing_within_1pct": 720,
+          "pct_hours_agreeing_within_1pct": 100.0
+        }
+      },
+      "rows_per_hour": {
+        "energy_generation": 4.0,
+        "energy_renewable": 4.0
+      },
+      "convergence": {
+        "dated": true,
+        "window": {
+          "start": "2025-11-01",
+          "end_exclusive": "2026-08-22"
+        },
+        "last_disagreeing_hour_utc": "2026-04-30 13:00:00",
+        "n_hours_after": 2722,
+        "max_abs_difference_after_mw": 30.2905,
+        "bit_identical_after": false
+      },
+      "monthly": [
+        {
+          "month": "2025-11",
+          "n_hours_common": 720,
+          "generation_mean_mw": 3773.32,
+          "renewable_mean_mw": 3770.4,
+          "ratio": 1.0008,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2025-12",
+          "n_hours_common": 744,
+          "generation_mean_mw": 4600.37,
+          "renewable_mean_mw": 4475.06,
+          "ratio": 1.028,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-01",
+          "n_hours_common": 744,
+          "generation_mean_mw": 5009.78,
+          "renewable_mean_mw": 4916.64,
+          "ratio": 1.0189,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-02",
+          "n_hours_common": 645,
+          "generation_mean_mw": 5462.59,
+          "renewable_mean_mw": 5458.23,
+          "ratio": 1.0008,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-03",
+          "n_hours_common": 744,
+          "generation_mean_mw": 3110.36,
+          "renewable_mean_mw": 3102.41,
+          "ratio": 1.0026,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-04",
+          "n_hours_common": 720,
+          "generation_mean_mw": 2560.56,
+          "renewable_mean_mw": 2547.09,
+          "ratio": 1.0053,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-05",
+          "n_hours_common": 744,
+          "generation_mean_mw": 2041.78,
+          "renewable_mean_mw": 2041.78,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-06",
+          "n_hours_common": 720,
+          "generation_mean_mw": 2082.97,
+          "renewable_mean_mw": 2082.97,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-07",
+          "n_hours_common": 744,
+          "generation_mean_mw": 2700.72,
+          "renewable_mean_mw": 2700.72,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-08",
+          "n_hours_common": 504,
+          "generation_mean_mw": 1955.24,
+          "renewable_mean_mw": 1955.24,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        }
+      ],
+      "tso_reference": [
+        {
+          "month": "2025-11",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 3699.83,
+          "energy_generation_mean_mw": 3773.32,
+          "energy_renewable_mean_mw": 3770.4,
+          "generation_over_tso": 1.0199,
+          "renewable_over_tso": 1.0191
+        },
+        {
+          "month": "2025-12",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 4206.51,
+          "energy_generation_mean_mw": 4600.37,
+          "energy_renewable_mean_mw": 4475.06,
+          "generation_over_tso": 1.0936,
+          "renewable_over_tso": 1.0638
+        },
+        {
+          "month": "2026-01",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 4645.29,
+          "energy_generation_mean_mw": 5009.78,
+          "energy_renewable_mean_mw": 4916.64,
+          "generation_over_tso": 1.0785,
+          "renewable_over_tso": 1.0584
+        },
+        {
+          "month": "2026-02",
+          "n_hours": 645,
+          "tso_forecast_mean_mw": 4984.7,
+          "energy_generation_mean_mw": 5462.59,
+          "energy_renewable_mean_mw": 5458.23,
+          "generation_over_tso": 1.0959,
+          "renewable_over_tso": 1.095
+        },
+        {
+          "month": "2026-03",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 2970.2,
+          "energy_generation_mean_mw": 3110.36,
+          "energy_renewable_mean_mw": 3102.41,
+          "generation_over_tso": 1.0472,
+          "renewable_over_tso": 1.0445
+        },
+        {
+          "month": "2026-04",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 2702.16,
+          "energy_generation_mean_mw": 2560.56,
+          "energy_renewable_mean_mw": 2547.09,
+          "generation_over_tso": 0.9476,
+          "renewable_over_tso": 0.9426
+        },
+        {
+          "month": "2026-05",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 1746.2,
+          "energy_generation_mean_mw": 2041.78,
+          "energy_renewable_mean_mw": 2041.78,
+          "generation_over_tso": 1.1693,
+          "renewable_over_tso": 1.1693
+        },
+        {
+          "month": "2026-06",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 1984.57,
+          "energy_generation_mean_mw": 2082.97,
+          "energy_renewable_mean_mw": 2082.97,
+          "generation_over_tso": 1.0496,
+          "renewable_over_tso": 1.0496
+        },
+        {
+          "month": "2026-07",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 2517.77,
+          "energy_generation_mean_mw": 2700.72,
+          "energy_renewable_mean_mw": 2700.72,
+          "generation_over_tso": 1.0727,
+          "renewable_over_tso": 1.0727
+        },
+        {
+          "month": "2026-08",
+          "n_hours": 504,
+          "tso_forecast_mean_mw": 1834.94,
+          "energy_generation_mean_mw": 1955.24,
+          "energy_renewable_mean_mw": 1955.24,
+          "generation_over_tso": 1.0656,
+          "renewable_over_tso": 1.0656
+        }
+      ],
+      "fetch_age": {
+        "energy_generation": {
+          "before_boundary": {
+            "n_rows": 16116,
+            "min_days": 28.78,
+            "median_days": 112.72,
+            "max_days": 196.64
+          },
+          "after_boundary": {
+            "n_rows": 3852,
+            "min_days": 6.49,
+            "median_days": 8.72,
+            "max_days": 28.77
+          }
+        },
+        "energy_renewable": {
+          "before_boundary": {
+            "n_rows": 16006,
+            "min_days": 0.03,
+            "median_days": 6.82,
+            "max_days": 7.02
+          },
+          "after_boundary": {
+            "n_rows": 3852,
+            "min_days": 6.49,
+            "median_days": 6.86,
+            "max_days": 7.0
+          }
+        },
+        "boundary_utc": "2026-06-30 21:00:00"
+      },
+      "vintage_share": {
+        "abl348_fit_window": {
+          "n_hours": 4245,
+          "n_hours_before_boundary": 4002,
+          "pct_before_boundary": 94.28
+        },
+        "abl348_gate_window": {
+          "n_hours": 720,
+          "n_hours_before_boundary": 0,
+          "pct_before_boundary": 0.0
+        }
+      },
+      "verdict": {
+        "ratio_abl439_comparator_window": 1.0,
+        "ratio_abl348_fit_window": 1.0017,
+        "ratio_abl348_gate_window": 1.0,
+        "fit_gate_discontinuity": 0.0017,
+        "in_descriptive_band_comparator": true,
+        "basis_affected_by_abl439_rule_comparator": false,
+        "in_descriptive_band_fit_window": true,
+        "basis_affected_by_abl439_rule_fit_window": false,
+        "mechanism": "no_fit_gate_discontinuity",
+        "convergence_evidence": {
+          "gate_ratio_within_converged_band": true,
+          "bit_identical_after_last_disagreement": false,
+          "last_disagreeing_hour_utc": "2026-04-30 13:00:00"
+        }
+      }
+    },
+    {
+      "country": "NL",
+      "forecast_type": "wind_offshore",
+      "column": "wind_offshore_mw",
+      "why_unscreened": "unscreened: record outside the screen's glob directory",
+      "windows": {
+        "abl439_comparator": {
+          "start": "2026-05-01",
+          "end_exclusive": "2026-07-01",
+          "n_hours_generation": 1464,
+          "n_hours_renewable": 1464,
+          "n_hours_common": 1464,
+          "generation_mean_mw": 1327.5101,
+          "renewable_mean_mw": 1376.0125,
+          "ratio": 0.9648,
+          "hours_agreeing_within_1pct": 376,
+          "pct_hours_agreeing_within_1pct": 25.68
+        },
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4272,
+          "n_hours_renewable": 4245,
+          "n_hours_common": 4245,
+          "generation_mean_mw": 1692.3275,
+          "renewable_mean_mw": 1705.5947,
+          "ratio": 0.9922,
+          "hours_agreeing_within_1pct": 2215,
+          "pct_hours_agreeing_within_1pct": 52.18
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 720,
+          "n_hours_renewable": 720,
+          "n_hours_common": 720,
+          "generation_mean_mw": 1134.3434,
+          "renewable_mean_mw": 1144.3739,
+          "ratio": 0.9912,
+          "hours_agreeing_within_1pct": 473,
+          "pct_hours_agreeing_within_1pct": 65.69
+        }
+      },
+      "rows_per_hour": {
+        "energy_generation": 4.0,
+        "energy_renewable": 3.998
+      },
+      "convergence": {
+        "dated": true,
+        "window": {
+          "start": "2025-11-01",
+          "end_exclusive": "2026-08-22"
+        },
+        "last_disagreeing_hour_utc": "2026-08-20 18:00:00",
+        "n_hours_after": 29,
+        "max_abs_difference_after_mw": 12.9957,
+        "bit_identical_after": false
+      },
+      "monthly": [
+        {
+          "month": "2025-11",
+          "n_hours_common": 505,
+          "generation_mean_mw": 2907.95,
+          "renewable_mean_mw": 1519.86,
+          "ratio": 1.9133,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.2238
+        },
+        {
+          "month": "2025-12",
+          "n_hours_common": 744,
+          "generation_mean_mw": 2779.06,
+          "renewable_mean_mw": 2763.17,
+          "ratio": 1.0057,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-01",
+          "n_hours_common": 744,
+          "generation_mean_mw": 2510.32,
+          "renewable_mean_mw": 2496.92,
+          "ratio": 1.0054,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-02",
+          "n_hours_common": 645,
+          "generation_mean_mw": 2716.43,
+          "renewable_mean_mw": 2701.14,
+          "ratio": 1.0057,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-03",
+          "n_hours_common": 744,
+          "generation_mean_mw": 1763.49,
+          "renewable_mean_mw": 1759.18,
+          "ratio": 1.0025,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-04",
+          "n_hours_common": 720,
+          "generation_mean_mw": 1521.5,
+          "renewable_mean_mw": 1520.95,
+          "ratio": 1.0004,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-05",
+          "n_hours_common": 744,
+          "generation_mean_mw": 1194.68,
+          "renewable_mean_mw": 1255.83,
+          "ratio": 0.9513,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-06",
+          "n_hours_common": 720,
+          "generation_mean_mw": 1464.76,
+          "renewable_mean_mw": 1500.21,
+          "ratio": 0.9764,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0069
+        },
+        {
+          "month": "2026-07",
+          "n_hours_common": 744,
+          "generation_mean_mw": 1136.49,
+          "renewable_mean_mw": 1145.68,
+          "ratio": 0.992,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-08",
+          "n_hours_common": 504,
+          "generation_mean_mw": 886.76,
+          "renewable_mean_mw": 897.83,
+          "ratio": 0.9877,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.004
+        }
+      ],
+      "tso_reference": [
+        {
+          "month": "2025-11",
+          "n_hours": 505,
+          "tso_forecast_mean_mw": 736.34,
+          "energy_generation_mean_mw": 2907.95,
+          "energy_renewable_mean_mw": 1519.86,
+          "generation_over_tso": 3.9492,
+          "renewable_over_tso": 2.0641
+        },
+        {
+          "month": "2025-12",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 749.94,
+          "energy_generation_mean_mw": 2779.06,
+          "energy_renewable_mean_mw": 2763.17,
+          "generation_over_tso": 3.7057,
+          "renewable_over_tso": 3.6845
+        },
+        {
+          "month": "2026-01",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 691.18,
+          "energy_generation_mean_mw": 2510.32,
+          "energy_renewable_mean_mw": 2496.92,
+          "generation_over_tso": 3.6319,
+          "renewable_over_tso": 3.6125
+        },
+        {
+          "month": "2026-02",
+          "n_hours": 645,
+          "tso_forecast_mean_mw": 724.35,
+          "energy_generation_mean_mw": 2716.43,
+          "energy_renewable_mean_mw": 2701.14,
+          "generation_over_tso": 3.7502,
+          "renewable_over_tso": 3.729
+        },
+        {
+          "month": "2026-03",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 560.84,
+          "energy_generation_mean_mw": 1763.49,
+          "energy_renewable_mean_mw": 1759.18,
+          "generation_over_tso": 3.1444,
+          "renewable_over_tso": 3.1367
+        },
+        {
+          "month": "2026-04",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 471.88,
+          "energy_generation_mean_mw": 1521.5,
+          "energy_renewable_mean_mw": 1520.95,
+          "generation_over_tso": 3.2244,
+          "renewable_over_tso": 3.2232
+        },
+        {
+          "month": "2026-05",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 363.94,
+          "energy_generation_mean_mw": 1194.68,
+          "energy_renewable_mean_mw": 1255.83,
+          "generation_over_tso": 3.2826,
+          "renewable_over_tso": 3.4506
+        },
+        {
+          "month": "2026-06",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 477.4,
+          "energy_generation_mean_mw": 1464.76,
+          "energy_renewable_mean_mw": 1500.21,
+          "generation_over_tso": 3.0682,
+          "renewable_over_tso": 3.1424
+        },
+        {
+          "month": "2026-07",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 386.68,
+          "energy_generation_mean_mw": 1136.49,
+          "energy_renewable_mean_mw": 1145.68,
+          "generation_over_tso": 2.9391,
+          "renewable_over_tso": 2.9628
+        },
+        {
+          "month": "2026-08",
+          "n_hours": 504,
+          "tso_forecast_mean_mw": 293.41,
+          "energy_generation_mean_mw": 886.76,
+          "energy_renewable_mean_mw": 897.83,
+          "generation_over_tso": 3.0222,
+          "renewable_over_tso": 3.06
+        }
+      ],
+      "fetch_age": {
+        "energy_generation": {
+          "before_boundary": {
+            "n_rows": 16116,
+            "min_days": 28.88,
+            "median_days": 112.82,
+            "max_days": 196.74
+          },
+          "after_boundary": {
+            "n_rows": 3852,
+            "min_days": 6.46,
+            "median_days": 8.82,
+            "max_days": 28.87
+          }
+        },
+        "energy_renewable": {
+          "before_boundary": {
+            "n_rows": 16000,
+            "min_days": 0.04,
+            "median_days": 6.83,
+            "max_days": 7.05
+          },
+          "after_boundary": {
+            "n_rows": 3852,
+            "min_days": 6.45,
+            "median_days": 6.86,
+            "max_days": 7.02
+          }
+        },
+        "boundary_utc": "2026-06-30 21:00:00"
+      },
+      "vintage_share": {
+        "abl348_fit_window": {
+          "n_hours": 4245,
+          "n_hours_before_boundary": 4002,
+          "pct_before_boundary": 94.28
+        },
+        "abl348_gate_window": {
+          "n_hours": 720,
+          "n_hours_before_boundary": 0,
+          "pct_before_boundary": 0.0
+        }
+      },
+      "verdict": {
+        "ratio_abl439_comparator_window": 0.9648,
+        "ratio_abl348_fit_window": 0.9922,
+        "ratio_abl348_gate_window": 0.9912,
+        "fit_gate_discontinuity": 0.001,
+        "in_descriptive_band_comparator": false,
+        "basis_affected_by_abl439_rule_comparator": false,
+        "in_descriptive_band_fit_window": true,
+        "basis_affected_by_abl439_rule_fit_window": false,
+        "mechanism": "no_fit_gate_discontinuity",
+        "convergence_evidence": {
+          "gate_ratio_within_converged_band": true,
+          "bit_identical_after_last_disagreement": false,
+          "last_disagreeing_hour_utc": "2026-08-20 18:00:00"
+        }
+      }
+    },
+    {
+      "country": "EE",
+      "forecast_type": "solar",
+      "column": "solar_mw",
+      "why_unscreened": "unscreened: no cell in the screen's 24-36h band (ABL-434 coverage)",
+      "windows": {
+        "abl439_comparator": {
+          "start": "2026-05-01",
+          "end_exclusive": "2026-07-01",
+          "n_hours_generation": 1464,
+          "n_hours_renewable": 1464,
+          "n_hours_common": 1464,
+          "generation_mean_mw": 252.6258,
+          "renewable_mean_mw": 216.0038,
+          "ratio": 1.1695,
+          "hours_agreeing_within_1pct": 31,
+          "pct_hours_agreeing_within_1pct": 2.12
+        },
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4272,
+          "n_hours_renewable": 4234,
+          "n_hours_common": 4234,
+          "generation_mean_mw": 173.4385,
+          "renewable_mean_mw": 147.4261,
+          "ratio": 1.1764,
+          "hours_agreeing_within_1pct": 312,
+          "pct_hours_agreeing_within_1pct": 7.37
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 720,
+          "n_hours_renewable": 720,
+          "n_hours_common": 720,
+          "generation_mean_mw": 210.2771,
+          "renewable_mean_mw": 210.2771,
+          "ratio": 1.0,
+          "hours_agreeing_within_1pct": 647,
+          "pct_hours_agreeing_within_1pct": 89.86
+        }
+      },
+      "rows_per_hour": {
+        "energy_generation": 4.0,
+        "energy_renewable": 4.0
+      },
+      "convergence": {
+        "dated": true,
+        "window": {
+          "start": "2025-11-01",
+          "end_exclusive": "2026-08-22"
+        },
+        "last_disagreeing_hour_utc": "2026-06-30 20:00:00",
+        "n_hours_after": 1251,
+        "max_abs_difference_after_mw": 0.0,
+        "bit_identical_after": true
+      },
+      "monthly": [
+        {
+          "month": "2025-11",
+          "n_hours_common": 336,
+          "generation_mean_mw": 16.28,
+          "renewable_mean_mw": 15.86,
+          "ratio": 1.0268,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2025-12",
+          "n_hours_common": 744,
+          "generation_mean_mw": 9.14,
+          "renewable_mean_mw": 9.62,
+          "ratio": 0.9501,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0134
+        },
+        {
+          "month": "2026-01",
+          "n_hours_common": 740,
+          "generation_mean_mw": 6.47,
+          "renewable_mean_mw": 8.07,
+          "ratio": 0.8015,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0162
+        },
+        {
+          "month": "2026-02",
+          "n_hours_common": 638,
+          "generation_mean_mw": 34.11,
+          "renewable_mean_mw": 28.13,
+          "ratio": 1.2129,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0063
+        },
+        {
+          "month": "2026-03",
+          "n_hours_common": 744,
+          "generation_mean_mw": 176.96,
+          "renewable_mean_mw": 142.4,
+          "ratio": 1.2427,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-04",
+          "n_hours_common": 720,
+          "generation_mean_mw": 226.18,
+          "renewable_mean_mw": 186.18,
+          "ratio": 1.2149,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0083
+        },
+        {
+          "month": "2026-05",
+          "n_hours_common": 744,
+          "generation_mean_mw": 246.84,
+          "renewable_mean_mw": 219.96,
+          "ratio": 1.1222,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0712
+        },
+        {
+          "month": "2026-06",
+          "n_hours_common": 720,
+          "generation_mean_mw": 258.61,
+          "renewable_mean_mw": 211.92,
+          "ratio": 1.2203,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0194
+        },
+        {
+          "month": "2026-07",
+          "n_hours_common": 744,
+          "generation_mean_mw": 194.84,
+          "renewable_mean_mw": 194.84,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0605,
+          "renewable_zero_fraction": 0.0605
+        },
+        {
+          "month": "2026-08",
+          "n_hours_common": 504,
+          "generation_mean_mw": 222.18,
+          "renewable_mean_mw": 222.18,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        }
+      ],
+      "tso_reference": [
+        {
+          "month": "2025-11",
+          "n_hours": 336,
+          "tso_forecast_mean_mw": 9.14,
+          "energy_generation_mean_mw": 16.28,
+          "energy_renewable_mean_mw": 15.86,
+          "generation_over_tso": 1.7818,
+          "renewable_over_tso": 1.7353
+        },
+        {
+          "month": "2025-12",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 6.36,
+          "energy_generation_mean_mw": 9.14,
+          "energy_renewable_mean_mw": 9.62,
+          "generation_over_tso": 1.4386,
+          "renewable_over_tso": 1.5141
+        },
+        {
+          "month": "2026-01",
+          "n_hours": 740,
+          "tso_forecast_mean_mw": 5.58,
+          "energy_generation_mean_mw": 6.47,
+          "energy_renewable_mean_mw": 8.07,
+          "generation_over_tso": 1.1588,
+          "renewable_over_tso": 1.4459
+        },
+        {
+          "month": "2026-02",
+          "n_hours": 638,
+          "tso_forecast_mean_mw": 15.42,
+          "energy_generation_mean_mw": 34.11,
+          "energy_renewable_mean_mw": 28.13,
+          "generation_over_tso": 2.2126,
+          "renewable_over_tso": 1.8242
+        },
+        {
+          "month": "2026-03",
+          "n_hours": 743,
+          "tso_forecast_mean_mw": 128.28,
+          "energy_generation_mean_mw": 177.2,
+          "energy_renewable_mean_mw": 142.58,
+          "generation_over_tso": 1.3814,
+          "renewable_over_tso": 1.1115
+        },
+        {
+          "month": "2026-04",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 171.0,
+          "energy_generation_mean_mw": 226.18,
+          "energy_renewable_mean_mw": 186.18,
+          "generation_over_tso": 1.3227,
+          "renewable_over_tso": 1.0888
+        },
+        {
+          "month": "2026-05",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 181.73,
+          "energy_generation_mean_mw": 249.5,
+          "energy_renewable_mean_mw": 221.54,
+          "generation_over_tso": 1.3729,
+          "renewable_over_tso": 1.2191
+        },
+        {
+          "month": "2026-06",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 205.28,
+          "energy_generation_mean_mw": 258.61,
+          "energy_renewable_mean_mw": 211.92,
+          "generation_over_tso": 1.2598,
+          "renewable_over_tso": 1.0323
+        },
+        {
+          "month": "2026-07",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 188.87,
+          "energy_generation_mean_mw": 194.84,
+          "energy_renewable_mean_mw": 194.84,
+          "generation_over_tso": 1.0316,
+          "renewable_over_tso": 1.0316
+        },
+        {
+          "month": "2026-08",
+          "n_hours": 504,
+          "tso_forecast_mean_mw": 187.75,
+          "energy_generation_mean_mw": 222.18,
+          "energy_renewable_mean_mw": 222.18,
+          "generation_over_tso": 1.1833,
+          "renewable_over_tso": 1.1833
+        }
+      ],
+      "fetch_age": {
+        "energy_generation": {
+          "before_boundary": {
+            "n_rows": 16116,
+            "min_days": 28.79,
+            "median_days": 112.73,
+            "max_days": 196.65
+          },
+          "after_boundary": {
+            "n_rows": 3852,
+            "min_days": 6.49,
+            "median_days": 8.73,
+            "max_days": 28.78
+          }
+        },
+        "energy_renewable": {
+          "before_boundary": {
+            "n_rows": 15963,
+            "min_days": 0.05,
+            "median_days": 6.82,
+            "max_days": 7.02
+          },
+          "after_boundary": {
+            "n_rows": 3852,
+            "min_days": 6.49,
+            "median_days": 6.86,
+            "max_days": 7.01
+          }
+        },
+        "boundary_utc": "2026-06-30 21:00:00"
+      },
+      "vintage_share": {
+        "abl348_fit_window": {
+          "n_hours": 4234,
+          "n_hours_before_boundary": 3991,
+          "pct_before_boundary": 94.26
+        },
+        "abl348_gate_window": {
+          "n_hours": 720,
+          "n_hours_before_boundary": 0,
+          "pct_before_boundary": 0.0
+        }
+      },
+      "verdict": {
+        "ratio_abl439_comparator_window": 1.1695,
+        "ratio_abl348_fit_window": 1.1764,
+        "ratio_abl348_gate_window": 1.0,
+        "fit_gate_discontinuity": 0.1764,
+        "in_descriptive_band_comparator": false,
+        "basis_affected_by_abl439_rule_comparator": true,
+        "in_descriptive_band_fit_window": false,
+        "basis_affected_by_abl439_rule_fit_window": true,
+        "mechanism": "revision_vintage",
+        "convergence_evidence": {
+          "gate_ratio_within_converged_band": true,
+          "bit_identical_after_last_disagreement": true,
+          "last_disagreeing_hour_utc": "2026-06-30 20:00:00"
+        }
+      }
+    },
+    {
+      "country": "FI",
+      "forecast_type": "solar",
+      "column": "solar_mw",
+      "why_unscreened": "unscreened: no cell in the screen's 24-36h band (ABL-434 coverage)",
+      "windows": {
+        "abl439_comparator": {
+          "start": "2026-05-01",
+          "end_exclusive": "2026-07-01",
+          "n_hours_generation": 1464,
+          "n_hours_renewable": 1461,
+          "n_hours_common": 1461,
+          "generation_mean_mw": 378.9402,
+          "renewable_mean_mw": 378.9373,
+          "ratio": 1.0,
+          "hours_agreeing_within_1pct": 1270,
+          "pct_hours_agreeing_within_1pct": 86.93
+        },
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4272,
+          "n_hours_renewable": 4241,
+          "n_hours_common": 4241,
+          "generation_mean_mw": 227.9816,
+          "renewable_mean_mw": 227.9803,
+          "ratio": 1.0,
+          "hours_agreeing_within_1pct": 3493,
+          "pct_hours_agreeing_within_1pct": 82.36
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 663,
+          "n_hours_renewable": 717,
+          "n_hours_common": 663,
+          "generation_mean_mw": 438.8351,
+          "renewable_mean_mw": 438.8351,
+          "ratio": 1.0,
+          "hours_agreeing_within_1pct": 557,
+          "pct_hours_agreeing_within_1pct": 84.01
+        }
+      },
+      "rows_per_hour": {
+        "energy_generation": 4.0,
+        "energy_renewable": 4.0
+      },
+      "convergence": {
+        "dated": true,
+        "window": {
+          "start": "2025-11-01",
+          "end_exclusive": "2026-08-22"
+        },
+        "last_disagreeing_hour_utc": "2026-07-03 00:00:00",
+        "n_hours_after": 1108,
+        "max_abs_difference_after_mw": 0.1008,
+        "bit_identical_after": false
+      },
+      "monthly": [
+        {
+          "month": "2025-11",
+          "n_hours_common": 704,
+          "generation_mean_mw": 15.39,
+          "renewable_mean_mw": 14.67,
+          "ratio": 1.0489,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0099
+        },
+        {
+          "month": "2025-12",
+          "n_hours_common": 744,
+          "generation_mean_mw": 5.14,
+          "renewable_mean_mw": 5.14,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-01",
+          "n_hours_common": 744,
+          "generation_mean_mw": 13.54,
+          "renewable_mean_mw": 13.54,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0793,
+          "renewable_zero_fraction": 0.0793
+        },
+        {
+          "month": "2026-02",
+          "n_hours_common": 644,
+          "generation_mean_mw": 50.35,
+          "renewable_mean_mw": 50.35,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0155,
+          "renewable_zero_fraction": 0.0186
+        },
+        {
+          "month": "2026-03",
+          "n_hours_common": 744,
+          "generation_mean_mw": 121.32,
+          "renewable_mean_mw": 121.32,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-04",
+          "n_hours_common": 720,
+          "generation_mean_mw": 271.2,
+          "renewable_mean_mw": 271.2,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-05",
+          "n_hours_common": 744,
+          "generation_mean_mw": 353.75,
+          "renewable_mean_mw": 353.75,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0067,
+          "renewable_zero_fraction": 0.0067
+        },
+        {
+          "month": "2026-06",
+          "n_hours_common": 717,
+          "generation_mean_mw": 405.08,
+          "renewable_mean_mw": 405.08,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0028,
+          "renewable_zero_fraction": 0.0084
+        },
+        {
+          "month": "2026-07",
+          "n_hours_common": 718,
+          "generation_mean_mw": 409.01,
+          "renewable_mean_mw": 409.01,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.039,
+          "renewable_zero_fraction": 0.0404
+        },
+        {
+          "month": "2026-08",
+          "n_hours_common": 439,
+          "generation_mean_mw": 406.75,
+          "renewable_mean_mw": 406.75,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        }
+      ],
+      "tso_reference": [
+        {
+          "month": "2025-11",
+          "n_hours": 704,
+          "tso_forecast_mean_mw": 14.68,
+          "energy_generation_mean_mw": 15.39,
+          "energy_renewable_mean_mw": 14.67,
+          "generation_over_tso": 1.0486,
+          "renewable_over_tso": 0.9997
+        },
+        {
+          "month": "2025-12",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 3.62,
+          "energy_generation_mean_mw": 5.14,
+          "energy_renewable_mean_mw": 5.14,
+          "generation_over_tso": 1.419,
+          "renewable_over_tso": 1.419
+        },
+        {
+          "month": "2026-01",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 12.59,
+          "energy_generation_mean_mw": 13.54,
+          "energy_renewable_mean_mw": 13.54,
+          "generation_over_tso": 1.0752,
+          "renewable_over_tso": 1.0752
+        },
+        {
+          "month": "2026-02",
+          "n_hours": 644,
+          "tso_forecast_mean_mw": 49.62,
+          "energy_generation_mean_mw": 50.35,
+          "energy_renewable_mean_mw": 50.35,
+          "generation_over_tso": 1.0148,
+          "renewable_over_tso": 1.0148
+        },
+        {
+          "month": "2026-03",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 110.86,
+          "energy_generation_mean_mw": 121.32,
+          "energy_renewable_mean_mw": 121.32,
+          "generation_over_tso": 1.0943,
+          "renewable_over_tso": 1.0943
+        },
+        {
+          "month": "2026-04",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 268.48,
+          "energy_generation_mean_mw": 271.2,
+          "energy_renewable_mean_mw": 271.2,
+          "generation_over_tso": 1.0101,
+          "renewable_over_tso": 1.0101
+        },
+        {
+          "month": "2026-05",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 355.34,
+          "energy_generation_mean_mw": 353.75,
+          "energy_renewable_mean_mw": 353.75,
+          "generation_over_tso": 0.9955,
+          "renewable_over_tso": 0.9955
+        },
+        {
+          "month": "2026-06",
+          "n_hours": 717,
+          "tso_forecast_mean_mw": 425.31,
+          "energy_generation_mean_mw": 405.08,
+          "energy_renewable_mean_mw": 405.08,
+          "generation_over_tso": 0.9524,
+          "renewable_over_tso": 0.9524
+        },
+        {
+          "month": "2026-07",
+          "n_hours": 718,
+          "tso_forecast_mean_mw": 421.0,
+          "energy_generation_mean_mw": 409.01,
+          "energy_renewable_mean_mw": 409.01,
+          "generation_over_tso": 0.9715,
+          "renewable_over_tso": 0.9715
+        },
+        {
+          "month": "2026-08",
+          "n_hours": 439,
+          "tso_forecast_mean_mw": 396.94,
+          "energy_generation_mean_mw": 406.75,
+          "energy_renewable_mean_mw": 406.75,
+          "generation_over_tso": 1.0247,
+          "renewable_over_tso": 1.0247
+        }
+      ],
+      "fetch_age": {
+        "energy_generation": {
+          "before_boundary": {
+            "n_rows": 16116,
+            "min_days": 28.8,
+            "median_days": 112.74,
+            "max_days": 196.67
+          },
+          "after_boundary": {
+            "n_rows": 3624,
+            "min_days": 6.49,
+            "median_days": 9.93,
+            "max_days": 28.79
+          }
+        },
+        "energy_renewable": {
+          "before_boundary": {
+            "n_rows": 15992,
+            "min_days": 0.05,
+            "median_days": 6.82,
+            "max_days": 7.02
+          },
+          "after_boundary": {
+            "n_rows": 3840,
+            "min_days": 6.49,
+            "median_days": 6.86,
+            "max_days": 7.01
+          }
+        },
+        "boundary_utc": "2026-06-30 21:00:00"
+      },
+      "vintage_share": {
+        "abl348_fit_window": {
+          "n_hours": 4241,
+          "n_hours_before_boundary": 3998,
+          "pct_before_boundary": 94.27
+        },
+        "abl348_gate_window": {
+          "n_hours": 663,
+          "n_hours_before_boundary": 0,
+          "pct_before_boundary": 0.0
+        }
+      },
+      "verdict": {
+        "ratio_abl439_comparator_window": 1.0,
+        "ratio_abl348_fit_window": 1.0,
+        "ratio_abl348_gate_window": 1.0,
+        "fit_gate_discontinuity": 0.0,
+        "in_descriptive_band_comparator": true,
+        "basis_affected_by_abl439_rule_comparator": false,
+        "in_descriptive_band_fit_window": true,
+        "basis_affected_by_abl439_rule_fit_window": false,
+        "mechanism": "no_fit_gate_discontinuity",
+        "convergence_evidence": {
+          "gate_ratio_within_converged_band": true,
+          "bit_identical_after_last_disagreement": false,
+          "last_disagreeing_hour_utc": "2026-07-03 00:00:00"
+        }
+      }
+    },
+    {
+      "country": "LV",
+      "forecast_type": "solar",
+      "column": "solar_mw",
+      "why_unscreened": "screened at 1.1143 and recorded unexplained (ledger 5.6)",
+      "windows": {
+        "abl439_comparator": {
+          "start": "2026-05-01",
+          "end_exclusive": "2026-07-01",
+          "n_hours_generation": 1464,
+          "n_hours_renewable": 1461,
+          "n_hours_common": 1461,
+          "generation_mean_mw": 346.5447,
+          "renewable_mean_mw": 310.9843,
+          "ratio": 1.1143,
+          "hours_agreeing_within_1pct": 55,
+          "pct_hours_agreeing_within_1pct": 3.76
+        },
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4272,
+          "n_hours_renewable": 4242,
+          "n_hours_common": 4242,
+          "generation_mean_mw": 229.5814,
+          "renewable_mean_mw": 196.1219,
+          "ratio": 1.1706,
+          "hours_agreeing_within_1pct": 278,
+          "pct_hours_agreeing_within_1pct": 6.55
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 717,
+          "n_hours_renewable": 717,
+          "n_hours_common": 717,
+          "generation_mean_mw": 292.2441,
+          "renewable_mean_mw": 292.2441,
+          "ratio": 1.0,
+          "hours_agreeing_within_1pct": 563,
+          "pct_hours_agreeing_within_1pct": 78.52
+        }
+      },
+      "rows_per_hour": {
+        "energy_generation": 1.0,
+        "energy_renewable": 1.0
+      },
+      "convergence": {
+        "dated": true,
+        "window": {
+          "start": "2025-11-01",
+          "end_exclusive": "2026-08-22"
+        },
+        "last_disagreeing_hour_utc": "2026-06-30 20:00:00",
+        "n_hours_after": 1240,
+        "max_abs_difference_after_mw": 0.0,
+        "bit_identical_after": true
+      },
+      "monthly": [
+        {
+          "month": "2025-11",
+          "n_hours_common": 528,
+          "generation_mean_mw": 18.78,
+          "renewable_mean_mw": 18.34,
+          "ratio": 1.0239,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.2633
+        },
+        {
+          "month": "2025-12",
+          "n_hours_common": 744,
+          "generation_mean_mw": 9.87,
+          "renewable_mean_mw": 8.11,
+          "ratio": 1.2167,
+          "generation_zero_fraction": 0.0228,
+          "renewable_zero_fraction": 0.254
+        },
+        {
+          "month": "2026-01",
+          "n_hours_common": 744,
+          "generation_mean_mw": 10.44,
+          "renewable_mean_mw": 5.59,
+          "ratio": 1.8675,
+          "generation_zero_fraction": 0.0215,
+          "renewable_zero_fraction": 0.6841
+        },
+        {
+          "month": "2026-02",
+          "n_hours_common": 645,
+          "generation_mean_mw": 40.97,
+          "renewable_mean_mw": 23.04,
+          "ratio": 1.7779,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.5938
+        },
+        {
+          "month": "2026-03",
+          "n_hours_common": 744,
+          "generation_mean_mw": 206.67,
+          "renewable_mean_mw": 144.15,
+          "ratio": 1.4337,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.4597
+        },
+        {
+          "month": "2026-04",
+          "n_hours_common": 720,
+          "generation_mean_mw": 295.47,
+          "renewable_mean_mw": 254.97,
+          "ratio": 1.1589,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.2889
+        },
+        {
+          "month": "2026-05",
+          "n_hours_common": 742,
+          "generation_mean_mw": 314.13,
+          "renewable_mean_mw": 290.54,
+          "ratio": 1.0812,
+          "generation_zero_fraction": 0.0135,
+          "renewable_zero_fraction": 0.2358
+        },
+        {
+          "month": "2026-06",
+          "n_hours_common": 719,
+          "generation_mean_mw": 380.0,
+          "renewable_mean_mw": 332.08,
+          "ratio": 1.1443,
+          "generation_zero_fraction": 0.0042,
+          "renewable_zero_fraction": 0.2295
+        },
+        {
+          "month": "2026-07",
+          "n_hours_common": 741,
+          "generation_mean_mw": 288.12,
+          "renewable_mean_mw": 288.12,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.1673,
+          "renewable_zero_fraction": 0.1673
+        },
+        {
+          "month": "2026-08",
+          "n_hours_common": 496,
+          "generation_mean_mw": 296.63,
+          "renewable_mean_mw": 296.63,
+          "ratio": 1.0,
+          "generation_zero_fraction": 0.252,
+          "renewable_zero_fraction": 0.252
+        }
+      ],
+      "tso_reference": [
+        {
+          "month": "2025-11",
+          "n_hours": 528,
+          "tso_forecast_mean_mw": 17.67,
+          "energy_generation_mean_mw": 18.78,
+          "energy_renewable_mean_mw": 18.34,
+          "generation_over_tso": 1.0627,
+          "renewable_over_tso": 1.0379
+        },
+        {
+          "month": "2025-12",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 8.17,
+          "energy_generation_mean_mw": 9.87,
+          "energy_renewable_mean_mw": 8.11,
+          "generation_over_tso": 1.2083,
+          "renewable_over_tso": 0.9931
+        },
+        {
+          "month": "2026-01",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 5.81,
+          "energy_generation_mean_mw": 10.44,
+          "energy_renewable_mean_mw": 5.59,
+          "generation_over_tso": 1.7984,
+          "renewable_over_tso": 0.963
+        },
+        {
+          "month": "2026-02",
+          "n_hours": 645,
+          "tso_forecast_mean_mw": 22.45,
+          "energy_generation_mean_mw": 40.97,
+          "energy_renewable_mean_mw": 23.04,
+          "generation_over_tso": 1.8249,
+          "renewable_over_tso": 1.0264
+        },
+        {
+          "month": "2026-03",
+          "n_hours": 696,
+          "tso_forecast_mean_mw": 155.23,
+          "energy_generation_mean_mw": 206.51,
+          "energy_renewable_mean_mw": 145.05,
+          "generation_over_tso": 1.3304,
+          "renewable_over_tso": 0.9344
+        },
+        {
+          "month": "2026-04",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 264.79,
+          "energy_generation_mean_mw": 295.47,
+          "energy_renewable_mean_mw": 254.97,
+          "generation_over_tso": 1.1158,
+          "renewable_over_tso": 0.9629
+        },
+        {
+          "month": "2026-05",
+          "n_hours": 742,
+          "tso_forecast_mean_mw": 303.23,
+          "energy_generation_mean_mw": 314.13,
+          "energy_renewable_mean_mw": 290.54,
+          "generation_over_tso": 1.0359,
+          "renewable_over_tso": 0.9582
+        },
+        {
+          "month": "2026-06",
+          "n_hours": 719,
+          "tso_forecast_mean_mw": 341.12,
+          "energy_generation_mean_mw": 380.0,
+          "energy_renewable_mean_mw": 332.08,
+          "generation_over_tso": 1.114,
+          "renewable_over_tso": 0.9735
+        },
+        {
+          "month": "2026-07",
+          "n_hours": 741,
+          "tso_forecast_mean_mw": 301.7,
+          "energy_generation_mean_mw": 288.12,
+          "energy_renewable_mean_mw": 288.12,
+          "generation_over_tso": 0.955,
+          "renewable_over_tso": 0.955
+        },
+        {
+          "month": "2026-08",
+          "n_hours": 496,
+          "tso_forecast_mean_mw": 305.07,
+          "energy_generation_mean_mw": 296.63,
+          "energy_renewable_mean_mw": 296.63,
+          "generation_over_tso": 0.9723,
+          "renewable_over_tso": 0.9723
+        }
+      ],
+      "fetch_age": {
+        "energy_generation": {
+          "before_boundary": {
+            "n_rows": 4029,
+            "min_days": 28.89,
+            "median_days": 112.81,
+            "max_days": 196.73
+          },
+          "after_boundary": {
+            "n_rows": 960,
+            "min_days": 6.53,
+            "median_days": 8.81,
+            "max_days": 28.85
+          }
+        },
+        "energy_renewable": {
+          "before_boundary": {
+            "n_rows": 3999,
+            "min_days": 0.04,
+            "median_days": 6.86,
+            "max_days": 7.05
+          },
+          "after_boundary": {
+            "n_rows": 960,
+            "min_days": 6.48,
+            "median_days": 6.87,
+            "max_days": 7.02
+          }
+        },
+        "boundary_utc": "2026-06-30 21:00:00"
+      },
+      "vintage_share": {
+        "abl348_fit_window": {
+          "n_hours": 4242,
+          "n_hours_before_boundary": 3999,
+          "pct_before_boundary": 94.27
+        },
+        "abl348_gate_window": {
+          "n_hours": 717,
+          "n_hours_before_boundary": 0,
+          "pct_before_boundary": 0.0
+        }
+      },
+      "verdict": {
+        "ratio_abl439_comparator_window": 1.1143,
+        "ratio_abl348_fit_window": 1.1706,
+        "ratio_abl348_gate_window": 1.0,
+        "fit_gate_discontinuity": 0.1706,
+        "in_descriptive_band_comparator": false,
+        "basis_affected_by_abl439_rule_comparator": false,
+        "in_descriptive_band_fit_window": false,
+        "basis_affected_by_abl439_rule_fit_window": true,
+        "mechanism": "revision_vintage",
+        "convergence_evidence": {
+          "gate_ratio_within_converged_band": true,
+          "bit_identical_after_last_disagreement": true,
+          "last_disagreeing_hour_utc": "2026-06-30 20:00:00"
+        }
+      }
+    },
+    {
+      "country": "NL",
+      "forecast_type": "wind_onshore",
+      "column": "wind_onshore_mw",
+      "why_unscreened": "reference: the pair ABL-439 diagnosed (ratio 2.4647)",
+      "windows": {
+        "abl439_comparator": {
+          "start": "2026-05-01",
+          "end_exclusive": "2026-07-01",
+          "n_hours_generation": 1464,
+          "n_hours_renewable": 1464,
+          "n_hours_common": 1464,
+          "generation_mean_mw": 603.757,
+          "renewable_mean_mw": 244.9666,
+          "ratio": 2.4647,
+          "hours_agreeing_within_1pct": 0,
+          "pct_hours_agreeing_within_1pct": 0.0
+        },
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4272,
+          "n_hours_renewable": 4245,
+          "n_hours_common": 4245,
+          "generation_mean_mw": 726.1993,
+          "renewable_mean_mw": 321.4408,
+          "ratio": 2.2592,
+          "hours_agreeing_within_1pct": 184,
+          "pct_hours_agreeing_within_1pct": 4.33
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 720,
+          "n_hours_renewable": 720,
+          "n_hours_common": 720,
+          "generation_mean_mw": 224.5846,
+          "renewable_mean_mw": 226.1,
+          "ratio": 0.9933,
+          "hours_agreeing_within_1pct": 522,
+          "pct_hours_agreeing_within_1pct": 72.5
+        }
+      },
+      "rows_per_hour": {
+        "energy_generation": 4.0,
+        "energy_renewable": 3.998
+      },
+      "convergence": {
+        "dated": true,
+        "window": {
+          "start": "2025-11-01",
+          "end_exclusive": "2026-08-22"
+        },
+        "last_disagreeing_hour_utc": "2026-08-19 21:00:00",
+        "n_hours_after": 50,
+        "max_abs_difference_after_mw": 0.8035,
+        "bit_identical_after": false
+      },
+      "monthly": [
+        {
+          "month": "2025-11",
+          "n_hours_common": 505,
+          "generation_mean_mw": 1085.95,
+          "renewable_mean_mw": 390.93,
+          "ratio": 2.7779,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.1604
+        },
+        {
+          "month": "2025-12",
+          "n_hours_common": 744,
+          "generation_mean_mw": 1216.52,
+          "renewable_mean_mw": 566.98,
+          "ratio": 2.1456,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-01",
+          "n_hours_common": 744,
+          "generation_mean_mw": 963.77,
+          "renewable_mean_mw": 490.93,
+          "ratio": 1.9631,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-02",
+          "n_hours_common": 645,
+          "generation_mean_mw": 1093.85,
+          "renewable_mean_mw": 521.5,
+          "ratio": 2.0975,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-03",
+          "n_hours_common": 744,
+          "generation_mean_mw": 834.72,
+          "renewable_mean_mw": 333.9,
+          "ratio": 2.4999,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0027
+        },
+        {
+          "month": "2026-04",
+          "n_hours_common": 720,
+          "generation_mean_mw": 673.42,
+          "renewable_mean_mw": 257.85,
+          "ratio": 2.6117,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-05",
+          "n_hours_common": 744,
+          "generation_mean_mw": 539.26,
+          "renewable_mean_mw": 204.52,
+          "ratio": 2.6367,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-06",
+          "n_hours_common": 720,
+          "generation_mean_mw": 670.41,
+          "renewable_mean_mw": 286.76,
+          "ratio": 2.3378,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0014
+        },
+        {
+          "month": "2026-07",
+          "n_hours_common": 744,
+          "generation_mean_mw": 263.38,
+          "renewable_mean_mw": 259.06,
+          "ratio": 1.0167,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        },
+        {
+          "month": "2026-08",
+          "n_hours_common": 504,
+          "generation_mean_mw": 178.84,
+          "renewable_mean_mw": 180.91,
+          "ratio": 0.9885,
+          "generation_zero_fraction": 0.0,
+          "renewable_zero_fraction": 0.0
+        }
+      ],
+      "tso_reference": [
+        {
+          "month": "2025-11",
+          "n_hours": 505,
+          "tso_forecast_mean_mw": 1653.47,
+          "energy_generation_mean_mw": 1085.95,
+          "energy_renewable_mean_mw": 390.93,
+          "generation_over_tso": 0.6568,
+          "renewable_over_tso": 0.2364
+        },
+        {
+          "month": "2025-12",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 1732.52,
+          "energy_generation_mean_mw": 1216.52,
+          "energy_renewable_mean_mw": 566.98,
+          "generation_over_tso": 0.7022,
+          "renewable_over_tso": 0.3273
+        },
+        {
+          "month": "2026-01",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 1645.1,
+          "energy_generation_mean_mw": 963.77,
+          "energy_renewable_mean_mw": 490.93,
+          "generation_over_tso": 0.5858,
+          "renewable_over_tso": 0.2984
+        },
+        {
+          "month": "2026-02",
+          "n_hours": 645,
+          "tso_forecast_mean_mw": 1624.52,
+          "energy_generation_mean_mw": 1093.85,
+          "energy_renewable_mean_mw": 521.5,
+          "generation_over_tso": 0.6733,
+          "renewable_over_tso": 0.321
+        },
+        {
+          "month": "2026-03",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 1267.41,
+          "energy_generation_mean_mw": 834.72,
+          "energy_renewable_mean_mw": 333.9,
+          "generation_over_tso": 0.6586,
+          "renewable_over_tso": 0.2634
+        },
+        {
+          "month": "2026-04",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 1027.58,
+          "energy_generation_mean_mw": 673.42,
+          "energy_renewable_mean_mw": 257.85,
+          "generation_over_tso": 0.6553,
+          "renewable_over_tso": 0.2509
+        },
+        {
+          "month": "2026-05",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 756.81,
+          "energy_generation_mean_mw": 539.26,
+          "energy_renewable_mean_mw": 204.52,
+          "generation_over_tso": 0.7125,
+          "renewable_over_tso": 0.2702
+        },
+        {
+          "month": "2026-06",
+          "n_hours": 720,
+          "tso_forecast_mean_mw": 975.24,
+          "energy_generation_mean_mw": 670.41,
+          "energy_renewable_mean_mw": 286.76,
+          "generation_over_tso": 0.6874,
+          "renewable_over_tso": 0.294
+        },
+        {
+          "month": "2026-07",
+          "n_hours": 744,
+          "tso_forecast_mean_mw": 868.26,
+          "energy_generation_mean_mw": 263.38,
+          "energy_renewable_mean_mw": 259.06,
+          "generation_over_tso": 0.3033,
+          "renewable_over_tso": 0.2984
+        },
+        {
+          "month": "2026-08",
+          "n_hours": 504,
+          "tso_forecast_mean_mw": 620.79,
+          "energy_generation_mean_mw": 178.84,
+          "energy_renewable_mean_mw": 180.91,
+          "generation_over_tso": 0.2881,
+          "renewable_over_tso": 0.2914
+        }
+      ],
+      "fetch_age": {
+        "energy_generation": {
+          "before_boundary": {
+            "n_rows": 16116,
+            "min_days": 28.88,
+            "median_days": 112.82,
+            "max_days": 196.74
+          },
+          "after_boundary": {
+            "n_rows": 3852,
+            "min_days": 6.46,
+            "median_days": 8.82,
+            "max_days": 28.87
+          }
+        },
+        "energy_renewable": {
+          "before_boundary": {
+            "n_rows": 16000,
+            "min_days": 0.04,
+            "median_days": 6.83,
+            "max_days": 7.05
+          },
+          "after_boundary": {
+            "n_rows": 3852,
+            "min_days": 6.45,
+            "median_days": 6.86,
+            "max_days": 7.02
+          }
+        },
+        "boundary_utc": "2026-06-30 21:00:00"
+      },
+      "vintage_share": {
+        "abl348_fit_window": {
+          "n_hours": 4245,
+          "n_hours_before_boundary": 4002,
+          "pct_before_boundary": 94.28
+        },
+        "abl348_gate_window": {
+          "n_hours": 720,
+          "n_hours_before_boundary": 0,
+          "pct_before_boundary": 0.0
+        }
+      },
+      "verdict": {
+        "ratio_abl439_comparator_window": 2.4647,
+        "ratio_abl348_fit_window": 2.2592,
+        "ratio_abl348_gate_window": 0.9933,
+        "fit_gate_discontinuity": 1.2659,
+        "in_descriptive_band_comparator": false,
+        "basis_affected_by_abl439_rule_comparator": true,
+        "in_descriptive_band_fit_window": false,
+        "basis_affected_by_abl439_rule_fit_window": true,
+        "mechanism": "revision_vintage",
+        "convergence_evidence": {
+          "gate_ratio_within_converged_band": true,
+          "bit_identical_after_last_disagreement": false,
+          "last_disagreeing_hour_utc": "2026-08-19 21:00:00"
+        }
+      }
+    }
+  ],
+  "reproduction_pins": [
+    {
+      "country": "NL",
+      "forecast_type": "wind_onshore",
+      "recorded": 2.4647,
+      "measured": 2.4647,
+      "reproduces": true
+    },
+    {
+      "country": "NL",
+      "forecast_type": "solar",
+      "recorded": 1.6269,
+      "measured": 1.6269,
+      "reproduces": true
+    },
+    {
+      "country": "GR",
+      "forecast_type": "solar",
+      "recorded": 0.7945,
+      "measured": 0.7945,
+      "reproduces": true
+    },
+    {
+      "country": "CH",
+      "forecast_type": "wind_onshore",
+      "recorded": 1.0747,
+      "measured": 1.0747,
+      "reproduces": true
+    },
+    {
+      "country": "LV",
+      "forecast_type": "solar",
+      "recorded": 1.1143,
+      "measured": 1.1143,
+      "reproduces": true
+    }
+  ]
+}
