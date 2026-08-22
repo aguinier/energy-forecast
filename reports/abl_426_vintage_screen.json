@@ -1,0 +1,352 @@
+{
+ "issue": "ABL-426",
+ "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+ "replica_bytes": 10220126208,
+ "registered_replica_bytes": 9432453120,
+ "windows": {
+  "lookback_start": "2025-12-31 00:00:00",
+  "fit": [
+   "2026-01-14 00:00:00",
+   "2026-07-11 00:00:00"
+  ],
+  "gate": [
+   "2026-07-11 00:00:00",
+   "2026-08-10 00:00:00"
+  ]
+ },
+ "registered_minimum_n": {
+  "24-36h": 684,
+  "36-48h": 684,
+  "48-64h": 456
+ },
+ "countries": {
+  "BG": {
+   "energy_renewable": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 24.4,
+    "d7_mae_mw": 351.2,
+    "mean_actual_mw": 1439.2,
+    "n_fit_hours": 4239,
+    "fit_hours_intended": 4272
+   },
+   "energy_generation": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 24.4,
+    "d7_mae_mw": 351.2,
+    "mean_actual_mw": 1439.2,
+    "n_fit_hours": 4272,
+    "fit_hours_intended": 4272
+   },
+   "registered_2026_08_12": {
+    "d7_wape_pct_on_energy_generation": 24.4,
+    "d7_wape_pct_on_energy_renewable": 24.4,
+    "bar_delta_pp": 0.0,
+    "n_d7_scorable": 720,
+    "mean_actual_mw": 1439.2
+   },
+   "bar_delta_pp_today": 0.0,
+   "fit_hours_delta": 33,
+   "fit_hours_delta_pct_of_registered_window": 0.772,
+   "shift_vs_registered_bar_pp_includes_abl332": {
+    "energy_renewable": 0.0,
+    "energy_generation": 0.0
+   },
+   "tables_today_in_gate_window": {
+    "n_co_observed": 720,
+    "pct_hours_bit_identical": 100.0,
+    "mean_abs_diff_mw": 0.0,
+    "max_abs_diff_mw": 0.0,
+    "mean_abs_diff_pct_of_level": 0.0
+   }
+  },
+  "CH": {
+   "energy_renewable": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 12.67,
+    "d7_mae_mw": 168.7,
+    "mean_actual_mw": 1331.0,
+    "n_fit_hours": 4244,
+    "fit_hours_intended": 4272
+   },
+   "energy_generation": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 12.67,
+    "d7_mae_mw": 168.7,
+    "mean_actual_mw": 1331.0,
+    "n_fit_hours": 4272,
+    "fit_hours_intended": 4272
+   },
+   "registered_2026_08_12": {
+    "d7_wape_pct_on_energy_generation": 12.67,
+    "d7_wape_pct_on_energy_renewable": 12.67,
+    "bar_delta_pp": 0.0,
+    "n_d7_scorable": 720,
+    "mean_actual_mw": 1331.0
+   },
+   "bar_delta_pp_today": 0.0,
+   "fit_hours_delta": 28,
+   "fit_hours_delta_pct_of_registered_window": 0.655,
+   "shift_vs_registered_bar_pp_includes_abl332": {
+    "energy_renewable": 0.0,
+    "energy_generation": 0.0
+   },
+   "tables_today_in_gate_window": {
+    "n_co_observed": 720,
+    "pct_hours_bit_identical": 100.0,
+    "mean_abs_diff_mw": 0.0,
+    "max_abs_diff_mw": 0.0,
+    "mean_abs_diff_pct_of_level": 0.0
+   }
+  },
+  "CZ": {
+   "energy_renewable": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 23.96,
+    "d7_mae_mw": 229.6,
+    "mean_actual_mw": 958.0,
+    "n_fit_hours": 4151,
+    "fit_hours_intended": 4272
+   },
+   "energy_generation": {
+    "n_gate_hours": 706,
+    "n_d7_scorable": 706,
+    "d7_wape_pct": 23.96,
+    "d7_mae_mw": 234.1,
+    "mean_actual_mw": 977.2,
+    "n_fit_hours": 4272,
+    "fit_hours_intended": 4272
+   },
+   "registered_2026_08_12": {
+    "d7_wape_pct_on_energy_generation": 24.1,
+    "d7_wape_pct_on_energy_renewable": 24.1,
+    "bar_delta_pp": 0.0,
+    "n_d7_scorable": 720,
+    "mean_actual_mw": 956.9
+   },
+   "bar_delta_pp_today": 0.0,
+   "fit_hours_delta": 121,
+   "fit_hours_delta_pct_of_registered_window": 2.832,
+   "shift_vs_registered_bar_pp_includes_abl332": {
+    "energy_renewable": -0.14,
+    "energy_generation": -0.14
+   },
+   "tables_today_in_gate_window": {
+    "n_co_observed": 706,
+    "pct_hours_bit_identical": 99.29,
+    "mean_abs_diff_mw": 0.196,
+    "max_abs_diff_mw": 54.8,
+    "mean_abs_diff_pct_of_level": 0.0201
+   }
+  },
+  "HU": {
+   "energy_renewable": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 18.18,
+    "d7_mae_mw": 241.2,
+    "mean_actual_mw": 1326.6,
+    "n_fit_hours": 4245,
+    "fit_hours_intended": 4272
+   },
+   "energy_generation": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 18.18,
+    "d7_mae_mw": 241.2,
+    "mean_actual_mw": 1326.9,
+    "n_fit_hours": 4272,
+    "fit_hours_intended": 4272
+   },
+   "registered_2026_08_12": {
+    "d7_wape_pct_on_energy_generation": 18.35,
+    "d7_wape_pct_on_energy_renewable": 18.35,
+    "bar_delta_pp": 0.0,
+    "n_d7_scorable": 720,
+    "mean_actual_mw": 1326.7
+   },
+   "bar_delta_pp_today": 0.0,
+   "fit_hours_delta": 27,
+   "fit_hours_delta_pct_of_registered_window": 0.632,
+   "shift_vs_registered_bar_pp_includes_abl332": {
+    "energy_renewable": -0.17,
+    "energy_generation": -0.17
+   },
+   "tables_today_in_gate_window": {
+    "n_co_observed": 720,
+    "pct_hours_bit_identical": 76.11,
+    "mean_abs_diff_mw": 0.285,
+    "max_abs_diff_mw": 8.6,
+    "mean_abs_diff_pct_of_level": 0.0215
+   }
+  },
+  "PL": {
+   "energy_renewable": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 26.0,
+    "d7_mae_mw": 1060.8,
+    "mean_actual_mw": 4079.8,
+    "n_fit_hours": 4245,
+    "fit_hours_intended": 4272
+   },
+   "energy_generation": {
+    "n_gate_hours": 704,
+    "n_d7_scorable": 704,
+    "d7_wape_pct": 25.99,
+    "d7_mae_mw": 1084.6,
+    "mean_actual_mw": 4172.7,
+    "n_fit_hours": 4272,
+    "fit_hours_intended": 4272
+   },
+   "registered_2026_08_12": {
+    "d7_wape_pct_on_energy_generation": 26.11,
+    "d7_wape_pct_on_energy_renewable": 26.11,
+    "bar_delta_pp": 0.0,
+    "n_d7_scorable": 720,
+    "mean_actual_mw": 4074.2
+   },
+   "bar_delta_pp_today": -0.01,
+   "fit_hours_delta": 27,
+   "fit_hours_delta_pct_of_registered_window": 0.632,
+   "shift_vs_registered_bar_pp_includes_abl332": {
+    "energy_renewable": -0.11,
+    "energy_generation": -0.12
+   },
+   "tables_today_in_gate_window": {
+    "n_co_observed": 704,
+    "pct_hours_bit_identical": 99.57,
+    "mean_abs_diff_mw": 0.181,
+    "max_abs_diff_mw": 48.6,
+    "mean_abs_diff_pct_of_level": 0.0043
+   }
+  },
+  "RO": {
+   "energy_renewable": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 24.29,
+    "d7_mae_mw": 209.2,
+    "mean_actual_mw": 861.2,
+    "n_fit_hours": 4245,
+    "fit_hours_intended": 4272
+   },
+   "energy_generation": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 24.29,
+    "d7_mae_mw": 209.2,
+    "mean_actual_mw": 861.2,
+    "n_fit_hours": 4272,
+    "fit_hours_intended": 4272
+   },
+   "registered_2026_08_12": {
+    "d7_wape_pct_on_energy_generation": 24.41,
+    "d7_wape_pct_on_energy_renewable": 24.41,
+    "bar_delta_pp": 0.0,
+    "n_d7_scorable": 718,
+    "mean_actual_mw": 861.0
+   },
+   "bar_delta_pp_today": 0.0,
+   "fit_hours_delta": 27,
+   "fit_hours_delta_pct_of_registered_window": 0.632,
+   "shift_vs_registered_bar_pp_includes_abl332": {
+    "energy_renewable": -0.12,
+    "energy_generation": -0.12
+   },
+   "tables_today_in_gate_window": {
+    "n_co_observed": 720,
+    "pct_hours_bit_identical": 100.0,
+    "mean_abs_diff_mw": 0.0,
+    "max_abs_diff_mw": 0.0,
+    "mean_abs_diff_pct_of_level": 0.0
+   }
+  },
+  "SI": {
+   "energy_renewable": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 21.65,
+    "d7_mae_mw": 71.9,
+    "mean_actual_mw": 332.1,
+    "n_fit_hours": 4244,
+    "fit_hours_intended": 4272
+   },
+   "energy_generation": {
+    "n_gate_hours": 720,
+    "n_d7_scorable": 720,
+    "d7_wape_pct": 21.65,
+    "d7_mae_mw": 71.9,
+    "mean_actual_mw": 332.1,
+    "n_fit_hours": 4272,
+    "fit_hours_intended": 4272
+   },
+   "registered_2026_08_12": {
+    "d7_wape_pct_on_energy_generation": 22.28,
+    "d7_wape_pct_on_energy_renewable": 22.28,
+    "bar_delta_pp": 0.0,
+    "n_d7_scorable": 720,
+    "mean_actual_mw": 332.2
+   },
+   "bar_delta_pp_today": 0.0,
+   "fit_hours_delta": 28,
+   "fit_hours_delta_pct_of_registered_window": 0.655,
+   "shift_vs_registered_bar_pp_includes_abl332": {
+    "energy_renewable": -0.63,
+    "energy_generation": -0.63
+   },
+   "tables_today_in_gate_window": {
+    "n_co_observed": 720,
+    "pct_hours_bit_identical": 100.0,
+    "mean_abs_diff_mw": 0.0,
+    "max_abs_diff_mw": 0.0,
+    "mean_abs_diff_pct_of_level": 0.0
+   }
+  },
+  "SK": {
+   "energy_renewable": {
+    "n_gate_hours": 719,
+    "n_d7_scorable": 717,
+    "d7_wape_pct": 18.78,
+    "d7_mae_mw": 21.6,
+    "mean_actual_mw": 114.7,
+    "n_fit_hours": 4239,
+    "fit_hours_intended": 4272
+   },
+   "energy_generation": {
+    "n_gate_hours": 719,
+    "n_d7_scorable": 717,
+    "d7_wape_pct": 18.78,
+    "d7_mae_mw": 21.6,
+    "mean_actual_mw": 114.7,
+    "n_fit_hours": 4268,
+    "fit_hours_intended": 4272
+   },
+   "registered_2026_08_12": {
+    "d7_wape_pct_on_energy_generation": 19.14,
+    "d7_wape_pct_on_energy_renewable": 19.14,
+    "bar_delta_pp": 0.0,
+    "n_d7_scorable": 717,
+    "mean_actual_mw": 114.8
+   },
+   "bar_delta_pp_today": 0.0,
+   "fit_hours_delta": 29,
+   "fit_hours_delta_pct_of_registered_window": 0.679,
+   "shift_vs_registered_bar_pp_includes_abl332": {
+    "energy_renewable": -0.36,
+    "energy_generation": -0.36
+   },
+   "tables_today_in_gate_window": {
+    "n_co_observed": 719,
+    "pct_hours_bit_identical": 100.0,
+    "mean_abs_diff_mw": 0.0,
+    "max_abs_diff_mw": 0.0,
+    "mean_abs_diff_pct_of_level": 0.0
+   }
+  }
+ }
+}
