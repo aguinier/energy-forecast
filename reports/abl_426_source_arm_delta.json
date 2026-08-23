@@ -1,0 +1,3427 @@
+{
+ "issue": "ABL-426",
+ "arms": {
+  "renewable": {
+   "scope": "abl316-t2a",
+   "path": "experiments/ABL348/results_abl405_tranche2a.json",
+   "sha256": "895e1259c0da3921f4de18c72b912780c5c9ddccd056efdc43274c6cb7d00920",
+   "training_source": "energy_renewable",
+   "generated_at": "2026-08-13 20:18 UTC",
+   "replica_bytes": 9432453120,
+   "verdict": "PERFORMANCE PASS \u2014 HOLD FOR CONTAMINATION ADJUDICATION"
+  },
+  "generation": {
+   "scope": "abl316-t2a-generation",
+   "path": "experiments/ABL348/results_abl426_tranche2a_generation.json",
+   "sha256": "66d8bdce804034e181f8205ed0902cad4e3ba382bc42c851b578a9a1499612e8",
+   "training_source": "energy_generation",
+   "generated_at": "2026-08-23 07:36 UTC",
+   "replica_bytes": 10266849280,
+   "verdict": "FAIL"
+  }
+ },
+ "controlled": {
+  "expected_to_differ": {
+   "training_source": [
+    "energy_renewable",
+    "energy_generation"
+   ]
+  },
+  "must_match": {
+   "registered_countries": {
+    "equal": true
+   },
+   "registered_cells": {
+    "equal": true
+   },
+   "gate_basis": {
+    "equal": true
+   },
+   "fit_rules": {
+    "equal": true
+   },
+   "feature_columns": {
+    "equal": true
+   },
+   "n_features": {
+    "equal": true
+   },
+   "feature_set": {
+    "equal": true
+   },
+   "feature_set_is_registered_for_scope": {
+    "equal": true
+   },
+   "fit_window": {
+    "equal": true
+   },
+   "gate_window": {
+    "equal": true
+   },
+   "registered_intended_n": {
+    "equal": true
+   }
+  },
+  "all_controls_hold": true,
+  "grading_registrations_added_after_arm_a": {
+   "causal_levelling": {
+    "absent_in_arm_a": true,
+    "arm_b": "fit_window",
+    "graded_under": "fit_window",
+    "arm_b_matches_the_pin_both_arms_are_graded_under": true
+   },
+   "g23_readability": {
+    "absent_in_arm_a": true,
+    "arm_b": "sign_test",
+    "graded_under": "sign_test",
+    "arm_b_matches_the_pin_both_arms_are_graded_under": true
+   },
+   "seed_readability": {
+    "absent_in_arm_a": true,
+    "arm_b": "delta_min",
+    "graded_under": "delta_min",
+    "arm_b_matches_the_pin_both_arms_are_graded_under": true
+   }
+  },
+  "grading_registration_reconciled": true,
+  "reported_comparators": {
+   "arm_a": [
+    "challenger",
+    "incumbent",
+    "seasonal_naive",
+    "persistence",
+    "constant_causal",
+    "constant_oracle",
+    "climatology_causal",
+    "climatology_oracle"
+   ],
+   "arm_b": [
+    "challenger",
+    "incumbent",
+    "seasonal_naive",
+    "persistence",
+    "constant_causal",
+    "constant_oracle",
+    "climatology_causal",
+    "climatology_oracle",
+    "constant_causal_28d",
+    "climatology_causal_28d"
+   ],
+   "added_after_arm_a": [
+    "constant_causal_28d",
+    "climatology_causal_28d"
+   ],
+   "dropped_from_arm_a": [],
+   "arm_b_is_a_superset": true,
+   "no_added_column_is_in_the_gate_basis": true,
+   "no_added_column_is_read_by_the_grading_levelling": true,
+   "graded_under": [
+    "climatology_causal",
+    "constant_causal"
+   ],
+   "reconciled": true
+  }
+ },
+ "summary": {
+  "n_cells_compared": 24,
+  "n_gate_verdict_changed": 2,
+  "n_grade_changed": 3,
+  "gate_verdicts_changed": [
+   "HU 24-36h: PASS -> FAIL",
+   "HU 36-48h: PASS -> FAIL"
+  ],
+  "grades_changed": [
+   "SI 48-64h: A -> U(+)",
+   "SK 24-36h: A -> U(+)",
+   "SK 36-48h: A -> U(+)"
+  ],
+  "challenger_wape_delta_pp": {
+   "n": 24,
+   "min": -0.681386980153242,
+   "max": 1.223057822431013,
+   "mean": 0.2730227681050768,
+   "max_abs": 1.223057822431013
+  },
+  "seasonal_naive_delta_pp_is_the_vintage_control": {
+   "n": 24,
+   "min": -0.007400841572806627,
+   "max": 0.0,
+   "mean": -0.0016705608715358682,
+   "max_abs": 0.007400841572806627
+  },
+  "oracle_reference_moves": []
+ },
+ "cells": [
+  {
+   "country": "BG",
+   "horizon_band": "24-36h",
+   "n": {
+    "renewable": 720,
+    "generation": 720
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 24.39922177799024,
+      "generation": 24.39922177799024,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 19.562903483759907,
+      "generation": 18.222884292515985,
+      "delta_pp": -1.3400191912439219
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 75.28478879491863,
+      "generation": 75.30308895604004,
+      "delta_pp": 0.018300161121416636
+     },
+     "skill_pct": {
+      "renewable": 73.93095486495123,
+      "generation": 73.50310577994917,
+      "delta_pp": -0.427849085002066
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 41.85136043235167,
+      "generation": 41.980287702088575,
+      "delta_pp": 0.12892726973690571
+     },
+     "skill_pct": {
+      "renewable": 53.105405970023625,
+      "generation": 52.470597708361986,
+      "delta_pp": -0.6348082616616395
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 73.49208441273984,
+      "generation": 73.49208441273984,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 73.2950484020136,
+      "generation": 72.85016477005261,
+      "delta_pp": -0.444883631960991
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 19.15485303500696,
+      "generation": 19.15485303500696,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": -2.459807626325383,
+      "generation": -4.166707980724893,
+      "delta_pp": -1.7069003543995098
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 19.62602557077348,
+    "generation": 19.952979825112717,
+    "delta_pp": 0.3269542543392383
+   }
+  },
+  {
+   "country": "BG",
+   "horizon_band": "36-48h",
+   "n": {
+    "renewable": 720,
+    "generation": 720
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 24.39922177799024,
+      "generation": 24.39922177799024,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 20.0408371656398,
+      "generation": 19.070615466414864,
+      "delta_pp": -0.9702216992249362
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 75.28478879491863,
+      "generation": 75.30308895604004,
+      "delta_pp": 0.018300161121416636
+     },
+     "skill_pct": {
+      "renewable": 74.08584950018923,
+      "generation": 73.77778217379736,
+      "delta_pp": -0.30806732639186407
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 41.85136043235167,
+      "generation": 41.980287702088575,
+      "delta_pp": 0.12892726973690571
+     },
+     "skill_pct": {
+      "renewable": 53.38403992072179,
+      "generation": 52.96330469186,
+      "delta_pp": -0.42073522886178694
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 73.49208441273984,
+      "generation": 73.49208441273984,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 73.45372140731126,
+      "generation": 73.13160978668748,
+      "delta_pp": -0.3221116206237866
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 19.15485303500696,
+      "generation": 19.15485303500696,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": -1.8510214415372817,
+      "generation": -3.0868781912572585,
+      "delta_pp": -1.2358567497199768
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 19.50941347177989,
+    "generation": 19.74614001591197,
+    "delta_pp": 0.23672654413207894
+   }
+  },
+  {
+   "country": "BG",
+   "horizon_band": "48-64h",
+   "n": {
+    "renewable": 510,
+    "generation": 510
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 24.990061762850655,
+      "generation": 24.990061762850655,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 16.704555073583972,
+      "generation": 14.374250536054312,
+      "delta_pp": -2.33030453752966
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 68.13582557396909,
+      "generation": 68.16625586598569,
+      "delta_pp": 0.030430292016603744
+     },
+     "skill_pct": {
+      "renewable": 69.4498702299351,
+      "generation": 68.60920787843776,
+      "delta_pp": -0.8406623514973433
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 41.20565814602159,
+      "generation": 41.329705912020266,
+      "delta_pp": 0.12404776599867517
+     },
+     "skill_pct": {
+      "renewable": 49.48367755955291,
+      "generation": 48.22627646687307,
+      "delta_pp": -1.2574010926798422
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 63.81680135280594,
+      "generation": 63.81680135280594,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 67.38228383200315,
+      "generation": 66.46975839850214,
+      "delta_pp": -0.9125254335010169
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 20.383039287124063,
+      "generation": 20.383039287124063,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": -2.122077279720469,
+      "generation": -4.979082729143491,
+      "delta_pp": -2.8570054494230224
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 20.815583132752618,
+    "generation": 21.39792767594379,
+    "delta_pp": 0.5823445431911729
+   }
+  },
+  {
+   "country": "CH",
+   "horizon_band": "24-36h",
+   "n": {
+    "renewable": 720,
+    "generation": 720
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 12.671907993243584,
+      "generation": 12.671907993243584,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 39.54684506704683,
+      "generation": 38.59100667122699,
+      "delta_pp": -0.9558383958198391
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 94.93999383132655,
+      "generation": 95.08373653008341,
+      "delta_pp": 0.14374269875686707
+     },
+     "skill_pct": {
+      "renewable": 91.93114738797347,
+      "generation": 91.8159598915876,
+      "delta_pp": -0.11518749638587167
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 39.68213556885371,
+      "generation": 37.525084123564675,
+      "delta_pp": -2.157051445289035
+     },
+     "skill_pct": {
+      "renewable": 80.69517161236261,
+      "generation": 79.26269503200785,
+      "delta_pp": -1.4324765803547592
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 94.64766673959768,
+      "generation": 94.64766673959768,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 91.90622607402125,
+      "generation": 91.7782535985712,
+      "delta_pp": -0.12797247545005064
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 9.017246169293475,
+      "generation": 9.017246169293475,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 15.045369414406862,
+      "generation": 13.702132689930513,
+      "delta_pp": -1.3432367244763483
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 7.660568172116821,
+    "generation": 7.781691134199207,
+    "delta_pp": 0.12112296208238593
+   }
+  },
+  {
+   "country": "CH",
+   "horizon_band": "36-48h",
+   "n": {
+    "renewable": 720,
+    "generation": 720
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 12.671907993243584,
+      "generation": 12.671907993243584,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 40.70204056376512,
+      "generation": 38.830425841066194,
+      "delta_pp": -1.8716147226989222
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 94.93999383132655,
+      "generation": 95.08373653008341,
+      "delta_pp": 0.14374269875686707
+     },
+     "skill_pct": {
+      "renewable": 92.08533457988155,
+      "generation": 91.84786753218668,
+      "delta_pp": -0.2374670476948637
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 39.68213556885371,
+      "generation": 37.525084123564675,
+      "delta_pp": -2.157051445289035
+     },
+     "skill_pct": {
+      "renewable": 81.06406635148832,
+      "generation": 79.34354488918689,
+      "delta_pp": -1.7205214623014342
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 94.64766673959768,
+      "generation": 94.64766673959768,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 92.06088948573428,
+      "generation": 91.81030824710645,
+      "delta_pp": -0.25058123862783077
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 9.017246169293475,
+      "generation": 9.017246169293475,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 16.66876205266844,
+      "generation": 14.038587704583726,
+      "delta_pp": -2.630174348084715
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 7.514182861630586,
+    "generation": 7.751352157278994,
+    "delta_pp": 0.23716929564840772
+   }
+  },
+  {
+   "country": "CH",
+   "horizon_band": "48-64h",
+   "n": {
+    "renewable": 510,
+    "generation": 510
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 12.525699383152688,
+      "generation": 12.525699383152688,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 36.236845494232064,
+      "generation": 33.5862572770775,
+      "delta_pp": -2.6505882171545636
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 86.32835649354169,
+      "generation": 85.98988320966397,
+      "delta_pp": -0.33847328387771825
+     },
+     "skill_pct": {
+      "renewable": 90.74836893112268,
+      "generation": 90.32585526103051,
+      "delta_pp": -0.42251367009217233
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 39.094278237781644,
+      "generation": 36.56337671461538,
+      "delta_pp": -2.530901523166264
+     },
+     "skill_pct": {
+      "renewable": 79.57046040847725,
+      "generation": 77.24831098751207,
+      "delta_pp": -2.322149420965175
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 87.90777265484515,
+      "generation": 87.90777265484515,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 90.91459058806278,
+      "generation": 90.5369166896811,
+      "delta_pp": -0.37767389838167276
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 8.695808361640333,
+      "generation": 8.695808361640333,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 8.153667624051874,
+      "generation": 4.335682013529296,
+      "delta_pp": -3.8179856105225776
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 7.98678105060767,
+    "generation": 8.318785762573716,
+    "delta_pp": 0.33200471196604653
+   }
+  },
+  {
+   "country": "CZ",
+   "horizon_band": "24-36h",
+   "n": {
+    "renewable": 720,
+    "generation": 706
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 706,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 23.9605713385712,
+      "generation": 23.959858411794755,
+      "delta_pp": -0.0007129267764440783
+     },
+     "skill_pct": {
+      "renewable": 46.278364550368735,
+      "generation": 45.66629000831385,
+      "delta_pp": -0.6120745420548843
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 93.92036968469498,
+      "generation": 92.35883226003942,
+      "delta_pp": -1.5615374246555547
+     },
+     "skill_pct": {
+      "renewable": 86.29476137139433,
+      "generation": 85.90467238993476,
+      "delta_pp": -0.39008898145957005
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 29.327556558226735,
+      "generation": 30.63637743540572,
+      "delta_pp": 1.3088208771789844
+     },
+     "skill_pct": {
+      "renewable": 56.10950144925968,
+      "generation": 57.50711711483789,
+      "delta_pp": 1.3976156655782077
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 92.7988220301829,
+      "generation": 91.82318548531744,
+      "delta_pp": -0.9756365448654662
+     },
+     "skill_pct": {
+      "renewable": 86.12912264988728,
+      "generation": 85.82244787623404,
+      "delta_pp": -0.306674773653242
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 15.94310438865822,
+      "generation": 15.937113072355782,
+      "delta_pp": -0.005991316302438321
+     },
+     "skill_pct": {
+      "renewable": 19.26283318251941,
+      "generation": 18.31469147028614,
+      "delta_pp": -0.9481417122332729
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 12.872010786156055,
+    "generation": 13.01827998388318,
+    "delta_pp": 0.14626919772712554
+   }
+  },
+  {
+   "country": "CZ",
+   "horizon_band": "36-48h",
+   "n": {
+    "renewable": 720,
+    "generation": 706
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 706,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 23.9605713385712,
+      "generation": 23.959858411794755,
+      "delta_pp": -0.0007129267764440783
+     },
+     "skill_pct": {
+      "renewable": 46.34460115887603,
+      "generation": 45.4547606546796,
+      "delta_pp": -0.8898405041964281
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 93.92036968469498,
+      "generation": 92.35883226003942,
+      "delta_pp": -1.5615374246555547
+     },
+     "skill_pct": {
+      "renewable": 86.3116593775318,
+      "generation": 85.84979714693964,
+      "delta_pp": -0.46186223059216047
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 29.327556558226735,
+      "generation": 30.63637743540572,
+      "delta_pp": 1.3088208771789844
+     },
+     "skill_pct": {
+      "renewable": 56.16361666271816,
+      "generation": 57.341685892634786,
+      "delta_pp": 1.1780692299166233
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 92.7988220301829,
+      "generation": 91.82318548531744,
+      "delta_pp": -0.9756365448654662
+     },
+     "skill_pct": {
+      "renewable": 86.14622488188381,
+      "generation": 85.7672525207666,
+      "delta_pp": -0.37897236111720645
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 15.94310438865822,
+      "generation": 15.937113072355782,
+      "delta_pp": -0.005991316302438321
+     },
+     "skill_pct": {
+      "renewable": 19.36237885095857,
+      "generation": 17.99667820527352,
+      "delta_pp": -1.3657006456850525
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 12.856140116322413,
+    "generation": 13.068962117513331,
+    "delta_pp": 0.21282200119091854
+   }
+  },
+  {
+   "country": "CZ",
+   "horizon_band": "48-64h",
+   "n": {
+    "renewable": 510,
+    "generation": 498
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 498,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 24.027514052389126,
+      "generation": 24.02011321081632,
+      "delta_pp": -0.007400841572806627
+     },
+     "skill_pct": {
+      "renewable": 41.8510229970669,
+      "generation": 43.31336720261042,
+      "delta_pp": 1.4623442055435234
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 85.80434323456743,
+      "generation": 84.62581202712833,
+      "delta_pp": -1.178531207439093
+     },
+     "skill_pct": {
+      "renewable": 83.71672913746916,
+      "generation": 83.9101179094532,
+      "delta_pp": 0.19338877198404703
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 28.41675341527222,
+      "generation": 29.67244476440003,
+      "delta_pp": 1.2556913491278117
+     },
+     "skill_pct": {
+      "renewable": 50.83268867304407,
+      "generation": 54.11165651686056,
+      "delta_pp": 3.2789678438164955
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 89.86827366605691,
+      "generation": 86.87020672090834,
+      "delta_pp": -2.9980669451485653
+     },
+     "skill_pct": {
+      "renewable": 84.45307442689045,
+      "generation": 84.32581907272532,
+      "delta_pp": -0.12725535416512912
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 16.059070908628385,
+      "generation": 16.051740935979588,
+      "delta_pp": -0.007329972648797423
+     },
+     "skill_pct": {
+      "renewable": 12.997746256955722,
+      "generation": 15.173105349511683,
+      "delta_pp": 2.1753590925559614
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 13.971753620700273,
+    "generation": 13.616193373332711,
+    "delta_pp": -0.35556024736756164
+   }
+  },
+  {
+   "country": "HU",
+   "horizon_band": "24-36h",
+   "n": {
+    "renewable": 720,
+    "generation": 720
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "FAIL",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": false,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": false,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "U(+)",
+    "generation": "U(+)",
+    "conditions_renewable": {
+     "G1": false,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": false,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 18.183444556906508,
+      "generation": 18.180607541062702,
+      "delta_pp": -0.0028370158438058013
+     },
+     "skill_pct": {
+      "renewable": 4.603464851625194,
+      "generation": -1.3152855164196398,
+      "delta_pp": -5.918750368044834
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 95.69234174268519,
+      "generation": 95.68757424322273,
+      "delta_pp": -0.004767499462460023
+     },
+     "skill_pct": {
+      "renewable": 81.87276456818391,
+      "generation": 80.75012917348356,
+      "delta_pp": -1.1226353947003531
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 30.921259193092183,
+      "generation": 30.973546693787913,
+      "delta_pp": 0.05228750069572996
+     },
+     "skill_pct": {
+      "renewable": 43.90145637474638,
+      "generation": 40.53075477293765,
+      "delta_pp": -3.370701601808733
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 94.981647195227,
+      "generation": 94.98244447698173,
+      "delta_pp": 0.0007972817547283739
+     },
+     "skill_pct": {
+      "renewable": 81.7371286031074,
+      "generation": 80.60722216586953,
+      "delta_pp": -1.1299064372378638
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 14.193851264778578,
+      "generation": 14.18401857243387,
+      "delta_pp": -0.00983269234470896
+     },
+     "skill_pct": {
+      "renewable": -22.210496322156324,
+      "generation": -29.862593910060788,
+      "delta_pp": -7.652097587904464
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": true,
+   "gate_components_changed": [
+    "beats_d7"
+   ],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 17.346376077914563,
+    "generation": 18.419734438847396,
+    "delta_pp": 1.0733583609328328
+   }
+  },
+  {
+   "country": "HU",
+   "horizon_band": "36-48h",
+   "n": {
+    "renewable": 720,
+    "generation": 720
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "FAIL",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": false,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": false,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "U(+)",
+    "generation": "U(+)",
+    "conditions_renewable": {
+     "G1": false,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": false,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 18.183444556906508,
+      "generation": 18.180607541062702,
+      "delta_pp": -0.0028370158438058013
+     },
+     "skill_pct": {
+      "renewable": 4.605105941136156,
+      "generation": -1.368987574864211,
+      "delta_pp": -5.974093516000367
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 95.69234174268519,
+      "generation": 95.68757424322273,
+      "delta_pp": -0.004767499462460023
+     },
+     "skill_pct": {
+      "renewable": 81.8730764077689,
+      "generation": 80.73992580009417,
+      "delta_pp": -1.133150607674736
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 30.921259193092183,
+      "generation": 30.973546693787913,
+      "delta_pp": 0.05228750069572996
+     },
+     "skill_pct": {
+      "renewable": 43.90242142794649,
+      "generation": 40.4992331632757,
+      "delta_pp": -3.4031882646707956
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 94.981647195227,
+      "generation": 94.98244447698173,
+      "delta_pp": 0.0007972817547283739
+     },
+     "skill_pct": {
+      "renewable": 81.73744277601361,
+      "generation": 80.59694304477401,
+      "delta_pp": -1.1404997312396006
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 14.193851264778578,
+      "generation": 14.18401857243387,
+      "delta_pp": -0.00983269234470896
+     },
+     "skill_pct": {
+      "renewable": -22.208393956873017,
+      "generation": -29.93142743870727,
+      "delta_pp": -7.723033481834253
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": true,
+   "gate_components_changed": [
+    "beats_d7"
+   ],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 17.346077671313207,
+    "generation": 18.429497799334676,
+    "delta_pp": 1.0834201280214693
+   }
+  },
+  {
+   "country": "HU",
+   "horizon_band": "48-64h",
+   "n": {
+    "renewable": 510,
+    "generation": 510
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "U(+)",
+    "generation": "U(+)",
+    "conditions_renewable": {
+     "G1": false,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": false,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 17.89779425807508,
+      "generation": 17.89348398078535,
+      "delta_pp": -0.004310277289729214
+     },
+     "skill_pct": {
+      "renewable": 7.61574744920388,
+      "generation": 3.973373104894873,
+      "delta_pp": -3.6423743443090073
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 88.61331926851152,
+      "generation": 88.62080626398975,
+      "delta_pp": 0.007486995478231506
+     },
+     "skill_pct": {
+      "renewable": 81.34056642399408,
+      "generation": 80.61120201323861,
+      "delta_pp": -0.7293644107554655
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 29.825011660332173,
+      "generation": 29.86615748631546,
+      "delta_pp": 0.04114582598328553
+     },
+     "skill_pct": {
+      "renewable": 44.56081480634092,
+      "generation": 42.468296738081875,
+      "delta_pp": -2.0925180682590465
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 91.39800031375106,
+      "generation": 91.40013901652394,
+      "delta_pp": 0.002138702772882084
+     },
+     "skill_pct": {
+      "renewable": 81.90907526243298,
+      "generation": 81.20078450027545,
+      "delta_pp": -0.7082907621575316
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 14.291590859961426,
+      "generation": 14.281609200817314,
+      "delta_pp": -0.009981659144111532
+     },
+     "skill_pct": {
+      "renewable": -15.695611569211954,
+      "generation": -20.31213611265057,
+      "delta_pp": -4.616524543438617
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 16.53474344840197,
+    "generation": 17.182509100764154,
+    "delta_pp": 0.6477656523621853
+   }
+  },
+  {
+   "country": "PL",
+   "horizon_band": "24-36h",
+   "n": {
+    "renewable": 720,
+    "generation": 704
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 704,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 26.000594477619526,
+      "generation": 25.994127269223455,
+      "delta_pp": -0.006467208396070845
+     },
+     "skill_pct": {
+      "renewable": 33.31319422980366,
+      "generation": 34.0684248244015,
+      "delta_pp": 0.7552305945978333
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 92.59825129014062,
+      "generation": 90.92725521595433,
+      "delta_pp": -1.6709960741862915
+     },
+     "skill_pct": {
+      "renewable": 81.27506114121111,
+      "generation": 81.15159473246513,
+      "delta_pp": -0.12346640874598336
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 28.103795003955035,
+      "generation": 28.285357750075327,
+      "delta_pp": 0.18156274612029222
+     },
+     "skill_pct": {
+      "renewable": 38.30382716659291,
+      "generation": 39.409153975776846,
+      "delta_pp": 1.1053268091839357
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 92.15349696782513,
+      "generation": 90.79645136508381,
+      "delta_pp": -1.357045602741323
+     },
+     "skill_pct": {
+      "renewable": 81.18469020829419,
+      "generation": 81.12444120438451,
+      "delta_pp": -0.060249003909675025
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 15.404351508370818,
+      "generation": 15.397651118039617,
+      "delta_pp": -0.006700390331200623
+     },
+     "skill_pct": {
+      "renewable": -12.558882657049386,
+      "generation": -11.304883000432685,
+      "delta_pp": 1.2539996566167009
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 17.338965938386526,
+    "generation": 17.138337561748813,
+    "delta_pp": -0.20062837663771305
+   }
+  },
+  {
+   "country": "PL",
+   "horizon_band": "36-48h",
+   "n": {
+    "renewable": 720,
+    "generation": 704
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 704,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 26.000594477619526,
+      "generation": 25.994127269223455,
+      "delta_pp": -0.006467208396070845
+     },
+     "skill_pct": {
+      "renewable": 33.18607635478885,
+      "generation": 33.797750072632795,
+      "delta_pp": 0.6116737178439422
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 92.59825129014062,
+      "generation": 90.92725521595433,
+      "delta_pp": -1.6709960741862915
+     },
+     "skill_pct": {
+      "renewable": 81.2393678071247,
+      "generation": 81.07421470015986,
+      "delta_pp": -0.1651531069648371
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 28.103795003955035,
+      "generation": 28.285357750075327,
+      "delta_pp": 0.18156274612029222
+     },
+     "skill_pct": {
+      "renewable": 38.18622239760524,
+      "generation": 39.160404993769625,
+      "delta_pp": 0.9741825961643826
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 92.15349696782513,
+      "generation": 90.79645136508381,
+      "delta_pp": -1.357045602741323
+     },
+     "skill_pct": {
+      "renewable": 81.14882460983218,
+      "generation": 81.04694969628856,
+      "delta_pp": -0.101874913543611
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 15.404351508370818,
+      "generation": 15.397651118039617,
+      "delta_pp": -0.006700390331200623
+     },
+     "skill_pct": {
+      "renewable": -12.77344153135973,
+      "generation": -11.761832822980512,
+      "delta_pp": 1.0116087083792173
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 17.372017341577696,
+    "generation": 17.208697101209225,
+    "delta_pp": -0.1633202403684706
+   }
+  },
+  {
+   "country": "PL",
+   "horizon_band": "48-64h",
+   "n": {
+    "renewable": 510,
+    "generation": 498
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 498,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 24.51393768859715,
+      "generation": 24.507728863671456,
+      "delta_pp": -0.006208824925693079
+     },
+     "skill_pct": {
+      "renewable": 33.493151003885856,
+      "generation": 34.358024312439795,
+      "delta_pp": 0.8648733085539391
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 85.93856402310571,
+      "generation": 84.53687133100887,
+      "delta_pp": -1.4016926920968444
+     },
+     "skill_pct": {
+      "renewable": 81.02895049866854,
+      "generation": 80.9700108733934,
+      "delta_pp": -0.05893962527512997
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 27.08726505075177,
+      "generation": 27.26560511087581,
+      "delta_pp": 0.17834006012403947
+     },
+     "skill_pct": {
+      "renewable": 39.811392951595394,
+      "generation": 40.99761455194183,
+      "delta_pp": 1.1862216003464354
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 88.09476065630301,
+      "generation": 85.54280113589793,
+      "delta_pp": -2.5519595204050773
+     },
+     "skill_pct": {
+      "renewable": 81.49328359587258,
+      "generation": 81.19379163571327,
+      "delta_pp": -0.29949196015931534
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 14.618809008760563,
+      "generation": 14.61309359945348,
+      "delta_pp": -0.005715409307082808
+     },
+     "skill_pct": {
+      "renewable": -11.523774007764299,
+      "generation": -10.08864969472343,
+      "delta_pp": 1.4351243130408697
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 16.30344752155682,
+    "generation": 16.087357422264393,
+    "delta_pp": -0.21609009929242617
+   }
+  },
+  {
+   "country": "RO",
+   "horizon_band": "24-36h",
+   "n": {
+    "renewable": 720,
+    "generation": 720
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 24.29317949017054,
+      "generation": 24.29317949017054,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 22.757129972937975,
+      "generation": 25.56197888301557,
+      "delta_pp": 2.8048489100775953
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 96.30124524777712,
+      "generation": 96.28814457395391,
+      "delta_pp": -0.013100673823203124
+     },
+     "skill_pct": {
+      "renewable": 80.51453123918306,
+      "generation": 81.21953418160302,
+      "delta_pp": 0.7050029424199664
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 43.44817698231057,
+      "generation": 43.578279856872285,
+      "delta_pp": 0.13010287456171454
+     },
+     "skill_pct": {
+      "renewable": 56.81119355899978,
+      "generation": 58.50372676876474,
+      "delta_pp": 1.6925332097649601
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 95.80236414523966,
+      "generation": 95.80236414523966,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 80.41306263529644,
+      "generation": 81.12430497908686,
+      "delta_pp": 0.711242343790417
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 19.947216757752116,
+      "generation": 19.947216757752116,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 5.927983402793535,
+      "generation": 9.34393354976546,
+      "delta_pp": 3.415950146971925
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 18.76474905903332,
+    "generation": 18.08336207888008,
+    "delta_pp": -0.681386980153242
+   }
+  },
+  {
+   "country": "RO",
+   "horizon_band": "36-48h",
+   "n": {
+    "renewable": 720,
+    "generation": 720
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 24.29317949017054,
+      "generation": 24.29317949017054,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 23.040639249548278,
+      "generation": 25.527243418099822,
+      "delta_pp": 2.486604168551544
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 96.30124524777712,
+      "generation": 96.28814457395391,
+      "delta_pp": -0.013100673823203124
+     },
+     "skill_pct": {
+      "renewable": 80.58604995865653,
+      "generation": 81.21077053902161,
+      "delta_pp": 0.6247205803650786
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 43.44817698231057,
+      "generation": 43.578279856872285,
+      "delta_pp": 0.13010287456171454
+     },
+     "skill_pct": {
+      "renewable": 56.96971210274966,
+      "generation": 58.48436311130409,
+      "delta_pp": 1.5146510085544307
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 95.80236414523966,
+      "generation": 95.80236414523966,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 80.48495378125376,
+      "generation": 81.11549689912556,
+      "delta_pp": 0.6305431178717953
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 19.947216757752116,
+      "generation": 19.947216757752116,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 6.273261735478519,
+      "generation": 9.301630160068509,
+      "delta_pp": 3.0283684245899902
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 18.695875641595094,
+    "generation": 18.091800427718805,
+    "delta_pp": -0.604075213876289
+   }
+  },
+  {
+   "country": "RO",
+   "horizon_band": "48-64h",
+   "n": {
+    "renewable": 510,
+    "generation": 510
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 24.993994379501835,
+      "generation": 24.993994379501835,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 23.326169758393323,
+      "generation": 25.032043722644527,
+      "delta_pp": 1.7058739642512037
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 92.2518408526864,
+      "generation": 92.26003796092938,
+      "delta_pp": 0.008197108242981699
+     },
+     "skill_pct": {
+      "renewable": 79.2265903379229,
+      "generation": 79.69057113728411,
+      "delta_pp": 0.4639807993612095
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 42.39149302674839,
+      "generation": 42.50417962052933,
+      "delta_pp": 0.1126865937809356
+     },
+     "skill_pct": {
+      "renewable": 54.79316378631947,
+      "generation": 55.91613120009615,
+      "delta_pp": 1.122967413776685
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 93.02602880409985,
+      "generation": 93.02602880409985,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 79.39947231167696,
+      "generation": 79.85780214498007,
+      "delta_pp": 0.45832983330311095
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 20.447771438158636,
+      "generation": 20.447771438158636,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 6.279014908327363,
+      "generation": 8.364161663981463,
+      "delta_pp": 2.0851467556541
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 19.16385282113595,
+    "generation": 18.73748677838962,
+    "delta_pp": -0.4263660427463307
+   }
+  },
+  {
+   "country": "SI",
+   "horizon_band": "24-36h",
+   "n": {
+    "renewable": 720,
+    "generation": 720
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 21.649598471092954,
+      "generation": 21.64890657792874,
+      "delta_pp": -0.000691893164212587
+     },
+     "skill_pct": {
+      "renewable": 17.252276726590978,
+      "generation": 15.234224098091486,
+      "delta_pp": -2.0180526284994915
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 94.9875775001701,
+      "generation": 94.92555867274075,
+      "delta_pp": -0.06201882742935538
+     },
+     "skill_pct": {
+      "renewable": 81.14011294515632,
+      "generation": 80.66815313847573,
+      "delta_pp": -0.47195980668058723
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 35.05417152040105,
+      "generation": 35.797689160788515,
+      "delta_pp": 0.7435176403874664
+     },
+     "skill_pct": {
+      "renewable": 48.894670575117814,
+      "generation": 48.73729543648455,
+      "delta_pp": -0.15737513863326313
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 93.83622901528832,
+      "generation": 93.83512655409227,
+      "delta_pp": -0.00110246119605506
+     },
+     "skill_pct": {
+      "renewable": 80.90870656178495,
+      "generation": 80.44350307932706,
+      "delta_pp": -0.4652034824578948
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 13.007528020917478,
+      "generation": 13.006894614587507,
+      "delta_pp": -0.000633406329971109
+     },
+     "skill_pct": {
+      "renewable": -37.72447619452137,
+      "generation": -41.08566401760285,
+      "delta_pp": -3.3611878230814796
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 17.91454983266419,
+    "generation": 18.35086363506061,
+    "delta_pp": 0.4363138023964197
+   }
+  },
+  {
+   "country": "SI",
+   "horizon_band": "36-48h",
+   "n": {
+    "renewable": 720,
+    "generation": 720
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 720,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 21.649598471092954,
+      "generation": 21.64890657792874,
+      "delta_pp": -0.000691893164212587
+     },
+     "skill_pct": {
+      "renewable": 16.36421832460715,
+      "generation": 15.60346508893663,
+      "delta_pp": -0.7607532356705207
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 94.9875775001701,
+      "generation": 94.92555867274075,
+      "delta_pp": -0.06201882742935538
+     },
+     "skill_pct": {
+      "renewable": 80.93770639550202,
+      "generation": 80.752362953275,
+      "delta_pp": -0.1853434422270226
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 35.05417152040105,
+      "generation": 35.797689160788515,
+      "delta_pp": 0.7435176403874664
+     },
+     "skill_pct": {
+      "renewable": 48.34620210509162,
+      "generation": 48.960596546219435,
+      "delta_pp": 0.6143944411278142
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 93.83622901528832,
+      "generation": 93.83512655409227,
+      "delta_pp": -0.00110246119605506
+     },
+     "skill_pct": {
+      "renewable": 80.70381653131817,
+      "generation": 80.52869147315249,
+      "delta_pp": -0.17512505816567625
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 13.007528020917478,
+      "generation": 13.006894614587507,
+      "delta_pp": -0.000633406329971109
+     },
+     "skill_pct": {
+      "renewable": -39.20255164366995,
+      "generation": -40.47109274963982,
+      "delta_pp": -1.2685411059698737
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 18.10681091088249,
+    "generation": 18.270926997905125,
+    "delta_pp": 0.16411608702263436
+   }
+  },
+  {
+   "country": "SI",
+   "horizon_band": "48-64h",
+   "n": {
+    "renewable": 510,
+    "generation": 510
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 510,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "U(+)",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": false,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 21.222427790207888,
+      "generation": 21.221672361440323,
+      "delta_pp": -0.0007554287675652915
+     },
+     "skill_pct": {
+      "renewable": 12.099075079454625,
+      "generation": 10.495560980531248,
+      "delta_pp": -1.6035140989233767
+     },
+     "readable": {
+      "renewable": true,
+      "generation": false
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 86.6196328788374,
+      "generation": 86.68223916921644,
+      "delta_pp": 0.06260629037905119
+     },
+     "skill_pct": {
+      "renewable": 78.4636465219362,
+      "generation": 78.08739255041961,
+      "delta_pp": -0.37625397151659
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 34.32032470962783,
+      "generation": 35.041493598944385,
+      "delta_pp": 0.7211688893165515
+     },
+     "skill_pct": {
+      "renewable": 45.645297717843526,
+      "generation": 45.79472263639753,
+      "delta_pp": 0.1494249185540042
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 90.1119015381771,
+      "generation": 90.11071680691822,
+      "delta_pp": -0.0011847312588741943
+     },
+     "skill_pct": {
+      "renewable": 79.29828357879643,
+      "generation": 78.92111008465696,
+      "delta_pp": -0.37717349413946977
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 12.763112369197515,
+      "generation": 12.762419884170344,
+      "delta_pp": -0.0006924850271712302
+     },
+     "skill_pct": {
+      "renewable": -46.16113827540105,
+      "generation": -48.830229455278484,
+      "delta_pp": -2.6690911798774337
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": true,
+   "challenger_wape_pct": {
+    "renewable": 18.654710318187593,
+    "generation": 18.99433879765681,
+    "delta_pp": 0.3396284794692157
+   }
+  },
+  {
+   "country": "SK",
+   "horizon_band": "24-36h",
+   "n": {
+    "renewable": 715,
+    "generation": 715
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 715,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 715,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "U(+)",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": false,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 18.820877448244097,
+      "generation": 18.820877448244097,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 13.271000837185266,
+      "generation": 6.866576952632464,
+      "delta_pp": -6.404423884552802
+     },
+     "readable": {
+      "renewable": true,
+      "generation": false
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 97.11618031792756,
+      "generation": 97.0715764242213,
+      "delta_pp": -0.044603893706252506
+     },
+     "skill_pct": {
+      "renewable": 83.19213277222687,
+      "generation": 81.94267770155832,
+      "delta_pp": -1.2494550706685459
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 32.61481861298469,
+      "generation": 32.960083472636256,
+      "delta_pp": 0.3452648596515644
+     },
+     "skill_pct": {
+      "renewable": 49.95171109728817,
+      "generation": 46.81892286573819,
+      "delta_pp": -3.1327882315499807
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 95.25416594222129,
+      "generation": 95.25416594222129,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 82.8635750646085,
+      "generation": 81.59815138612193,
+      "delta_pp": -1.2654236784865702
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 13.112705399329545,
+      "generation": 13.112705399329545,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": -24.48353064773816,
+      "generation": -33.67590349430105,
+      "delta_pp": -9.192372846562893
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": true,
+   "challenger_wape_pct": {
+    "renewable": 16.32315864452201,
+    "generation": 17.528527415099767,
+    "delta_pp": 1.2053687705777563
+   }
+  },
+  {
+   "country": "SK",
+   "horizon_band": "36-48h",
+   "n": {
+    "renewable": 715,
+    "generation": 715
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 715,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 715,
+     "intended_n": 720,
+     "minimum_n": 684,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "U(+)",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": false,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 18.820877448244097,
+      "generation": 18.820877448244097,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 13.020850110553116,
+      "generation": 6.522439896713072,
+      "delta_pp": -6.498410213840044
+     },
+     "readable": {
+      "renewable": true,
+      "generation": false
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 97.11618031792756,
+      "generation": 97.0715764242213,
+      "delta_pp": -0.044603893706252506
+     },
+     "skill_pct": {
+      "renewable": 83.14365417520915,
+      "generation": 81.87595413948746,
+      "delta_pp": -1.2677000357216883
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 32.61481861298469,
+      "generation": 32.960083472636256,
+      "delta_pp": 0.3452648596515644
+     },
+     "skill_pct": {
+      "renewable": 49.807357813420495,
+      "generation": 46.62241361356243,
+      "delta_pp": -3.184944199858066
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 95.25416594222129,
+      "generation": 95.25416594222129,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 82.81414881513203,
+      "generation": 81.53015476580836,
+      "delta_pp": -1.2839940493236668
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 13.112705399329545,
+      "generation": 13.112705399329545,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": -24.842576018327623,
+      "generation": -34.169848958460534,
+      "delta_pp": -9.32727294013291
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": true,
+   "challenger_wape_pct": {
+    "renewable": 16.370239206217338,
+    "generation": 17.59329702864835,
+    "delta_pp": 1.223057822431013
+   }
+  },
+  {
+   "country": "SK",
+   "horizon_band": "48-64h",
+   "n": {
+    "renewable": 507,
+    "generation": 507
+   },
+   "gate": {
+    "renewable": "PASS",
+    "generation": "PASS",
+    "block_renewable": {
+     "pass": true,
+     "n": 507,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    },
+    "block_generation": {
+     "pass": true,
+     "n": 507,
+     "intended_n": 480,
+     "minimum_n": 456,
+     "beats_d7": true,
+     "enough_pairs": true
+    }
+   },
+   "grade": {
+    "renewable": "A",
+    "generation": "A",
+    "conditions_renewable": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    },
+    "conditions_generation": {
+     "G1": true,
+     "G2": true,
+     "G3": true,
+     "G4": true,
+     "G0": true
+    }
+   },
+   "references": {
+    "seasonal_naive": {
+     "wape_pct": {
+      "renewable": 18.34386188749539,
+      "generation": 18.34386188749539,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 17.860217471350804,
+      "generation": 13.327196962513387,
+      "delta_pp": -4.533020508837417
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_causal": {
+     "wape_pct": {
+      "renewable": 89.82482858076499,
+      "generation": 89.83993715194681,
+      "delta_pp": 0.015108571181826846
+     },
+     "skill_pct": {
+      "renewable": 83.22556413431215,
+      "generation": 82.30281566612503,
+      "delta_pp": -0.9227484681871232
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_causal": {
+     "wape_pct": {
+      "renewable": 31.6222695504664,
+      "generation": 31.977117472827207,
+      "delta_pp": 0.35484792236080764
+     },
+     "skill_pct": {
+      "renewable": 52.35127498455516,
+      "generation": 50.27963575288528,
+      "delta_pp": -2.0716392316698844
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "constant_oracle": {
+     "wape_pct": {
+      "renewable": 93.11232947703853,
+      "generation": 93.11232947703853,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": 83.81781623725766,
+      "generation": 82.92477551306654,
+      "delta_pp": -0.893040724191124
+     },
+     "readable": {
+      "renewable": true,
+      "generation": true
+     }
+    },
+    "climatology_oracle": {
+     "wape_pct": {
+      "renewable": 12.51558710022297,
+      "generation": 12.51558710022297,
+      "delta_pp": 0.0
+     },
+     "skill_pct": {
+      "renewable": -20.39074268817995,
+      "generation": -27.03470605013971,
+      "delta_pp": -6.643963361959759
+     },
+     "readable": {
+      "renewable": false,
+      "generation": false
+     }
+    }
+   },
+   "gate_changed": false,
+   "gate_components_changed": [],
+   "grade_changed": false,
+   "challenger_wape_pct": {
+    "renewable": 15.067608261744477,
+    "generation": 15.899139283217453,
+    "delta_pp": 0.8315310214729763
+   }
+  }
+ ],
+ "cells_only_in_renewable_arm": [],
+ "cells_only_in_generation_arm": [],
+ "readability_floor_pct": 10.648236880290906
+}

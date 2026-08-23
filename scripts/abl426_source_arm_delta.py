@@ -37,7 +37,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.evaluation.gate_grading import (  # noqa: E402
-    DELTA_MIN, SIGN_TEST, cell_grade, readability_floor_pct, skill_pct,
+    DELTA_MIN, LADDER_REFERENCES, SIGN_TEST, cell_grade, readability_floor_pct,
+    skill_pct,
 )
 from src.evaluation.model_free_reference import FIT_WINDOW  # noqa: E402
 
@@ -281,7 +282,7 @@ def main() -> int:
 CONTROL_FIELDS = ("registered_countries", "registered_cells", "gate_basis", "fit_rules",
                   "feature_columns", "n_features", "feature_set",
                   "feature_set_is_registered_for_scope", "fit_window", "gate_window",
-                  "registered_intended_n", "reported_comparators")
+                  "registered_intended_n")
 
 #: The three grading registrations `main()` began recording *after* ABL-405 ran,
 #: mapped to the pin `_grade` grades **both** arms under. They are absent from arm
@@ -340,7 +341,46 @@ def _controls(a_meta: dict, b_meta: dict) -> dict:
     out["grading_registration_reconciled"] = all(
         entry["arm_b_matches_the_pin_both_arms_are_graded_under"]
         and entry.get("equal", True) for entry in reconciled.values())
+    out["reported_comparators"] = _reconcile_comparators(a_meta, b_meta)
     return out
+
+
+def _reconcile_comparators(a_meta: dict, b_meta: dict) -> dict:
+    """`reported_comparators` differs by *addition*, and addition is not a confound.
+
+    ABL-437 gave the harness `constant_causal_28d` and `climatology_causal_28d`
+    after ABL-405 ran, so arm B reports ten columns where arm A reports eight.
+    Plain equality calls that a control failure, which it is not: a **reported**
+    comparator is scored on its own intersection and cannot move a cell. Three
+    things make that safe, and all three are checked rather than asserted:
+
+      1. arm B is a **superset** -- nothing arm A scored is missing from arm B,
+         which is the direction that would really invalidate the comparison;
+      2. no added column is in the **gate basis**, so no added column can change
+         which rows are scored or what `gate.pass` reads;
+      3. no added column is one of the two the **grading levelling** reads.  Both
+         arms are graded under `FIT_WINDOW`, whose G2/G3 are `constant_causal`
+         and `climatology_causal`; the added pair is what `TRAILING_28D` would
+         read, and neither arm registers it.  This is the check that makes the
+         levelling pin load-bearing rather than decorative.
+    """
+    a = list(a_meta.get("reported_comparators") or [])
+    b = list(b_meta.get("reported_comparators") or [])
+    added = [c for c in b if c not in a]
+    dropped = [c for c in a if c not in b]
+    basis = set(b_meta.get("gate_basis") or []) | set(a_meta.get("gate_basis") or [])
+    ladder = set(LADDER_REFERENCES[FIT_WINDOW].values())
+    return {
+        "arm_a": a, "arm_b": b,
+        "added_after_arm_a": added,
+        "dropped_from_arm_a": dropped,
+        "arm_b_is_a_superset": not dropped,
+        "no_added_column_is_in_the_gate_basis": not (set(added) & basis),
+        "no_added_column_is_read_by_the_grading_levelling": not (set(added) & ladder),
+        "graded_under": sorted(ladder),
+        "reconciled": (not dropped and not (set(added) & basis)
+                       and not (set(added) & ladder)),
+    }
 
 
 if __name__ == "__main__":

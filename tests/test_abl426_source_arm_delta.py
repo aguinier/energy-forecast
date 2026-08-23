@@ -248,6 +248,43 @@ def test_a_field_the_published_record_predates_is_not_reported_as_a_control_fail
     assert off["all_controls_hold"] is True  # still controlled; a different defect
 
 
+def test_a_reported_comparator_added_after_arm_a_is_reconciled_not_failed(tool):
+    """ABL-437 added two reference columns after ABL-405 ran. Addition is inert.
+
+    A *reported* comparator is scored on its own intersection and is in no gate
+    basis, so it cannot move a cell. What must hold is the direction and the
+    reach: arm B is a superset, and no added column is in the gate basis or is
+    one of the two the grading levelling reads. The third is the one that matters
+    here -- the added pair is exactly what `TRAILING_28D` would grade against,
+    and both arms are pinned to `FIT_WINDOW`.
+    """
+    a_meta = {"gate_basis": ["challenger", "seasonal_naive"],
+              "reported_comparators": ["challenger", "seasonal_naive",
+                                       "constant_causal", "climatology_causal"]}
+    b_meta = {"gate_basis": ["challenger", "seasonal_naive"],
+              "reported_comparators": ["challenger", "seasonal_naive",
+                                       "constant_causal", "climatology_causal",
+                                       "constant_causal_28d", "climatology_causal_28d"]}
+    rec = tool._controls(a_meta, b_meta)["reported_comparators"]
+    assert rec["added_after_arm_a"] == ["constant_causal_28d", "climatology_causal_28d"]
+    assert rec["arm_b_is_a_superset"] is True
+    assert rec["no_added_column_is_read_by_the_grading_levelling"] is True
+    assert rec["reconciled"] is True
+    # And it does not silently exempt the two failures that would matter.
+    dropped = tool._controls(a_meta, dict(b_meta, reported_comparators=["challenger"]))
+    assert dropped["reported_comparators"]["dropped_from_arm_a"] == [
+        "seasonal_naive", "constant_causal", "climatology_causal"]
+    assert dropped["reported_comparators"]["reconciled"] is False
+
+    into_the_ladder = tool._controls(
+        {**a_meta, "reported_comparators": ["challenger", "seasonal_naive"]},
+        {**b_meta, "reported_comparators": ["challenger", "seasonal_naive",
+                                            "constant_causal"]})
+    assert into_the_ladder["reported_comparators"][
+        "no_added_column_is_read_by_the_grading_levelling"] is False
+    assert into_the_ladder["reported_comparators"]["reconciled"] is False
+
+
 def test_a_field_present_on_both_arms_is_compared_by_value_not_exempted(tool):
     """The exemption is for the published record's age, not for the field name.
 
