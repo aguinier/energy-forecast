@@ -214,21 +214,26 @@ stronger statement than a like-for-like match would be.
 §6's per-cell D-7 delta between the two arms is the same control taken again,
 inside the harness, at full precision.
 
-### The replica was rebuilt during this issue, and the rebuild was additive
+### The replica was rebuilt twice during this issue, and both rebuilds were additive
 
 A full replica refresh committed at **2026-08-22 17:06 UTC**, mid-issue: a 10.2 GB
 rollback journal against the live file, held for over 40 minutes, during which
 *every* read failed and two gate runs died — the first on CZ, 15 minutes in, with
 no partial output. The file went from 10,175,365,120 to **10,220,126,208 bytes**.
+A second refresh committed overnight, before the gate read of 2026-08-23:
+**10,266,849,280 bytes**.
 
-That is a replica change between the sizing measurement and the gate read, so the
-screen was **taken again afterwards** rather than assumed to still hold. It
-reproduces the pre-refresh screen on every quantity: D-7 identical to 2 dp on both
-tables for all eight, `n_d7_scorable` identical, fit-window hours identical,
-bit-identity percentages identical. **The refresh added data outside the frozen
-windows and revised nothing inside them.** `reports/abl_426_vintage_screen.json`
-is the post-refresh measurement and records `replica_bytes` so which snapshot it
-was taken on is not a matter of recollection.
+Each is a replica change between the sizing measurement and the gate read, so the
+screen was **taken again after each** rather than assumed to still hold. Both
+re-takes reproduce the pre-refresh screen on every quantity: D-7 identical to 2 dp
+on both tables for all eight, `n_d7_scorable` identical, fit-window hours
+identical, bit-identity percentages identical. The second re-take was differenced
+leaf by leaf against the first: **243 of 244 leaves byte-identical, the 244th
+being `replica_bytes` itself**. **Both refreshes added data outside the frozen
+windows and revised nothing inside them.**
+`reports/abl_426_vintage_screen.json` is the measurement taken on the snapshot the
+gate read below actually ran against, and records `replica_bytes` so which
+snapshot it was taken on is not a matter of recollection.
 
 ---
 

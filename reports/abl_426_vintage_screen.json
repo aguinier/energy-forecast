@@ -1,7 +1,7 @@
 {
  "issue": "ABL-426",
  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
- "replica_bytes": 10220126208,
+ "replica_bytes": 10266849280,
  "registered_replica_bytes": 9432453120,
  "windows": {
   "lookback_start": "2025-12-31 00:00:00",
