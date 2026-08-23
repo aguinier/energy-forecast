@@ -213,6 +213,59 @@ def test_the_controls_report_names_the_field_that_moved(tool):
         ["energy_renewable", "energy_generation"]
 
 
+def test_a_field_the_published_record_predates_is_not_reported_as_a_control_failure(tool):
+    """`all_controls_hold` must mean "the A/B is controlled", not "the two records
+    have the same schema".
+
+    ABL-405 ran 2026-08-13, before the harness recorded `causal_levelling`,
+    `g23_readability` and `seed_readability` -- they are **absent** from its meta,
+    which is also why its cells carry `grade: null`. Arm B records all three. If
+    those three sat in `must_match`, this tool would print
+    `all_controls_hold: false` on every real run, and a reader could not tell that
+    red apart from a feature-vector mismatch, which is the one thing the flag
+    exists to surface.
+    """
+    a_meta = {"training_source": "energy_renewable", "n_features": 27}
+    b_meta = {"training_source": "energy_generation", "n_features": 27,
+              "causal_levelling": tool.FIT_WINDOW, "g23_readability": tool.SIGN_TEST,
+              "seed_readability": tool.DELTA_MIN}
+    controls = tool._controls(a_meta, b_meta)
+
+    assert controls["all_controls_hold"] is True
+    assert "causal_levelling" not in controls["must_match"]
+    added = controls["grading_registrations_added_after_arm_a"]
+    assert added["causal_levelling"]["absent_in_arm_a"] is True
+    # Absence is not waved through: what replaces equality is that arm B records
+    # the same pin `_grade` grades *both* arms under, so the letters are
+    # comparable whether or not arm A wrote it down.
+    assert controls["grading_registration_reconciled"] is True
+
+    # And it is a real check: an arm B graded under a different levelling from the
+    # one the letters are computed with fails it.
+    b_off = dict(b_meta, causal_levelling="trailing_28d")
+    off = tool._controls(a_meta, b_off)
+    assert off["grading_registration_reconciled"] is False
+    assert off["all_controls_hold"] is True  # still controlled; a different defect
+
+
+def test_a_field_present_on_both_arms_is_compared_by_value_not_exempted(tool):
+    """The exemption is for the published record's age, not for the field name.
+
+    If a future arm A does record the three grading registrations, they must be
+    compared like any other control -- otherwise this carve-out becomes a
+    permanent blind spot on exactly the fields that decide the letters.
+    """
+    a_meta = {"training_source": "energy_renewable",
+              "causal_levelling": "trailing_28d"}
+    b_meta = {"training_source": "energy_generation",
+              "causal_levelling": tool.FIT_WINDOW}
+    controls = tool._controls(a_meta, b_meta)
+    entry = controls["grading_registrations_added_after_arm_a"]["causal_levelling"]
+    assert entry["absent_in_arm_a"] is False
+    assert entry["equal"] is False
+    assert controls["grading_registration_reconciled"] is False
+
+
 def test_the_tool_reproduces_abl418_s_published_letters_on_the_arm_it_already_graded(tool):
     """The one place this tool is checkable against published evidence.
 

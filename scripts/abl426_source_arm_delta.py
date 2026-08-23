@@ -17,9 +17,11 @@ under a later registration) and computes it only where none exists.
 on both tables before any challenger existed and recorded `bar_delta_pp = 0.00`
 for all eight of these countries. D-7 is model-free, so if the two records' D-7
 disagree the cause is not the table -- it is that arm B was read on a later
-replica snapshot than arm A (10,175,365,120 bytes against 9,432,453,120). That
-makes the D-7 delta a direct measurement of the replica-vintage confound, and it
-is reported per cell beside the challenger delta rather than assumed away.
+replica snapshot than arm A. Both snapshots are read from the records themselves
+(`meta.replica_bytes`) and printed under `arms`, rather than named here where they
+would go stale. That makes the D-7 delta a direct measurement of the
+replica-vintage confound, and it is reported per cell beside the challenger delta
+rather than assumed away.
 
     .venv\\Scripts\\python.exe scripts/abl426_source_arm_delta.py --out reports/abl_426_source_arm_delta.json
 """
@@ -274,25 +276,70 @@ def main() -> int:
     return 0
 
 
+#: Fields the two records must agree on for the difference to be attributable to
+#: the source table.
+CONTROL_FIELDS = ("registered_countries", "registered_cells", "gate_basis", "fit_rules",
+                  "feature_columns", "n_features", "feature_set",
+                  "feature_set_is_registered_for_scope", "fit_window", "gate_window",
+                  "registered_intended_n", "reported_comparators")
+
+#: The three grading registrations `main()` began recording *after* ABL-405 ran,
+#: mapped to the pin `_grade` grades **both** arms under. They are absent from arm
+#: A's meta -- not null, absent -- so comparing them field-to-field would report a
+#: control failure for a record-schema difference and nothing else. What actually
+#: has to hold is that the value arm B records is the value both arms are graded
+#: under; that is checked here, by value, instead.
+GRADING_REGISTRATIONS_ADDED_AFTER_ARM_A = {
+    "causal_levelling": FIT_WINDOW,
+    "g23_readability": SIGN_TEST,
+    "seed_readability": DELTA_MIN,
+}
+
+
 def _controls(a_meta: dict, b_meta: dict) -> dict:
     """The registered values that must match, and whether they do.
 
     Reported as data rather than raised on, because a mismatch is a finding about
     the comparison and the reader needs to see which field moved. The one field
     expected to differ is named so its difference does not read as a failure.
+
+    Three fields get a third treatment. `causal_levelling`, `g23_readability` and
+    `seed_readability` are **absent from arm A's meta**: ABL-405 ran on
+    2026-08-13, before the harness recorded them, and its cells carry `grade:
+    null` for the same reason. Putting them in `must_match` would set
+    `all_controls_hold` to False on every run of this tool -- a red control on a
+    comparison that is in fact controlled, which is worse than no check, because
+    the reader cannot tell it from a real one. They are reported separately, and
+    the property that replaces equality is the one that makes the letters
+    comparable: arm B's recorded value must equal the pin `_grade` passes for
+    *both* arms. Where it does, the two arms' grades are taken under the same
+    registration whether or not arm A wrote it down.
     """
-    fields = ("registered_countries", "registered_cells", "gate_basis", "fit_rules",
-              "feature_columns", "n_features", "feature_set",
-              "feature_set_is_registered_for_scope", "causal_levelling",
-              "g23_readability", "seed_readability", "fit_window", "gate_window",
-              "registered_intended_n", "reported_comparators")
     out = {"expected_to_differ": {"training_source": [a_meta.get("training_source"),
                                                       b_meta.get("training_source")]},
            "must_match": {}}
-    for field in fields:
+    for field in CONTROL_FIELDS:
         a, b = a_meta.get(field), b_meta.get(field)
         out["must_match"][field] = {"equal": a == b, **({} if a == b else {"a": a, "b": b})}
     out["all_controls_hold"] = all(v["equal"] for v in out["must_match"].values())
+
+    reconciled = {}
+    for field, pin in GRADING_REGISTRATIONS_ADDED_AFTER_ARM_A.items():
+        a_present, b_value = field in a_meta, b_meta.get(field)
+        entry = {"absent_in_arm_a": not a_present,
+                 "arm_b": b_value,
+                 "graded_under": pin,
+                 "arm_b_matches_the_pin_both_arms_are_graded_under": b_value == pin}
+        # If a later arm A ever does record them, fall back to plain equality --
+        # the exemption is for the published record's age, not for the field.
+        if a_present:
+            entry["arm_a"] = a_meta.get(field)
+            entry["equal"] = a_meta.get(field) == b_value
+        reconciled[field] = entry
+    out["grading_registrations_added_after_arm_a"] = reconciled
+    out["grading_registration_reconciled"] = all(
+        entry["arm_b_matches_the_pin_both_arms_are_graded_under"]
+        and entry.get("equal", True) for entry in reconciled.values())
     return out
 
 
