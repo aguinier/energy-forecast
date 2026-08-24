@@ -29,7 +29,7 @@ or was checked.
 | fit targets | 2026-01-14 → 2026-07-11 (exclusive) |
 | gate targets | 2026-07-11 → 2026-08-10 (exclusive), out-of-sample by target timestamp |
 | metric / baseline | WAPE / literal seasonal-naive D-7, recomputed on the same table |
-| source table | `energy_generation` |
+| source table | `energy_renewable` (**ABL-426**: the run resolved `db.RENEWABLE_TYPE_SOURCE_TABLE`; registration ABL-348 lists `energy_generation`; footprint measured — D-7 bar identical to 0.00pp on all 8, gate actuals bit-identical on 7/8, fit window shorter by 0.63-0.77%; re-read on `energy_generation` is a CEO sequencing call) |
 | algorithm | CatBoost, seed 42 (`config.random_seed`) |
 | interpreter | `C:\Code\able\energy-forecast\.venv\Scripts\python.exe` — Python 3.14.3 |
 | replica | `C:\Code\able\data\energy_dashboard.db`, **9,432,453,120 bytes**, `mode=ro` |

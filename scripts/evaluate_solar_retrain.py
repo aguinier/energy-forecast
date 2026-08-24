@@ -887,7 +887,15 @@ SCOPE_TITLES = {
     # read from ABL-381's on the two countries they share; a reader quoting the H1
     # of either report should not have to reach the `feature_set` field to know
     # which challenger it describes.
-    "abl316-t2a": "ABL-405 — Serve-faithful solar retrain gate, ABL-316 tranche 2a: 8 continental countries on energy_generation at 27 features",
+    "abl316-t2a": "ABL-405 — Serve-faithful solar retrain gate, ABL-316 tranche 2a: 8 continental countries on energy_renewable at 27 features",
+    # NOTE (ABL-426): the run resolved `source = db.RENEWABLE_TYPE_SOURCE_TABLE`
+    # (no --renewable-source flag was passed), which is `energy_renewable`.  The
+    # registration ABL-348 lists `energy_generation` under `voids_this_registration`,
+    # but the gate and fit windows are nearly identical on those eight countries
+    # (D-7 bar identical to 0.00pp, gate actuals bit-identical on 7/8, fit window
+    # differs by 0.63-0.77%).  This title is corrected to match the machine record;
+    # the decision whether to re-read on `energy_generation` is a CEO sequencing
+    # call (see ABL-426 for sizing and disposition).
     # ABL-419, registered for the same reason the two above are: `title_for`'s
     # fallback would head a 15-cell evidence pack "abl316-t2c", and a scope slug is
     # a key, not a title.  The heading names the source table and the feature set
