@@ -201,14 +201,41 @@ def test_the_declared_table_is_not_in_the_import_time_check():
     right -- taking `--help` and the whole suite with it, which is the tax
     `SCOPE_FEATURES` is kept out for. This pins the asymmetry so a later
     tidying-up does not "complete" the check and break six scopes.
+
+    ABL-426 changed *how* that is asserted, not what. This used to pin the call's
+    membership exactly -- `{SCOPES, GATE_BASIS, SCOPE_OUTPUTS, FIT_RULES,
+    SCOPE_TITLES}` -- which made every legitimate addition to the check a failure
+    of a test about `SCOPE_NOT_EVALUABLE`. It duly failed on `SCOPE_SOURCES`, a
+    table whose whole argument is that no absence from it is deliberate and which
+    is therefore exactly the kind that *should* join. The property is now derived
+    from `UNCHECKED_REGISTRATION_TABLES`: **nothing declared unchecked may appear
+    in the call.** That is strictly stronger -- it covers all five exempt tables
+    rather than this one -- and it cannot go stale, while the by-name assertion
+    this file is actually about is kept.
     """
-    tree = ast.parse(SOLAR_HARNESS.read_text(encoding="utf-8"))
+    source = SOLAR_HARNESS.read_text(encoding="utf-8")
+    tree = ast.parse(source)
     call = next(node for node in ast.walk(tree)
                 if isinstance(node, ast.Call)
                 and getattr(node.func, "id", "") == "check_registration_tables")
     named = {kw.arg for kw in call.keywords}
-    assert named == {"SCOPES", "GATE_BASIS", "SCOPE_OUTPUTS", "FIT_RULES", "SCOPE_TITLES"}
+    declared_unchecked = set(next(
+        ast.literal_eval(node.value) for node in tree.body
+        if isinstance(node, ast.Assign)
+        and getattr(node.targets[0], "id", "") == "UNCHECKED_REGISTRATION_TABLES"))
+
+    assert not (named & declared_unchecked), (
+        f"{sorted(named & declared_unchecked)} are both passed to "
+        "`check_registration_tables` and declared in "
+        "`UNCHECKED_REGISTRATION_TABLES`. The declaration says an omitted row "
+        "defaults silently; the call says an omitted row raises at import. Only "
+        "one of the two can be true.")
+    assert "SCOPE_NOT_EVALUABLE" in declared_unchecked
     assert "SCOPE_NOT_EVALUABLE" not in named
+    # The check still has to be checking something: a call emptied down to
+    # `check_registration_tables`' two-table minimum would satisfy every
+    # assertion above and enforce almost nothing.
+    assert {"SCOPES", "GATE_BASIS", "SCOPE_OUTPUTS"} <= named
 
 
 @pytest.fixture(scope="module")

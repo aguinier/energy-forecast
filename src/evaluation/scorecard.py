@@ -287,8 +287,26 @@ def filter_measured_actuals(df: pd.DataFrame, forecast_type: str) -> pd.DataFram
     return result
 
 
+#: Seconds a read waits for a writer's lock before raising. `sqlite3.connect`
+#: defaults to 5; `db.get_connection` has passed 30 since it was written. So until
+#: ABL-426 one gate run opened the same replica with two different patiences by
+#: two read paths -- and the impatient one is the path `_constant_runs` takes,
+#: whose result drives `verdict`.
+#:
+#: Measured rather than guessed. An ABL-426 gate run over the eight tranche-2a
+#: countries fitted BG and CH, then died on CZ with `database is locked` ~15
+#: minutes in, having written no results file and no report: the replica is under
+#: live ingest and has grown from 9,432,453,120 to 10,175,365,120 bytes since
+#: ABL-405 read it. Nothing about the *contents* of a gate read changes here --
+#: `mode=ro` is untouched and this connection still cannot write. What changes is
+#: that a reader waits for an ingest transaction instead of discarding a
+#: multi-country fit that was already correct.
+_BUSY_TIMEOUT_SECONDS = 30.0
+
+
 def _ro_connect(path: str) -> sqlite3.Connection:
-    return sqlite3.connect(f"file:{Path(path).resolve().as_posix()}?mode=ro", uri=True)
+    return sqlite3.connect(f"file:{Path(path).resolve().as_posix()}?mode=ro",
+                           uri=True, timeout=_BUSY_TIMEOUT_SECONDS)
 
 
 def opened_databases(cfg: ScorecardConfig, feature_db, ambient_db) -> dict:

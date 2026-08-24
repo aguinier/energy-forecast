@@ -612,6 +612,46 @@ The **wind** harness (`scripts/evaluate_wind_retrain.py`) takes the same
 `--renewable-source` argument, resolves it to the same two read sites, and
 records it in `meta.training_source`.
 
+**Which table a scope reads is registration, not a flag default (ABL-426).**
+A flag alone was not enough, and the way it failed is worth carrying. ABL-345
+made the source selectable but left it *opt-in*, so an omitted flag fell through
+to the global `db.RENEWABLE_TYPE_SOURCE_TABLE` — a constant consulted without any
+reference to the scope. ABL-405 ran `--scope abl316-t2a` without it. ABL-348
+registers `energy_generation` for all 37 tranche pairs and names the source table
+in `voids_this_registration`; the run fitted, scored and graded eight countries on
+`energy_renewable`, emitted a 24-cell evidence pack and **exited 0**. Nothing in
+its own output contradicted it: the machine record was truthful throughout
+(`meta.training_source`), while the report H1 and the findings pack both said
+`energy_generation`. ABL-348 had even written the failure down in advance, under
+`harness_prerequisite`. The missing piece was never the flag — it was that
+nothing tied the flag to the scope. It is the only such read in the programme:
+every other ABL-348 tranche record, wind and solar, carries `energy_generation`.
+
+Since ABL-426 the solar harness resolves `args.renewable_source or
+source_for(scope)` — `SCOPE_SOURCES[scope]`, elected in the file, in review,
+before the fit. An explicit `--renewable-source` still wins, so ABL-345's contract
+holds and an exploratory read is one flag away; what it can no longer do is pass
+unnoticed, because `meta.source_is_scope_registered` goes `false` and the report
+prints **OFF-REGISTRATION** with both tables named.
+
+Two rules about that table, both learned the hard way:
+
+- **It records the table each scope *was read on*, not the one its registration
+  wanted.** `SCOPE_SOURCES['abl316-t2a']` is `energy_renewable`. Pinning it to
+  `energy_generation` would look like a fix and would be ABL-404 again: an
+  unflagged re-run would then refit eight countries on a different table and
+  overwrite a *dispositioned* pack in place, under a heading naming ABL-405.
+  `test_every_published_scope_registers_the_table_its_record_says_it_read` holds
+  the row to the committed record.
+- **Correcting a read is a new scope, never a re-base of the old one.**
+  `abl316-t2a-generation` is 2a's eight countries on the registered table, with
+  every other registered value held identical so the pair is a controlled A/B on
+  the source alone, and its own output paths so it writes nowhere 2a writes.
+
+The wind harness has not been given `SCOPE_SOURCES`. That is a known asymmetry
+rather than an oversight — no wind read is off-registration — but it is the twin
+divergence this pair keeps paying for, and it is filed.
+
 Neither harness takes a **country** argument, and neither should get one as a
 flag alone. `COUNTRIES`/`PAIRS` are the registered scope and `performance_pass`
 is `len(gate_cells) ==` that scope's size, so a filtered run FAILs on the count
@@ -1282,26 +1322,53 @@ than a failing test: the tables disagreeing is **not** a textual conflict, so
 GitHub reports such a merge `MERGEABLE / CLEAN` and no merge-order check on the
 platform will show it.
 
-**Registering a new scope means editing every registration table, and since
-ABL-429 five of the seven are import-checked on solar.** The call is
-`check_registration_tables(SCOPES=..., GATE_BASIS=..., SCOPE_OUTPUTS=...,
-FIT_RULES=..., SCOPE_TITLES=...)`. **The two harnesses' calls now differ, and
-that is not one twin missing a fix** — the recurring failure mode this pair has
-(ABL-322/ABL-379, ABL-345/ABL-347): wind carries only the first three tables at
-all, so all three of its tables are checked. Solar carries seven and two stay
-out, each for a stated structural reason:
+**Registering a new scope means editing every registration table, and only some
+of them are import-checked.** *Do not trust a count written here.* This paragraph
+has carried a stale one at nearly every tranche — it said "five of seven" while
+the file held ten — and ABL-421 left a `grep -E "^[A-Z_]+ = \{"` recipe that was
+already wrong at the commit that called it "the count". Derive it in the harness
+you are actually editing, or read the authority:
+`tests/test_gate_scope_registration.py::test_every_per_scope_table_is_checked_or_declares_why_not`.
+That test decides "per-scope registration table" from the source (**keys are
+scope names**) and requires each one to be either in `check_registration_tables`
+or in `UNCHECKED_REGISTRATION_TABLES` with the reason it cannot join, so a table
+added by a later tranche fails until its author chooses. As of ABL-426 solar
+holds **11** such tables, **6** checked and **5** declared unchecked — a fact with
+a shelf life, which is why the derivation matters more than the number.
+
+**The two harnesses' calls differ, and that is not one twin missing a fix** — the
+recurring failure mode this pair has (ABL-322/ABL-379, ABL-345/ABL-347): wind
+carries only the first three tables at all, so all three of its are checked.
+
+The exemptions are not a convenience; each is a structural argument, and the
+*shape* of the argument matters more than the list:
 
 - `SCOPE_FEATURES` **cannot** join. `abl316-t2a`'s absence from it is correct and
   published — inheriting the current `FEATURE_COLUMNS` is the intended path for a
   new tranche — so requiring it would raise at import for a scope that is right.
-- `SCOPE_NOT_EVALUABLE` is the one to check hardest, because it is the only
-  remaining table that defaults **toward scoring**: a scope that forgets it scores
-  every cell it can build, which for a pair ABL-348 declares NOT-EVALUABLE is a
-  wrong verdict rather than self-documenting degradation.
+- `SCOPE_NOT_EVALUABLE` is the one to check hardest, because it defaults **toward
+  scoring**: a scope that forgets it scores every cell it can build, which for a
+  pair ABL-348 declares NOT-EVALUABLE is a wrong verdict rather than
+  self-documenting degradation.
+- `CAUSAL_LEVELLING`, `G23_READABILITY` and `SEED_READABILITY` default *toward*
+  their registered amendments (ABL-437 / ABL-444 / ABL-467), so requiring them
+  would force every scope to be pinned and delete the behaviour they exist to
+  provide. Their published pins are asserted **by value** instead, which is
+  strictly stronger than the presence check joining would give.
 
-So a scope missing from either of those two still resolves through a module-level
+So a scope missing from any of those five still resolves through a module-level
 default **silently, at run time** — exactly how ABL-404 happened, which is why the
 rows that depend on it each carry a comment saying so.
+
+**ABL-426 added `SCOPE_SOURCES`, and it joins the call rather than the exemption
+list.** The lesson is the test for which side a new table belongs on: ask whether
+any absence is *deliberate*. For the five above an absence encodes a real choice,
+so requiring a row would abort on scopes that are correct. A scope is read on
+exactly one table, always, with no third state — so no absence is deliberate here,
+and the exemption list's contract ("an omitted row defaults silently") is the very
+mechanism that produced ABL-426. Joining also widened nothing:
+`check_registration_tables` requires every scope in the *union* of the given
+tables' keys to appear in all of them, and this table's keys are `SCOPES`' keys.
 
 **What the check enforces is presence, not content.** It compares the tables'
 **keys**; it never looks at a value. A tranche that registers
