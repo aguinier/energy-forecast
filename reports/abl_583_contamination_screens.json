@@ -1,0 +1,156 @@
+{
+  "issue": "ABL-583",
+  "batch": "abl583",
+  "generated_at": "2026-08-27T16:33:32.654407+00:00",
+  "fit_window_screened": [
+    "2026-01-11",
+    "2026-08-22"
+  ],
+  "gate_boundary": "2026-07-11",
+  "renewable_source": "energy_generation",
+  "scored_or_graded": false,
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 10664824832,
+  "abl200": {
+    "screen": "ABL-200 cross-table zero disproof",
+    "renewable_zero_disproof_source": "energy_generation",
+    "source_read_by_this_batch": "energy_generation",
+    "rule_can_fire": false,
+    "note": "exclude_zeros_disproved_by_sibling is wired at load_renewable_type_data behind `if source != RENEWABLE_ZERO_DISPROOF_SOURCE`. Every pair here reads that same table, so the rule never fires -- it is one-sided and this is already the disproving side."
+  },
+  "named_contamination_issues": {
+    "ABL-71": "prod ingest stale -- net_position, not these series",
+    "ABL-67": "fabricated net_position rows -- not these series",
+    "ABL-111/ABL-109": "zero-as-missing actual *load* rows -- not these series",
+    "verdict": "none of the three touches this window or these pairs"
+  },
+  "pairs": [
+    {
+      "country": "CH",
+      "forecast_type": "solar",
+      "abl332": {
+        "screen": "ABL-332 hourly aggregation",
+        "raw_rows_in_fit_window": 5352,
+        "distinct_minute_marks": 1,
+        "sub_hourly": false,
+        "hourly_rows_after_aggregation": 5352,
+        "rows_the_pre_abl332_builder_would_have_discarded": 0,
+        "aggregation_is_in_the_fit_and_serve_path": true,
+        "note": "load_renewable_type_data -> aggregate_renewable_to_hourly, then RenewableFeatureBuilder._assert_hourly raises on an off-hour index. The same builder object fits and serves, so the two are one frame."
+      },
+      "abl188": {
+        "screen": "ABL-188 constant-run exclusion",
+        "hourly_rows": 5352,
+        "rows_nulled_by_the_guard": 0,
+        "note": "exclude_suspect_constant_runs nulls any 24h+ bit-identical run at the training read; a nulled hour is then dropped by finite_training_rows and appears in the fit audit's excluded_missing_actual_or_feature."
+      },
+      "vintage": {
+        "screen": "ABL-439 fit-to-gate source-table ratio discontinuity",
+        "country": "CH",
+        "forecast_type": "solar",
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4272,
+          "n_hours_renewable": 4244,
+          "n_hours_common": 4244,
+          "generation_mean_mw": 837.5889,
+          "renewable_mean_mw": 803.5006,
+          "ratio": 1.0424
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 720,
+          "n_hours_renewable": 720,
+          "n_hours_common": 720,
+          "generation_mean_mw": 1330.981,
+          "renewable_mean_mw": 1330.981,
+          "ratio": 1.0
+        },
+        "discontinuity_fit_minus_gate": 0.0424,
+        "no_discontinuity_threshold": 0.02,
+        "verdict": "basis-INCONSISTENT",
+        "published": null,
+        "reproduces_published": null,
+        "published_provenance": null,
+        "gate_revision_caveat": "This pair's gate window is 100% first-publication, so its gate-side revision is expected-small but NOT YET MEASURED. That is true of every pair in this gate and is not a blocker; it is recorded here so a later reader does not mistake an unmeasured quantity for a measured-zero one."
+      },
+      "night_floor": {
+        "predicate": "solar_features.night_mask -- sun below -8.0 deg for the whole hour at the capacity-weighted point",
+        "threshold_mw": 1.0,
+        "representative_point": [
+          46.999,
+          7.671
+        ],
+        "night_generation_possible": false,
+        "windows": [
+          {
+            "window": "fit_pre_gate",
+            "start": "2026-01-11",
+            "end_exclusive": "2026-07-11",
+            "n_rows": 4344,
+            "n_missing_rows": 0,
+            "n_night_rows": 1504,
+            "n_night_above_threshold": 674,
+            "pct_of_night_rows_above_threshold": 44.81,
+            "night_mean_mw": 1.28,
+            "night_max_mw": 5.84,
+            "n_night_negative": 0,
+            "pct_of_total_energy_at_night": 0.054,
+            "wape_floor_pct_if_clamped": 0.0542,
+            "daylight_mean_mw": 1254.79
+          },
+          {
+            "window": "gate_and_after",
+            "start": "2026-07-11",
+            "end_exclusive": "2026-08-22",
+            "n_rows": 1008,
+            "n_missing_rows": 0,
+            "n_night_rows": 270,
+            "n_night_above_threshold": 0,
+            "pct_of_night_rows_above_threshold": 0.0,
+            "night_mean_mw": 0.0,
+            "night_max_mw": 0.0,
+            "n_night_negative": 0,
+            "pct_of_total_energy_at_night": 0.0,
+            "wape_floor_pct_if_clamped": 0.0,
+            "daylight_mean_mw": 1715.52
+          },
+          {
+            "window": "whole_fit_window",
+            "start": "2026-01-11",
+            "end_exclusive": "2026-08-22",
+            "n_rows": 5352,
+            "n_missing_rows": 0,
+            "n_night_rows": 1774,
+            "n_night_above_threshold": 674,
+            "pct_of_night_rows_above_threshold": 37.99,
+            "night_mean_mw": 1.09,
+            "night_max_mw": 5.84,
+            "n_night_negative": 0,
+            "pct_of_total_energy_at_night": 0.04,
+            "wape_floor_pct_if_clamped": 0.04,
+            "daylight_mean_mw": 1349.82
+          }
+        ],
+        "compared_against": {
+          "country": "BG",
+          "source": "reports/abl_405_tranche2a_findings.md section 3 (= ABL-396)",
+          "fit": {
+            "pct_night_hours_above_threshold": 76.4,
+            "night_mean_mw": 152.33,
+            "night_max_mw": 1097.4,
+            "pct_of_total_energy_at_night": 6.37
+          },
+          "gate": {
+            "pct_night_hours_above_threshold": 85.2,
+            "night_mean_mw": 245.71,
+            "night_max_mw": 1087.9,
+            "pct_of_total_energy_at_night": 4.98
+          }
+        }
+      }
+    }
+  ]
+}

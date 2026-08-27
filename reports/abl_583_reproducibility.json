@@ -1,0 +1,37 @@
+{
+  "issue": "ABL-583",
+  "batch": "abl583",
+  "training_record": "reports/abl_583_ship_set_training.json",
+  "check": "prediction equality across an independent refit",
+  "tolerance": 1e-12,
+  "probe_window": [
+    "2026-08-01",
+    "+168h"
+  ],
+  "replica": {
+    "path": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "bytes_now": 10664824832,
+    "bytes_at_original_fit": 10664824832,
+    "unchanged_since_original_fit": true
+  },
+  "all_pairs_reproducible": true,
+  "every_artifact_sha256_differed": true,
+  "pairs": [
+    {
+      "country": "CH",
+      "forecast_type": "solar",
+      "probe_rows": 168,
+      "max_abs_prediction_difference": 0.0,
+      "tolerance": 1e-12,
+      "identical_within_tolerance": true,
+      "bit_identical": true,
+      "feature_columns_match": true,
+      "training_source_match": true,
+      "training_source": "energy_generation",
+      "n_features": 27,
+      "artifact_sha256_original": "7bcfecd590a42c01b06fc4c0584b238db7724ed8fe5807b34989429318239793",
+      "artifact_sha256_refit": "bf8a860b710e28957f512b4312093734feb34469a23cc8ee8a73bc175c801b23",
+      "artifact_sha256_differs": true
+    }
+  ]
+}

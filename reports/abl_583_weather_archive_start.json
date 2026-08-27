@@ -1,0 +1,57 @@
+{
+  "issue": "ABL-583",
+  "screen": "weather_data data_quality='forecast' archive bounds (the fit-window bound)",
+  "replica_db": "C:/Code/able/data/energy_dashboard.db",
+  "replica_bytes": 10664824832,
+  "note": "The trainer docstring measured this for CZ/RO/NL only. CH is re-measured here on this run's replica, which is a later vintage than the one ABL-580 fitted on.",
+  "countries": [
+    {
+      "country": "CH",
+      "first_forecast_target": "2026-01-11 00:00:00",
+      "last_forecast_target": "2026-09-08 23:00:00",
+      "n_forecast_rows": 70896,
+      "first_forecast_run_time": "2026-01-11 18:00:00"
+    },
+    {
+      "country": "CZ",
+      "first_forecast_target": "2026-01-11 00:00:00",
+      "last_forecast_target": "2026-09-08 23:00:00",
+      "n_forecast_rows": 71904,
+      "first_forecast_run_time": "2026-01-11 18:00:00"
+    },
+    {
+      "country": "RO",
+      "first_forecast_target": "2026-01-11 00:00:00",
+      "last_forecast_target": "2026-09-08 23:00:00",
+      "n_forecast_rows": 70560,
+      "first_forecast_run_time": "2026-01-11 18:00:00"
+    },
+    {
+      "country": "NL",
+      "first_forecast_target": "2026-01-11 00:00:00",
+      "last_forecast_target": "2026-09-08 23:00:00",
+      "n_forecast_rows": 71232,
+      "first_forecast_run_time": "2026-01-11 18:00:00"
+    }
+  ],
+  "replica_vintage_vs_abl580": {
+    "question": "A replica refresh ran during this heartbeat and the file changed size, so: were CH and ABL-580's three fitted on the same data? The ship set is deployed as one homogeneous batch.",
+    "abl580_training_record_generated_at": "2026-08-27T14:53:09.611389+00:00",
+    "replica_bytes_at_abl580_fit": 10632605696,
+    "replica_bytes_now": 10664824832,
+    "replica_file_changed": true,
+    "max_fetched_at_energy_generation": "2026-08-27 14:27:33",
+    "max_created_at_weather_data": "2026-08-26 15:00:54",
+    "cut_is_within_the_data_range": {
+      "energy_generation": false,
+      "weather_data": false
+    },
+    "rows_in_fit_window_revised_after_abl580_fit": {
+      "CH": 0,
+      "CZ": 0,
+      "RO": 0,
+      "NL": 0
+    },
+    "verdict": "No row in energy_generation or weather_data -- inside the fit window or anywhere -- was written after ABL-580's fit: both table maxima PRECEDE it (14:27:33 and 2026-08-26 15:00:54 against 14:53:09Z). The refresh rewrote pages without moving the vintage these fits read, so CH and ABL-580's three are on one data vintage and no refit of ABL-580's artifacts is implied. Note this is established by the maxima, not by the zero counts: the zero counts alone would also be produced by a cut placed past the end of the data."
+  }
+}
