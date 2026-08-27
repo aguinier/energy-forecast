@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Fit production artifacts for the ABL-316 ship set approved by the Board (ABL-525/580).
+"""Fit production artifacts for the ABL-316 ship set approved by the Board (ABL-525/580/583).
 
 The Board answered `abl316:ship-decision:v4` with `ship8` on 2026-08-22. This
 script fits the artifacts that answer authorises, through the *graded* code path
@@ -15,13 +15,21 @@ fixed one, and `SHIP_SET` carries a `batch` per row rather than growing a second
 script per admission. `--batch` restricts a run; each batch writes its own
 machine record, and no run refits another batch's artifacts.
 
-    abl525   the seven `wind_onshore` pairs of the original `ship8` roster, plus
-             CH solar -- held here, then withdrawn by CEO ruling 2026-08-27, so
-             its row stays with the ruling recorded rather than being deleted.
+    abl525   the seven `wind_onshore` pairs of the original `ship8` roster.
     abl580   CZ `solar`, RO `solar`, NL `wind_offshore`, admitted under the
              standing rule once ABL-426 (tranche 2a re-read on the registered
              `energy_generation`) and ABL-471 (the last four vintage screens)
              cleared their holds.
+    abl583   CH `solar`, readmitted under the same standing rule on 2026-08-27
+             once ABL-581 read it at the current 27-name list under its own
+             pre-registered scope. It was pair 8 of the original `ship8` roster
+             and was withdrawn on 2026-08-27; the row records both moves.
+
+A pair appears **once**. A batch is the admission that authorises the row as it
+stands, not a log of every disposition the row has had -- that is what
+`admission_history` is for. Two rows for one pair would give `columns_for` two
+answers and no way to choose, which is precisely the class of defect this script
+exists to avoid.
 
 THE ALGORITHM IS A PROPERTY OF THE FORECAST TYPE, NOT OF THIS FILE
 ------------------------------------------------------------------
@@ -87,16 +95,42 @@ fitted on the rows the tranches scored. That is what item 1 asks for and is
 correct for production, but it means the tranche gate figures are NOT
 out-of-sample for these artifacts. This script scores nothing and grades nothing.
 
-CH SOLAR IS NOT FITTED HERE
----------------------------
+CH SOLAR: WITHDRAWN AT 25 NAMES, READMITTED AT 27
+--------------------------------------------------
 ABL-395 moved the solar gate list from 25 names to 27 (adding ABL-338's
 `sun_elevation_deg` and `is_night`). CH solar was graded under tranche 1b, and
 `evaluate_solar_retrain.SCOPE_FEATURES['abl316-t1b']` is pinned to the legacy 25
-for exactly that reason. So the current builder's solar feature set HAS moved
-since the tranche read, which is the condition ABL-525 item 2 says to stop and
-comment on rather than ship a model nobody graded. CH is carried in the
-registration table below with `hold` and a reason, so the record states its
-absence instead of silently omitting it.
+for exactly that reason -- so on 2026-08-27 the CEO withdrew it: fitting at 27
+would have shipped a model nobody graded, and fitting at 25 would have been a
+per-country serving fork on a list the current builder no longer produces.
+
+ABL-581 closed that gap the only way the withdrawal ruling left open -- a fresh
+pre-registered gate read at 27 under a **new** scope id, `abl581-ch-solar-f27`,
+registered at `82e3108` and read at `49ab9e9`, PASS 3/3 grade A/A/A. So the
+condition that held CH is gone, and the standing rule (ledger 14.6 / 15.1)
+readmits it with no new Board card. The row below therefore ships at the
+**default** list rather than at a pin, which is the same shape as CZ and RO --
+and the equality that makes that safe is checked against the record the read
+wrote, not against a registration table:
+
+    experiments/ABL348/results_abl581_ch_solar_f27.json
+      meta.scope                                abl581-ch-solar-f27
+      meta.n_features                           27
+      meta.feature_set                          legacy25+geometry
+      meta.feature_set_is_registered_for_scope  False    (inherited the default)
+      meta.registered_source                    energy_generation
+      meta.feature_columns == src.evaluation.solar_retrain.FEATURE_COLUMNS -> True
+
+`feature_set_is_registered_for_scope` being **False** is the correct
+configuration and not a gap: `SCOPE_FEATURES` is one of the tables whose absence
+encodes a choice (CLAUDE.md, gate-harness section), and inheriting the current
+list through `DEFAULT_SCOPE_FEATURES` is the intended path for a new scope. A
+pin would have frozen this scope to a list that could later drift from the
+builder -- the CH failure mode in reverse.
+
+`tests/test_abl580_ship_set_batches.py` holds the equality element-for-element,
+so a later move of `FEATURE_COLUMNS` to 28 fails the suite rather than silently
+re-basing this artifact.
 
 THE SAME CHECK, RUN AGAINST ABL-580'S TWO SOLAR PAIRS, PASSES
 -------------------------------------------------------------
@@ -140,15 +174,7 @@ from src.evaluation.wind_retrain import (
 )
 from src.wind_features import RenewableFeatureBuilder
 
-# The 25-name solar list ABL-395 superseded. Imported rather than restated so
-# this file cannot come to disagree with the registration table about what
-# tranche 1b was graded on; `scripts/abl402_bg_ch_seed_cv.py` imports it the
-# same way.
-from scripts.evaluate_solar_retrain import (  # noqa: E402
-    LEGACY_FEATURE_COLUMNS as SOLAR_LEGACY_FEATURE_COLUMNS,
-)
-
-# Same argument for the estimator: the wind gate's per-type algorithm table is
+# The estimator: the wind gate's per-type algorithm table is
 # imported, not restated, so `wind_offshore` cannot silently be fitted with the
 # `wind_onshore` algorithm here while the gate read it with another.
 from scripts.evaluate_wind_retrain import ALGORITHMS as WIND_ALGORITHMS  # noqa: E402
@@ -157,9 +183,12 @@ from scripts.evaluate_wind_retrain import ALGORITHMS as WIND_ALGORITHMS  # noqa:
 #: graded under. The ABL-525 rows' figures live in
 #: `reports/abl_444_g23_floor_reread.json` (blob 1e8f37f6, sha256 45fa753f...);
 #: the ABL-580 rows' are ABL-426's registered-source read for CZ/RO solar and
-#: ledger 14.3 for NL `wind_offshore`. Nothing here re-derives any of them --
-#: this script fits and records; it scores nothing. `hold` marks a pair this run
-#: refuses to fit, with the reason, so the committed record carries the absence.
+#: ledger 14.3 for NL `wind_offshore`; the ABL-583 row's is ABL-581's read,
+#: `experiments/ABL348/results_abl581_ch_solar_f27.json`. Nothing here re-derives
+#: any of them -- this script fits and records; it scores nothing. `hold` marks a
+#: pair this run refuses to fit, with the reason, so the committed record carries
+#: the absence. No row is held today; the mechanism stays because the ship set
+#: shrinks as well as grows, and CH is the worked example of both.
 SHIP_SET = (
     {"country": "EE", "forecast_type": "wind_onshore", "batch": "abl525",
      "tranche": "2e", "hold": None},
@@ -189,28 +218,32 @@ SHIP_SET = (
      "tranche": "2a (ABL-426 re-read)", "hold": None},
     {"country": "NL", "forecast_type": "wind_offshore", "batch": "abl580",
      "tranche": "pilot (abl322-pilot, ABL-436 re-read)", "hold": None},
+    # ABL-583: the pair the standing rule readmitted on 2026-08-27. It pins no
+    # feature list, and that is the whole content of the readmission -- the
+    # condition that withdrew it was a pin (tranche 1b at the legacy 25) against
+    # a builder that had moved to 27, and ABL-581 re-read it at the 27 the
+    # builder produces today. See the module docstring.
     {
         "country": "CH",
         "forecast_type": "solar",
-        "batch": "abl525",
-        "tranche": "1b",
-        # Pinned to the list tranche 1b was actually graded on, so that a
-        # decision to ship CH is a `--include-held` run rather than an edit
-        # here. `evaluate_solar_retrain.SCOPE_FEATURES['abl316-t1b']` resolves
-        # to the same tuple; this row is the same pin, stated where the fit is.
-        "feature_columns": SOLAR_LEGACY_FEATURE_COLUMNS,
-        "hold": (
-            "ABL-525 item 2, then WITHDRAWN by CEO ruling 2026-08-27. Graded "
-            "under abl316-t1b at the legacy 25-name solar list; ABL-395 moved "
-            "solar.FEATURE_COLUMNS to 27 (adds sun_elevation_deg, is_night) and "
-            "SCOPE_FEATURES['abl316-t1b'] pins the tranche to the legacy 25. "
-            "Fitting at 27 ships a model nobody graded; fitting at 25 is a "
-            "per-country serving fork on a list the current builder no longer "
-            "produces, which ABL-525 item 2 forbids in terms and ABL-401 s4 "
-            "settles the direction of. Both doors are closed: the ruling is "
-            "that CH solar leaves the shipping set and rejoins only by a fresh "
-            "pre-registered gate read at 27 under a new scope id. Do not "
-            "exercise --include-held on this row."
+        "batch": "abl583",
+        "tranche": "abl581-ch-solar-f27 (fresh pre-registered read at 27)",
+        "hold": None,
+        # The row's own disposition history, so the record carries both moves
+        # rather than presenting a readmitted pair as one that never left.
+        "admission_history": (
+            "Pair 8 of the Board's ship8 roster (2026-08-22), graded under "
+            "abl316-t1b at the legacy 25-name solar list. WITHDRAWN by CEO "
+            "ruling 2026-08-27: ABL-395 had moved solar.FEATURE_COLUMNS to 27 "
+            "(adds sun_elevation_deg, is_night) while SCOPE_FEATURES "
+            "['abl316-t1b'] pins the tranche to the legacy 25, so fitting at 27 "
+            "would ship a model nobody graded and fitting at 25 would be a "
+            "per-country serving fork on a list the builder no longer produces. "
+            "READMITTED 2026-08-27 under the standing rule (ABL-316 ledger 14.6 "
+            "/ 15.1, no new Board card) on ABL-581's fresh read under the new "
+            "scope abl581-ch-solar-f27: registered at 82e3108, read at 49ab9e9, "
+            "PASS 3/3 grade A/A/A on the registered energy_generation. The "
+            "readmission is the CEO's disposition; nothing here re-derives it."
         ),
     },
 )
@@ -382,7 +415,13 @@ def fit_one(country, forecast_type, replica_db, models_dir, algorithm=None):
 BATCH_RECORDS = {
     "abl525": "reports/abl_525_ship_set_training.json",
     "abl580": "reports/abl_580_ship_set_training.json",
+    "abl583": "reports/abl_583_ship_set_training.json",
 }
+
+#: The issue each batch's record is filed under. Kept beside `BATCH_RECORDS` so
+#: adding a batch is one place, not two -- the old inline `.get` on a literal
+#: dict was a second table waiting to disagree with the first.
+BATCH_ISSUES = {"abl525": "ABL-525", "abl580": "ABL-580", "abl583": "ABL-583"}
 
 BATCHES = tuple(dict.fromkeys(entry["batch"] for entry in SHIP_SET))
 
@@ -467,6 +506,8 @@ def main():
         )
         record["batch"] = entry["batch"]
         record["tranche"] = entry["tranche"]
+        if entry.get("admission_history"):
+            record["admission_history"] = entry["admission_history"]
         records.append(record)
         print(
             f"[OK  ] {key}: {record['retained_rows']}/{record['intended_rows']} rows, "
@@ -477,7 +518,7 @@ def main():
         )
 
     payload = {
-        "issue": {"abl525": "ABL-525", "abl580": "ABL-580"}.get(args.batch, "ABL-316"),
+        "issue": BATCH_ISSUES.get(args.batch, "ABL-316"),
         "batch": args.batch,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "board_decision": "abl316:ship-decision:v4 = ship8, 2026-08-22T08:25Z",
@@ -504,6 +545,16 @@ def main():
                                     "experiments/ABL322/results_abl436_offshore_reread.json",
                 "note": "Grades and margins are the CEO's disposition on ABL-316. "
                         "Nothing here re-derives or re-grades them.",
+            },
+            "abl583": {
+                "ch_solar": "experiments/ABL348/results_abl581_ch_solar_f27.json",
+                "scope": "abl581-ch-solar-f27, registered 82e3108, read 49ab9e9, "
+                         "merged as PR #89 (dda64fc3)",
+                "note": "PASS 3/3, grade A/A/A. The read is ABL-581's and the "
+                        "readmission is the CEO's; nothing here re-derives "
+                        "either. Note that this fit window COVERS that gate "
+                        "window, so those figures are not out-of-sample for "
+                        "this artifact -- see fitted_on_the_gate_window.",
             },
         },
         "protocol": {
