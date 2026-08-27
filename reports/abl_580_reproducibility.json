@@ -1,0 +1,61 @@
+{
+  "issue": "ABL-525",
+  "check": "prediction equality across an independent refit",
+  "tolerance": 1e-12,
+  "probe_window": [
+    "2026-08-01",
+    "+168h"
+  ],
+  "all_pairs_reproducible": true,
+  "every_artifact_sha256_differed": true,
+  "pairs": [
+    {
+      "country": "CZ",
+      "forecast_type": "solar",
+      "probe_rows": 168,
+      "max_abs_prediction_difference": 0.0,
+      "tolerance": 1e-12,
+      "identical_within_tolerance": true,
+      "bit_identical": true,
+      "feature_columns_match": true,
+      "training_source_match": true,
+      "training_source": "energy_generation",
+      "n_features": 27,
+      "artifact_sha256_original": "2cb5d1e75de1624c3692da22b3e0de2414736af4ccc9694f5e159268c77058b6",
+      "artifact_sha256_refit": "36912902907477ff954e7657d55aafa19b7980887b8a37e9a884c3767648babd",
+      "artifact_sha256_differs": true
+    },
+    {
+      "country": "RO",
+      "forecast_type": "solar",
+      "probe_rows": 168,
+      "max_abs_prediction_difference": 0.0,
+      "tolerance": 1e-12,
+      "identical_within_tolerance": true,
+      "bit_identical": true,
+      "feature_columns_match": true,
+      "training_source_match": true,
+      "training_source": "energy_generation",
+      "n_features": 27,
+      "artifact_sha256_original": "e5a8cb7194d243f2c7971299c41fe25e06a15d79f5697f77266e2373a945ffae",
+      "artifact_sha256_refit": "af096d1739318e3d72ce998aa0bff080b6140d1950540ad17a3a75733fab9224",
+      "artifact_sha256_differs": true
+    },
+    {
+      "country": "NL",
+      "forecast_type": "wind_offshore",
+      "probe_rows": 168,
+      "max_abs_prediction_difference": 0.0,
+      "tolerance": 1e-12,
+      "identical_within_tolerance": true,
+      "bit_identical": true,
+      "feature_columns_match": true,
+      "training_source_match": true,
+      "training_source": "energy_generation",
+      "n_features": 24,
+      "artifact_sha256_original": "3f0ff59bcd31dfcecafbc7f39f64ff5fe6a9753e78dd0d6c915f6a4bd954f915",
+      "artifact_sha256_refit": "04afc7303ca4c602b0e1ac8f8c068e867c6bf6d6b944f54c6d103b48618a247e",
+      "artifact_sha256_differs": true
+    }
+  ]
+}

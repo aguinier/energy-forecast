@@ -1,9 +1,45 @@
 #!/usr/bin/env python
-"""Fit production artifacts for the ABL-316 ship set approved by the Board (ABL-525).
+"""Fit production artifacts for the ABL-316 ship set approved by the Board (ABL-525/580).
 
 The Board answered `abl316:ship-decision:v4` with `ship8` on 2026-08-22. This
 script fits the artifacts that answer authorises, through the *graded* code path
 and nothing else.
+
+BATCHES, AND WHY THIS STAYS ONE SCRIPT
+--------------------------------------
+The Board approved a *rule* alongside the `ship8` roster (ABL-316 ledger 14.6,
+restated in 15.1): a held pair that later satisfies the same rule joins the
+shipping set without a new Board card, and a shipping pair a later correction
+moves outside it is withdrawn. The ship set is therefore a growing table, not a
+fixed one, and `SHIP_SET` carries a `batch` per row rather than growing a second
+script per admission. `--batch` restricts a run; each batch writes its own
+machine record, and no run refits another batch's artifacts.
+
+    abl525   the seven `wind_onshore` pairs of the original `ship8` roster, plus
+             CH solar -- held here, then withdrawn by CEO ruling 2026-08-27, so
+             its row stays with the ruling recorded rather than being deleted.
+    abl580   CZ `solar`, RO `solar`, NL `wind_offshore`, admitted under the
+             standing rule once ABL-426 (tranche 2a re-read on the registered
+             `energy_generation`) and ABL-471 (the last four vintage screens)
+             cleared their holds.
+
+THE ALGORITHM IS A PROPERTY OF THE FORECAST TYPE, NOT OF THIS FILE
+------------------------------------------------------------------
+ABL-525's eight were seven `wind_onshore` plus one `solar`, and both types are
+catboost, so this script carried a single `ALGORITHM = "catboost"`. ABL-580 adds
+NL `wind_offshore`, and **the wind gate fits offshore with xgboost**:
+`evaluate_wind_retrain.ALGORITHMS` is `{"wind_offshore": "xgboost",
+"wind_onshore": "catboost"}`, and the pilot's own committed record
+(`experiments/ABL322/results_abl436_offshore_reread.json`) shows DE and NL both
+fitted `"algorithm": "xgboost"` with exactly `config.get_default_params(
+"xgboost")` less `early_stopping_rounds`. Fitting offshore with catboost here
+would ship a model no gate read -- the same class of error ABL-525 item 2 exists
+to prevent, arriving through a constant rather than through a feature list.
+
+`ALGORITHM_BY_TYPE` therefore *imports* the harnesses' tables instead of
+restating them, so this script cannot come to disagree with the code that graded
+the pair. It resolves to catboost for every ABL-525 row, so the change is a no-op
+for the seven already fitted and `abl525_repro_check.py` still reproduces them.
 
 WHY NOT `scripts/train.py`
 --------------------------
@@ -30,12 +66,21 @@ derived from the fit rather than claimed by the caller.
 THE FIT WINDOW IS BOUNDED BY WEATHER, NOT BY ACTUALS
 ----------------------------------------------------
 Item 1 asks for full available history. `energy_generation` reaches back to
-2021-01-01 for all eight pairs, but a serve-faithful row also needs the weather
+2021-01-01 for every pair here, but a serve-faithful row also needs the weather
 *forecast* archive, and `weather_data` with `data_quality='forecast'` begins
-2026-01-11 for every one of these countries. An earlier target gets NaN weather
-and `finite_training_rows` drops it. So the widest honest window is
-2026-01-11 -> 2026-08-22 (223 days) against the gate's registered 178 days, and
-the run records what was actually retained rather than what was requested.
+2026-01-11 for every one of these countries -- re-measured on the 2026-08-27
+replica for CZ, RO and NL, all three first run at 2026-01-11 18:00. An earlier
+target gets NaN weather and `finite_training_rows` drops it. So the widest honest
+window is 2026-01-11 -> 2026-08-22 (223 days) against the gate's registered 178,
+and the run records what was actually retained rather than what was requested.
+
+`FIT_END` stays at the Board's decision date for both batches even though the
+2026-08-27 replica carries actuals to 2026-08-26. Two reasons, and neither is
+inertia: every artifact in the ship set is then on one window, so the deploy is a
+homogeneous batch; and `abl525_repro_check.py` refits through `fit_one` on these
+module constants, so moving them would make the seven ABL-525 artifacts report a
+prediction difference that is a window change and not a drift. Five days is 2.2%
+of the window; a false drift signal on the committed record costs more.
 
 Because that window covers ABL-348's gate window, these artifacts have been
 fitted on the rows the tranches scored. That is what item 1 asks for and is
@@ -52,6 +97,18 @@ since the tranche read, which is the condition ABL-525 item 2 says to stop and
 comment on rather than ship a model nobody graded. CH is carried in the
 registration table below with `hold` and a reason, so the record states its
 absence instead of silently omitting it.
+
+THE SAME CHECK, RUN AGAINST ABL-580'S TWO SOLAR PAIRS, PASSES
+-------------------------------------------------------------
+CZ and RO solar are tranche 2a, dispositioned on the ABL-426 re-read
+(`abl316-t2a-generation`). That scope is **deliberately absent** from
+`SCOPE_FEATURES` and resolves through `DEFAULT_SCOPE_FEATURES`, so the claim
+"read at 27" has to be checked against the record the fit wrote rather than
+against a pin. It was: `experiments/ABL348/results_abl426_tranche2a_generation.json`
+carries `meta.feature_columns` as 27 literal names, and that tuple is
+element-for-element identical to today's `solar_retrain.FEATURE_COLUMNS`. So
+these two are the opposite of CH -- the graded list and the current builder's
+list are the same object, and shipping them at the default forks nothing.
 """
 
 import argparse
@@ -72,7 +129,10 @@ from xgboost import XGBRegressor
 
 import config
 from src.evaluation.gate_artifacts import save_gate_artifact
-from src.evaluation.solar_retrain import FEATURE_COLUMNS as SOLAR_FEATURE_COLUMNS
+from src.evaluation.solar_retrain import (
+    ALGORITHM as SOLAR_ALGORITHM,
+    FEATURE_COLUMNS as SOLAR_FEATURE_COLUMNS,
+)
 from src.evaluation.wind_retrain import (
     FEATURE_COLUMNS as WIND_FEATURE_COLUMNS,
     build_vintage_frame,
@@ -88,21 +148,51 @@ from scripts.evaluate_solar_retrain import (  # noqa: E402
     LEGACY_FEATURE_COLUMNS as SOLAR_LEGACY_FEATURE_COLUMNS,
 )
 
-#: The eight pairs the Board approved, with the tranche each was graded under.
-#: Figures live in `reports/abl_444_g23_floor_reread.json` (blob 1e8f37f6, sha256
-#: 45fa753f...); nothing here re-derives them. `hold` marks a pair this run
+# Same argument for the estimator: the wind gate's per-type algorithm table is
+# imported, not restated, so `wind_offshore` cannot silently be fitted with the
+# `wind_onshore` algorithm here while the gate read it with another.
+from scripts.evaluate_wind_retrain import ALGORITHMS as WIND_ALGORITHMS  # noqa: E402
+
+#: The ship set, with the batch that admitted each row and the tranche it was
+#: graded under. The ABL-525 rows' figures live in
+#: `reports/abl_444_g23_floor_reread.json` (blob 1e8f37f6, sha256 45fa753f...);
+#: the ABL-580 rows' are ABL-426's registered-source read for CZ/RO solar and
+#: ledger 14.3 for NL `wind_offshore`. Nothing here re-derives any of them --
+#: this script fits and records; it scores nothing. `hold` marks a pair this run
 #: refuses to fit, with the reason, so the committed record carries the absence.
 SHIP_SET = (
-    {"country": "EE", "forecast_type": "wind_onshore", "tranche": "2e", "hold": None},
-    {"country": "GR", "forecast_type": "wind_onshore", "tranche": "2b", "hold": None},
-    {"country": "SE", "forecast_type": "wind_onshore", "tranche": "2b", "hold": None},
-    {"country": "BG", "forecast_type": "wind_onshore", "tranche": "2f", "hold": None},
-    {"country": "CZ", "forecast_type": "wind_onshore", "tranche": "2e", "hold": None},
-    {"country": "FI", "forecast_type": "wind_onshore", "tranche": "2b", "hold": None},
-    {"country": "LT", "forecast_type": "wind_onshore", "tranche": "2e", "hold": None},
+    {"country": "EE", "forecast_type": "wind_onshore", "batch": "abl525",
+     "tranche": "2e", "hold": None},
+    {"country": "GR", "forecast_type": "wind_onshore", "batch": "abl525",
+     "tranche": "2b", "hold": None},
+    {"country": "SE", "forecast_type": "wind_onshore", "batch": "abl525",
+     "tranche": "2b", "hold": None},
+    {"country": "BG", "forecast_type": "wind_onshore", "batch": "abl525",
+     "tranche": "2f", "hold": None},
+    {"country": "CZ", "forecast_type": "wind_onshore", "batch": "abl525",
+     "tranche": "2e", "hold": None},
+    {"country": "FI", "forecast_type": "wind_onshore", "batch": "abl525",
+     "tranche": "2b", "hold": None},
+    {"country": "LT", "forecast_type": "wind_onshore", "batch": "abl525",
+     "tranche": "2e", "hold": None},
+    # ABL-580: the three pairs the standing rule admitted on 2026-08-27. None of
+    # them pins a feature list -- CZ/RO solar because the ABL-426 record's 27
+    # names are the current list (module docstring), NL wind_offshore because
+    # `wind_retrain.FEATURE_COLUMNS` has moved in exactly one commit, `601f10f`
+    # (2026-08-11), its introduction, which predates the 2026-08-14 offshore
+    # re-read; and the wind harness applies that one module constant at all
+    # three of its fit/predict sites with no per-type branch, so `wind_offshore`
+    # takes the same 24 names as `wind_onshore` by construction.
+    {"country": "CZ", "forecast_type": "solar", "batch": "abl580",
+     "tranche": "2a (ABL-426 re-read)", "hold": None},
+    {"country": "RO", "forecast_type": "solar", "batch": "abl580",
+     "tranche": "2a (ABL-426 re-read)", "hold": None},
+    {"country": "NL", "forecast_type": "wind_offshore", "batch": "abl580",
+     "tranche": "pilot (abl322-pilot, ABL-436 re-read)", "hold": None},
     {
         "country": "CH",
         "forecast_type": "solar",
+        "batch": "abl525",
         "tranche": "1b",
         # Pinned to the list tranche 1b was actually graded on, so that a
         # decision to ship CH is a `--include-held` run rather than an edit
@@ -110,12 +200,17 @@ SHIP_SET = (
         # to the same tuple; this row is the same pin, stated where the fit is.
         "feature_columns": SOLAR_LEGACY_FEATURE_COLUMNS,
         "hold": (
-            "ABL-525 item 2. Graded under abl316-t1b at the legacy 25-name solar "
-            "list; ABL-395 moved solar.FEATURE_COLUMNS to 27 (adds "
-            "sun_elevation_deg, is_night) and SCOPE_FEATURES['abl316-t1b'] pins "
-            "the tranche to the legacy 25. Fitting at 27 ships a model nobody "
-            "graded; fitting at 25 ships the class ABL-395 superseded for a "
-            "measured night defect. Membership is the CEO's call."
+            "ABL-525 item 2, then WITHDRAWN by CEO ruling 2026-08-27. Graded "
+            "under abl316-t1b at the legacy 25-name solar list; ABL-395 moved "
+            "solar.FEATURE_COLUMNS to 27 (adds sun_elevation_deg, is_night) and "
+            "SCOPE_FEATURES['abl316-t1b'] pins the tranche to the legacy 25. "
+            "Fitting at 27 ships a model nobody graded; fitting at 25 is a "
+            "per-country serving fork on a list the current builder no longer "
+            "produces, which ABL-525 item 2 forbids in terms and ABL-401 s4 "
+            "settles the direction of. Both doors are closed: the ruling is "
+            "that CH solar leaves the shipping set and rejoins only by a fresh "
+            "pre-registered gate read at 27 under a new scope id. Do not "
+            "exercise --include-held on this row."
         ),
     },
 )
@@ -138,8 +233,23 @@ FEATURE_COLUMNS_BY_TYPE = {
     "solar": SOLAR_FEATURE_COLUMNS,
 }
 
-#: All three tranches behind this ship set fitted catboost.
-ALGORITHM = "catboost"
+#: The estimator each type's gate harness fitted, taken from the harnesses
+#: themselves. `wind_offshore` is xgboost and `wind_onshore` is catboost -- one
+#: table, two values, and this script gets both from the code that graded them
+#: rather than from a constant of its own. See the module docstring; the wind
+#: pair comes in as a dict, so `**` rather than two rows, and any later move in
+#: `evaluate_wind_retrain.ALGORITHMS` arrives here without an edit.
+ALGORITHM_BY_TYPE = {**WIND_ALGORITHMS, "solar": SOLAR_ALGORITHM}
+
+
+def algorithm_for(forecast_type):
+    """The estimator this type's gate harness fitted.
+
+    ABL-525's rows all resolve to catboost, so this replaces the old module
+    constant without changing what the seven were fitted with -- asserted rather
+    than asserted-by-comment: `tests/test_abl580_ship_set_batches.py` holds it.
+    """
+    return ALGORITHM_BY_TYPE[forecast_type]
 
 
 def columns_for(country, forecast_type):
@@ -182,8 +292,16 @@ def sha256_of(path):
     return digest.hexdigest()
 
 
-def fit_one(country, forecast_type, replica_db, models_dir, algorithm=ALGORITHM):
-    """Fit one pair and write its artifact. Returns the provenance record."""
+def fit_one(country, forecast_type, replica_db, models_dir, algorithm=None):
+    """Fit one pair and write its artifact. Returns the provenance record.
+
+    `algorithm` defaults to the type's graded estimator rather than to a module
+    constant, so `abl525_repro_check.py` -- which calls this with four positional
+    arguments and no algorithm -- refits every pair with what that pair was
+    fitted with, including an offshore pair the original constant would have
+    silently refitted as catboost and then reported as a prediction difference.
+    """
+    algorithm = algorithm or algorithm_for(forecast_type)
     columns = columns_for(country, forecast_type)
     fit_start = pd.Timestamp(FIT_START)
     fit_end = pd.Timestamp(FIT_END)
@@ -256,11 +374,24 @@ def fit_one(country, forecast_type, replica_db, models_dir, algorithm=ALGORITHM)
     }
 
 
+#: Where each batch's committed machine record lands. A batch that names no
+#: record here has to be given `--json-out` explicitly rather than silently
+#: overwriting another batch's; `main` refuses otherwise. None of these is an
+#: `experiments/*/results.json` path -- that glob is gitignored (the ABL-440
+#: trap, still open), and a record that cannot be diffed cannot be evidence.
+BATCH_RECORDS = {
+    "abl525": "reports/abl_525_ship_set_training.json",
+    "abl580": "reports/abl_580_ship_set_training.json",
+}
+
+BATCHES = tuple(dict.fromkeys(entry["batch"] for entry in SHIP_SET))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=(
             "Fit production artifacts for the Board-approved ABL-316 ship set "
-            "through the graded gate-harness path (ABL-525)."
+            "through the graded gate-harness path (ABL-525, ABL-580)."
         )
     )
     parser.add_argument(
@@ -275,10 +406,21 @@ def main():
     )
     parser.add_argument(
         "--json-out",
-        default="reports/abl_525_ship_set_training.json",
+        default=None,
         help=(
-            "Committed machine record. Not an experiments/*/results.json path -- "
-            "that glob is gitignored (the ABL-440 trap)."
+            "Committed machine record. Defaults to the record registered for "
+            "--batch. Not an experiments/*/results.json path -- that glob is "
+            "gitignored (the ABL-440 trap)."
+        ),
+    )
+    parser.add_argument(
+        "--batch",
+        default=None,
+        choices=BATCHES,
+        help=(
+            "Restrict the run to one admission batch. Omitted, the run covers "
+            "every batch and needs an explicit --json-out, so a full-set refit "
+            "cannot land on one batch's record."
         ),
     )
     parser.add_argument(
@@ -293,6 +435,13 @@ def main():
     )
     args = parser.parse_args()
 
+    json_out = args.json_out or BATCH_RECORDS.get(args.batch)
+    if json_out is None:
+        parser.error(
+            "--json-out is required without a --batch whose record is "
+            f"registered in BATCH_RECORDS ({', '.join(sorted(BATCH_RECORDS))})"
+        )
+
     replica = Path(args.replica_db)
     if not replica.is_file():
         raise SystemExit(f"replica not found: {replica}")
@@ -304,6 +453,8 @@ def main():
     records, held = [], []
     for entry in SHIP_SET:
         key = f"{entry['country']}/{entry['forecast_type']}"
+        if args.batch is not None and entry["batch"] != args.batch:
+            continue
         if only is not None and key not in only:
             continue
         if entry["hold"] and not args.include_held:
@@ -314,24 +465,46 @@ def main():
         record = fit_one(
             entry["country"], entry["forecast_type"], replica, args.models_dir
         )
+        record["batch"] = entry["batch"]
         record["tranche"] = entry["tranche"]
         records.append(record)
         print(
             f"[OK  ] {key}: {record['retained_rows']}/{record['intended_rows']} rows, "
             f"{record['unique_fit_targets']} targets, {record['n_features']} features, "
+            f"{record['algorithm']}, "
             f"build {record['seconds_feature_build']}s fit {record['seconds_fit']}s",
             flush=True,
         )
 
     payload = {
-        "issue": "ABL-525",
+        "issue": {"abl525": "ABL-525", "abl580": "ABL-580"}.get(args.batch, "ABL-316"),
+        "batch": args.batch,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "board_decision": "abl316:ship-decision:v4 = ship8, 2026-08-22T08:25Z",
+        "admission_rule": (
+            "ABL-316 ledger 14.6 / 15.1, approved by the Board alongside ship8: "
+            "a held pair that later satisfies the same rule joins the shipping "
+            "set without a new Board card; a shipping pair a later correction "
+            "moves outside it is withdrawn. Both are reported by comment on "
+            "ABL-316. Membership is the CEO's; this script fits what membership "
+            "names and scores nothing."
+        ),
         "evidence_of_record": {
-            "path": "reports/abl_444_g23_floor_reread.json",
-            "blob": "1e8f37f6b1c4befd2c938363306e664ea58a21e7",
-            "sha256_prefix": "45fa753fc356b123",
-            "note": "Verified byte-unchanged since the a0b9ffd pin. Not re-derived here.",
+            "abl525": {
+                "path": "reports/abl_444_g23_floor_reread.json",
+                "blob": "1e8f37f6b1c4befd2c938363306e664ea58a21e7",
+                "sha256_prefix": "45fa753fc356b123",
+                "note": "Verified byte-unchanged since the a0b9ffd pin. "
+                        "Not re-derived here.",
+            },
+            "abl580": {
+                "cz_solar": "experiments/ABL348/results_abl426_tranche2a_generation.json",
+                "ro_solar": "experiments/ABL348/results_abl426_tranche2a_generation.json",
+                "nl_wind_offshore": "ABL-316 ledger 14.3; the pilot's own read is "
+                                    "experiments/ABL322/results_abl436_offshore_reread.json",
+                "note": "Grades and margins are the CEO's disposition on ABL-316. "
+                        "Nothing here re-derives or re-grades them.",
+            },
         },
         "protocol": {
             "fit_path": "src.wind_features.RenewableFeatureBuilder + "
@@ -341,12 +514,16 @@ def main():
             "renewable_source": RENEWABLE_SOURCE,
             "vintages_per_target": 8,
             "lookback_days": LOOKBACK_DAYS,
-            "algorithm": ALGORITHM,
+            "algorithm_by_type": dict(ALGORITHM_BY_TYPE),
+            "algorithm_source": (
+                "evaluate_wind_retrain.ALGORITHMS and solar_retrain.ALGORITHM, "
+                "imported not restated"
+            ),
             "scored_or_graded": False,
             "fitted_on_the_gate_window": True,
             "fit_window_bounded_by": (
-                "weather_data data_quality='forecast' begins 2026-01-11 for all "
-                "eight countries; energy_generation reaches 2021-01-01 but a "
+                "weather_data data_quality='forecast' begins 2026-01-11 for every "
+                "country in this set; energy_generation reaches 2021-01-01 but a "
                 "serve-faithful row cannot be built without the weather archive"
             ),
         },
@@ -354,13 +531,14 @@ def main():
             "python": platform.python_version(),
             "executable": sys.executable,
             "replica_db": str(replica),
+            "replica_bytes": replica.stat().st_size,
             "models_dir": str(args.models_dir),
         },
         "pairs": records,
         "held": held,
     }
 
-    out = Path(args.json_out)
+    out = Path(json_out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"\nWrote {out} ({len(records)} fitted, {len(held)} held)")
