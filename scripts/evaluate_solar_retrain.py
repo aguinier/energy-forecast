@@ -243,6 +243,57 @@ SCOPES = {
     # than the 9,432,453,120 bytes ABL-405 read; what that costs the A/B is
     # measured rather than assumed, and reported in this scope's evidence pack.
     "abl316-t2a-generation": ("BG", "CH", "CZ", "HU", "PL", "RO", "SI", "SK"),
+    # ABL-581 -- CH solar alone, at the current 27-feature list, on
+    # `energy_generation`, under the frozen registration at
+    # `experiments/ABL348/config.json`.  1 country x 3 bands = 3 cells.
+    #
+    # **This scope is the route back for a withdrawn pair, and it is a new
+    # pre-registration rather than an amendment to any existing one.**  CH solar
+    # was pair 8 on the Board's approved `ship8` roster and the CEO withdrew it on
+    # 2026-08-27 (ABL-525): the approval attached to the class that was *measured*,
+    # which was tranche 1b's read at the legacy **25**-name list, and ABL-395 has
+    # since moved `solar.FEATURE_COLUMNS` to 27.  An artifact pins its own
+    # `feature_columns`, so the approved class does not reach a 27-feature CH
+    # artifact, and the alternative -- serving CH off the pinned 25 -- is the
+    # per-country fork ABL-525 item 2 forbids in terms.  The standing rule the
+    # Board approved lets a withdrawn pair rejoin by satisfying the rule again,
+    # with no new Board card; this scope is how CH gets that chance.
+    #
+    # `abl316-t1b` is **not** touched and is not re-based.  ABL-404 pinned it to
+    # `LEGACY_FEATURE_COLUMNS` on purpose and ABL-381's published PASS 6/6 stands;
+    # this entry's `SCOPE_OUTPUTS` row writes nowhere ABL-381 or ABL-405 or ABL-426
+    # wrote.  That is ABL-401 s1-s2 applied here: a read at a different feature list
+    # sits *beside* the published path and never overwrites it.
+    #
+    # Why a fresh read rather than a citation of `abl316-t2a-generation`, which
+    # already holds a 27-feature CH read on `energy_generation`: that scope is
+    # pinned to `FIT_WINDOW` causal levelling and `SIGN_TEST` G2/G3 readability,
+    # because its entire value is being a controlled A/B against `abl316-t2a` on the
+    # source table alone.  The bar CH has to clear to rejoin is stated over the
+    # **ABL-437** levelling and the **ABL-444** floor, and those are the two things
+    # that scope is pinned away from.  So ABL-426's CH cells are corroboration --
+    # same features, same table, same windows, one earlier replica snapshot -- and
+    # not the read the rule asks for.  This scope registers nothing in
+    # `CAUSAL_LEVELLING`/`G23_READABILITY` and therefore takes both amendments,
+    # which is the intended path for a scope with no published letters to protect.
+    #
+    # Windows, bands, metric, baseline, minimum n and source table are ABL-348's and
+    # are deliberately not restated here.  One country, so there is no bar-grouping
+    # question: CH's pre-committed D-7 bar is 12.67%
+    # (`per_pair_bar_measured_before_any_challenger_exists.bars`, measured before a
+    # challenger existed for the pair), the tightest in tranche 2a's set.
+    #
+    # CH serves no solar model: measured on the live replica (10,632,605,696 bytes,
+    # mode=ro) on 2026-08-27, `forecasts` holds solar rows for BE/AT/DE/FR only
+    # (34,660 / 33,648 / 33,648 / 33,648) and **zero** for CH.  So this scope refits
+    # no live pair, the property `abl253` protects.  The replica is a *later*
+    # snapshot than either the 9,432,453,120 bytes ABL-381 read or the
+    # 10,175,365,120 ABL-426 read; what that costs the comparison against those two
+    # records is reported in this scope's evidence pack rather than assumed away.
+    #
+    # CH `wind_onshore` is a different pair on a different harness and is not in
+    # scope here: it is registered not-decision-grade at 12.9 MW.
+    "abl581-ch-solar-f27": ("CH",),
     # ABL-376: ABL-253's countries, window and basis with exactly one thing
     # changed -- the fit drops night rows the sun says cannot exist (`FIT_RULES`
     # below).  Registered as its own scope rather than as a flag on `abl253`
@@ -428,6 +479,32 @@ SCOPE_OUTPUTS = {
         "artifact_dir": "experiments/ABL426/artifacts",
         "json_out": "experiments/ABL348/results_abl426_tranche2a_generation.json",
         "report_out": "reports/abl_426_solar_tranche2a_generation.md"},
+    # ABL-581.  Same three-way shape as the tranche rows above, and the argument for
+    # a disjoint row is the sharpest in the table: this scope names CH, which
+    # `abl316-t1b`, `abl316-t2a` and `abl316-t2a-generation` all name too, and one of
+    # those three -- `abl316-t1b` -- is the record behind a PASS the Board approved.
+    #
+    # `artifact_dir` is `experiments/ABL581/artifacts`, its own directory, one level
+    # deep so `.gitignore:56` (`experiments/*/artifacts/`, which matches on the
+    # *directory name*) still takes it and no binary CatBoost bundle becomes
+    # committable.  Sharing `experiments/ABL316/artifacts` would overwrite
+    # `experiments/ABL316/artifacts/CH/solar/model.joblib` -- the **25-feature**
+    # artifact whose SHA-256 ABL-381's machine record cites -- with a 27-feature one,
+    # and `git status` would show nothing because both directories are ignored.  That
+    # is the exact near-miss recorded on the `abl316-t2a` row above, on the one pair
+    # where the overwritten record is a Board-approved one.
+    #
+    # `json_out` takes the tracked form -- one level deep and deliberately **not**
+    # named `results.json`, which `.gitignore:53` matches by exact filename -- and
+    # sits under ABL348 for the reason `abl316-t1b` gives: the registration these fits
+    # are read under is `experiments/ABL348/config.json`.  It matters more than usual
+    # here: this record is the sole evidence behind a membership change to the
+    # shipping set that is made **without a new Board card**, so it has to be a thing
+    # a reviewer can `git diff` rather than a claim in prose.
+    "abl581-ch-solar-f27": {
+        "artifact_dir": "experiments/ABL581/artifacts",
+        "json_out": "experiments/ABL348/results_abl581_ch_solar_f27.json",
+        "report_out": "reports/abl_581_ch_solar_f27.md"},
     # ABL-376 takes the tracked form the section above recommends, and for the
     # reason given there: this read is meant to be dispositioned against
     # `abl253`, and a `results.json` is the one gate record `git checkout --`
@@ -505,6 +582,16 @@ GATE_BASIS = {
     # (see this scope's `SCOPES` entry), so under the four-way basis all 24 cells
     # would intersect to n=0 and the run would render UNREADABLE.
     "abl316-t2a-generation": ("challenger", "seasonal_naive"),
+    # ABL-581: identical to every ABL-348 tranche row above, and for the identical
+    # reason -- CH holds **zero** solar rows in `forecasts` on the live replica (see
+    # this scope's `SCOPES` entry), so under the four-way basis all 3 cells would
+    # intersect to n=0 and the run would render UNREADABLE, having compared nothing.
+    # Keeping it identical to `abl316-t1b`'s is also what makes this read comparable
+    # to the tranche-1b position it is asked to hold: the basis decides which rows
+    # enter a cell, and the question here is what the *feature list* moved.  The
+    # incumbent is still reported on its own intersection, where it reads
+    # "Not measured" by construction rather than by omission.
+    "abl581-ch-solar-f27": ("challenger", "seasonal_naive"),
     # Deliberately identical to `abl253`'s.  The A/B is on the fit rule; moving
     # the basis at the same time would confound the two.
     "abl376": ("challenger", "incumbent", "seasonal_naive", "persistence"),
@@ -576,6 +663,23 @@ CAUSAL_LEVELLING = {
     # two different measurements.
     "abl316-t2a-generation": FIT_WINDOW,
     "abl376": FIT_WINDOW,
+    # ABL-581 is the **first scope in the programme registered on ABL-437's
+    # amendment**, and it is written out rather than inherited from
+    # `causal_levelling_for`'s default because a registration that has to be
+    # reconstructed from an absence is not a registration.  Every other row here is
+    # a scope whose letters were committed before the amendment; this one has no
+    # letters to protect, which is precisely the case the amendment was adopted for.
+    #
+    # The bar CH must clear to rejoin the shipping set is stated over the ABL-437
+    # levelling, so the value is forced rather than chosen -- and it is the *harder*
+    # direction on this stream.  `climatology_causal` under `FIT_WINDOW` is a
+    # Jan-to-Jul hour-of-day mean scored on high summer; re-levelling it to a
+    # trailing 28 days makes G3 a materially harder question on solar, which is why
+    # ABL-437 registered it as an amendment rather than shipping it as a fix.  A CH
+    # cell that holds its position under this levelling holds it under the easier one
+    # too; the converse does not follow, and this row is what stops the read being
+    # quoted as though it did.
+    "abl581-ch-solar-f27": TRAILING_28D,
 }
 
 
@@ -615,6 +719,20 @@ G23_READABILITY = {
     # grading-rule change alongside the source change.
     "abl316-t2a-generation": SIGN_TEST,
     "abl376": SIGN_TEST,
+    # ABL-581, on `CAUSAL_LEVELLING`'s reasoning and with one addition.  This is the
+    # first scope registered on ABL-444's amendment, and writing `FLOORED` out is the
+    # point rather than a formality: the table's own comment names "the cheapest row
+    # for that author to write is a copy of the neighbouring `SIGN_TEST`" as the
+    # unsafe direction chosen by copy-paste, and a row that says the opposite in the
+    # same column is the cheapest possible correction of that.
+    #
+    # It is also the value the rejoin bar names.  CH's tranche-1b position was `A`
+    # with a +3.47pp margin against oracle climatology -- **inside** the 10.6482%
+    # floor -- and the whole reason that A survived is that inside-the-floor is not a
+    # loss under the rule the Board picked.  Grading this read by a bare sign test
+    # would award or withhold a letter on the sign of a margin that size, which is
+    # the thing ABL-444 exists to stop.
+    "abl581-ch-solar-f27": FLOORED,
 }
 
 
@@ -670,6 +788,15 @@ SEED_READABILITY = {
     # default that could later move under only one of the two arms.
     "abl316-t2a-generation": DELTA_MIN,
     "abl376": DELTA_MIN,
+    # ABL-581.  This harness has no `--seeds` flag, so the read is k = 1 and
+    # `grade_cell` falls back to `delta_min` whatever this row says; it is written
+    # out anyway, because the *evidence* this scope produces is the sole basis for a
+    # membership change and "which readability test decided this letter" must be
+    # answerable from the record rather than from the absence of a row.  The value
+    # is `delta_min` because that is the test the read is actually decided by at
+    # k = 1, not because the neighbours say so -- registering `student_t` here would
+    # name a test with no degrees of freedom to take.
+    "abl581-ch-solar-f27": DELTA_MIN,
     # ABL-427's k = 12 re-read of tranche 2c.  Pinned to the form its published
     # pack was decided under -- which is stricter still than `delta_min` here,
     # being ABL-427's own chi-square upper bound on the measured CV rather than
@@ -874,6 +1001,31 @@ FIT_RULES = {
     # edit this row.  Re-fitting any of these eight under the rule is a real
     # experiment and belongs in its own scope.
     "abl316-t2a-generation": {"exclude_impossible_night": False},
+    # ABL-581 registers the rule **off**, which is what `abl316-t1b` and every
+    # `abl316-t2*` row registered and also what `DEFAULT_FIT_RULES` would have given
+    # it -- stated rather than inherited, for `abl316-t2a`'s reason:
+    # `check_registration_tables` compares keys and not values, so an unstated False
+    # is indistinguishable from a False nobody chose.
+    #
+    # Off is forced here, on two independent grounds:
+    #
+    # - This read's job is to say whether the **feature list** holds CH's tranche-1b
+    #   position.  ABL-381 was read with the rule off; turning it on would move the
+    #   fit frame at the same time as the column list and make the answer
+    #   unattributable -- the confound ABL-376 registered a separate scope to avoid.
+    # - ABL-348's registration does not contain the rule and this read is taken under
+    #   it unchanged, and ABL-403 registered `False` for every remaining ABL-316
+    #   solar tranche on the CEO's adoption of PR #58.
+    #
+    # There is a third reason specific to CH and it cuts the same way.  CH is
+    # `NIGHT_GENERATION_POSSIBLE = False` with a registered representative point, so
+    # its night hours are exactly the rows the rule would refuse -- and they are also
+    # the rows ABL-395's two geometry features were adopted to fix.  Excluding them
+    # from the fit would delete the evidence this read exists to gather: whether a
+    # 27-feature fit stops predicting negative at night is not answerable from a fit
+    # that never saw night.  Re-fitting CH under the rule is a real experiment and
+    # belongs in its own scope.
+    "abl581-ch-solar-f27": {"exclude_impossible_night": False},
 }
 
 # ABL-395: and so is the feature *vector*, for exactly the reason stated above
@@ -1002,6 +1154,29 @@ SCOPE_FEATURES = {
     # `test_a_dispositioned_scope_still_resolves_to_the_list_it_was_read_on`,
     # which derives its scope list from `SCOPE_OUTPUTS` and picks this scope up on
     # the commit that publishes it.
+    #
+    # ABL-581 (`abl581-ch-solar-f27`) is **absent for the same reason and
+    # deliberately**, and on this scope the absence is the single most likely thing
+    # to be misread, so it is registered here in words.  The issue that commissions
+    # it says "elect the source in the file" and calls for a fresh pre-registration,
+    # and the natural next step is to elect the feature list in the file too.  That
+    # would be wrong twice.  The only honest row available is `FEATURE_COLUMNS`,
+    # which binds to the same mutable constant `DEFAULT_SCOPE_FEATURES` already binds
+    # to -- so it protects nothing -- while flipping
+    # `meta.feature_set_is_registered_for_scope` to True and printing a claim about
+    # this registration that is not true of it.  And `LEGACY_FEATURE_COLUMNS`, the
+    # one real literal pin in reach, is the **25**-name list this whole scope exists
+    # to move off.
+    #
+    # So `meta.feature_set_is_registered_for_scope` reads **False** for this scope,
+    # exactly as it does for 2a, 2c and 2a-generation, and that is correct rather
+    # than a defect to fix.  The witness for the 27 is `meta.feature_columns`, the
+    # literal names the run itself writes, held afterwards by
+    # `test_a_dispositioned_scope_still_resolves_to_the_list_it_was_read_on`.  Note
+    # the asymmetry this scope carries deliberately: its **source** is registered
+    # (`SCOPE_SOURCES`, so `meta.source_is_scope_registered` is True) while its
+    # **feature list** is not, and both are right for the reasons given in their own
+    # tables.
 }
 
 # The report's H1.  This was the string literal "ABL-253 -- Serve-faithful solar
@@ -1063,6 +1238,18 @@ SCOPE_TITLES = {
     # mislabel of a read, not evidence about it -- and this row is where the claim
     # it was making becomes true of a real read.
     "abl316-t2a-generation": "ABL-426 — Serve-faithful solar retrain gate, ABL-316 tranche 2a re-read on the registered energy_generation: 8 continental countries at 27 features",
+    # ABL-581, registered for the same reason the five above are -- `title_for`'s
+    # fallback would head this evidence pack "abl581-ch-solar-f27", and a scope slug
+    # is a key, not a title.  ABL-392 is the live form of that hazard on this
+    # harness: the report's H1 is the first thing quoted out of a pack and the
+    # `scope` field is not, so a wrong heading survives every downstream copy.
+    #
+    # This heading has one extra job.  Four solar reads now exist over CH -- ABL-381
+    # at 25 features, ABL-405 on the wrong table, ABL-426 at 27 on the right one, and
+    # this one -- and only this one is read under the amendments the rejoin bar
+    # names.  So it states the feature count *and* that this is CH alone, which is
+    # what distinguishes it from the eight-country pack ABL-426 heads.
+    "abl581-ch-solar-f27": "ABL-581 — Serve-faithful solar retrain gate, CH solar alone at 27 features on energy_generation: the ABL-525 withdrawal's route back",
 }
 
 # ABL-421.  Which country-band cells the frozen registration declares
@@ -1232,6 +1419,16 @@ SCOPE_SOURCES = {
     # row is the corrected half of the pair above, and the two rows side by side
     # are the machine-readable form of the whole finding.
     "abl316-t2a-generation": "energy_generation",
+    # ABL-581: the table ABL-348 registers for all 37 tranche pairs, elected here in
+    # the file before the fit, which is what this table is for.  The issue that
+    # commissions this read asks for it by name -- an unflagged run must come back
+    # `meta.source_is_scope_registered == true`, and an explicit `--renewable-source`
+    # override still wins but prints OFF-REGISTRATION, which cannot support a
+    # membership change.  Without this row the run would resolve through
+    # `db.RENEWABLE_TYPE_SOURCE_TABLE` to `energy_renewable`, which is exactly the
+    # ABL-405 defect; with it, the wrong table is one deliberate flag away and is
+    # recorded when taken.
+    "abl581-ch-solar-f27": "energy_generation",
 }
 
 
