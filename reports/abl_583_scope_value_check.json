@@ -1,0 +1,202 @@
+{
+  "issue": "ABL-583",
+  "check": "solar feature-list constant chain, resolved by value",
+  "generated_at": "2026-08-27T16:18:57.950128+00:00",
+  "revisions": [
+    "82e3108",
+    "49ab9e9",
+    "origin/main",
+    "HEAD"
+  ],
+  "reference_revision": "origin/main",
+  "reads_the_database": false,
+  "why_not_ast": "DEFAULT_SCOPE_FEATURES is a bare Name node and LEGACY_FEATURE_COLUMNS a GeneratorExp over it, so an ast.dump hash on either is identical at every revision whatever FEATURE_COLUMNS holds -- including across ABL-395's 25->27 move, the move that withdrew CH solar. The value hashes below are the load-bearing check; the ast hashes are carried only to show the contrast.",
+  "constants": [
+    {
+      "constant": "SOLAR_GEOMETRY_FEATURES",
+      "defined_in": "src/solar_features.py",
+      "value_hash_by_revision": {
+        "82e3108": "6924258c061b9d9f",
+        "49ab9e9": "6924258c061b9d9f",
+        "origin/main": "6924258c061b9d9f",
+        "HEAD": "6924258c061b9d9f"
+      },
+      "identical_across_revisions": true,
+      "ast_hash_by_revision": {
+        "82e3108": "c8d1380d8913777f",
+        "49ab9e9": "c8d1380d8913777f",
+        "origin/main": "c8d1380d8913777f",
+        "HEAD": "c8d1380d8913777f"
+      },
+      "ast_hash_is_vacuous_for_this_constant": false,
+      "value_expression_on_reference": "('sun_elevation_deg', 'is_night')"
+    },
+    {
+      "constant": "FEATURE_COLUMNS",
+      "defined_in": "src/evaluation/solar_retrain.py",
+      "value_hash_by_revision": {
+        "82e3108": "5f79bff3e0f262f2",
+        "49ab9e9": "5f79bff3e0f262f2",
+        "origin/main": "5f79bff3e0f262f2",
+        "HEAD": "5f79bff3e0f262f2"
+      },
+      "identical_across_revisions": true,
+      "ast_hash_by_revision": {
+        "82e3108": "51ea29cc1fefb9f1",
+        "49ab9e9": "51ea29cc1fefb9f1",
+        "origin/main": "51ea29cc1fefb9f1",
+        "HEAD": "51ea29cc1fefb9f1"
+      },
+      "ast_hash_is_vacuous_for_this_constant": false,
+      "value_expression_on_reference": "('hour', 'day_of_week', 'month', 'is_weekend', 'hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos', 'target_value_lag_1d', 'target_value_lag_7d', 'target_value_lag_14d', 'target_value_roll_24h_mean', 'target_value_roll_24h_std', 'target_value_roll_24h_min', 'target_value_roll_24h_max', 'target_value_roll_168h_mean', 'target_value_roll_168h_std', 'target_value_roll_168h_min', 'target_value_roll_168h_max', 'shortwave_radiation_wm2', 'direct_radiation_wm2', 'diffuse_radiation_wm2', 'temperature_c', *SOLAR_GEOMETRY_FEATURES)"
+    },
+    {
+      "constant": "LEGACY_FEATURE_COLUMNS",
+      "defined_in": "scripts/evaluate_solar_retrain.py",
+      "value_hash_by_revision": {
+        "82e3108": "464fdc3eb7e719e9",
+        "49ab9e9": "464fdc3eb7e719e9",
+        "origin/main": "464fdc3eb7e719e9",
+        "HEAD": "464fdc3eb7e719e9"
+      },
+      "identical_across_revisions": true,
+      "ast_hash_by_revision": {
+        "82e3108": "c68a5f7d51d80bbb",
+        "49ab9e9": "c68a5f7d51d80bbb",
+        "origin/main": "c68a5f7d51d80bbb",
+        "HEAD": "c68a5f7d51d80bbb"
+      },
+      "ast_hash_is_vacuous_for_this_constant": true,
+      "value_expression_on_reference": "tuple((c for c in FEATURE_COLUMNS if c not in SOLAR_GEOMETRY_FEATURES))"
+    },
+    {
+      "constant": "DEFAULT_SCOPE_FEATURES",
+      "defined_in": "scripts/evaluate_solar_retrain.py",
+      "value_hash_by_revision": {
+        "82e3108": "5f79bff3e0f262f2",
+        "49ab9e9": "5f79bff3e0f262f2",
+        "origin/main": "5f79bff3e0f262f2",
+        "HEAD": "5f79bff3e0f262f2"
+      },
+      "identical_across_revisions": true,
+      "ast_hash_by_revision": {
+        "82e3108": "a1d92331f4ddacb8",
+        "49ab9e9": "a1d92331f4ddacb8",
+        "origin/main": "a1d92331f4ddacb8",
+        "HEAD": "a1d92331f4ddacb8"
+      },
+      "ast_hash_is_vacuous_for_this_constant": true,
+      "value_expression_on_reference": "FEATURE_COLUMNS"
+    },
+    {
+      "constant": "SCOPE_FEATURES",
+      "defined_in": "scripts/evaluate_solar_retrain.py",
+      "value_hash_by_revision": {
+        "82e3108": "644aaa700372022e",
+        "49ab9e9": "644aaa700372022e",
+        "origin/main": "644aaa700372022e",
+        "HEAD": "644aaa700372022e"
+      },
+      "identical_across_revisions": true,
+      "ast_hash_by_revision": {
+        "82e3108": "2cfe6f1126bd2b02",
+        "49ab9e9": "2cfe6f1126bd2b02",
+        "origin/main": "2cfe6f1126bd2b02",
+        "HEAD": "2cfe6f1126bd2b02"
+      },
+      "ast_hash_is_vacuous_for_this_constant": false,
+      "value_expression_on_reference": "{'abl253': LEGACY_FEATURE_COLUMNS, 'abl376': LEGACY_FEATURE_COLUMNS, 'abl316-t1b': LEGACY_FEATURE_COLUMNS}"
+    }
+  ],
+  "reference_assertions": {
+    "n_current_feature_columns": 27,
+    "n_legacy_feature_columns": 25,
+    "geometry_names_added": [
+      "sun_elevation_deg",
+      "is_night"
+    ],
+    "default_scope_features_is_the_current_list": true,
+    "scope_features_keys": [
+      "abl253",
+      "abl316-t1b",
+      "abl376"
+    ],
+    "new_scope_is_absent_from_scope_features": true,
+    "legacy_tranche_is_still_pinned": true,
+    "every_registered_pin_is_the_legacy_list": true
+  },
+  "all_constants_identical_across_revisions": true,
+  "all_reference_assertions_hold": true,
+  "blind_spot_demonstration": {
+    "revision": "origin/main",
+    "mutation": "append 'clearsky_index' to SOLAR_GEOMETRY_FEATURES, in memory only -- no file is written",
+    "writes_to_the_tree": false,
+    "constants": [
+      {
+        "constant": "SOLAR_GEOMETRY_FEATURES",
+        "n_actual": 2,
+        "n_probed": 3,
+        "ast_hash_actual": "c8d1380d8913777f",
+        "ast_hash_probed": "d65c91c7cd719869",
+        "ast_detects_the_change": true,
+        "value_hash_actual": "6924258c061b9d9f",
+        "value_hash_probed": "9994b133f6662cdc",
+        "value_detects_the_change": true,
+        "ast_is_blind_to_this_change": false
+      },
+      {
+        "constant": "FEATURE_COLUMNS",
+        "n_actual": 27,
+        "n_probed": 28,
+        "ast_hash_actual": "51ea29cc1fefb9f1",
+        "ast_hash_probed": "51ea29cc1fefb9f1",
+        "ast_detects_the_change": false,
+        "value_hash_actual": "5f79bff3e0f262f2",
+        "value_hash_probed": "61e5e898796e3b55",
+        "value_detects_the_change": true,
+        "ast_is_blind_to_this_change": true
+      },
+      {
+        "constant": "LEGACY_FEATURE_COLUMNS",
+        "n_actual": 25,
+        "n_probed": 25,
+        "ast_hash_actual": "c68a5f7d51d80bbb",
+        "ast_hash_probed": "c68a5f7d51d80bbb",
+        "ast_detects_the_change": false,
+        "value_hash_actual": "464fdc3eb7e719e9",
+        "value_hash_probed": "464fdc3eb7e719e9",
+        "value_detects_the_change": false,
+        "ast_is_blind_to_this_change": false
+      },
+      {
+        "constant": "DEFAULT_SCOPE_FEATURES",
+        "n_actual": 27,
+        "n_probed": 28,
+        "ast_hash_actual": "a1d92331f4ddacb8",
+        "ast_hash_probed": "a1d92331f4ddacb8",
+        "ast_detects_the_change": false,
+        "value_hash_actual": "5f79bff3e0f262f2",
+        "value_hash_probed": "61e5e898796e3b55",
+        "value_detects_the_change": true,
+        "ast_is_blind_to_this_change": true
+      },
+      {
+        "constant": "SCOPE_FEATURES",
+        "n_actual": 3,
+        "n_probed": 3,
+        "ast_hash_actual": "2cfe6f1126bd2b02",
+        "ast_hash_probed": "2cfe6f1126bd2b02",
+        "ast_detects_the_change": false,
+        "value_hash_actual": "644aaa700372022e",
+        "value_hash_probed": "644aaa700372022e",
+        "value_detects_the_change": false,
+        "ast_is_blind_to_this_change": false
+      }
+    ],
+    "constants_the_ast_check_would_miss": [
+      "FEATURE_COLUMNS",
+      "DEFAULT_SCOPE_FEATURES"
+    ],
+    "reading": "FEATURE_COLUMNS goes 27 -> 28 names, which is the scenario this pack says must fail the suite rather than silently re-base the artifact, and the ast.dump hash of FEATURE_COLUMNS and DEFAULT_SCOPE_FEATURES does not move. An AST comparison would have reported 'identical' across exactly the change it was there to detect."
+  }
+}

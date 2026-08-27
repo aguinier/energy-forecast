@@ -372,3 +372,116 @@ def test_every_batch_issue_is_registered(trainer):
 def test_the_ship_set_reads_one_source_table(trainer):
     """ABL-321/ABL-348 register `energy_generation` for every pair in this set."""
     assert trainer.RENEWABLE_SOURCE == "energy_generation"
+
+
+# --------------------------------------------------------------------------
+# 5. The instrument the readmission premise is checked with
+# --------------------------------------------------------------------------
+#
+# ABL-583 section 1 first checked the feature-list constant chain by hashing
+# `ast.dump` of each constant's value node. Two of the four names are derived
+# expressions -- `DEFAULT_SCOPE_FEATURES = FEATURE_COLUMNS` is a bare `Name`, and
+# `FEATURE_COLUMNS` ends `*SOLAR_GEOMETRY_FEATURES` -- so that hash does not move
+# when the list they resolve to moves. That is not hypothetical: it is ABL-395's
+# 25 -> 27, the move that withdrew CH `solar` in the first place. These hold the
+# replacement instrument, and the demonstration that the replacement was needed.
+
+SCOPE_CHECK_PATH = REPO / "scripts" / "abl583_scope_value_check.py"
+
+
+@pytest.fixture(scope="module")
+def scope_check():
+    return _load_module("abl583_scope_value_check", SCOPE_CHECK_PATH)
+
+
+def test_the_constant_chain_is_resolved_in_dependency_order(scope_check):
+    """A derived expression must be evaluated after what it derives from.
+
+    `LEGACY_FEATURE_COLUMNS` and `DEFAULT_SCOPE_FEATURES` both reference
+    `FEATURE_COLUMNS`, which references `SOLAR_GEOMETRY_FEATURES`. Resolve them
+    out of order and the `eval` raises `NameError`. The order is the contract, so
+    it is asserted rather than assumed.
+    """
+    names = [name for _, name in scope_check.CONSTANT_CHAIN]
+    assert names.index("SOLAR_GEOMETRY_FEATURES") < names.index("FEATURE_COLUMNS")
+    for derived in ("LEGACY_FEATURE_COLUMNS", "DEFAULT_SCOPE_FEATURES",
+                    "SCOPE_FEATURES"):
+        assert names.index("FEATURE_COLUMNS") < names.index(derived)
+
+
+def test_the_chain_spans_the_three_modules_it_actually_lives_in(scope_check):
+    """The four names are not in one file, and a check that assumes they are is wrong.
+
+    This is the error the first draft of the pack made: it named the constants as
+    though `SCOPE_FEATURES` sat beside `FEATURE_COLUMNS` in
+    `src/evaluation/solar_retrain.py`. It does not.
+    """
+    by_name = dict((name, path) for path, name in scope_check.CONSTANT_CHAIN)
+    assert by_name["SOLAR_GEOMETRY_FEATURES"] == "src/solar_features.py"
+    assert by_name["FEATURE_COLUMNS"] == "src/evaluation/solar_retrain.py"
+    for name in ("LEGACY_FEATURE_COLUMNS", "DEFAULT_SCOPE_FEATURES",
+                 "SCOPE_FEATURES"):
+        assert by_name[name] == "scripts/evaluate_solar_retrain.py"
+
+
+def test_an_annotated_assignment_is_found(scope_check):
+    """`SOLAR_GEOMETRY_FEATURES` carries a `Tuple[str, ...]` annotation.
+
+    A walker that only knows `ast.Assign` misses it and dies with a `KeyError`
+    that reads like a deleted constant. Held because the first working version of
+    this resolver had exactly that bug.
+    """
+    source = "X: Tuple[str, ...] = ('a', 'b')\nY = ('c',)\n"
+    found = scope_check.assigned_expressions(source, {"X", "Y"})
+    assert found["X"] == "('a', 'b')"
+    assert found["Y"] == "('c',)"
+
+
+def test_the_ast_instrument_is_blind_to_an_upstream_feature_list_move(scope_check):
+    """The demonstration, run rather than described.
+
+    Appending one name to `SOLAR_GEOMETRY_FEATURES` takes `FEATURE_COLUMNS` from
+    27 to 28 -- precisely the move
+    `test_ch_solar_rejoined_at_the_current_27_name_list` exists to catch -- and
+    leaves the `ast.dump` hash of both `FEATURE_COLUMNS` and
+    `DEFAULT_SCOPE_FEATURES` untouched. If this ever fails because the AST hash
+    *did* move, the constants have been respelled as literals and the
+    resolved-value check is no longer load-bearing; that is a good failure and
+    the report's section 1 should be re-read, not the test deleted.
+    """
+    demonstration = scope_check.blind_spot_demonstration("HEAD", REPO)
+    rows = {row["constant"]: row for row in demonstration["constants"]}
+
+    assert rows["FEATURE_COLUMNS"]["n_actual"] == 27
+    assert rows["FEATURE_COLUMNS"]["n_probed"] == 28
+
+    # The value instrument sees it; the AST instrument does not.
+    for name in ("FEATURE_COLUMNS", "DEFAULT_SCOPE_FEATURES"):
+        assert rows[name]["value_detects_the_change"], name
+        assert not rows[name]["ast_detects_the_change"], name
+        assert rows[name]["ast_is_blind_to_this_change"], name
+
+    assert set(demonstration["constants_the_ast_check_would_miss"]) == {
+        "FEATURE_COLUMNS", "DEFAULT_SCOPE_FEATURES"}
+    # It is a demonstration, not a migration: it must not touch the tree.
+    assert demonstration["writes_to_the_tree"] is False
+
+
+def test_the_readmission_premise_holds_on_the_current_tree(scope_check):
+    """CH solar's readmission rests on these, so they are asserted, not reported.
+
+    `abl581-ch-solar-f27` absent from `SCOPE_FEATURES` is the *correct*
+    configuration -- it inherits the current 27 through `DEFAULT_SCOPE_FEATURES`.
+    Registering it would pin this scope to a list that could later drift from the
+    builder, which is the CH failure mode in reverse.
+    """
+    resolved = scope_check.resolve("HEAD", REPO)
+    current = tuple(resolved["FEATURE_COLUMNS"])
+    legacy = tuple(resolved["LEGACY_FEATURE_COLUMNS"])
+    scope_features = resolved["SCOPE_FEATURES"]
+
+    assert len(current) == 27 and len(legacy) == 25
+    assert tuple(resolved["DEFAULT_SCOPE_FEATURES"]) == current
+    assert scope_check.NEW_SCOPE not in scope_features
+    assert tuple(scope_features[scope_check.LEGACY_PINNED_SCOPE]) == legacy
+    assert all(tuple(v) == legacy for v in scope_features.values())
