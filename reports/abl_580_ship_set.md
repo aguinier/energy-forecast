@@ -347,6 +347,15 @@ BE renders both `solar` and `wind_offshore` because it has rows; CZ, RO and NL d
 have none. All three are in `/api/countries`. The moment rows exist, the type appears. **Nothing to
 file for the Founding Engineer.**
 
+**A limit on that evidence, stated rather than left implicit.** BE and FR are the positive control
+because they are the only one available: the replica read here still holds **0** rows for all seven
+ABL-525 `wind_onshore` pairs, and its newest `forecasts` row of any kind is 2026-08-26 19:00 against
+a file refreshed 2026-08-27 07:33. So "the type appears the moment rows exist" is demonstrated on
+streams that have served for a long time, and **not yet on a newly deployed renewable pair**. That is
+not a finding about ABL-579 — the replica mirrors prod on a 07:00 sync, so a deploy completed later
+the same day could not appear in it regardless — it is a bound on what this pack can claim. The first
+new pair to land will settle it.
+
 ### 6.4 Where I stopped
 
 Those 144 rows went to a **scratch sidecar** under `PAPERCLIP_RUN_SCRATCH_DIR`. The replica still
