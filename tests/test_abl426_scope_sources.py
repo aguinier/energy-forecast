@@ -117,14 +117,23 @@ def scope_titles(harness_source):
 def _published(scope_outputs):
     """Scopes whose machine record is committed, keyed to the loaded record.
 
-    Derived from `SCOPE_OUTPUTS` and the working tree rather than listed, for the
-    reason the sibling tests give: a hand-maintained set of published scopes is
-    one more thing that can disagree with the evidence.
+    Derived from `SCOPE_OUTPUTS` and **git** rather than listed or globbed, for
+    the two reasons the sibling tests give: a hand-maintained set of published
+    scopes is one more thing that can disagree with the evidence, and published
+    means *tracked, not merely present* — an untracked local gate run (e.g. a
+    stale `experiments/ABL253/results.json`, whose registered `json_out` is the
+    deliberately gitignored path) must not be able to widen the set this test
+    measures over, nor crash it with a record predating `meta.training_source`.
     """
+    import subprocess
+    tracked = set(subprocess.run(
+        ["git", "ls-files", "experiments", "reports"], cwd=REPO,
+        capture_output=True, text=True, check=True).stdout.split())
     out = {}
     for scope, entry in scope_outputs.items():
         path = REPO / entry["json_out"]
-        if path.exists():
+        rel = path.relative_to(REPO).as_posix()
+        if rel in tracked:
             out[scope] = (path, json.loads(path.read_text(encoding="utf-8")))
     return out
 
