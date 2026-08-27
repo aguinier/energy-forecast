@@ -167,14 +167,33 @@ def main():
         "check": "prediction equality across an independent refit",
         "tolerance": TOLERANCE,
         "probe_window": [PROBE_START, f"+{PROBE_HOURS}h"],
+        # The refit reads the replica live, so the two arms are only comparable
+        # if the replica did not move between the original fit and this run.
+        # `able-db-sync` replaces every non-weather table inside one transaction,
+        # so a sync landing in between would report a data change as a drift.
+        # Recorded on both sides rather than assumed away.
+        "replica": {
+            "path": str(Path(args.replica_db)),
+            "bytes_now": Path(args.replica_db).stat().st_size,
+            "bytes_at_original_fit": record.get("environment", {}).get("replica_bytes"),
+        },
         "all_pairs_reproducible": all(r["identical_within_tolerance"] for r in results),
         "every_artifact_sha256_differed": all(r["artifact_sha256_differs"] for r in results),
         "pairs": results,
     }
+    payload["replica"]["unchanged_since_original_fit"] = (
+        payload["replica"]["bytes_at_original_fit"] is not None
+        and payload["replica"]["bytes_at_original_fit"] == payload["replica"]["bytes_now"]
+    )
     out = Path(args.json_out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"\nWrote {out}")
+    if not payload["replica"]["unchanged_since_original_fit"]:
+        print("NOTE: the replica moved between the original fit and this refit "
+              f"({payload['replica']['bytes_at_original_fit']} -> "
+              f"{payload['replica']['bytes_now']} bytes). A prediction difference "
+              "below may be a data change rather than a drift.")
     return 0 if payload["all_pairs_reproducible"] else 1
 
 

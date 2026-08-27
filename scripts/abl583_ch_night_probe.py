@@ -65,6 +65,7 @@ import config  # noqa: E402
 from src.forecaster import Forecaster  # noqa: E402
 from src.solar_clamp import (  # noqa: E402
     ZEROED_NIGHT_MW_THRESHOLD,
+    _as_naive_utc,
     clamp_solar_forecasts,
 )
 from src.solar_geometry import (  # noqa: E402
@@ -96,10 +97,11 @@ def served_frame(model, reference_date):
         frame["horizon_days"] = horizon
         frames.append(frame)
     out = pd.concat(frames, ignore_index=True)
-    out["country_code"] = COUNTRY
-    out["forecast_type"] = FORECAST_TYPE
+    # `predict_d2` already supplies country_code, forecast_type, model_name (the
+    # algorithm) and model_version. Only `renewable_type` is added by the caller
+    # on the serving path, so only that is added here -- restating the others
+    # would let this probe's frame drift from the served one.
     out["renewable_type"] = FORECAST_TYPE
-    out["model_name"] = model.model_name if hasattr(model, "model_name") else "abl583"
     return out
 
 
@@ -137,7 +139,10 @@ def main():
     replica = Path(args.replica_db)
     if not replica.is_file():
         raise SystemExit(f"replica not found: {replica}")
-    config.DATABASE_PATH = str(replica)
+    # A Path, not a str: `src/db.py` and `config` both treat this attribute as a
+    # Path, and a worktree with no `.env` resolves it to a bare
+    # `\data\energy_dashboard.db` unless the flag or ENERGY_DB_PATH overrides it.
+    config.DATABASE_PATH = replica
 
     reference_date = (date.fromisoformat(args.reference_date)
                       if args.reference_date else date.today())
@@ -146,8 +151,12 @@ def main():
     model = Forecaster.load(COUNTRY, FORECAST_TYPE, path=str(path))
     frame = served_frame(model, reference_date)
 
-    hour_starts = pd.to_datetime(frame["target_timestamp_utc"]).dt.floor("h")
-    night = np.asarray(is_night_hour(COUNTRY, list(hour_starts),
+    # `_as_naive_utc(...).floor('h')` is what `clamp_solar_forecasts` itself does
+    # to derive the mask input, imported rather than reimplemented: a second
+    # spelling of the timestamp normalisation is exactly how this probe's night
+    # mask would come to differ from the served one it is measuring.
+    hour_starts = _as_naive_utc(frame["target_timestamp_utc"]).floor("h")
+    night = np.asarray(is_night_hour(COUNTRY, hour_starts,
                                      NIGHT_ELEVATION_THRESHOLD_DEG))
     pre = frame["forecast_value"].to_numpy(dtype=float)
 
