@@ -12,9 +12,12 @@ Five things need holding, and they fail in different directions.
 3. **The floored form cannot raise a grade.** Over every committed cell, no
    ``B`` becomes ``A`` and no ``C`` or ``U`` moves at all. If it ever could, the
    amendment would be a way of promoting on noise rather than refusing to.
-4. **Every published scope is pinned to ``sign_test``.** Derived from
-   ``SCOPE_OUTPUTS`` + git rather than typed here, on the ABL-404 precedent, and
-   asserted on the *value* rather than on the row's presence. That pin is also
+4. **Every published scope is pinned to the form its own record was graded
+   under.** Derived from ``SCOPE_OUTPUTS`` + git rather than typed here, on the
+   ABL-404 precedent, and asserted on the *value* rather than on the row's
+   presence. For every scope published before ABL-581 that value is
+   ``sign_test``; ABL-581 is the first read taken under the amendment, so the
+   expected value is read out of the record rather than fixed here. That pin is also
    why the table stays out of ``check_registration_tables`` and declares itself
    in ``UNCHECKED_REGISTRATION_TABLES`` instead (ABL-429): presence is the weaker
    of the two guards, and requiring it would delete the default this registers.
@@ -400,11 +403,38 @@ def _tracked(path: Path) -> bool:
     return result.returncode == 0
 
 
+def _recorded(harness, scope: str, key: str, default: str) -> str:
+    """What the scope's own committed machine record says it was graded under.
+
+    ABL-581. Absence dates the read, exactly as `render_markdown` reads it: a
+    record written before the amendment carries no key and resolves to
+    `default`. A scope whose `json_out` is untracked or missing (ABL-253's is
+    swallowed by `.gitignore:53`) resolves the same way, so this is never less
+    strict than the constant it replaced.
+    """
+    path = ROOT / harness.SCOPE_OUTPUTS[scope]["json_out"]
+    if not _tracked(path) or not path.exists():
+        return default
+    return json.loads(path.read_text(encoding="utf-8"))["meta"].get(key, default)
+
+
 @pytest.mark.parametrize("stream", sorted(HARNESSES))
 def test_every_published_scope_pins_a_sign_test(stream):
     """Derived from `SCOPE_OUTPUTS` + git, never from a list in this file --
     ABL-404's precedent, where a pin that had to be remembered went missing
-    across a merge. Asserted on the value, not on the row's presence."""
+    across a merge. Asserted on the value, not on the row's presence.
+
+    **The expected value is derived from the record too** (ABL-581). The
+    invariant is that a re-run of a published scope cannot disagree with its own
+    evidence; asserting `SIGN_TEST` for every published scope was the right form
+    of that only while every published scope predated the amendment. Held to the
+    constant, `abl581-ch-solar-f27` -- the first read taken under the floored
+    form, on a rejoin bar stated over it -- would have had to publish under a
+    readability test its letters were not decided by, which is this test's own
+    failure mode with the sign flipped. The name is kept because that is what
+    every scope published to date is in fact pinned to, and the assertion below
+    still says so for each of them.
+    """
     harness = HARNESSES[stream]
     published = {scope for scope, outputs in harness.SCOPE_OUTPUTS.items()
                  if any(_tracked(ROOT / outputs[key])
@@ -413,8 +443,10 @@ def test_every_published_scope_pins_a_sign_test(stream):
     missing = published - set(harness.G23_READABILITY)
     assert not missing, f"published scope(s) with no registered readability form: {sorted(missing)}"
     for scope in published:
-        assert harness.G23_READABILITY[scope] == SIGN_TEST, (
-            f"{scope} is published; its letters were decided by a sign test on G2/G3")
+        expected = _recorded(harness, scope, "g23_readability", SIGN_TEST)
+        assert harness.G23_READABILITY[scope] == expected, (
+            f"{scope} is published; its letters were decided by {expected} on "
+            f"G2/G3, and the registration says {harness.G23_READABILITY[scope]}")
 
 
 @pytest.mark.parametrize("stream", sorted(HARNESSES))

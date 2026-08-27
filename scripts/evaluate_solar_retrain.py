@@ -288,8 +288,11 @@ SCOPES = {
     # (34,660 / 33,648 / 33,648 / 33,648) and **zero** for CH.  So this scope refits
     # no live pair, the property `abl253` protects.  The replica is a *later*
     # snapshot than either the 9,432,453,120 bytes ABL-381 read or the
-    # 10,175,365,120 ABL-426 read; what that costs the comparison against those two
-    # records is reported in this scope's evidence pack rather than assumed away.
+    # 10,266,849,280 ABL-426 read (`meta.replica_bytes` in each record -- the
+    # 10,175,365,120 on the `abl316-t2a-generation` row above is that scope's
+    # pre-check measurement on 2026-08-22, not the snapshot its run of 2026-08-23
+    # actually opened); what the difference costs the comparison against those two
+    # records is measured in this scope's evidence pack rather than assumed away.
     #
     # CH `wind_onshore` is a different pair on a different harness and is not in
     # scope here: it is registered not-decision-grade at 12.9 MW.
@@ -727,11 +730,13 @@ G23_READABILITY = {
     # same column is the cheapest possible correction of that.
     #
     # It is also the value the rejoin bar names.  CH's tranche-1b position was `A`
-    # with a +3.47pp margin against oracle climatology -- **inside** the 10.6482%
-    # floor -- and the whole reason that A survived is that inside-the-floor is not a
-    # loss under the rule the Board picked.  Grading this read by a bare sign test
-    # would award or withhold a letter on the sign of a margin that size, which is
-    # the thing ABL-444 exists to stop.
+    # on a worst-band margin against oracle climatology of a few percent -- **inside**
+    # this stream's readability floor (`readability_floor_pct` in
+    # `src/evaluation/gate_grading.py`, the one place the number lives) -- and the
+    # whole reason that A survived is that inside-the-floor is not a loss under the
+    # rule the Board picked.  Grading this read by a bare sign test would award or
+    # withhold a letter on the sign of a margin that size, which is the thing
+    # ABL-444 exists to stop.
     "abl581-ch-solar-f27": FLOORED,
 }
 
