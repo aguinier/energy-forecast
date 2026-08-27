@@ -11,12 +11,14 @@ Four things need holding, and they are not the same kind of thing.
    G3 read. Given two reference pairs carrying identical numbers, every cell must
    grade identically under either levelling -- otherwise the amendment smuggled
    in a rule change alongside the re-levelling.
-3. **Every published scope is pinned.** ``CAUSAL_LEVELLING`` defaults *toward*
-   the amendment, which is the right default for a scope nobody has read yet and
-   the wrong one for a scope whose letters are committed. The published set is
-   derived from ``SCOPE_OUTPUTS`` and git rather than typed here, on the ABL-404
-   precedent: a pin that has to be remembered is a pin that goes missing across a
-   merge.
+3. **Every published scope is pinned to the levelling its own record was read
+   on.** ``CAUSAL_LEVELLING`` defaults *toward* the amendment, which is the right
+   default for a scope nobody has read yet and the wrong one for a scope whose
+   letters are committed. The published set is derived from ``SCOPE_OUTPUTS`` and
+   git rather than typed here, on the ABL-404 precedent: a pin that has to be
+   remembered is a pin that goes missing across a merge. The expected *value* is
+   derived the same way, from the scope's own committed record (ABL-581) --
+   see ``test_every_published_scope_pins_its_levelling``.
 4. **The window is in the name.** ``TRAILING_WINDOW_DAYS`` and the two column
    names must move together, or two reads levelled on different windows end up
    wearing one name.
@@ -305,6 +307,21 @@ def _tracked(path: Path) -> bool:
     return result.returncode == 0
 
 
+def _recorded(harness, scope: str, key: str, default: str) -> str:
+    """What the scope's own committed machine record says it was graded under.
+
+    ABL-581. Absence dates the read, exactly as `render_markdown` reads it: a
+    record written before the amendment carries no key and resolves to
+    `default`. A scope whose `json_out` is untracked or missing (ABL-253's is
+    swallowed by `.gitignore:53`) resolves the same way, so this is never less
+    strict than the constant it replaced.
+    """
+    path = ROOT / harness.SCOPE_OUTPUTS[scope]["json_out"]
+    if not _tracked(path) or not path.exists():
+        return default
+    return json.loads(path.read_text(encoding="utf-8"))["meta"].get(key, default)
+
+
 @pytest.mark.parametrize("stream", sorted(HARNESSES))
 def test_every_published_scope_pins_its_levelling(stream):
     """Derived from `SCOPE_OUTPUTS` + git, never from a list in this file.
@@ -314,6 +331,21 @@ def test_every_published_scope_pins_its_levelling(stream):
     reader can cite, and a re-run that graded them under a later registration
     would disagree with its own evidence and exit 0. A local run of an open
     scope cannot promote itself into this set.
+
+    **The expected value is derived from the record too, not asserted as
+    `FIT_WINDOW`** (ABL-581). The invariant is "a re-run of a published scope
+    cannot disagree with its own evidence", and until ABL-581 that coincided
+    with "every published scope predates the amendment" -- every published
+    scope had been read on the fit-window references, so the constant and the
+    record said the same thing. `abl581-ch-solar-f27` is the first scope
+    registered *on* the amendment, and holding it to `FIT_WINDOW` would force
+    it to publish under a levelling its evidence was not taken on: the same
+    disagreement this test exists to prevent, with the sign flipped. Reading
+    the value out of each scope's own record is strictly stronger than the
+    constant was -- it catches a pin that drifts from its evidence in either
+    direction, including a published fit-window scope silently re-pinned to
+    `trailing_28d`, which the old form would also have caught but only because
+    the two happened to agree.
     """
     harness = HARNESSES[stream]
     published = {scope for scope, outputs in harness.SCOPE_OUTPUTS.items()
@@ -323,8 +355,11 @@ def test_every_published_scope_pins_its_levelling(stream):
     missing = published - set(harness.CAUSAL_LEVELLING)
     assert not missing, f"published scope(s) with no registered levelling: {sorted(missing)}"
     for scope in published:
-        assert harness.CAUSAL_LEVELLING[scope] == FIT_WINDOW, (
-            f"{scope} is published; its letters were decided on the fit-window references")
+        expected = _recorded(harness, scope, "causal_levelling", FIT_WINDOW)
+        assert harness.CAUSAL_LEVELLING[scope] == expected, (
+            f"{scope} is published; its letters were decided on the {expected} "
+            f"references, and the registration says "
+            f"{harness.CAUSAL_LEVELLING[scope]}")
 
 
 @pytest.mark.parametrize("stream", sorted(HARNESSES))

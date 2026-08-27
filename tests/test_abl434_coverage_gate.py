@@ -185,10 +185,11 @@ def test_every_committed_cell_records_its_coverage():
                 (name, cell["country"], cell["horizon_band"])
             total += 1
     # 143 at registration (ABL-434); +24 when ABL-426 committed the tranche
-    # 2a-generation record (8 countries x 3 bands). State the delta beside the
+    # 2a-generation record (8 countries x 3 bands); +3 when ABL-581 committed the
+    # CH-solar-at-27 record (1 country x 3 bands). State the delta beside the
     # absolute: the absolute is the tripwire, the delta is what survives the
     # next committed record.
-    assert total == 167, "the affected set was measured over this many cells"
+    assert total == 170, "the affected set was measured over this many cells"
 
 
 # ---------------------------------------------------------------------------
