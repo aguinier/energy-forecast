@@ -162,6 +162,30 @@ def normalize_ts(values) -> pd.Series:
                           errors="coerce").dt.tz_localize(None)
 
 
+def json_safe(value):
+    """Recursively replace non-finite floats with ``None``.
+
+    ``json.dumps`` writes ``NaN`` and ``Infinity``, which are not JSON and which
+    a strict reader rejects. More to the point, a NaN here always means the same
+    thing -- *this was not measured* -- and ``null`` is how the rest of this
+    repo's records say that. Silently emitting ``NaN`` would let a downstream
+    reader parse it as a number in some languages and fail in others.
+    """
+    if isinstance(value, dict):
+        return {k: json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(v) for v in value]
+    if isinstance(value, (float, np.floating)):
+        return None if not np.isfinite(value) else float(value)
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    if isinstance(value, (np.bool_,)):
+        return bool(value)
+    if value is pd.NaT or (value is not None and value is pd.NA):
+        return None
+    return value
+
+
 def wape(err, actual) -> float:
     denom = np.abs(np.asarray(actual, dtype=float)).sum()
     if not np.isfinite(denom) or denom == 0:
@@ -427,6 +451,13 @@ def build_panel(ours: pd.DataFrame, tso: pd.DataFrame,
     panel["available"] = panel["f_tso"].notna()
     panel["target_day"] = panel["target"].dt.normalize()
     panel["target_ts"] = panel["target"]
+    # How early the feature existed, and how stale it already was when our run
+    # picked it up. Both are lower bounds: `first_seen_at` is our poller's
+    # stamp, never the TSO's publication time.
+    panel["feature_lead_h"] = (
+        (panel["target"] - panel["tso_first_seen"]).dt.total_seconds() / 3600.0)
+    panel["feature_age_at_cutoff_h"] = (
+        (panel["generated_at"] - panel["tso_first_seen"]).dt.total_seconds() / 3600.0)
     return panel
 
 
@@ -482,6 +513,7 @@ def coverage_table(panels: dict[str, pd.DataFrame]) -> pd.DataFrame:
         if panel.empty:
             continue
         for band, grp in panel.groupby("band", sort=True):
+            present = grp[grp["available"]]
             rows.append({
                 "forecast_type": forecast_type,
                 "band": band,
@@ -490,6 +522,13 @@ def coverage_table(panels: dict[str, pd.DataFrame]) -> pd.DataFrame:
                 "target_days": grp["target_day"].nunique(),
                 "feature_present": int(grp["available"].sum()),
                 "coverage_pct": round(100.0 * grp["available"].mean(), 2),
+                # Lower bounds -- `first_seen_at` is our fetch, not their publish.
+                "median_feature_lead_h": (
+                    round(float(present["feature_lead_h"].median()), 2)
+                    if len(present) else None),
+                "median_feature_age_at_cutoff_h": (
+                    round(float(present["feature_age_at_cutoff_h"].median()), 2)
+                    if len(present) else None),
                 "backtested": band not in NOT_BACKTESTED_BANDS,
             })
     return pd.DataFrame(rows)
@@ -857,7 +896,7 @@ def run(db_path: str, out_dir: Path) -> dict:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "abl247_tso_feature_backtest.json").write_text(
-        json.dumps(record, indent=2, default=str), encoding="utf-8")
+        json.dumps(json_safe(record), indent=2, default=str), encoding="utf-8")
     return record
 
 

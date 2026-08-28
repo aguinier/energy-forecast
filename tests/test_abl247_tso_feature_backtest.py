@@ -13,6 +13,7 @@ in-fold prediction scored as out-of-sample, and a cadence-weighted average.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -31,6 +32,7 @@ from scripts.abl247_tso_feature_backtest import (  # noqa: E402
     coverage_table,
     feature_at_cutoffs,
     fit_affine,
+    json_safe,
     wape,
 )
 
@@ -319,12 +321,18 @@ def test_coverage_table_reports_days_and_the_backtested_flag_per_band():
         "target_day": [pd.Timestamp("2026-08-13"), pd.Timestamp("2026-08-14"),
                        pd.Timestamp("2026-08-13")],
         "available": [True, False, False],
+        "feature_lead_h": [22.5, np.nan, np.nan],
+        "feature_age_at_cutoff_h": [2.0, np.nan, np.nan],
     })
 
     table = coverage_table({"load": panel}).set_index("band")
 
     assert table.loc["0-24h", "coverage_pct"] == pytest.approx(50.0)
     assert table.loc["0-24h", "target_days"] == 2
+    # Lead is reported over the rows that have the feature, not over all rows.
+    assert table.loc["0-24h", "median_feature_lead_h"] == pytest.approx(22.5)
+    # A band with no feature row has no lead to report -- unmeasured, not zero.
+    assert pd.isna(table.loc["48-64h", "median_feature_lead_h"])
     assert bool(table.loc["0-24h", "backtested"]) is True
     assert bool(table.loc["48-64h", "backtested"]) is False
 
@@ -338,3 +346,28 @@ def test_wape_is_unmeasured_rather_than_infinite_on_a_zero_denominator():
     """A country whose truth sums to zero has no WAPE, and gets NaN not inf."""
     assert np.isnan(wape([1.0, -1.0], [0.0, 0.0]))
     assert wape([10.0], [100.0]) == pytest.approx(10.0)
+
+
+def test_the_record_is_strict_json_with_unmeasured_cells_as_null():
+    """An unmeasured cell must serialise as `null`, never as bare `NaN`.
+
+    `json.dumps` emits `NaN` by default, which is not JSON. A reader in a strict
+    parser rejects the file; a reader in a lenient one silently gets a float
+    that is not a number. Both are worse than the honest `null` the rest of this
+    repo's records use for "not measured" -- and this record is full of them,
+    because a coverage-short cell has no WAPE and a one-day band has no
+    interval.
+    """
+    record = {"a": float("nan"), "b": [1.0, float("inf")],
+              "c": {"d": np.float64("nan"), "e": np.int64(3), "f": np.True_},
+              "g": pd.NaT, "h": "text"}
+
+    text = json.dumps(json_safe(record))
+
+    assert "NaN" not in text and "Infinity" not in text
+    parsed = json.loads(text)
+    assert parsed["a"] is None
+    assert parsed["b"] == [1.0, None]
+    assert parsed["c"] == {"d": None, "e": 3, "f": True}
+    assert parsed["g"] is None
+    assert parsed["h"] == "text"
