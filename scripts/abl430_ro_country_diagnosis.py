@@ -60,6 +60,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import config  # noqa: E402
 from src.solar_geometry import SOLAR_REPRESENTATIVE_POINTS  # noqa: E402
+from src.tso_plausibility import guard_tso_frame  # noqa: E402
 
 # The 19 net-position gate countries (LU and GR are excluded by name upstream).
 GATE_COUNTRIES = (
@@ -102,6 +103,34 @@ DAY_MW_COLUMNS = (
 def open_replica(path: Path) -> sqlite3.Connection:
     """Read-only connection. The replica is a mirror of prod; nothing may write."""
     return sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+
+
+def guard_wind_forecast(fc: pd.DataFrame, con: sqlite3.Connection) -> pd.DataFrame:
+    """ABL-462: route the TSO wind read through the ABL-431 plausibility guard.
+
+    Runs per country and **before** `to_hourly`, per CLAUDE.md: a refused value
+    averaged into its neighbour first is not refused.
+
+    This is not hygiene here. Measured read-only on the live replica over this
+    script's own window (`2026-01-01..2026-08-11`, 24 countries, 408,159 rows):
+    the guard nulls **96 rows, all HU, all 2026-02-03/04, up to 140,996 MW
+    against a 283 MW reference** -- the exact rows ABL-431 was written for. The
+    other 23 countries are untouched, 0 rows.
+
+    `timestamp_column` is deliberately not passed: `ts` here is the raw stored
+    string and the two generation tables use different separator forms
+    (ABL-200), so only `to_hourly`'s `format="mixed"` parse is safe on it. The
+    cost is that the guard's warning names row positions, not timestamps.
+    """
+    if fc.empty:
+        return fc
+    guarded = [
+        guard_tso_frame(group, con, cc, "energy_generation_forecast",
+                        "wind_onshore_mw", frame_column="f",
+                        context=f"ABL-430 A2 {cc} wind_onshore day_ahead")
+        for cc, group in fc.groupby("country_code", sort=True)
+    ]
+    return pd.concat(guarded, ignore_index=True)
 
 
 def to_hourly(df: pd.DataFrame, value: str, key: str = "country_code") -> pd.DataFrame:
@@ -243,6 +272,13 @@ def check_wind_against_tso(con: sqlite3.Connection, countries: tuple[str, ...]) 
     revision-contaminated (ABL-348 `tso_role`). That bounds what the WAPE column
     means -- it is a lower bound on true day-ahead error, never a target -- but
     it does not touch sign, alignment, scale or zone.
+
+    ABL-462: the read is now guarded (`guard_wind_forecast`). The first
+    publication of this table ran unguarded and its **HU row is superseded** --
+    `corr=0.0237, slope=2.0992, wape_pct=597.0, n=5328` was 96 rows of up to
+    140,996 MW against a 283 MW fleet, not a zone or alignment defect. See
+    `reports/abl_462_guard_scope_triage.md` for the corrected row; the other 23
+    countries are unchanged.
     """
     fc = pd.read_sql(
         "SELECT country_code, target_timestamp_utc AS ts, wind_onshore_mw AS f "
@@ -259,6 +295,7 @@ def check_wind_against_tso(con: sqlite3.Connection, countries: tuple[str, ...]) 
         f"AND country_code IN {countries}",
         con,
     )
+    fc = guard_wind_forecast(fc, con)
     fc, ac = to_hourly(fc, "f"), to_hourly(ac, "a")
     rows = []
     for cc in sorted(set(fc.country_code) & set(ac.country_code)):
@@ -585,6 +622,14 @@ def check_net_position_covariates(con: sqlite3.Connection) -> dict:
     documented defect (ABL-28) whose fleet-wide cost was measured at 0.8% of
     MAE. The question here is what it costs a country whose OUTBOUND legs are
     the sparse ones.
+
+    ABL-462: the `energy_load_forecast` row below is **deliberately unguarded**,
+    unlike A2's read. This counts hours the ingest actually holds; the guard
+    nulls values, so guarding a presence census would report the pipeline as
+    having fetched fewer hours than it did -- it would measure the guard, not
+    the coverage. Measured read-only on the live replica over this exact window
+    (`2023-01-01..2026-03-01`, 19 gate countries, 872,355 rows) the guard would
+    in any case null **0 rows**, so nothing here rests on the distinction today.
     """
     span_h = int(
         (pd.Timestamp(V010_TRAIN_END) - pd.Timestamp(V010_TRAIN_START)).total_seconds() // 3600
