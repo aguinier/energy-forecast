@@ -5,6 +5,13 @@ loses to a D-7 seasonal naive in 10 of 23 evaluable countries and readably beats
 it in 1. This script diagnoses the cause. It fits nothing, promotes nothing and
 writes nothing outside its own report files; the replica is opened read-only.
 
+That "10" is the count as ABL-246 published it, and this script's own re-read
+does not reproduce it -- see section 3.1 of `reports/abl_607_d2_load_diagnosis.md`
+and `section_a_reproduction` in `reports/abl_607_d2_load_diagnosis_reread.json`.
+**9 of 23 is the current count**; DE is the difference, and it moves out of
+readability rather than out of loss. The mechanism below is unaffected: it is
+about which row the model anchors on, not about how many intervals clear zero.
+
 The candidate mechanism, and how each section tests it
 -----------------------------------------------------
 Load reaches inference through `Forecaster.predict_d2`'s **proxy-row** branch
