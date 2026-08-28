@@ -781,8 +781,15 @@ EXEMPT_READS = (
     # The guard's reference is still computed over these rows and published:
     # `plausibility_census` reports what it would have refused, using
     # `implausible_mask` (the predicate) rather than `guard_series` (the
-    # filter), so the exemption carries a measurement and not just a claim.
-    # Pinned by `tests/test_abl607_guarded_read.py`.
+    # filter), so the exemption is warranted by a measurement rather than by a
+    # claim. Measured over the ABL-607 window (ABL-619, section 0 of
+    # `reports/abl_607_d2_load_diagnosis_reread.json`): **0 of 67,008 rows
+    # would have been refused**, 24/24 countries carrying an evaluable
+    # reference, our largest published value never above 32.3% of any
+    # country's threshold -- so it is a zero that was tested, not a zero that
+    # was never evaluated. Pinned by `tests/test_abl607_guarded_read.py`, which
+    # fails if this comment and that artifact ever disagree, in either
+    # direction.
     "scripts/abl607_d2_load_diagnosis.py",
     # Column->covariate mapping only; the read itself is input_builder's.
     "src/chronos2/covariate_mapper.py",
