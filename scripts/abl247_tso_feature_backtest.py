@@ -534,6 +534,55 @@ def coverage_table(panels: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def coverage_on_horizon_grid(tso_by_type: dict[str, pd.DataFrame],
+                             cutoffs: pd.DatetimeIndex,
+                             horizon_hours: int = 64) -> pd.DataFrame:
+    """Prereg section 1's coverage question, on its own terms, at 14+ days.
+
+    Section 1's provisional 78.1 / 70.8 / 31.5 / 16.0 / 0.0 came from a
+    *horizon-grid* reconstruction: standing at one cutoff, over every target
+    hour in ``(cutoff, cutoff + 64h]``, was a TSO value already first-seen? That
+    is a different denominator from :func:`coverage_table`, which asks the same
+    question only of the target hours our own production runs actually forecast.
+
+    Both belong in the record and neither substitutes for the other. Reporting
+    only the panel version would make a definitional change look like a coverage
+    change against the section 1 figures the CEO asked to have re-derived;
+    reporting only this version would overstate what the backtest can use.
+    """
+    rows = []
+    for forecast_type, tso in tso_by_type.items():
+        if tso.empty:
+            continue
+        ordered = tso.sort_values("first_seen")
+        for cutoff in pd.DatetimeIndex(cutoffs).unique():
+            window = ordered[
+                (ordered["target"] > cutoff)
+                & (ordered["target"] <= cutoff + pd.Timedelta(hours=horizon_hours))]
+            if window.empty:
+                continue
+            per_target = window.groupby(["country_code", "target"], as_index=False).agg(
+                first_seen=("first_seen", "min"))
+            per_target["known"] = per_target["first_seen"] <= cutoff
+            per_target["band"] = [
+                band_of((t - cutoff).total_seconds() / 3600.0)
+                for t in per_target["target"]]
+            per_target = per_target.dropna(subset=["band"])
+            for band, grp in per_target.groupby("band", observed=True):
+                rows.append({"forecast_type": forecast_type, "cutoff": cutoff,
+                             "band": band, "target_hours": len(grp),
+                             "known": int(grp["known"].sum())})
+    if not rows:
+        return pd.DataFrame()
+    detail = pd.DataFrame(rows)
+    return (detail.groupby(["forecast_type", "band"], as_index=False)
+                  .agg(cutoffs=("cutoff", "nunique"),
+                       target_hours=("target_hours", "sum"),
+                       known=("known", "sum"))
+                  .assign(coverage_pct=lambda d: (100.0 * d["known"]
+                                                  / d["target_hours"]).round(2)))
+
+
 def availability_skew(panel: pd.DataFrame) -> pd.DataFrame:
     """Training missingness rate per band against the serve-time rate per band.
 
@@ -804,9 +853,15 @@ def run(db_path: str, out_dir: Path) -> dict:
                + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
         panels = {}
+        tso_by_type: dict[str, pd.DataFrame] = {}
+        run_hours: list[float] = []
         for forecast_type in FORECAST_TYPES:
             tso = read_tso_vintages(conn, forecast_type)
+            tso_by_type[forecast_type] = tso
             ours = read_our_forecasts(conn, forecast_type, start, end)
+            if len(ours):
+                run_hours.extend(ours["generated_at"].dt.hour
+                                 + ours["generated_at"].dt.minute / 60.0)
             actuals, notes = read_actuals(conn, forecast_type, start, end)
             panel = build_panel(ours, tso, actuals)
             if not panel.empty:
@@ -830,6 +885,27 @@ def run(db_path: str, out_dir: Path) -> dict:
             }
 
         record["coverage"] = coverage_table(panels).to_dict("records")
+
+        # The section 1 comparison. The run hour is the *measured* median of our
+        # own `generated_at` values, not the 06:00 the probe assumed and not the
+        # 18:00 the scheduler file implies -- CLAUDE.md's standing warning about
+        # `RUN_HOUR` is that the two disagree, so the grid is anchored on what
+        # the rows say rather than on either document.
+        grid_hour = float(np.median(run_hours)) if run_hours else 6.0
+        days = pd.date_range(FIRST_CLEAN_TARGET_DAY,
+                             pd.Timestamp(end) - pd.Timedelta(days=1), freq="D")
+        grid_cutoffs = pd.DatetimeIndex(
+            [d + pd.Timedelta(hours=grid_hour) for d in days])
+        grid = coverage_on_horizon_grid(tso_by_type, grid_cutoffs)
+        record["coverage_horizon_grid"] = {
+            "run_hour_utc_median_measured": round(grid_hour, 2),
+            "cutoff_days": len(grid_cutoffs),
+            "note": ("prereg section 1's own denominator -- every target hour in "
+                     "(cutoff, cutoff+64h], not only the hours our production "
+                     "runs forecast. Directly comparable to the provisional "
+                     "78.1 / 70.8 / 31.5 / 16.0 / 0.0."),
+            "rows": ([] if grid.empty else grid.to_dict("records")),
+        }
 
         for forecast_type, panel in panels.items():
             if panel.empty:
