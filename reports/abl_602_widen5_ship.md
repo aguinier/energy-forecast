@@ -427,6 +427,61 @@ actual in the fit window.
 
 ---
 
+## 7.2 A deploy finding that arrived mid-run: these are the first `numpy._core` artifacts
+
+`origin/main` moved from `79433d0b` to `e0ec351` while this work was in flight,
+landing **ABL-597**, which pinned the serving dependencies exactly. That pin
+interacts with these artifacts, so it was checked rather than assumed — with
+ABL-597's own tool, against this batch's models directory:
+
+```
+.venv\Scripts\python.exe scripts/abl597_artifact_load_path.py \
+    --models-dir C:\Code\able\ef-abl602\models --check-intercept
+```
+
+Machine record: `reports/abl_602_artifact_load_path.json`. **5 artifacts, 5
+parsed, 0 errors.** Every one names exactly three symbols:
+
+| symbol the unpickler will import | artifacts |
+|---|---|
+| `catboost.core.CatBoostRegressor` | 5 |
+| `numpy._core.multiarray.scalar` | 5 |
+| `numpy.dtype` | 5 |
+
+**`numpy._core`, with the underscore.** ABL-597 measured the 67 artifacts in the
+production models directory and found 49 carrying `numpy.core.multiarray.scalar`
+— the **pre-2.0** path that resolves only through numpy's compatibility shim.
+**None carries `numpy._core`.** These five are the first artifacts in the
+programme on the numpy-2.x private path, because they were pickled by the rail
+`.venv` at numpy **2.5.1**.
+
+Where that leaves the deploy, stated exactly:
+
+| package | fitted under (`.venv`) | ABL-597 production pin | on these artifacts' load path? |
+|---|---|---|---|
+| `catboost` | 1.2.10 | **1.2.10** | yes — matches |
+| `scikit-learn` | 1.9.0 | **1.9.0** | import path — matches |
+| **`numpy`** | **2.5.1** | **2.4.6** | **yes — does not match** |
+| `xgboost` | 3.3.0 | 3.2.0 | **no** — no xgboost symbol in any of the five |
+
+- The **xgboost** mismatch cannot touch this batch: all five are catboost and no
+  artifact names an xgboost symbol. It would bite a future `wind_offshore` row in
+  this ship set, which is xgboost. Flagged, not fixed here.
+- The **numpy** mismatch is on the load path. `numpy._core` exists from numpy 2.0
+  onward, so the symbol should resolve under the 2.4.6 pin. **That is derived
+  from the pickle bytes, not executed** — I have not loaded these artifacts under
+  numpy 2.4.6, and this pack does not claim to have.
+- This is **not specific to ABL-602.** Every artifact fitted on this rail carries
+  the same path, including ABL-583's CH `solar`. It is a property of the shipping
+  programme, not of these five.
+
+**Action for the deploy issue:** load one of these five under the pinned
+environment before serving any of them, and re-run
+`scripts/abl597_artifact_load_path.py --check-intercept` after copying. Raised on
+ABL-316 as well, since it covers the whole staged set rather than this batch.
+
+---
+
 ## 8. What this pack does not establish
 
 1. **Nothing here is out-of-sample.** The fit window covers the gate window, so
@@ -452,6 +507,10 @@ actual in the fit window.
    it ships is a disposition on ABL-316.
 6. **`SE` `solar` is the withdrawal candidate.** 0.64pp of headroom at k = 1. Any
    future move in the readability floor should be checked against it first.
+7. **These artifacts have not been loaded under the ABL-597 pinned numpy.** They
+   were fitted under numpy 2.5.1 and production pins 2.4.6 (section 7.2). The
+   symbol they name exists in 2.4.6; that is a read of the pickle bytes, not an
+   executed load.
 
 ---
 
