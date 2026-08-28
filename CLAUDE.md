@@ -112,10 +112,20 @@ Adding a runner: call `emit_record_count(len(df))` on every exit-0 path,
 *before* any `if not df.empty:` guard (`tests/test_runner_reporting.py` checks
 statically). **Skipped is a flag, not a phrase**: `result['skipped']` is set at
 the one place that knows (`Forecaster.load`'s `FileNotFoundError`), never by
-grepping error text. `chronos-bolt-small` is genuinely unrunnable on this box
-(venv missing), so a default BE/price run ends `Skipped: 1, Failed: 1` and
-exits 1 — fix `config.MODEL_RUNNERS` or set `enabled: False`, and never read
-the old exit 0 as the job having been fine.
+grepping error text, and never read the old exit 0 as the job having been fine.
+
+### Which runners a scheduled run launches (ABL-606)
+
+`"production"` is the flag, and it is load-bearing:
+`select_external_runners` skips `"production": False` unless
+`--include-non-production` is passed. **A runner whose `python_executable` is an
+absolute path outside the repo `.venv` is workstation-only by construction** and
+must be `False` — `chronos-bolt-small` (its venv is missing even here) and
+`tso-correction` (conda-pinned on purpose) both are, and neither has written a
+forecast row since 2026-03-03. Until ABL-606 nothing read the flag, so the
+container launched both and failed 8 of 440 cells every run, from the initial
+commit on; ABL-370 is only when those 8 moved out of `Skipped` into `Failed`.
+**`Failed: 0` is the floor** — see `reports/abl_606_container_runner_matrix.md`.
 
 ## Database
 

@@ -121,6 +121,13 @@ Examples:
         help='Generate forecasts but do not save to database'
     )
 
+    parser.add_argument(
+        '--include-non-production',
+        action='store_true',
+        help='Also run MODEL_RUNNERS entries marked "production": False '
+             '(workstation-only runners; they need their own interpreter)'
+    )
+
     return parser.parse_args()
 
 
@@ -236,6 +243,52 @@ def build_runner_command(
         launch = [str(repo_root / script)]
 
     return [python_exe, *launch, *args]
+
+
+def select_external_runners(
+    runners: List[dict],
+    include_non_production: bool = False,
+) -> List[dict]:
+    """The external runners a run should actually launch.
+
+    Three keys, three separate questions, and conflating the last two is what
+    ABL-606 was:
+
+    - ``type``       -- is this a subprocess at all, or the in-process builtin?
+    - ``enabled``    -- is this runner wired up, or parked (chronos-2, awaiting
+                        fine-tuning, has no interpreter configured yet)?
+    - ``production`` -- does this runner belong in the *scheduled* matrix?
+
+    ``production`` was carried on every ``MODEL_RUNNERS`` entry, with a
+    hand-written comment per entry explaining the choice, and **nothing read
+    it**. Selection was ``type == 'external' and enabled``, so the two entries
+    declared ``"production": False`` were launched on every scheduled run --
+    including inside the production container, where their configured
+    interpreters (`C:/Users/guill/...`) cannot exist. That is 8 of 440 matrix
+    cells failing `Executable not found` on every run, forever:
+    ``chronos-bolt-small`` at BE x price x {D+1, D+2} = 2, and
+    ``tso-correction`` at BE x {solar, wind_onshore, wind_offshore} x
+    {D+1, D+2} = 6.
+
+    Neither has written a forecast row since 2026-03-03 (BE only, 504 and 3x506
+    rows), and the dashboard deliberately does not register either model name --
+    ``server/src/config/forecastModels.ts`` names them as stale and
+    ``forecastModels.test.ts`` holds it. They are workstation experiments, and
+    the ``tso-correction`` interpreter pin is deliberate (CLAUDE.md, "The
+    interpreter is part of the configuration"). So the flag was right and the
+    selection was wrong: make the flag load-bearing rather than move the paths.
+
+    ``--include-non-production`` is how you get them back on a box that has
+    those interpreters. It is an opt-in, so the scheduled job cannot acquire
+    them by accident.
+    """
+    selected = [
+        r for r in runners
+        if r.get('type') == 'external' and r.get('enabled', False)
+    ]
+    if include_non_production:
+        return selected
+    return [r for r in selected if r.get('production', False)]
 
 
 def run_external_model(
@@ -470,7 +523,22 @@ def main():
                     all_forecasts.append(result['forecast_df'])
 
     # ── External model runners (config-driven) ──
-    external_runners = [r for r in config.MODEL_RUNNERS if r.get('type') == 'external' and r.get('enabled', False)]
+    external_runners = select_external_runners(
+        config.MODEL_RUNNERS,
+        include_non_production=args.include_non_production,
+    )
+    # Name the selection, so a run's `Total:` is attributable without re-reading
+    # config: an external runner appearing or vanishing moves the count (ABL-606).
+    held_back = [
+        r['name'] for r in config.MODEL_RUNNERS
+        if r.get('type') == 'external' and r.get('enabled', False)
+        and r not in external_runners
+    ]
+    logger.info(
+        f"External runners: {[r['name'] for r in external_runners] or 'none'}"
+        + (f" (non-production, not run: {held_back})" if held_back else "")
+    )
+
     for runner in external_runners:
         runner_name = runner['name']
         runner_countries = runner.get('countries', [])
