@@ -753,8 +753,37 @@ MENTION_ONLY_EXEMPT = (
     "scripts/attest_net_position_serve_faithfulness.py",
 )
 
-#: Files that read a TSO forecast column raw, on purpose, with the reason.
+#: Files that read a TSO forecast *table* raw, on purpose, with the reason.
+#: Widened from "column" on ABL-611. The sweep matches table names, so an entry
+#: here is one of two things and its reason must say which: a deliberate raw
+#: read of a TSO forecast column (the original case), or a read of a non-TSO
+#: slice of a table that also holds TSO rows (ABL-607). For the second kind the
+#: reason must say why guarding the read would be *wrong*, not merely
+#: unnecessary -- "we do not need it here" is how a real TSO read gets added
+#: later under a stale exemption.
 EXEMPT_READS = (
+    # ABL-607/ABL-611: not a TSO read. `load_archive` selects
+    # `forecast_type = 'load' AND source = 'ml'` -- our own forecasts -- and
+    # the file reads no TSO row anywhere. The guard's archive reference is the
+    # exact complement (`forecast_read` bounds it on `source = 'tso' AND
+    # model_name = 'tso-day_ahead'`), so the sweep has matched a table *name*,
+    # not a TSO read.
+    #
+    # Filtering it would also be a scoring defect rather than hygiene. The
+    # guard is one-sided, so on the arm under test the only rows it can remove
+    # are our own largest over-forecasts -- the errors that pack measures --
+    # and every arm scores on one shared intersection, so a dropped row takes
+    # the D-7 comparator's cell with it in the hour our model was worst. The
+    # effect is one-directional and in our own favour. ABL-431's case is the
+    # opposite: there the implausible value is an input about to be fitted on,
+    # here it would be an output being graded.
+    #
+    # The guard's reference is still computed over these rows and published:
+    # `plausibility_census` reports what it would have refused, using
+    # `implausible_mask` (the predicate) rather than `guard_series` (the
+    # filter), so the exemption carries a measurement and not just a claim.
+    # Pinned by `tests/test_abl607_guarded_read.py`.
+    "scripts/abl607_d2_load_diagnosis.py",
     # Column->covariate mapping only; the read itself is input_builder's.
     "src/chronos2/covariate_mapper.py",
     # `TSOBaseline` queries a `timestamp_utc` column that neither TSO table
