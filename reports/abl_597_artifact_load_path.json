@@ -1,0 +1,666 @@
+{
+ "models_dir": "C:\\Code\\able\\energy-forecast\\models",
+ "artifact_count": 67,
+ "module_counts": {
+  "builtins": 18,
+  "xgboost": 36,
+  "collections": 11,
+  "catboost": 48,
+  "numpy": 98,
+  "lightgbm": 2
+ },
+ "symbol_counts": {
+  "builtins.bytearray": 18,
+  "xgboost.sklearn.XGBRegressor": 18,
+  "xgboost.core.Booster": 18,
+  "collections.OrderedDict": 10,
+  "catboost.core.CatBoostRegressor": 48,
+  "numpy.core.multiarray.scalar": 49,
+  "numpy.dtype": 49,
+  "lightgbm.basic.Booster": 1,
+  "lightgbm.sklearn.LGBMRegressor": 1,
+  "collections.defaultdict": 1
+ },
+ "xgboost_writer_versions": {
+  "2.1.4": 18,
+  "None": 1
+ },
+ "parse_errors": [],
+ "intercept_checked": 18,
+ "intercept_moved": [],
+ "per_artifact": {
+  "AT/load/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "collections.OrderedDict",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "6.6995137E3",
+   "loaded_base_score": "[6.6995137E3]"
+  },
+  "AT/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "AT/renewable/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "2.3107297E3",
+   "loaded_base_score": "[2.3107297E3]"
+  },
+  "AT/solar/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "5.9833332E1",
+   "loaded_base_score": "[5.9833332E1]"
+  },
+  "AT/wind_onshore/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "1.1644028E3",
+   "loaded_base_score": "[1.1644028E3]"
+  },
+  "BE/biomass/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "9.075439E1",
+   "loaded_base_score": "[9.075439E1]"
+  },
+  "BE/hydro_total/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "1.344526E2",
+   "loaded_base_score": "[1.344526E2]"
+  },
+  "BE/load/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "collections.OrderedDict",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "9.158697E3",
+   "loaded_base_score": "[9.158697E3]"
+  },
+  "BE/price/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "collections.OrderedDict",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "8.401277E1",
+   "loaded_base_score": "[8.401277E1]"
+  },
+  "BE/price_cascade/model.joblib": {
+   "symbols": [
+    "collections.OrderedDict",
+    "collections.defaultdict",
+    "lightgbm.basic.Booster",
+    "lightgbm.sklearn.LGBMRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "BE/renewable/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "BE/solar/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "BE/wind_offshore/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "7.5023096E2",
+   "loaded_base_score": "[7.5023096E2]"
+  },
+  "BE/wind_onshore/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "BG/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "BG/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "CH/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "CH/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "CZ/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "CZ/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "DE/load/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "collections.OrderedDict",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "5.2979438E4",
+   "loaded_base_score": "[5.2979438E4]"
+  },
+  "DE/price/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "collections.OrderedDict",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "8.7955765E1",
+   "loaded_base_score": "[8.7955765E1]"
+  },
+  "DE/renewable/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "DE/solar/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "DE/wind_onshore/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "EE/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "EE/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "ES/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "ES/price/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "collections.OrderedDict",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "7.0908554E1",
+   "loaded_base_score": "[7.0908554E1]"
+  },
+  "FI/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "FI/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "FR/biomass/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "3.431874E2",
+   "loaded_base_score": "[3.431874E2]"
+  },
+  "FR/hydro_total/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "7.0153193E3",
+   "loaded_base_score": "[7.0153193E3]"
+  },
+  "FR/load/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "collections.OrderedDict",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "4.871342E4",
+   "loaded_base_score": "[4.871342E4]"
+  },
+  "FR/price/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "collections.OrderedDict",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "7.335199E1",
+   "loaded_base_score": "[7.335199E1]"
+  },
+  "FR/renewable/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "FR/solar/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "FR/wind_offshore/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "3.914042E2",
+   "loaded_base_score": "[3.914042E2]"
+  },
+  "FR/wind_onshore/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "GR/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "GR/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "HR/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "HR/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "HU/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "HU/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "IT/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "IT/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "LT/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "LT/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "LV/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "LV/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "NL/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "NL/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "NO/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "NO/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "PL/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "PL/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "PT/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "PT/price/model.joblib": {
+   "symbols": [
+    "builtins.bytearray",
+    "collections.OrderedDict",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBRegressor"
+   ],
+   "xgboost_writer_version": "2.1.4",
+   "stored_base_score": "7.282158E1",
+   "loaded_base_score": "[7.282158E1]"
+  },
+  "RO/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "RO/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "SE/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "SE/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "SI/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "SI/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "SK/load/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "SK/price/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  }
+ }
+}
