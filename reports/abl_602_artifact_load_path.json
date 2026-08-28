@@ -1,0 +1,64 @@
+{
+ "models_dir": "C:\\Code\\able\\ef-abl602\\models",
+ "artifact_count": 5,
+ "module_counts": {
+  "numpy": 10,
+  "catboost": 5
+ },
+ "symbol_counts": {
+  "numpy.dtype": 5,
+  "catboost.core.CatBoostRegressor": 5,
+  "numpy._core.multiarray.scalar": 5
+ },
+ "xgboost_writer_versions": {},
+ "parse_errors": [],
+ "intercept_checked": 0,
+ "intercept_moved": [],
+ "per_artifact": {
+  "HR/wind_onshore/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy._core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "HU/wind_onshore/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy._core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "LT/solar/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy._core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "PL/wind_onshore/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy._core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  },
+  "SE/solar/model.joblib": {
+   "symbols": [
+    "catboost.core.CatBoostRegressor",
+    "numpy._core.multiarray.scalar",
+    "numpy.dtype"
+   ],
+   "xgboost_writer_version": null,
+   "stored_base_score": null
+  }
+ }
+}

@@ -1,0 +1,101 @@
+{
+  "issue": "ABL-602",
+  "batch": "abl602",
+  "training_record": "reports/abl_602_ship_set_training.json",
+  "check": "prediction equality across an independent refit",
+  "tolerance": 1e-12,
+  "probe_window": [
+    "2026-08-01",
+    "+168h"
+  ],
+  "replica": {
+    "path": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "bytes_now": 10718515200,
+    "bytes_at_original_fit": 10718515200,
+    "unchanged_since_original_fit": true
+  },
+  "all_pairs_reproducible": true,
+  "every_artifact_sha256_differed": true,
+  "pairs": [
+    {
+      "country": "LT",
+      "forecast_type": "solar",
+      "probe_rows": 168,
+      "max_abs_prediction_difference": 0.0,
+      "tolerance": 1e-12,
+      "identical_within_tolerance": true,
+      "bit_identical": true,
+      "feature_columns_match": true,
+      "training_source_match": true,
+      "training_source": "energy_generation",
+      "n_features": 27,
+      "artifact_sha256_original": "c48696a9bff5f9c0d08e8209e3860e5978ab0feed237645cfac360dbff27e421",
+      "artifact_sha256_refit": "811e3be8de4d666a993d3f3d2a0851e69b8ca9cbdc385dac19427691fe8987f5",
+      "artifact_sha256_differs": true
+    },
+    {
+      "country": "SE",
+      "forecast_type": "solar",
+      "probe_rows": 168,
+      "max_abs_prediction_difference": 0.0,
+      "tolerance": 1e-12,
+      "identical_within_tolerance": true,
+      "bit_identical": true,
+      "feature_columns_match": true,
+      "training_source_match": true,
+      "training_source": "energy_generation",
+      "n_features": 27,
+      "artifact_sha256_original": "8d359c3feb7ab312ea0a9e221180016d011aa979fbd52ac0f047e4177d2b97d3",
+      "artifact_sha256_refit": "90c69b17550baaaa94fd7eb01511b761e9e1ebddd159b56f77cfca916ab30c80",
+      "artifact_sha256_differs": true
+    },
+    {
+      "country": "HR",
+      "forecast_type": "wind_onshore",
+      "probe_rows": 168,
+      "max_abs_prediction_difference": 0.0,
+      "tolerance": 1e-12,
+      "identical_within_tolerance": true,
+      "bit_identical": true,
+      "feature_columns_match": true,
+      "training_source_match": true,
+      "training_source": "energy_generation",
+      "n_features": 24,
+      "artifact_sha256_original": "d802a9612622ad6eeaef796c6e7ac3efca889219103d81926abd1aee058dc22f",
+      "artifact_sha256_refit": "18ec1076891d1964e34bd85f347134ffcd2bd7550833686b6bcc2c81e7532cb3",
+      "artifact_sha256_differs": true
+    },
+    {
+      "country": "HU",
+      "forecast_type": "wind_onshore",
+      "probe_rows": 168,
+      "max_abs_prediction_difference": 0.0,
+      "tolerance": 1e-12,
+      "identical_within_tolerance": true,
+      "bit_identical": true,
+      "feature_columns_match": true,
+      "training_source_match": true,
+      "training_source": "energy_generation",
+      "n_features": 24,
+      "artifact_sha256_original": "1a531989bacfd0b8bb8e365e67b4069a2f9a005399a9d36dc98acff74199188b",
+      "artifact_sha256_refit": "065ccafd1385269cdbc01434148344dd6b67033f28a5f7c446256bfdce4f9a00",
+      "artifact_sha256_differs": true
+    },
+    {
+      "country": "PL",
+      "forecast_type": "wind_onshore",
+      "probe_rows": 168,
+      "max_abs_prediction_difference": 0.0,
+      "tolerance": 1e-12,
+      "identical_within_tolerance": true,
+      "bit_identical": true,
+      "feature_columns_match": true,
+      "training_source_match": true,
+      "training_source": "energy_generation",
+      "n_features": 24,
+      "artifact_sha256_original": "26947d53695235caa8ac07565586c3b975424f3eff70b25f66ea7658f28efa69",
+      "artifact_sha256_refit": "f833021574e7baa0f4e8e0b761a6d81ab68964da4fe49ba703ee3c0080351684",
+      "artifact_sha256_differs": true
+    }
+  ]
+}

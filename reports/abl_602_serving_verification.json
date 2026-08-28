@@ -1,0 +1,372 @@
+{
+  "issue": "ABL-602",
+  "batch": "abl602",
+  "check": "end-to-end serving verification through forecast_daily.py at both horizons, with the served artifact matched to the training record by sha256",
+  "generated_at": "2026-08-28T12:06:20.141673+00:00",
+  "command": "scripts/forecast_daily.py --countries LT,SE --types solar --horizons 1,2 ; scripts/forecast_daily.py --countries HR,HU,PL --types wind_onshore --horizons 1,2",
+  "training_record": "reports/abl_602_ship_set_training.json",
+  "models_dir": "C:\\Code\\able\\ef-abl602\\models",
+  "sidecar_has_renewable_type_column": true,
+  "wrote_to": {
+    "sidecar": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-602-a4355b48-02b-gXDmwg\\abl602_serving.db",
+    "is_scratch": true,
+    "replica_written": false,
+    "note": "FORECAST_OUTPUT_DB was pointed at a run-scoped scratch file, so neither the replica nor the shared sidecar was written. Serving into production is a deploy and is outside this issue."
+  },
+  "clock_dependence": {
+    "observed_on_abl583": true,
+    "note": "predict_d2 anchors its feature build on wall-clock time as well as on the reference date (ABL-583), so a solar night series is a snapshot of the firing hour rather than a property of the artifact. The clamp figures below are read as of this run's hour and must be compared only against a same-hour run."
+  },
+  "all_pairs_verified": true,
+  "scored_or_graded": false,
+  "pairs": [
+    {
+      "country": "LT",
+      "forecast_type": "solar",
+      "served_any_rows": true,
+      "served": {
+        "n_rows": 48,
+        "target_window": [
+          "2026-08-29T00:00:00",
+          "2026-08-30T23:00:00"
+        ],
+        "target_days": [
+          "2026-08-29",
+          "2026-08-30"
+        ],
+        "rows_per_target_day": {
+          "2026-08-29": 24,
+          "2026-08-30": 24
+        },
+        "horizon_hours_min": 9,
+        "horizon_hours_max": 56,
+        "model_names": [
+          "catboost"
+        ],
+        "generated_at": [
+          "2026-08-28T14:05:54.943712",
+          "2026-08-28T14:05:56.495620"
+        ],
+        "min_mw": 0.0,
+        "max_mw": 923.4144,
+        "mean_mw": 295.1503,
+        "positive_hours_mean_mw": 416.6828,
+        "n_negative": 0,
+        "n_exactly_zero": 14,
+        "all_finite": true
+      },
+      "horizons": {
+        "expected_target_days": 2,
+        "observed_target_days": 2,
+        "expected_hours_per_day": 24,
+        "days_with_a_full_24h": [
+          "2026-08-29",
+          "2026-08-30"
+        ],
+        "both_horizons_served": true
+      },
+      "artifact": {
+        "artifact_path": "C:\\Code\\able\\ef-abl602\\models\\LT\\solar\\model.joblib",
+        "artifact_present": true,
+        "artifact_sha256_on_disk": "c48696a9bff5f9c0d08e8209e3860e5978ab0feed237645cfac360dbff27e421",
+        "artifact_sha256_in_training_record": "c48696a9bff5f9c0d08e8209e3860e5978ab0feed237645cfac360dbff27e421",
+        "sha256_matches_training_record": true,
+        "n_features_on_disk": 27,
+        "n_features_in_training_record": 27,
+        "feature_columns_match": true,
+        "training_source_on_disk": "energy_generation",
+        "training_source_matches": true,
+        "is_the_recorded_artifact": true
+      },
+      "clamp": {
+        "clamp_applies_to_this_type": true,
+        "clamp_log_row_present": true,
+        "as_expected": true,
+        "night_generation_possible": 0,
+        "night_mask_applied": 1,
+        "rows_total": 48,
+        "night_hours": 14,
+        "hours_zeroed_night": 14,
+        "hours_raised_floor": 0,
+        "mw_removed_night": 87.38003439407834,
+        "mw_added_floor": 0.0,
+        "min_forecast_mw": 1.2458845924059005,
+        "max_night_forecast_mw": 12.780960614901574
+      },
+      "verified": true
+    },
+    {
+      "country": "SE",
+      "forecast_type": "solar",
+      "served_any_rows": true,
+      "served": {
+        "n_rows": 48,
+        "target_window": [
+          "2026-08-29T00:00:00",
+          "2026-08-30T23:00:00"
+        ],
+        "target_days": [
+          "2026-08-29",
+          "2026-08-30"
+        ],
+        "rows_per_target_day": {
+          "2026-08-29": 24,
+          "2026-08-30": 24
+        },
+        "horizon_hours_min": 9,
+        "horizon_hours_max": 56,
+        "model_names": [
+          "catboost"
+        ],
+        "generated_at": [
+          "2026-08-28T14:05:56.826043",
+          "2026-08-28T14:05:57.263516"
+        ],
+        "min_mw": 0.0,
+        "max_mw": 1151.5956,
+        "mean_mw": 311.3473,
+        "positive_hours_mean_mw": 498.1557,
+        "n_negative": 0,
+        "n_exactly_zero": 18,
+        "all_finite": true
+      },
+      "horizons": {
+        "expected_target_days": 2,
+        "observed_target_days": 2,
+        "expected_hours_per_day": 24,
+        "days_with_a_full_24h": [
+          "2026-08-29",
+          "2026-08-30"
+        ],
+        "both_horizons_served": true
+      },
+      "artifact": {
+        "artifact_path": "C:\\Code\\able\\ef-abl602\\models\\SE\\solar\\model.joblib",
+        "artifact_present": true,
+        "artifact_sha256_on_disk": "8d359c3feb7ab312ea0a9e221180016d011aa979fbd52ac0f047e4177d2b97d3",
+        "artifact_sha256_in_training_record": "8d359c3feb7ab312ea0a9e221180016d011aa979fbd52ac0f047e4177d2b97d3",
+        "sha256_matches_training_record": true,
+        "n_features_on_disk": 27,
+        "n_features_in_training_record": 27,
+        "feature_columns_match": true,
+        "training_source_on_disk": "energy_generation",
+        "training_source_matches": true,
+        "is_the_recorded_artifact": true
+      },
+      "clamp": {
+        "clamp_applies_to_this_type": true,
+        "clamp_log_row_present": true,
+        "as_expected": true,
+        "night_generation_possible": 0,
+        "night_mask_applied": 1,
+        "rows_total": 48,
+        "night_hours": 12,
+        "hours_zeroed_night": 7,
+        "hours_raised_floor": 6,
+        "mw_removed_night": -80.68104645202453,
+        "mw_added_floor": 48.53755285738595,
+        "min_forecast_mw": -17.263149904851332,
+        "max_night_forecast_mw": 0.9465504680597974
+      },
+      "verified": true
+    },
+    {
+      "country": "HR",
+      "forecast_type": "wind_onshore",
+      "served_any_rows": true,
+      "served": {
+        "n_rows": 48,
+        "target_window": [
+          "2026-08-29T00:00:00",
+          "2026-08-30T23:00:00"
+        ],
+        "target_days": [
+          "2026-08-29",
+          "2026-08-30"
+        ],
+        "rows_per_target_day": {
+          "2026-08-29": 24,
+          "2026-08-30": 24
+        },
+        "horizon_hours_min": 9,
+        "horizon_hours_max": 56,
+        "model_names": [
+          "catboost"
+        ],
+        "generated_at": [
+          "2026-08-28T14:06:08.049796",
+          "2026-08-28T14:06:08.461912"
+        ],
+        "min_mw": 82.3998,
+        "max_mw": 472.72,
+        "mean_mw": 261.6858,
+        "positive_hours_mean_mw": 261.6858,
+        "n_negative": 0,
+        "n_exactly_zero": 0,
+        "all_finite": true
+      },
+      "horizons": {
+        "expected_target_days": 2,
+        "observed_target_days": 2,
+        "expected_hours_per_day": 24,
+        "days_with_a_full_24h": [
+          "2026-08-29",
+          "2026-08-30"
+        ],
+        "both_horizons_served": true
+      },
+      "artifact": {
+        "artifact_path": "C:\\Code\\able\\ef-abl602\\models\\HR\\wind_onshore\\model.joblib",
+        "artifact_present": true,
+        "artifact_sha256_on_disk": "d802a9612622ad6eeaef796c6e7ac3efca889219103d81926abd1aee058dc22f",
+        "artifact_sha256_in_training_record": "d802a9612622ad6eeaef796c6e7ac3efca889219103d81926abd1aee058dc22f",
+        "sha256_matches_training_record": true,
+        "n_features_on_disk": 24,
+        "n_features_in_training_record": 24,
+        "feature_columns_match": true,
+        "training_source_on_disk": "energy_generation",
+        "training_source_matches": true,
+        "is_the_recorded_artifact": true
+      },
+      "clamp": {
+        "clamp_applies_to_this_type": false,
+        "clamp_log_row_present": false,
+        "as_expected": true,
+        "note": "src/solar_clamp.py is renewable_type='solar' only, so a wind pair has no clamp-log row and the absence is correct."
+      },
+      "verified": true
+    },
+    {
+      "country": "HU",
+      "forecast_type": "wind_onshore",
+      "served_any_rows": true,
+      "served": {
+        "n_rows": 48,
+        "target_window": [
+          "2026-08-29T00:00:00",
+          "2026-08-30T23:00:00"
+        ],
+        "target_days": [
+          "2026-08-29",
+          "2026-08-30"
+        ],
+        "rows_per_target_day": {
+          "2026-08-29": 24,
+          "2026-08-30": 24
+        },
+        "horizon_hours_min": 9,
+        "horizon_hours_max": 56,
+        "model_names": [
+          "catboost"
+        ],
+        "generated_at": [
+          "2026-08-28T14:06:08.638344",
+          "2026-08-28T14:06:08.952693"
+        ],
+        "min_mw": 7.9055,
+        "max_mw": 51.4699,
+        "mean_mw": 28.5728,
+        "positive_hours_mean_mw": 28.5728,
+        "n_negative": 0,
+        "n_exactly_zero": 0,
+        "all_finite": true
+      },
+      "horizons": {
+        "expected_target_days": 2,
+        "observed_target_days": 2,
+        "expected_hours_per_day": 24,
+        "days_with_a_full_24h": [
+          "2026-08-29",
+          "2026-08-30"
+        ],
+        "both_horizons_served": true
+      },
+      "artifact": {
+        "artifact_path": "C:\\Code\\able\\ef-abl602\\models\\HU\\wind_onshore\\model.joblib",
+        "artifact_present": true,
+        "artifact_sha256_on_disk": "1a531989bacfd0b8bb8e365e67b4069a2f9a005399a9d36dc98acff74199188b",
+        "artifact_sha256_in_training_record": "1a531989bacfd0b8bb8e365e67b4069a2f9a005399a9d36dc98acff74199188b",
+        "sha256_matches_training_record": true,
+        "n_features_on_disk": 24,
+        "n_features_in_training_record": 24,
+        "feature_columns_match": true,
+        "training_source_on_disk": "energy_generation",
+        "training_source_matches": true,
+        "is_the_recorded_artifact": true
+      },
+      "clamp": {
+        "clamp_applies_to_this_type": false,
+        "clamp_log_row_present": false,
+        "as_expected": true,
+        "note": "src/solar_clamp.py is renewable_type='solar' only, so a wind pair has no clamp-log row and the absence is correct."
+      },
+      "verified": true
+    },
+    {
+      "country": "PL",
+      "forecast_type": "wind_onshore",
+      "served_any_rows": true,
+      "served": {
+        "n_rows": 48,
+        "target_window": [
+          "2026-08-29T00:00:00",
+          "2026-08-30T23:00:00"
+        ],
+        "target_days": [
+          "2026-08-29",
+          "2026-08-30"
+        ],
+        "rows_per_target_day": {
+          "2026-08-29": 24,
+          "2026-08-30": 24
+        },
+        "horizon_hours_min": 9,
+        "horizon_hours_max": 56,
+        "model_names": [
+          "catboost"
+        ],
+        "generated_at": [
+          "2026-08-28T14:06:09.128781",
+          "2026-08-28T14:06:09.493497"
+        ],
+        "min_mw": 698.2071,
+        "max_mw": 3392.8145,
+        "mean_mw": 1794.6087,
+        "positive_hours_mean_mw": 1794.6087,
+        "n_negative": 0,
+        "n_exactly_zero": 0,
+        "all_finite": true
+      },
+      "horizons": {
+        "expected_target_days": 2,
+        "observed_target_days": 2,
+        "expected_hours_per_day": 24,
+        "days_with_a_full_24h": [
+          "2026-08-29",
+          "2026-08-30"
+        ],
+        "both_horizons_served": true
+      },
+      "artifact": {
+        "artifact_path": "C:\\Code\\able\\ef-abl602\\models\\PL\\wind_onshore\\model.joblib",
+        "artifact_present": true,
+        "artifact_sha256_on_disk": "26947d53695235caa8ac07565586c3b975424f3eff70b25f66ea7658f28efa69",
+        "artifact_sha256_in_training_record": "26947d53695235caa8ac07565586c3b975424f3eff70b25f66ea7658f28efa69",
+        "sha256_matches_training_record": true,
+        "n_features_on_disk": 24,
+        "n_features_in_training_record": 24,
+        "feature_columns_match": true,
+        "training_source_on_disk": "energy_generation",
+        "training_source_matches": true,
+        "is_the_recorded_artifact": true
+      },
+      "clamp": {
+        "clamp_applies_to_this_type": false,
+        "clamp_log_row_present": false,
+        "as_expected": true,
+        "note": "src/solar_clamp.py is renewable_type='solar' only, so a wind pair has no clamp-log row and the absence is correct."
+      },
+      "verified": true
+    }
+  ]
+}

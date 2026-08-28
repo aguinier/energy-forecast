@@ -1,0 +1,439 @@
+{
+  "issue": "ABL-602",
+  "batch": "abl602",
+  "generated_at": "2026-08-28T12:06:33.301204+00:00",
+  "fit_window_screened": [
+    "2026-01-11",
+    "2026-08-22"
+  ],
+  "gate_boundary": "2026-07-11",
+  "renewable_source": "energy_generation",
+  "scored_or_graded": false,
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 10718515200,
+  "abl200": {
+    "screen": "ABL-200 cross-table zero disproof",
+    "renewable_zero_disproof_source": "energy_generation",
+    "source_read_by_this_batch": "energy_generation",
+    "rule_can_fire": false,
+    "note": "exclude_zeros_disproved_by_sibling is wired at load_renewable_type_data behind `if source != RENEWABLE_ZERO_DISPROOF_SOURCE`. Every pair here reads that same table, so the rule never fires -- it is one-sided and this is already the disproving side."
+  },
+  "named_contamination_issues": {
+    "ABL-71": "prod ingest stale -- net_position, not these series",
+    "ABL-67": "fabricated net_position rows -- not these series",
+    "ABL-111/ABL-109": "zero-as-missing actual *load* rows -- not these series",
+    "verdict": "none of the three touches this window or these pairs"
+  },
+  "pairs": [
+    {
+      "country": "LT",
+      "forecast_type": "solar",
+      "abl332": {
+        "screen": "ABL-332 hourly aggregation",
+        "raw_rows_in_fit_window": 20993,
+        "distinct_minute_marks": 4,
+        "sub_hourly": true,
+        "hourly_rows_after_aggregation": 5274,
+        "rows_the_pre_abl332_builder_would_have_discarded": 15719,
+        "aggregation_is_in_the_fit_and_serve_path": true,
+        "note": "load_renewable_type_data -> aggregate_renewable_to_hourly, then RenewableFeatureBuilder._assert_hourly raises on an off-hour index. The same builder object fits and serves, so the two are one frame."
+      },
+      "abl188": {
+        "screen": "ABL-188 constant-run exclusion",
+        "hourly_rows": 5274,
+        "rows_nulled_by_the_guard": 0,
+        "note": "exclude_suspect_constant_runs nulls any 24h+ bit-identical run at the training read; a nulled hour is then dropped by finite_training_rows and appears in the fit audit's excluded_missing_actual_or_feature."
+      },
+      "vintage": {
+        "screen": "ABL-439 fit-to-gate source-table ratio discontinuity",
+        "country": "LT",
+        "forecast_type": "solar",
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4271,
+          "n_hours_renewable": 4244,
+          "n_hours_common": 4244,
+          "generation_mean_mw": 299.3366,
+          "renewable_mean_mw": 299.3222,
+          "ratio": 1.0
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 706,
+          "n_hours_renewable": 720,
+          "n_hours_common": 706,
+          "generation_mean_mw": 554.3478,
+          "renewable_mean_mw": 554.3478,
+          "ratio": 1.0
+        },
+        "discontinuity_fit_minus_gate": 0.0,
+        "no_discontinuity_threshold": 0.02,
+        "verdict": "basis-consistent",
+        "published": null,
+        "reproduces_published": null,
+        "published_provenance": null,
+        "gate_revision_caveat": "This pair's gate window is 100% first-publication, so its gate-side revision is expected-small but NOT YET MEASURED. That is true of every pair in this gate and is not a blocker; it is recorded here so a later reader does not mistake an unmeasured quantity for a measured-zero one."
+      },
+      "night_floor": {
+        "predicate": "solar_features.night_mask -- sun below -8.0 deg for the whole hour at the capacity-weighted point",
+        "threshold_mw": 1.0,
+        "representative_point": [
+          55.289,
+          24.235
+        ],
+        "night_generation_possible": false,
+        "windows": [
+          {
+            "window": "fit_pre_gate",
+            "start": "2026-01-11",
+            "end_exclusive": "2026-07-11",
+            "n_rows": 4343,
+            "n_missing_rows": 0,
+            "n_night_rows": 1356,
+            "n_night_above_threshold": 8,
+            "pct_of_night_rows_above_threshold": 0.59,
+            "night_mean_mw": 0.13,
+            "night_max_mw": 24.29,
+            "n_night_negative": 0,
+            "pct_of_total_energy_at_night": 0.013,
+            "wape_floor_pct_if_clamped": 0.0135,
+            "daylight_mean_mw": 426.34
+          },
+          {
+            "window": "gate_and_after",
+            "start": "2026-07-11",
+            "end_exclusive": "2026-08-22",
+            "n_rows": 931,
+            "n_missing_rows": 0,
+            "n_night_rows": 125,
+            "n_night_above_threshold": 5,
+            "pct_of_night_rows_above_threshold": 4.0,
+            "night_mean_mw": 0.58,
+            "night_max_mw": 14.45,
+            "n_night_negative": 0,
+            "pct_of_total_energy_at_night": 0.014,
+            "wape_floor_pct_if_clamped": 0.0136,
+            "daylight_mean_mw": 659.13
+          },
+          {
+            "window": "whole_fit_window",
+            "start": "2026-01-11",
+            "end_exclusive": "2026-08-22",
+            "n_rows": 5274,
+            "n_missing_rows": 0,
+            "n_night_rows": 1481,
+            "n_night_above_threshold": 13,
+            "pct_of_night_rows_above_threshold": 0.88,
+            "night_mean_mw": 0.16,
+            "night_max_mw": 24.29,
+            "n_night_negative": 0,
+            "pct_of_total_energy_at_night": 0.014,
+            "wape_floor_pct_if_clamped": 0.0135,
+            "daylight_mean_mw": 475.81
+          }
+        ],
+        "compared_against": {
+          "country": "BG",
+          "source": "reports/abl_405_tranche2a_findings.md section 3 (= ABL-396)",
+          "fit": {
+            "pct_night_hours_above_threshold": 76.4,
+            "night_mean_mw": 152.33,
+            "night_max_mw": 1097.4,
+            "pct_of_total_energy_at_night": 6.37
+          },
+          "gate": {
+            "pct_night_hours_above_threshold": 85.2,
+            "night_mean_mw": 245.71,
+            "night_max_mw": 1087.9,
+            "pct_of_total_energy_at_night": 4.98
+          }
+        }
+      }
+    },
+    {
+      "country": "SE",
+      "forecast_type": "solar",
+      "abl332": {
+        "screen": "ABL-332 hourly aggregation",
+        "raw_rows_in_fit_window": 21400,
+        "distinct_minute_marks": 4,
+        "sub_hourly": true,
+        "hourly_rows_after_aggregation": 5350,
+        "rows_the_pre_abl332_builder_would_have_discarded": 16050,
+        "aggregation_is_in_the_fit_and_serve_path": true,
+        "note": "load_renewable_type_data -> aggregate_renewable_to_hourly, then RenewableFeatureBuilder._assert_hourly raises on an off-hour index. The same builder object fits and serves, so the two are one frame."
+      },
+      "abl188": {
+        "screen": "ABL-188 constant-run exclusion",
+        "hourly_rows": 5350,
+        "rows_nulled_by_the_guard": 0,
+        "note": "exclude_suspect_constant_runs nulls any 24h+ bit-identical run at the training read; a nulled hour is then dropped by finite_training_rows and appears in the fit audit's excluded_missing_actual_or_feature."
+      },
+      "vintage": {
+        "screen": "ABL-439 fit-to-gate source-table ratio discontinuity",
+        "country": "SE",
+        "forecast_type": "solar",
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4270,
+          "n_hours_renewable": 4244,
+          "n_hours_common": 4242,
+          "generation_mean_mw": 402.2793,
+          "renewable_mean_mw": 402.2793,
+          "ratio": 1.0
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 720,
+          "n_hours_renewable": 720,
+          "n_hours_common": 720,
+          "generation_mean_mw": 651.8546,
+          "renewable_mean_mw": 651.8546,
+          "ratio": 1.0
+        },
+        "discontinuity_fit_minus_gate": 0.0,
+        "no_discontinuity_threshold": 0.02,
+        "verdict": "basis-consistent",
+        "published": null,
+        "reproduces_published": null,
+        "published_provenance": null,
+        "gate_revision_caveat": "This pair's gate window is 100% first-publication, so its gate-side revision is expected-small but NOT YET MEASURED. That is true of every pair in this gate and is not a blocker; it is recorded here so a later reader does not mistake an unmeasured quantity for a measured-zero one."
+      },
+      "night_floor": {
+        "predicate": "solar_features.night_mask -- sun below -8.0 deg for the whole hour at the capacity-weighted point",
+        "threshold_mw": 1.0,
+        "representative_point": [
+          57.989,
+          15.329
+        ],
+        "night_generation_possible": false,
+        "windows": [
+          {
+            "window": "fit_pre_gate",
+            "start": "2026-01-11",
+            "end_exclusive": "2026-07-11",
+            "n_rows": 4342,
+            "n_missing_rows": 0,
+            "n_night_rows": 1239,
+            "n_night_above_threshold": 336,
+            "pct_of_night_rows_above_threshold": 27.12,
+            "night_mean_mw": 0.79,
+            "night_max_mw": 4.8,
+            "n_night_negative": 0,
+            "pct_of_total_energy_at_night": 0.057,
+            "wape_floor_pct_if_clamped": 0.0574,
+            "daylight_mean_mw": 550.45
+          },
+          {
+            "window": "gate_and_after",
+            "start": "2026-07-11",
+            "end_exclusive": "2026-08-22",
+            "n_rows": 1008,
+            "n_missing_rows": 0,
+            "n_night_rows": 166,
+            "n_night_above_threshold": 158,
+            "pct_of_night_rows_above_threshold": 95.18,
+            "night_mean_mw": 1.66,
+            "night_max_mw": 3.61,
+            "n_night_negative": 0,
+            "pct_of_total_energy_at_night": 0.044,
+            "wape_floor_pct_if_clamped": 0.0436,
+            "daylight_mean_mw": 750.63
+          },
+          {
+            "window": "whole_fit_window",
+            "start": "2026-01-11",
+            "end_exclusive": "2026-08-22",
+            "n_rows": 5350,
+            "n_missing_rows": 0,
+            "n_night_rows": 1405,
+            "n_night_above_threshold": 494,
+            "pct_of_night_rows_above_threshold": 35.16,
+            "night_mean_mw": 0.89,
+            "night_max_mw": 4.8,
+            "n_night_negative": 0,
+            "pct_of_total_energy_at_night": 0.054,
+            "wape_floor_pct_if_clamped": 0.0537,
+            "daylight_mean_mw": 593.17
+          }
+        ],
+        "compared_against": {
+          "country": "BG",
+          "source": "reports/abl_405_tranche2a_findings.md section 3 (= ABL-396)",
+          "fit": {
+            "pct_night_hours_above_threshold": 76.4,
+            "night_mean_mw": 152.33,
+            "night_max_mw": 1097.4,
+            "pct_of_total_energy_at_night": 6.37
+          },
+          "gate": {
+            "pct_night_hours_above_threshold": 85.2,
+            "night_mean_mw": 245.71,
+            "night_max_mw": 1087.9,
+            "pct_of_total_energy_at_night": 4.98
+          }
+        }
+      }
+    },
+    {
+      "country": "HR",
+      "forecast_type": "wind_onshore",
+      "abl332": {
+        "screen": "ABL-332 hourly aggregation",
+        "raw_rows_in_fit_window": 21404,
+        "distinct_minute_marks": 4,
+        "sub_hourly": true,
+        "hourly_rows_after_aggregation": 5352,
+        "rows_the_pre_abl332_builder_would_have_discarded": 16052,
+        "aggregation_is_in_the_fit_and_serve_path": true,
+        "note": "load_renewable_type_data -> aggregate_renewable_to_hourly, then RenewableFeatureBuilder._assert_hourly raises on an off-hour index. The same builder object fits and serves, so the two are one frame."
+      },
+      "abl188": {
+        "screen": "ABL-188 constant-run exclusion",
+        "hourly_rows": 5352,
+        "rows_nulled_by_the_guard": 0,
+        "note": "exclude_suspect_constant_runs nulls any 24h+ bit-identical run at the training read; a nulled hour is then dropped by finite_training_rows and appears in the fit audit's excluded_missing_actual_or_feature."
+      },
+      "vintage": {
+        "screen": "ABL-439 fit-to-gate source-table ratio discontinuity",
+        "country": "HR",
+        "forecast_type": "wind_onshore",
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4272,
+          "n_hours_renewable": 4245,
+          "n_hours_common": 4245,
+          "generation_mean_mw": 335.4859,
+          "renewable_mean_mw": 335.7105,
+          "ratio": 0.9993
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 720,
+          "n_hours_renewable": 720,
+          "n_hours_common": 720,
+          "generation_mean_mw": 225.9982,
+          "renewable_mean_mw": 225.9982,
+          "ratio": 1.0
+        },
+        "discontinuity_fit_minus_gate": -0.0007,
+        "no_discontinuity_threshold": 0.02,
+        "verdict": "basis-consistent",
+        "published": null,
+        "reproduces_published": null,
+        "published_provenance": null,
+        "gate_revision_caveat": "This pair's gate window is 100% first-publication, so its gate-side revision is expected-small but NOT YET MEASURED. That is true of every pair in this gate and is not a blocker; it is recorded here so a later reader does not mistake an unmeasured quantity for a measured-zero one."
+      }
+    },
+    {
+      "country": "HU",
+      "forecast_type": "wind_onshore",
+      "abl332": {
+        "screen": "ABL-332 hourly aggregation",
+        "raw_rows_in_fit_window": 21408,
+        "distinct_minute_marks": 4,
+        "sub_hourly": true,
+        "hourly_rows_after_aggregation": 5352,
+        "rows_the_pre_abl332_builder_would_have_discarded": 16056,
+        "aggregation_is_in_the_fit_and_serve_path": true,
+        "note": "load_renewable_type_data -> aggregate_renewable_to_hourly, then RenewableFeatureBuilder._assert_hourly raises on an off-hour index. The same builder object fits and serves, so the two are one frame."
+      },
+      "abl188": {
+        "screen": "ABL-188 constant-run exclusion",
+        "hourly_rows": 5352,
+        "rows_nulled_by_the_guard": 0,
+        "note": "exclude_suspect_constant_runs nulls any 24h+ bit-identical run at the training read; a nulled hour is then dropped by finite_training_rows and appears in the fit audit's excluded_missing_actual_or_feature."
+      },
+      "vintage": {
+        "screen": "ABL-439 fit-to-gate source-table ratio discontinuity",
+        "country": "HU",
+        "forecast_type": "wind_onshore",
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4272,
+          "n_hours_renewable": 4245,
+          "n_hours_common": 4245,
+          "generation_mean_mw": 65.3668,
+          "renewable_mean_mw": 64.9125,
+          "ratio": 1.007
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 720,
+          "n_hours_renewable": 720,
+          "n_hours_common": 720,
+          "generation_mean_mw": 41.6493,
+          "renewable_mean_mw": 41.6493,
+          "ratio": 1.0
+        },
+        "discontinuity_fit_minus_gate": 0.007,
+        "no_discontinuity_threshold": 0.02,
+        "verdict": "basis-consistent",
+        "published": null,
+        "reproduces_published": null,
+        "published_provenance": null,
+        "gate_revision_caveat": "This pair's gate window is 100% first-publication, so its gate-side revision is expected-small but NOT YET MEASURED. That is true of every pair in this gate and is not a blocker; it is recorded here so a later reader does not mistake an unmeasured quantity for a measured-zero one."
+      }
+    },
+    {
+      "country": "PL",
+      "forecast_type": "wind_onshore",
+      "abl332": {
+        "screen": "ABL-332 hourly aggregation",
+        "raw_rows_in_fit_window": 21408,
+        "distinct_minute_marks": 4,
+        "sub_hourly": true,
+        "hourly_rows_after_aggregation": 5352,
+        "rows_the_pre_abl332_builder_would_have_discarded": 16056,
+        "aggregation_is_in_the_fit_and_serve_path": true,
+        "note": "load_renewable_type_data -> aggregate_renewable_to_hourly, then RenewableFeatureBuilder._assert_hourly raises on an off-hour index. The same builder object fits and serves, so the two are one frame."
+      },
+      "abl188": {
+        "screen": "ABL-188 constant-run exclusion",
+        "hourly_rows": 5352,
+        "rows_nulled_by_the_guard": 0,
+        "note": "exclude_suspect_constant_runs nulls any 24h+ bit-identical run at the training read; a nulled hour is then dropped by finite_training_rows and appears in the fit audit's excluded_missing_actual_or_feature."
+      },
+      "vintage": {
+        "screen": "ABL-439 fit-to-gate source-table ratio discontinuity",
+        "country": "PL",
+        "forecast_type": "wind_onshore",
+        "abl348_fit_window": {
+          "start": "2026-01-14",
+          "end_exclusive": "2026-07-11",
+          "n_hours_generation": 4272,
+          "n_hours_renewable": 4245,
+          "n_hours_common": 4245,
+          "generation_mean_mw": 2172.1616,
+          "renewable_mean_mw": 2172.1627,
+          "ratio": 1.0
+        },
+        "abl348_gate_window": {
+          "start": "2026-07-11",
+          "end_exclusive": "2026-08-10",
+          "n_hours_generation": 720,
+          "n_hours_renewable": 720,
+          "n_hours_common": 720,
+          "generation_mean_mw": 1789.2324,
+          "renewable_mean_mw": 1789.2324,
+          "ratio": 1.0
+        },
+        "discontinuity_fit_minus_gate": 0.0,
+        "no_discontinuity_threshold": 0.02,
+        "verdict": "basis-consistent",
+        "published": null,
+        "reproduces_published": null,
+        "published_provenance": null,
+        "gate_revision_caveat": "This pair's gate window is 100% first-publication, so its gate-side revision is expected-small but NOT YET MEASURED. That is true of every pair in this gate and is not a blocker; it is recorded here so a later reader does not mistake an unmeasured quantity for a measured-zero one."
+      }
+    }
+  ]
+}
