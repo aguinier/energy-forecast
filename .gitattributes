@@ -1,0 +1,17 @@
+# Files that get COPY'd into the Linux forecast container must check out with
+# LF endings, on every box, whatever the local `core.autocrlf` says.
+#
+# ABL-596: this checkout has `core.autocrlf=true`, so the LF blobs in the repo
+# land in the working tree as CRLF. `docker build` copies the working tree, so
+# the image gets `#!/bin/bash\r`, the kernel looks for an interpreter literally
+# named `/bin/bash\r`, and every container off that image dies immediately:
+#
+#     $ docker run --rm docker-forecast:latest
+#     exec /entrypoint.sh: no such file or directory     (exit 255)
+#
+# With `restart: unless-stopped` in docker-compose.yml that is a crash loop,
+# not a running scheduler -- no forecasts, from an image that built cleanly.
+# Pin the endings rather than relying on whoever builds having the right git
+# config. Deliberately narrow: only the files that cross into the container.
+*.sh        text eol=lf
+docker/crontab text eol=lf

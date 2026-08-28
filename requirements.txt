@@ -1,33 +1,71 @@
 # Energy Forecasting Module Dependencies
+#
+# ============================================================================
+# THESE PINS ARE EXACT ON PURPOSE (ABL-597)
+# ============================================================================
+# Every serving artifact is a `models/<CC>/<type>/model.joblib` pickled by one
+# specific library build and loaded by whatever the container resolved at its
+# last rebuild. `models/` is gitignored, so no commit protects those bytes: a
+# `>=` floor lets an unrelated rebuild float the library under them and either
+# break the load or -- worse -- change predictions without breaking anything.
+#
+# The versions below are what the live `energy-forecast` container was running
+# on 2026-08-28 (`docker exec energy-forecast python3 -m pip freeze`, captured
+# under ABL-598), NOT what resolves fresh today. This is a freeze at a known-good
+# state, not a bump. Do not "fix" an unsatisfiable pin by moving a version --
+# report it instead.
+#
+# Which packages need an exact pin was determined, not guessed: a pickletools
+# opcode replay over all 67 top-level artifacts resolved every GLOBAL /
+# STACK_GLOBAL to a (module, qualname) pair. Counts below are artifacts naming
+# that module in their own bytes; re-derive them with
+# `scripts/abl597_artifact_load_path.py` rather than trusting them here.
+# Full pack: reports/abl_597_artifact_load_path.md
+#
+# Raising any pin here means re-reading the artifacts under the new version
+# first -- `base_score` is the witness that catches a silent level reset.
 
 # ============================================================================
-# MACHINE LEARNING
+# MACHINE LEARNING -- unpickle-critical, named in the artifact bytes
 # ============================================================================
-xgboost>=2.0.0
-lightgbm>=4.0.0
-catboost>=1.2.0
-scikit-learn>=1.3.0
+# catboost.core.CatBoostRegressor   48/67 artifacts
+# xgboost.core.Booster + .sklearn.XGBRegressor   18/67
+# lightgbm.basic.Booster + .sklearn.LGBMRegressor   1/67
+xgboost==3.2.0
+lightgbm==4.7.0
+catboost==1.2.10
+# Not named in any artifact's bytes, but `xgboost.sklearn` / `lightgbm.sklearn`
+# cannot import without it, so it is on the load path all the same.
+scikit-learn==1.9.0
 
 # ============================================================================
 # DATA PROCESSING
 # ============================================================================
-pandas>=2.0.0
-numpy>=1.24.0
+# numpy is the most fragile item in the set, not a "likely" one: 49/67 artifacts
+# carry `numpy.core.multiarray.scalar` -- the PRE-2.0 path. Under numpy 2.x that
+# name resolves only through the `numpy.core` compatibility shim. If a rebuild
+# floats numpy to a release that drops the shim, 49 artifacts stop loading.
+numpy==2.4.6
+pandas==3.0.5
+# Transitive today (scikit-learn), pinned explicitly because it is on the
+# artifact load path and a floating member of that path defeats the point.
+scipy==1.17.1
 
 # ============================================================================
 # HYPERPARAMETER OPTIMIZATION
 # ============================================================================
-optuna>=3.0.0
+optuna==4.9.0
 
 # ============================================================================
 # CALENDAR / HOLIDAYS
 # ============================================================================
-holidays>=0.40
+holidays==0.103
 
 # ============================================================================
 # UTILITIES
 # ============================================================================
-python-dotenv>=1.0.0
-pytz>=2024.1
-tqdm>=4.66.0
-joblib>=1.3.0
+python-dotenv==1.2.3
+pytz==2026.3.post1
+tqdm==4.70.0
+# joblib is the reader itself -- every artifact is loaded through it.
+joblib==1.5.3
