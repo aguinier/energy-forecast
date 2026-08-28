@@ -25,7 +25,24 @@ TSO values, which was expected to have flattered the TSO. Measured, that
 optimism is **0.016 pp mean, 0.283 pp worst (GR), above 0.1 pp in 2 of 23
 countries** — two orders of magnitude smaller than the TSO-vs-ML gap it was
 supposed to threaten. TSO load day-ahead values are essentially never revised.
-The ABL-128 §2 load numbers were not materially optimistic; they reproduce.
+
+### 1.1 This reproduces ABL-128 §2
+
+The measurement the whole programme rests on is the CEO's 2026-08-10 probe:
+**TSO 4.0% vs our catboost 9.4% WAPE, TSO better in 17 of 21 countries**
+(targets 2026-07-11..2026-08-09, latest run per target — i.e. post-revision TSO,
+no `as_of` discipline). Against that:
+
+| | ABL-128 §2 (CEO, 2026-08-10) | this pack (as-issued, 2026-08-28) |
+|---|---|---|
+| TSO WAPE | 4.0% | **3.97%** (mean), 3.26% (median) |
+| our ML WAPE | 9.4% | **8.52%** (mean), 8.85% (median) |
+| TSO better in | 17 of 21 | **21 of 23** (20 readably) |
+| protocol | latest vintage, no leak control | first-seen vintages, market-day D+1 cut |
+
+**Priority 1 of this role is discharged for load: ABL-128 §2 reproduces**, on a
+different window, under a leak-free protocol it was not built with, and with
+the revision channel it was suspected of exploiting now measured and closed.
 
 ---
 
@@ -148,7 +165,15 @@ available cheap forecast.
 
 ---
 
-## 5. NL is not evaluable, and this is a finding
+## 5. NL is not evaluable — a known finding, independently reproduced
+
+**This is not new, and I am not claiming it.** ABL-277 established the NL
+divergence and located it upstream in ENTSO-E's own A65 documents; ABL-493
+suppresses the affected dashboard metrics; ABL-501 withheld the NL overlay;
+**ABL-505 / ABL-506 (both open, backlog, high)** own the energy-forecast half —
+that our NL model is trained or fed on the gross basis. What follows is an
+independent reproduction on a later window under a different protocol, offered
+as evidence for those issues rather than as a discovery.
 
 NL is the only country where the **truth series** fails a screen, and it fails
 it decisively. Where the TSO forecast, our ML forecast and the D-7 baseline —
@@ -167,18 +192,53 @@ hour-12 monthly means run 12,817 MW (Jan) → 5,024 (Mar) → 3,332 (Apr) → 3,
 forecast and D-7 all sit at 9–10 GW through it. `energy_load` is a net-of-BTM
 series; the forecasts are not on that basis.
 
-Consequence: **every NL load number this programme has published against
-`energy_load` is measuring a basis mismatch, not forecast skill** — the
-scorecard included. NL's 22.96 / 21.69 / 21.02 WAPEs above are uninterpretable
-and must not be read as "NL is hard". Filed separately (§8); it is out of scope
-here and it is not mine to fix.
+Consequence: NL's 22.96 / 21.69 / 21.02 WAPEs above are uninterpretable and
+must not be read as "NL is hard".
+
+One number here is new and belongs to ABL-505/506: our **ML** forecast's midday
+relative bias is **+76.5%** against a night bias of −4.1% (§6 table). Same sign
+and same diurnal signature as the +138%/+174% ABL-505 measured on June and early
+August windows; smaller magnitude on this later window. Our NL model is still
+predicting gross load, and this window says so independently.
 
 ---
 
-## 6. LT and EE are level errors, and only one of them is recoverable
+## 6. LT and EE — evidence for ABL-283, and they are not the same defect
 
-Both countries where the TSO does not win are **bias**, not shape:
-LT −13.44%, EE +6.49% of mean load, against ±0.0–3.1% everywhere else.
+LT and EE are two of the six zones **ABL-283** (open, backlog, unassigned) was
+opened to "establish or clear". This window reproduces its numbers on
+independent, as-issued data and then separates the two cases, which ABL-283
+could not do from a daily mean alone.
+
+Relative bias split into ABL-283's own hour blocks — night (00–03, 22–23 UTC)
+vs midday (09–14 UTC):
+
+| zone | TSO night | TSO midday | **swing** | ABL-283 (2026-08-04..11) |
+|---|---:|---:|---:|---|
+| EE | −0.91% | **+14.00%** | **+14.91 pp** | night −5.5%, midday +11.6% |
+| LT | **−8.79%** | −19.93% | −11.14 pp | night −10.4%, midday −18.0% |
+| NL *(ABL-277)* | +8.03% | +51.31% | **+43.28 pp** | not in ABL-283's table |
+| *fleet median* | — | — | *1.61 pp* | — |
+
+ABL-283's six zones are BA/MK/MD/LT/EE/IE; only **LT and EE** are in our served
+fleet, so those are the two this window can speak to. NL is carried as the
+reference signature, from ABL-277.
+
+**These are two different defects.**
+
+- **EE's night is clean (−0.91%) and its midday is not (+14.00%).** That is the
+  NL signature in miniature — a midday-only, over-predicting divergence, which
+  is what behind-the-meter solar netting produces. It is also why a level
+  correction cannot fix EE (below): a flat shift cannot repair a diurnal
+  divergence. **EE should be treated as a live basis-divergence candidate under
+  ABL-283**, not as a weak forecast.
+- **LT is biased low at every hour** (night already −8.79%), with a further
+  midday component. The midday sign is *negative* — the opposite of solar
+  netting, which pushes a forecast above a netted realized series. LT looks
+  like calibration plus something diurnal, not a basis mismatch.
+
+Their swings are 9.3x and 6.9x the fleet median of 1.61 pp, so both are genuine
+outliers rather than tail noise.
 
 Correcting each country's TSO series by its mean error over **prior days only**
 (leak-free; first day drops out, hence n):
@@ -244,13 +304,19 @@ same correction is neutral-to-harmful (BG 3.50 → 4.27, GR 2.47 → 2.80), so a
    improves the D+1 slot and leaves a D+2 product that loses to a lag in 10 of
    23 countries. Sourcing the D+1 slot externally does not fix that.
 
-**Follow-ups I am filing rather than doing here** (one issue = one landable
-change):
+**Follow-ups.** I searched before filing; two of the three findings here already
+have owners, so this pack contributes evidence to them rather than duplicating
+them:
 
-- **NL load basis mismatch** (§5) — affects the scorecard and any published NL
-  load metric, not just this pack. Ingest/scoring-truth question, not a model
-  one.
-- **D+2 load model vs D-7** (§4.1) — the ten readable losses, per country.
+| finding | disposition |
+|---|---|
+| NL basis mismatch (§5) | **Already owned** — ABL-277 (done), ABL-505 / ABL-506 (open, high). Commented, not re-filed. |
+| LT / EE (§6) | **Already owned** — ABL-283 (open, backlog). The night/midday split is new evidence for it; commented, not re-filed. |
+| ML D+2 loses to D-7 (§4.1) | **No open issue found** — filed as a new child of ABL-128. |
+
+**What I am not doing:** no promotion, no registry edit, no serving change, no
+ingest change, no model retrain. This pack is an input to a P5 gate read and a
+Board decision, both of which are someone else's to make.
 
 ---
 

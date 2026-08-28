@@ -410,6 +410,40 @@ def paired_daily(panel: pd.DataFrame, arm_a: str, arm_b: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+#: ABL-283's own decomposition hours, reused verbatim so its table and this one
+#: are comparable rather than merely similar.
+NIGHT_HOURS = [0, 1, 2, 3, 22, 23]
+MIDDAY_HOURS = [9, 10, 11, 12, 13, 14]
+
+
+def diurnal_bias(panel: pd.DataFrame) -> pd.DataFrame:
+    """Night-vs-midday relative bias per arm (the ABL-277/283 signature).
+
+    A basis divergence (behind-the-meter solar netted out of the realized
+    series but not the forecast) shows up as a clean midday-only skew with a
+    quiet night. A plain calibration error does not. The two need different
+    fixes, so the swing is worth separating from the daily mean bias.
+    """
+    def relbias(g: pd.DataFrame, arm: str) -> float:
+        denom = g["actual"].sum()
+        return float((g[arm] - g["actual"]).sum() / denom * 100) if denom else float("nan")
+
+    hour = panel["target"].dt.hour
+    rows = []
+    for country, g in panel.groupby("country_code", sort=True):
+        h = g["target"].dt.hour
+        night, midday = g[h.isin(NIGHT_HOURS)], g[h.isin(MIDDAY_HOURS)]
+        rec = {"country": country}
+        for arm in ("tso_d1_last", "ml_d2"):
+            rec[f"{arm}_night_pct"] = relbias(night, arm)
+            rec[f"{arm}_midday_pct"] = relbias(midday, arm)
+            rec[f"{arm}_all_pct"] = relbias(g, arm)
+            rec[f"{arm}_diurnal_swing_pp"] = (
+                rec[f"{arm}_midday_pct"] - rec[f"{arm}_night_pct"])
+        rows.append(rec)
+    return pd.DataFrame(rows)
+
+
 def recommend(table: pd.DataFrame, vs_ml: pd.DataFrame,
               vs_d7: pd.DataFrame) -> pd.DataFrame:
     """Per-country D+1 serving recommendation, derived from the paired reads.
@@ -528,6 +562,7 @@ def main() -> int:
         "evaluability_screen": json.loads(orphan.to_json(orient="records")),
         "per_country": json.loads(table.to_json(orient="records")),
         "tso_d1_bias_correction": json.loads(tso_debias.to_json(orient="records")),
+        "diurnal_bias": json.loads(diurnal_bias(panel).to_json(orient="records")),
         "recommendation": json.loads(
             recommend(table, tso_vs_ml, tso_vs_d7).to_json(orient="records")),
         "paired_tso_d1_last_vs_ml_d2": json.loads(tso_vs_ml.to_json(orient="records")),
