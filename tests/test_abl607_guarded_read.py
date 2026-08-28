@@ -36,6 +36,7 @@ import ast
 import json
 import re
 import sqlite3
+import statistics
 import sys
 from pathlib import Path
 
@@ -459,12 +460,23 @@ def test_the_published_census_could_have_detected_something():
 # belongs in the revised set and the list named three countries. A section
 # whose whole argument is that numbers move underneath you is the last place
 # in the repo to quote them from memory.
+#
+# Review on PR #102 then caught a third, and it is the reason every list in
+# this section is now derived rather than counted: BE also qualified for the
+# margin table's right-hand column -- a loss of +1.78 pp whose `ci_lo` of
+# -1.15 is inside the 1.34 pp step the section measures against -- and the
+# table named three cells. A row-count assertion cannot see that. It pins the
+# rows the table *shows*; only a set recomputed from the record can notice a
+# row the table should show and does not. So both columns are membership
+# assertions below, not counts.
 
 #: U+2212. The reports use a real minus sign, not a hyphen.
 MINUS = "−"
 
 #: Spelled out in the prose, so a pin on the count has to spell it too.
-NUMBER_WORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+NUMBER_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+                7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven",
+                12: "twelve"}
 
 
 def _flat(text):
@@ -520,20 +532,48 @@ def test_the_margin_table_agrees_with_the_records():
         f"3.1 states a maximum vintage step the two records do not give; "
         f"recomputed {steps[worst]:.2f} pp on {worst}")
     assert f"({worst})" in prose, f"the largest step is {worst}'s"
+    assert f"across the {len(steps)} countries" in prose
+
+    # The two summary figures quoted beside the maximum. The median is
+    # estimator-independent at 2dp; p75 is not -- 0.19 under the linear
+    # interpolation numpy and pandas default to, 0.20 under the stdlib's -- so
+    # this pin also records which estimator the sentence means.
+    ordered = sorted(steps.values())
+    assert f"median {statistics.median(ordered):.2f}" in prose
+    assert f"p75 {statistics.quantiles(ordered, n=4)[2]:.2f}" in prose
 
     # Every cell the table names, at the sign and precision shown.
     shown = _margin_table(raw)
-    assert len(shown) == 8, f"the margin table lost rows -- parsed {sorted(shown)}"
     for country, quoted in shown.items():
         actual = f"{reread[country]['ci_lo']:+.2f}".replace("-", MINUS)
         assert actual == quoted, (
             f"3.1 shows {country} at ci_lo {quoted}, the re-read has {actual}")
 
+    # Both columns as membership, not as a row count. A count pins the rows the
+    # table shows and cannot notice a row it should show and does not, which is
+    # how BE was missing from the right-hand column on first writing.
+    survivors = {c for c, r in reread.items()
+                 if r["readable"] and r["mean_daily_wape_diff"] > 0}
+    inside = {c for c in survivors if reread[c]["ci_lo"] < steps[worst]}
+    assert {c for c, v in shown.items() if v.startswith("+")} == inside, (
+        f"the survivors inside one vintage step are {sorted(inside)}; 3.1's "
+        f"left column shows {sorted(c for c, v in shown.items() if v[0] == '+')}")
+    assert (f"{NUMBER_WORDS[len(inside)]} of the {NUMBER_WORDS[len(survivors)]} "
+            f"survivors") in prose
+
+    below = {c for c, r in reread.items()
+             if r["mean_daily_wape_diff"] > 0 and r["ci_lo"] < 0
+             and -r["ci_lo"] < steps[worst]}
+    assert {c for c, v in shown.items() if v.startswith(MINUS)} == below, (
+        f"the cells with a positive central estimate sitting inside one vintage "
+        f"step below the line are {sorted(below)}; 3.1's right column shows "
+        f"{sorted(c for c, v in shown.items() if v.startswith(MINUS))}")
+    assert (f"{NUMBER_WORDS[len(below)]} cells with a positive central "
+            f"estimate") in prose
+
     # The claim that separates a finding from a provisional count: the cells
     # called out as robust are exactly the losers outside one observed step.
-    robust = {c for c, r in reread.items()
-              if r["readable"] and r["mean_daily_wape_diff"] > 0
-              and r["ci_lo"] > steps[worst]}
+    robust = survivors - inside
     assert robust == {"AT", "CZ", "SI", "SK"}, (
         f"the losers outside one vintage step are now {sorted(robust)}; "
         f"3.1 names SK, AT, CZ and SI")
@@ -542,6 +582,17 @@ def test_the_margin_table_agrees_with_the_records():
     assert f"+{margins[0]:.2f} … +{margins[-1]:.2f}" in prose, (
         f"the range row for the four robust cells should read "
         f"+{margins[0]:.2f} ... +{margins[-1]:.2f}")
+
+    # ...and the sentence naming them is scoped to the readable cells, because
+    # plenty of unreadable ones sit outside the step too. GR is quoted by its
+    # binding bound, which for a win is ci_hi.
+    readable = {c for c, r in reread.items() if r["readable"]}
+    assert f"Of the {NUMBER_WORDS[len(readable)]} readable cells" in prose
+    winners = readable - survivors
+    assert winners == {"GR"}, f"the readable winners are now {sorted(winners)}"
+    ci_hi = f"{reread['GR']['ci_hi']:.2f}".replace("-", MINUS)
+    assert f"`ci_hi` = {ci_hi}" in prose, (
+        f"3.1 quotes GR's binding bound; the re-read has {ci_hi}")
 
 
 def test_the_margin_table_is_not_vacuous():

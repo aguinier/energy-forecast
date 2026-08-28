@@ -221,24 +221,24 @@ finding. Treat **9 of 23** as the current count.
 the cell that happened to cross. Measuring the margins against the size of the
 step that moved it — one vintage step shifted `ci_lo` by at most **1.34 pp**
 (DE), median 0.06, p75 0.20 across the 24 countries — five of the nine
-survivors sit inside that observed maximum, and three cells with a positive
-central estimate sit just under the line on the other side:
+survivors sit inside that observed maximum, and four cells with a positive
+central estimate sit inside it on the other side of the line:
 
 | readable losers, by margin | `ci_lo` (pp) | | below the line | `ci_lo` (pp) |
 |---|---:|---|---|---:|
 | PT | +0.15 | | NO | −0.05 |
 | PL | +0.56 | | FR | −0.27 |
 | LV | +0.64 | | DE | −0.46 |
-| SE | +0.89 | | | |
+| SE | +0.89 | | BE | −1.15 |
 | ES | +1.03 | | | |
 | SK, AT, CZ, SI | +1.82 … +5.23 | | | |
 
 So the count is not a stable property of the fortnight: it is a threshold
 crossing on cells whose margins are the same size as one day of data arriving.
-Only **SK, AT, CZ and SI** — and the GR win, whose binding bound is `ci_hi` =
-−2.95 — are outside the range a single vintage step has already been observed
-to move. Read those five as the findings; read the count itself as provisional
-until the ~30-day re-read.
+Of the ten readable cells, only **SK, AT, CZ and SI** — and the GR win, whose
+binding bound is `ci_hi` = −2.95 — are outside the range a single vintage step
+has already been observed to move. Read those five as the findings; read the
+count itself as provisional until the ~30-day re-read.
 
 Every number outside this subsection is the 15:58 vintage, quoted from
 `reports/abl_607_d2_load_diagnosis.json`. They are not restated against the
