@@ -34,6 +34,7 @@ drift from the other.
 
 import ast
 import json
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -60,6 +61,9 @@ SCRIPT = REPO_ROOT / "scripts" / "abl607_d2_load_diagnosis.py"
 #: machine record no longer contained, which is the defect this file exists to
 #: prevent, at a hundred sites instead of three.
 REPORT = REPO_ROOT / "reports" / "abl_607_d2_load_diagnosis_reread.json"
+#: The pack's first run, kept for the vintage comparison in section 3.1.
+PUBLISHED = REPO_ROOT / "reports" / "abl_607_d2_load_diagnosis.json"
+PROSE = REPO_ROOT / "reports" / "abl_607_d2_load_diagnosis.md"
 
 
 @pytest.fixture(autouse=True)
@@ -438,3 +442,90 @@ def test_the_published_census_could_have_detected_something():
     assert census["rows_read"] == report["meta"]["guard_rows_read"]
     assert census["rows_would_be_refused"] == report["meta"]["guard_would_refuse"]
     assert census["rows_dropped"] == report["meta"]["guard_rows_dropped"]
+
+
+# --------------------------------------------------------------------------
+# 4. the corrected count carries its own fragility
+# --------------------------------------------------------------------------
+
+#: U+2212. The reports use a real minus sign, not a hyphen.
+MINUS = "\u2212"
+
+
+def _paired_by_country(report_path):
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    return {row["country"]: row
+            for row in report["section_a_reproduction"]["paired_ml_band_vs_d7"]}
+
+
+def _margin_table(prose):
+    """The section 3.1 margin table, as {country: shown ci_lo string}.
+
+    Scoped to the table rather than swept over the whole file: several other
+    tables in this report carry a country and a signed number, and a regex
+    loose enough to catch them would pin the wrong rows.
+    """
+    start = prose.index("| readable losers, by margin |")
+    block = prose[start:prose.index("\n\n", start)]
+    return dict(re.findall(rf"\| ([A-Z]{{2}}) \| ([+{MINUS}][\d.]+) \|", block))
+
+
+def test_the_margin_table_agrees_with_the_records():
+    """Section 3.1 corrects a published count from 10 to 9, then argues the 9
+    is no firmer than the 10 was, by quoting each cell's distance from the
+    readability threshold against the size of one observed vintage step.
+
+    That argument is worth something only if its numbers are the records'.
+    Both records are on disk -- the first run and the re-read -- so the margins
+    and the step size are recomputable, and this holds the prose to them. It
+    fails in both directions: a table row that drifts from the record is red,
+    and so is a record that moves under a table left as it was.
+    """
+    prose = PROSE.read_text(encoding="utf-8")
+    published, reread = _paired_by_country(PUBLISHED), _paired_by_country(REPORT)
+
+    # The size of one vintage step, at the precision the prose states it to.
+    steps = {c: abs(reread[c]["ci_lo"] - published[c]["ci_lo"])
+             for c in reread.keys() & published.keys()}
+    worst = max(steps, key=steps.__getitem__)
+    assert f"at most **{steps[worst]:.2f} pp**" in prose and f"({worst})" in prose, (
+        f"section 3.1 states a maximum vintage step the two records do not "
+        f"give; recomputed {steps[worst]:.2f} pp on {worst}")
+
+    # Every cell the table names, at the sign and precision shown.
+    shown = _margin_table(prose)
+    assert len(shown) == 8, f"the margin table lost rows -- parsed {sorted(shown)}"
+    for country, quoted in shown.items():
+        actual = f"{reread[country]['ci_lo']:+.2f}".replace("-", MINUS)
+        assert actual == quoted, (
+            f"section 3.1 shows {country} at ci_lo {quoted}, "
+            f"the re-read record has {actual}")
+
+    # The claim that separates a finding from a provisional count: the cells
+    # called out as robust are exactly the losers outside one observed step.
+    robust = {c for c, r in reread.items()
+              if r["readable"] and r["mean_daily_wape_diff"] > 0
+              and r["ci_lo"] > steps[worst]}
+    assert robust == {"AT", "CZ", "SI", "SK"}, (
+        f"the losers outside one vintage step are now {sorted(robust)}; "
+        f"section 3.1 names SK, AT, CZ and SI")
+    assert "**SK, AT, CZ and SI**" in prose
+    margins = sorted(reread[c]["ci_lo"] for c in robust)
+    assert f"+{margins[0]:.2f} \u2026 +{margins[-1]:.2f}" in prose, (
+        f"the table's range row for the four robust cells is not "
+        f"+{margins[0]:.2f} … +{margins[-1]:.2f}")
+
+
+def test_the_margin_table_is_red_when_the_prose_drifts():
+    """The anti-vacuity half: a table that agreed with nothing would satisfy
+    the test above just as well if the parse silently found no rows."""
+    prose = PROSE.read_text(encoding="utf-8")
+    reread = _paired_by_country(REPORT)
+    shown = _margin_table(prose)
+
+    assert shown, "the margin table parsed to nothing -- the test above is vacuous"
+    # Every parsed row must name a country that exists and is quoted with the
+    # sign its interval actually has, or the parse is matching decoration.
+    for country, quoted in shown.items():
+        assert country in reread, f"{country} is not a scored country"
+        assert quoted.startswith(MINUS) == (reread[country]["ci_lo"] < 0)
