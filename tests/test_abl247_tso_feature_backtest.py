@@ -33,6 +33,7 @@ from scripts.abl247_tso_feature_backtest import (  # noqa: E402
     feature_at_cutoffs,
     fit_affine,
     json_safe,
+    normalize_ts,
     wape,
 )
 
@@ -371,3 +372,72 @@ def test_the_record_is_strict_json_with_unmeasured_cells_as_null():
     assert parsed["c"] == {"d": None, "e": 3, "f": True}
     assert parsed["g"] is None
     assert parsed["h"] == "text"
+
+
+# --------------------------------------------------------------------------
+# The alignment defect that invalidated the first live run (2026-08-28)
+# --------------------------------------------------------------------------
+
+
+def test_normalize_ts_preserves_a_non_contiguous_index():
+    """Parsing must not silently re-key the column it is assigned back into.
+
+    Every read in this harness filters rows before parsing -- `.isin(
+    SUPPORTED_COUNTRIES)`, `.dropna()` -- so the frame reaching `normalize_ts`
+    has a gappy index as a matter of course, never a `RangeIndex`. An earlier
+    version rebuilt the result as `pd.Series(list(values))`, which carries a
+    fresh positional `RangeIndex`; `frame["target"] = normalize_ts(...)` then
+    aligned label-to-label and pulled each row's timestamp from whichever row
+    happened to sit at that *position*.
+
+    The failure is silent in the worst way: no exception, no nulls, and a column
+    full of real timestamps that belong to other rows.
+    """
+    frame = pd.DataFrame(
+        {"country_code": ["AT", "XX", "DE", "XX", "FR"],
+         "raw": ["2026-08-13T00:00:00Z", "2026-08-14 00:00:00",
+                 "2026-08-15T00:00:00Z", "2026-08-16 00:00:00",
+                 "2026-08-17T00:00:00Z"]})
+    kept = frame[frame["country_code"] != "XX"]        # index 0, 2, 4
+    assert not kept.index.equals(pd.RangeIndex(len(kept)))
+
+    kept = kept.copy()
+    kept["parsed"] = normalize_ts(kept["raw"])
+
+    assert kept["parsed"].notna().all(), "index alignment dropped rows to NaT"
+    assert list(kept["parsed"]) == [pd.Timestamp("2026-08-13"),
+                                    pd.Timestamp("2026-08-15"),
+                                    pd.Timestamp("2026-08-17")]
+
+
+def test_normalize_ts_still_accepts_a_bare_sequence():
+    """`replica_state` passes a one-element list, not a Series."""
+    assert normalize_ts(["2026-08-28T14:11:02.196Z"]).iloc[0] == \
+        pd.Timestamp("2026-08-28 14:11:02.196")
+
+
+def test_a_vintage_cannot_be_known_further_ahead_than_it_was_published():
+    """The invariant the alignment defect violated, stated on the panel.
+
+    A TSO day-ahead value selected at a cutoff must have been first seen at or
+    before that cutoff -- so `generated_at - tso_first_seen` is non-negative,
+    and the feature's lead over its target cannot exceed the longest lead the
+    archive actually contains. The corrupted run reported a median lead of
+    54.07h in a band whose rows sit 48-64h out, against a measured maximum
+    forward lead of 47.07h; that arithmetic impossibility is what this pins.
+    """
+    tso = _vintages([
+        ("AT", "2026-08-20 12:00", 100.0, "2026-08-19 06:00"),   # lead 30h
+        ("AT", "2026-08-20 12:00", 110.0, "2026-08-20 06:00"),   # lead  6h
+        ("AT", "2026-08-22 12:00", 120.0, "2026-08-21 06:00"),   # lead 30h
+    ])
+    cutoffs = pd.DatetimeIndex([pd.Timestamp("2026-08-20 07:00")])
+
+    feature = feature_at_cutoffs(tso, cutoffs)
+
+    age = (feature["generated_at"] - feature["tso_first_seen"])
+    assert (age >= pd.Timedelta(0)).all(), "selected a vintage from the future"
+    lead = (feature["target"] - feature["tso_first_seen"])
+    assert lead.max() <= pd.Timedelta(hours=30)
+    # The 08-22 target had not been published by the 08-20 07:00 cutoff.
+    assert pd.Timestamp("2026-08-22 12:00") not in set(feature["target"])

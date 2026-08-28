@@ -157,8 +157,19 @@ def normalize_ts(values) -> pd.Series:
     The two sources spell the separator differently -- `ml` writes an ISO `T`,
     `tso` writes a space -- and joining on the raw text silently matches
     nothing.
+
+    **The caller's index is preserved, and that is load-bearing.** Every read
+    here filters rows (``.isin(SUPPORTED_COUNTRIES)``, ``.dropna()``) before
+    parsing, which leaves a non-contiguous index; an earlier version rebuilt the
+    result as ``pd.Series(list(values))`` with a fresh ``RangeIndex``, so
+    ``frame["target"] = normalize_ts(frame["raw"])`` aligned label-to-label
+    against a positional index and silently scrambled the column. It did not
+    raise and it did not produce nulls -- it produced plausible timestamps
+    attached to the wrong rows, which read as a TSO vintage being knowable up to
+    427.81h ahead of its target against a true maximum of 47.07h.
     """
-    return pd.to_datetime(pd.Series(list(values)), format="mixed", utc=True,
+    series = values if isinstance(values, pd.Series) else pd.Series(list(values))
+    return pd.to_datetime(series, format="mixed", utc=True,
                           errors="coerce").dt.tz_localize(None)
 
 
