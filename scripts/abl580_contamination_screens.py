@@ -98,9 +98,10 @@ from scripts.abl525_train_ship_set import (  # noqa: E402
 BATCH_RECORDS = {
     "abl580": "reports/abl_580_contamination_screens.json",
     "abl583": "reports/abl_583_contamination_screens.json",
+    "abl602": "reports/abl_602_contamination_screens.json",
 }
 
-BATCH_ISSUES = {"abl580": "ABL-580", "abl583": "ABL-583"}
+BATCH_ISSUES = {"abl580": "ABL-580", "abl583": "ABL-583", "abl602": "ABL-602"}
 
 #: ABL-338's threshold, the one the serving clamp and every published night
 #: screen use. Imported would be better; it is a module-private constant in

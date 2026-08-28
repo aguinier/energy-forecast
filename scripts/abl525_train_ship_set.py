@@ -24,6 +24,11 @@ machine record, and no run refits another batch's artifacts.
              once ABL-581 read it at the current 27-name list under its own
              pre-registered scope. It was pair 8 of the original `ship8` roster
              and was withdrawn on 2026-08-27; the row records both moves.
+    abl602   the five pairs the Board's `widen7` answer admits once the
+             causally-available standard is applied to the machine record. This
+             batch is a *widening* of the roster rather than an admission under
+             the standing rule, so it carries a Board answer of its own; see
+             "THE ABL-602 WIDENED SET" below for why it is five and not seven.
 
 A pair appears **once**. A batch is the admission that authorises the row as it
 stands, not a log of every disposition the row has had -- that is what
@@ -143,6 +148,60 @@ carries `meta.feature_columns` as 27 literal names, and that tuple is
 element-for-element identical to today's `solar_retrain.FEATURE_COLUMNS`. So
 these two are the opposite of CH -- the graded list and the current builder's
 list are the same object, and shipping them at the default forks nothing.
+
+THE ABL-602 WIDENED SET: FIVE, NOT SEVEN
+-----------------------------------------
+The Board answered `widen7` on ABL-316 on 2026-08-28, adopting the
+causally-available standard for the widened set. Applying that standard to the
+committed gate records leaves five pairs, not seven: `NO` and `RO`
+`wind_onshore` also fail **G4** -- slope > 0 and correlation > 0, computed from
+the challenger's own predictions against the actuals in the gate window, which
+is causally available and not a reference comparison. Re-verified here against
+the records rather than taken from the card:
+
+    NO wind_onshore   reports/abl_418_retro_grade.json, tranche 2b -> grade B,
+                      G4 false, and B under all four levelling/readability
+                      conventions ABL-444 reports.
+    RO wind_onshore   experiments/ABL348/results_abl417_tranche2e.json -> grade
+                      B with G4 false in all three bands (24-36h, 36-48h,
+                      48-64h).
+
+Neither is in `SHIP_SET`. That exclusion is the CEO's ruling reported on
+ABL-316, not a judgement this script makes.
+
+THE LETTER DEPENDS ON THE CONVENTION, AND FOUR OF THE FIVE MOVE
+---------------------------------------------------------------
+Every scope in this batch is a *published* scope and is therefore pinned by
+value on both grading axes -- `CAUSAL_LEVELLING[scope] = FIT_WINDOW` and
+`G23_READABILITY[scope] = SIGN_TEST` for `abl316-t2d`, `abl417-tranche2e` and
+`abl406-tranche2b`. So the registered letter is the published one. ABL-437 and
+ABL-444 moved the *defaults* a new scope would inherit to `trailing_28d` and
+`FLOORED`, and `reports/abl_444_g23_floor_reread.json` reports every pair under
+all four combinations. The worst-band letters:
+
+    pair              registered              amended defaults
+                      fit_window/sign_test    trailing_28d/floored
+    LT solar          A                       N   (G3 -6.87%, inside 10.65)
+    SE solar          A                       N   (G3 -8.65%, inside 10.65)
+    PL wind_onshore   A                       A
+    HR wind_onshore   A                       N   (G2 +2.80 / G3 +2.02, inside 7.51)
+    HU wind_onshore   B                       B   (G2 -26.78 / G3 -25.51)
+
+Only PL holds a letter under both. That is a property of the evidence, not a
+defect in it -- an abstention (`N`) is "the margin is inside the floor", not a
+loss -- but a reader given only the published letter would not know which four
+move.
+
+`HU` is the row to read twice. ABL-602's own description characterises it as
+"G2/G3 inside floor -- abstention, not a readable loss". That is true under
+`fit_window/floored` and under neither endpoint: HU is `B` under the registered
+convention (G2 -1.75%, G3 -2.13% at the worst band -- a loss, unreadable but
+signed) and `B` under the fully amended defaults, where the same margins become
+**-26.78% and -25.51%**, three and a half times the 7.51% wind floor and
+unambiguously readable. `N` appears only when ABL-444's floor is applied
+*without* ABL-437's levelling. This script still fits HU, because membership is
+the CEO's and this script fits what membership names; the correction is carried
+in `reports/abl_602_widen5_ship.md` section 3 and reported on ABL-316.
 """
 
 import argparse
@@ -246,6 +305,71 @@ SHIP_SET = (
             "readmission is the CEO's disposition; nothing here re-derives it."
         ),
     },
+    # ABL-602: the five pairs the Board's `widen7` answer (2026-08-28) admits
+    # once the causally-available standard is applied to the committed records.
+    # None pins a feature list, and for each type the reason is checked rather
+    # than assumed:
+    #
+    #   solar (LT, SE)  tranche 2d records `meta.n_features: 27` and a
+    #                   `meta.feature_columns` element-for-element identical to
+    #                   `tests/feature_list_manifest.json -> gate_harness.solar
+    #                   .columns` and to today's `solar_retrain.FEATURE_COLUMNS`.
+    #                   The manifest's frozen note names only `abl253` and
+    #                   `abl316-t1b` as fitted at the legacy 25, so 2d is not a
+    #                   CH-shaped case and needs no ABL-581-style re-read.
+    #   wind (HR,HU,PL) `wind_retrain.FEATURE_COLUMNS` is 24 names whose
+    #                   comma-joined sha256 is `2a034c79a1cd` at every commit
+    #                   that ever touched the file (601f10f 2026-08-11,
+    #                   eaab3e3, 75adff8, and origin/main today), so the graded
+    #                   list and the builder's list cannot have diverged.
+    #                   ABL-395's geometry features are solar-only by design.
+    #
+    # Both types here are catboost, but `algorithm_for` still resolves per type
+    # from the harnesses -- the ABL-580 lesson, which is that a batch whose rows
+    # happen to agree with a constant is not a batch that may restate one.
+    {"country": "LT", "forecast_type": "solar", "batch": "abl602",
+     "tranche": "2d (abl316-t2d)", "hold": None},
+    {"country": "SE", "forecast_type": "solar", "batch": "abl602",
+     "tranche": "2d (abl316-t2d)", "hold": None,
+     "admission_history": (
+         "Thinnest pair in the widened set: +11.29% worst-band D-7 skill "
+         "against a 10.65% k=1 readability floor, 0.64pp of headroom. It plays "
+         "the role CZ wind_onshore plays for the approved set (ABL-316 ledger "
+         "15.2) -- if any future correction moves the k=1 floor, SE solar is "
+         "the first pair withdrawn."
+     )},
+    {"country": "HR", "forecast_type": "wind_onshore", "batch": "abl602",
+     "tranche": "2e (abl417-tranche2e)", "hold": None,
+     "admission_history": (
+         "Published letter A under the registered fit_window/sign_test "
+         "convention. Under the ABL-437/444 amended defaults "
+         "(trailing_28d/floored) the 24-36h band abstains: G2 +2.80% and G3 "
+         "+2.02% both sit inside the 7.51% wind floor, so the pair letter is N. "
+         "Quote the convention with the letter; see the module docstring."
+     )},
+    {"country": "HU", "forecast_type": "wind_onshore", "batch": "abl602",
+     "tranche": "2e (abl417-tranche2e)", "hold": None,
+     "admission_history": (
+         "Grade B under the registered convention AND under the amended "
+         "defaults -- not an abstention under either endpoint. G1 holds "
+         "(+15.13% vs D-7 at the worst band) and G4 holds, but G2/G3 are a "
+         "signed loss to constant_causal and climatology_causal at -1.75% / "
+         "-2.13% under fit-window levelling, and -26.78% / -25.51% under "
+         "trailing-28d levelling, where they are far outside the 7.51% floor "
+         "and therefore READABLE. The N reading in ABL-602's description comes "
+         "from fit_window/floored, which applies ABL-444 without ABL-437. "
+         "Fitted here because membership is the CEO's; the correction is "
+         "reported on ABL-316."
+     )},
+    {"country": "PL", "forecast_type": "wind_onshore", "batch": "abl602",
+     "tranche": "2b (abl406-tranche2b, graded by the ABL-418 retro ladder)",
+     "hold": None,
+     "admission_history": (
+         "The only pair in this batch that holds grade A under all four "
+         "levelling/readability conventions ABL-444 reports. Its stored tranche "
+         "record predates the G1-G4 ladder, so the letters come from "
+         "reports/abl_418_retro_grade.json."
+     )},
 )
 
 #: The source table every one of these pairs was graded on (ABL-321/ABL-348).
@@ -416,12 +540,14 @@ BATCH_RECORDS = {
     "abl525": "reports/abl_525_ship_set_training.json",
     "abl580": "reports/abl_580_ship_set_training.json",
     "abl583": "reports/abl_583_ship_set_training.json",
+    "abl602": "reports/abl_602_ship_set_training.json",
 }
 
 #: The issue each batch's record is filed under. Kept beside `BATCH_RECORDS` so
 #: adding a batch is one place, not two -- the old inline `.get` on a literal
 #: dict was a second table waiting to disagree with the first.
-BATCH_ISSUES = {"abl525": "ABL-525", "abl580": "ABL-580", "abl583": "ABL-583"}
+BATCH_ISSUES = {"abl525": "ABL-525", "abl580": "ABL-580", "abl583": "ABL-583",
+                "abl602": "ABL-602"}
 
 BATCHES = tuple(dict.fromkeys(entry["batch"] for entry in SHIP_SET))
 
@@ -555,6 +681,30 @@ def main():
                         "either. Note that this fit window COVERS that gate "
                         "window, so those figures are not out-of-sample for "
                         "this artifact -- see fitted_on_the_gate_window.",
+            },
+            "abl602": {
+                "lt_solar": "experiments/ABL348/results_abl421_tranche2d.json",
+                "se_solar": "experiments/ABL348/results_abl421_tranche2d.json",
+                "hr_wind_onshore": "experiments/ABL348/results_abl417_tranche2e.json",
+                "hu_wind_onshore": "experiments/ABL348/results_abl417_tranche2e.json",
+                "pl_wind_onshore": "reports/abl_418_retro_grade.json "
+                                   "(tranche 2b; the stored record "
+                                   "experiments/ABL348/results_abl406_tranche2b.json "
+                                   "predates the G1-G4 ladder)",
+                "levelling_conventions": "reports/abl_444_g23_floor_reread.json",
+                "board_answer": "abl316 widen7, 2026-08-28, adopting the "
+                                "causally-available standard for the widened set",
+                "note": "Read at origin/main 79433d0b. Registered convention for "
+                        "all three scopes is fit_window levelling with a "
+                        "sign_test G2/G3 (CAUSAL_LEVELLING / G23_READABILITY "
+                        "pin every published scope by value). Under the "
+                        "ABL-437/444 amended defaults the worst-band letters "
+                        "move for four of the five: LT A->N, SE A->N, HR A->N, "
+                        "HU B->B, PL A->A. NO and RO wind_onshore are NOT in "
+                        "this batch -- both fail G4, which is causally "
+                        "available, so the standard the Board adopted excludes "
+                        "them. Grades and membership are the CEO's disposition; "
+                        "nothing here re-derives or re-grades them.",
             },
         },
         "protocol": {
