@@ -12,6 +12,7 @@ because deleting real MW is silent and a 140 GW outlier is not.
 """
 
 import ast
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -645,6 +646,9 @@ def test_the_archive_bounds_its_reference_on_target_timestamp_for_a_backtest():
 #: failure mode this pins -- it would pass every other test in the suite and
 #: only show up as a model that fitted on a 140 GW row.
 GUARDED_READ_SITES = (
+    "scripts/abl247_vintage_availability_probe.py",
+    "scripts/abl430_ro_country_diagnosis.py",
+    "scripts/abl439_reporting_basis_probe.py",
     "src/challengers/v014_features.py",
     "src/chronos2/input_builder.py",
     "src/evaluation/scorecard.py",
@@ -676,45 +680,198 @@ def test_every_wired_read_site_calls_the_guard(relative_path):
         f"the ABL-431 guard")
 
 
-def test_no_unguarded_module_reads_a_tso_forecast_table():
-    """The inverse, so the list above cannot quietly go stale.
+TSO_TABLES = ("energy_generation_forecast", "energy_load_forecast",
+              VINTAGE_ARCHIVE_TABLE)
 
-    Any `src/` module naming one of the three TSO forecast tables is either on
-    the guarded list or on the acknowledged-exempt list below, with a reason.
-    This is the check that fires when ABL-247 adds its feature read.
+#: Directories the sweep does not walk, and why.  **Everything else under the
+#: repo root is in scope**, which is the ABL-462 fix: the sweep shipped walking
+#: `src/` alone, so byte-identical unguarded readers were caught under `src/`
+#: and passed silently under `scripts/` -- the directory ABL-247's gated
+#: backtest actually occupies.  A denylist of non-source directories cannot
+#: acquire a new blind spot when someone adds a directory; an allowlist of
+#: roots did, and nothing in the suite noticed for two weeks.
+SWEEP_SKIP_DIRS = frozenset({
+    ".git", ".venv", "venv", "env", "__pycache__", ".pytest_cache",
+    ".mypy_cache", ".ruff_cache", "node_modules", "build", "dist",
+    "site-packages", ".ipynb_checkpoints",
+    # The suite itself is deliberately out of scope: these tests CREATE the
+    # three tables in fixtures and assert on their names, so a guard here would
+    # be circular -- a test proving the guard nulls a 140 GW row has to be able
+    # to write one.  Pinned by
+    # `test_the_suite_is_out_of_scope_deliberately_not_incidentally`.
+    "tests",
+})
+
+
+def _swept_python_files(root: Path):
+    """Every `*.py` under ``root`` that is repo source, not tooling or fixture."""
+    for path in sorted(root.rglob("*.py")):
+        relative = path.relative_to(root)
+        if set(relative.parts[:-1]) & SWEEP_SKIP_DIRS:
+            continue
+        yield path
+
+
+def unguarded_tso_readers(root: Path, guarded=GUARDED_READ_SITES, exempt=()):
+    """Files under ``root`` naming a TSO forecast table with no guard or exemption.
+
+    Factored out of the assertion so the sweep can be pointed at a synthetic
+    tree and *proved to fire* -- see the positive controls below.  A scope check
+    that has never been observed to fail is exactly the shape of defect ABL-462
+    was filed about.
+    """
+    found = []
+    for path in _swept_python_files(root):
+        relative = path.relative_to(root).as_posix()
+        if relative in exempt or relative in guarded:
+            continue
+        if relative.endswith("tso_plausibility.py"):
+            continue
+        text = path.read_text(encoding="utf-8")
+        if any(table in text for table in TSO_TABLES):
+            found.append(relative)
+    return found
+
+
+#: Files that name a TSO forecast table but do not read one, with the reason.
+#: Kept separate from the deliberate-raw-read exemptions because the claim is
+#: different and is independently pinned by
+#: `test_mention_only_exemptions_execute_no_query_against_a_tso_table`.
+MENTION_ONLY_EXEMPT = (
+    # ABL-462: names both live tables only inside the `source_cutoffs` block of
+    # the attestation manifest it emits -- a description of where V014's
+    # features come from.  The read itself is `src/challengers/v014_features.py`,
+    # which is on the guarded list.  Measured: no FROM/JOIN against either table
+    # anywhere in the file.
+    "scripts/attest_net_position_serve_faithfulness.py",
+)
+
+#: Files that read a TSO forecast column raw, on purpose, with the reason.
+EXEMPT_READS = (
+    # Column->covariate mapping only; the read itself is input_builder's.
+    "src/chronos2/covariate_mapper.py",
+    # `TSOBaseline` queries a `timestamp_utc` column that neither TSO table
+    # has (they use `target_timestamp_utc`), so every call raises
+    # OperationalError. Wiring a guard into a read that cannot execute would
+    # assert a coverage this module does not have. Left as found: it is a
+    # separate defect and fixing it is not this issue.
+    "src/baselines.py",
+    # chronos-bolt legacy path; its runner points at a venv that does not
+    # exist on this box (CLAUDE.md, "Skipped is a flag"), so it is unrunnable
+    # here and cannot be verified end-to-end under this change.
+    "src/chronos_forecaster.py",
+    "src/chronos_train.py",
+)
+
+SWEEP_EXEMPT = MENTION_ONLY_EXEMPT + EXEMPT_READS
+
+
+def test_no_unguarded_module_reads_a_tso_forecast_table():
+    """The inverse, so the guarded list above cannot quietly go stale.
+
+    Any repo module naming one of the three TSO forecast tables is either on the
+    guarded list or on an acknowledged-exempt list, with a reason.  This is the
+    check that fires when ABL-247 adds its feature read -- and ABL-462 is why it
+    now walks `scripts/`, which is where that read will be written.
 
     `forecast_vintage_archive` is in the list because ABL-247 reads *that*
     table, not the two live ones -- it needs issued vintages, and the archive is
     the only place they exist. Without it here this test would have passed while
     ABL-247 fitted straight through the guard on the same 96 HU rows (ABL-458).
     """
-    exempt = {
-        # Column->covariate mapping only; the read itself is input_builder's.
-        "src/chronos2/covariate_mapper.py",
-        # `TSOBaseline` queries a `timestamp_utc` column that neither TSO table
-        # has (they use `target_timestamp_utc`), so every call raises
-        # OperationalError. Wiring a guard into a read that cannot execute would
-        # assert a coverage this module does not have. Left as found: it is a
-        # separate defect and fixing it is not this issue.
-        "src/baselines.py",
-        # chronos-bolt legacy path; its runner points at a venv that does not
-        # exist on this box (CLAUDE.md, "Skipped is a flag"), so it is unrunnable
-        # here and cannot be verified end-to-end under this change.
-        "src/chronos_forecaster.py",
-        "src/chronos_train.py",
-    }
-    tables = ("energy_generation_forecast", "energy_load_forecast",
-              VINTAGE_ARCHIVE_TABLE)
-    unguarded = []
-    for path in sorted((REPO_ROOT / "src").rglob("*.py")):
-        relative = path.relative_to(REPO_ROOT).as_posix()
-        if relative in exempt or relative in GUARDED_READ_SITES:
-            continue
-        if relative.endswith("tso_plausibility.py"):
-            continue
-        text = path.read_text(encoding="utf-8")
-        if any(t in text for t in tables):
-            unguarded.append(relative)
+    unguarded = unguarded_tso_readers(REPO_ROOT, exempt=SWEEP_EXEMPT)
     assert not unguarded, (
         f"these modules read a TSO forecast table without the ABL-431 guard and "
         f"are not on the exempt list: {unguarded}")
+
+
+# --------------------------------------------------------------------------
+# ABL-462: the sweep's scope, proved rather than declared
+# --------------------------------------------------------------------------
+
+#: An unguarded reader, byte-identical wherever it is planted. This is the
+#: control ABL-462 ran by hand against `origin/main` = e0ec351: dropped in
+#: `src/` the sweep named it, dropped in `scripts/` the suite returned 35
+#: passed.  Keeping it as a fixture is what stops that from recurring.
+_UNGUARDED_PROBE = '''"""Positive control: an unguarded TSO archive read."""
+import pandas as pd
+
+
+def read(conn):
+    return pd.read_sql("SELECT * FROM forecast_vintage_archive", conn)
+'''
+
+#: Every directory of the repo the sweep must cover, derived from the tree
+#: rather than listed, so a new source directory arrives already controlled.
+SWEPT_DIRECTORIES = tuple(sorted({
+    path.relative_to(REPO_ROOT).parts[0]
+    if len(path.relative_to(REPO_ROOT).parts) > 1 else "."
+    for path in _swept_python_files(REPO_ROOT)}))
+
+
+@pytest.mark.parametrize("directory", SWEPT_DIRECTORIES)
+def test_sweep_catches_an_unguarded_read_in_every_swept_directory(
+        tmp_path, directory):
+    """The positive control, one per directory the repo actually keeps code in.
+
+    Without this, a passing sweep proves nothing -- which was the defect: the
+    `src/`-only walk returned clean over an unguarded `scripts/` read.
+    """
+    target = tmp_path if directory == "." else tmp_path / directory
+    target.mkdir(parents=True, exist_ok=True)
+    probe = target / "_control_probe.py"
+    probe.write_text(_UNGUARDED_PROBE, encoding="utf-8")
+
+    found = unguarded_tso_readers(tmp_path, exempt=SWEEP_EXEMPT)
+
+    assert found == [probe.relative_to(tmp_path).as_posix()], (
+        f"an unguarded archive read under {directory!r} was not detected; the "
+        f"sweep does not cover that directory")
+
+
+def test_the_directories_abl247_will_write_in_are_swept():
+    """Named, not inferred: ABL-247's gated backtest lands here, not in `src/`.
+
+    `abl247-prereg` requires every archive read to go through `guard_tso_series`.
+    That requirement is only enforceable if the sweep can see the directory the
+    work occupies.
+    """
+    assert {"scripts", "experiments", "src"} <= set(SWEPT_DIRECTORIES), (
+        f"sweep covers {SWEPT_DIRECTORIES}")
+
+
+def test_the_suite_is_out_of_scope_deliberately_not_incidentally(tmp_path):
+    """`tests/` is excluded by a named rule, so the exclusion stays reviewed.
+
+    The fixtures in this file create all three tables and write a 140,996 MW row
+    on purpose. Sweeping them would make the guard's own negative controls
+    unwritable.
+    """
+    assert "tests" in SWEEP_SKIP_DIRS
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_probe.py").write_text(_UNGUARDED_PROBE,
+                                                      encoding="utf-8")
+
+    assert unguarded_tso_readers(tmp_path, exempt=SWEEP_EXEMPT) == []
+
+
+_QUERY_CONTEXT = re.compile(r"\b(?:FROM|JOIN|INTO|UPDATE)\s+([A-Za-z_][\w]*)",
+                            re.IGNORECASE)
+
+
+@pytest.mark.parametrize("relative_path", MENTION_ONLY_EXEMPT)
+def test_mention_only_exemptions_execute_no_query_against_a_tso_table(
+        relative_path):
+    """A `names it but never reads it` exemption must not rot into a real read.
+
+    The other exemptions are claims about intent and can only be reviewed. This
+    one is a claim about the file's contents, so it is checked: if a
+    `FROM energy_load_forecast` is ever added here, the exemption fails rather
+    than covering it.
+    """
+    text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+    queried = {name.lower() for name in _QUERY_CONTEXT.findall(text)}
+    assert not queried & set(TSO_TABLES), (
+        f"{relative_path} is exempt as mention-only but now queries "
+        f"{sorted(queried & set(TSO_TABLES))}; guard the read or move it to "
+        f"EXEMPT_READS with a reason")

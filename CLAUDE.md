@@ -178,12 +178,20 @@ forecast_value, model_name, model_version)`. `model_name` is the identity;
   `src/tso_plausibility.py` nulls a read value above 3.0× a derived per-country
   reference scale (ENTSO-E ships ×1000 unit errors), never touches stored
   rows, runs **before** any hourly resample, and raises `UnknownTsoSourceError`
-  for an unregistered (table, column). A static sweep fails any `src/` module
-  naming `energy_generation_forecast`, `energy_load_forecast` or
+  for an unregistered (table, column). A static sweep fails any module naming
+  `energy_generation_forecast`, `energy_load_forecast` or
   `forecast_vintage_archive` without calling the guard or being exempt with a
   reason. A new read calls `guard_tso_frame(..., frame_column=...)` first —
   the archive read is registered and this applies to ABL-247's future feature
   read.
+- **The sweep walks the whole repo, not one directory** (ABL-462). It shipped
+  walking `src/` alone; a byte-identical unguarded reader under `scripts/` —
+  where the analysis actually lives — passed silently for two weeks, and
+  `reports/abl_430_ro_diagnosis.json` published an HU row (`corr 0.02`,
+  `WAPE 597%`) that was 96 rows of 140,996 MW, not a zone defect. `tests/` is
+  the one excluded directory, by name, because fixtures create these tables.
+  Every swept directory carries a positive control; **do not add an exemption
+  for a directory**, exempt a file with a reason.
 - **Which table a renewable artifact reads is a property of the artifact**
   (ABL-331): `training_source` is written by `Forecaster.save` and threaded to
   serve/train reads; `db.RENEWABLE_TYPE_SOURCE_TABLE` is only the default for
