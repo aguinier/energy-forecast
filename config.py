@@ -493,6 +493,16 @@ def validate_config():
 # Each entry defines a model runner that can generate forecasts.
 # - "builtin" runners use the Forecaster.load() pipeline (XGBoost/LightGBM/CatBoost)
 # - "external" runners are invoked as subprocesses with their own Python environment
+#
+# Three independent keys. "production" is load-bearing since ABL-606; before it,
+# nothing read the flag and the two entries below ran in the container anyway.
+#   "enabled"    -- wired up at all, vs parked
+#   "production" -- belongs in the *scheduled* matrix. False = workstation-only:
+#                   forecast_daily.py skips it unless --include-non-production.
+#   "python_executable" -- an absolute path on ONE box. A runner carrying one that
+#                   is not the repo .venv is workstation-only by construction, so
+#                   it must be "production": False -- otherwise the container
+#                   fails it every run (ABL-606: 8 of 440 cells, since 2026-03-05).
 MODEL_RUNNERS = [
     {
         "name": "builtin",       # Uses whatever algo is saved in model.joblib
@@ -506,6 +516,10 @@ MODEL_RUNNERS = [
         "name": "chronos-bolt-small",
         "type": "external",      # Runs as subprocess
         "enabled": True,
+        # Workstation experiment. Last wrote a forecast row 2026-03-03 (BE price,
+        # 504 rows), and the dashboard deliberately does not register the model
+        # name (server/src/config/forecastModels.ts). Its venv does not exist on
+        # this box either -- CLAUDE.md, "What a runner reports".
         "production": False,
         "countries": ["BE"],
         "forecast_types": ["price"],
@@ -516,7 +530,12 @@ MODEL_RUNNERS = [
         "name": "tso-correction",
         "type": "external",
         "enabled": True,
-        "production": False,     # tso_corrected is the challenger; tso_raw is also saved
+        # tso_corrected is the challenger; tso_raw is also saved. Both last wrote
+        # 2026-03-03 (BE, 506 rows per type per name) and neither is registered on
+        # the dashboard. The conda pin below is deliberate, not a stale path: the
+        # artifacts are LightGBM (CLAUDE.md, "The interpreter is part of the
+        # configuration"), which is exactly what makes this workstation-only.
+        "production": False,
         "countries": ["BE"],
         "forecast_types": ["solar", "wind_onshore", "wind_offshore"],
         "python_executable": r"C:\Users\guill\miniconda3\python.exe",
