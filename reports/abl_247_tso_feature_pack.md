@@ -23,9 +23,10 @@ using the TSO series alone in 6 of 8 (type, band) cells.** The feature reduces t
 "use the other forecast", which is ABL-246's result, not a new one.
 
 **Recommendation: do not adopt the TSO series as a model feature on this
-evidence.** One narrow exception is worth a pre-registered follow-up — a combiner
-beats *both* arms in the two countries where the TSO is weak (LT −6.87 pp,
-EE −3.69 pp).
+evidence.** The one apparent exception — a combiner beats *both* arms in the two
+countries where the TSO is weak (LT −6.87 pp, EE −3.69 pp) — routes to **ABL-283**
+rather than to a modelling follow-up: LT and EE are two of its six suspect TSO
+zones, and this pack reproduces their poor TSO accuracy independently (§6.3).
 
 **The larger finding is negative and belongs to the renewable models:** on the
 same rows, our solar model loses to an hour-of-day climatology by 18 pp, wind
@@ -326,7 +327,22 @@ selected after seeing the direction, on 2 of 21 countries, and I have **not**
 attached a paired interval to it. The registered comparison is
 combiner-vs-null, not combiner-vs-TSO; putting an interval on a post-hoc
 comparison after seeing which way it went is the practice a pre-registration
-exists to prevent. §9 proposes it as a pre-registered follow-up.
+exists to prevent.
+
+**And it is probably not a modelling opportunity at all.** LT and EE are two of
+the six zones **ABL-283** already carries as *suspect TSO load-forecast zones*,
+split out of ABL-277. ABL-283 measured them on prod over 2026-08-04..11 at
+**LT 14.2%** and **EE 10.8%** MAPE; this pack measures the same series on a
+different window (2026-08-13..28) under first-seen vintages at **LT 14.67%** and
+**EE 13.14%** WAPE. Those are independent reproductions of an open data-quality
+question, and the ranking of LT and EE as the fleet's two worst TSO zones is the
+same in both.
+
+So the most likely reading of "the combiner hedges in LT and EE" is that it is
+absorbing a **defective TSO series** that ABL-283 exists to establish or clear —
+not that combination has found signal. Fitting a hedge on top of a series that
+may be wrong at source would bake the defect into a model. **The correct next
+step is ABL-283, not a modelling follow-up**, and I have not filed one.
 
 ---
 
@@ -434,12 +450,15 @@ is a pre-registered gate read plus a Board decision; this is evidence.
    CEO.** This pack independently corroborates it on a second window under a
    leak-free feature protocol: TSO 3.57 vs ours 6.81 pooled WAPE on load 0–24h.
 
-3. **Worth a pre-registered follow-up: the routed/hedged design for LT and EE.**
-   The single thing here that ABL-246 does not already answer is that a combiner
-   beats *both* arms where the TSO is weak (LT −6.87 pp, EE −3.69 pp vs TSO
-   alone). That is 2 countries chosen after the fact and needs its own
-   pre-registration, its own paired interval, and a fresh window before it is
-   worth anything. I will file it rather than fold it in here.
+3. **The LT/EE hedge routes to ABL-283, not to a modelling follow-up.** The one
+   thing here ABL-246 does not already answer is that a combiner beats *both*
+   arms where the TSO is weak (LT −6.87 pp, EE −3.69 pp vs TSO alone). But LT and
+   EE are two of the six **suspect TSO load-forecast zones** ABL-283 already
+   carries, and this pack independently reproduces their poor TSO accuracy on a
+   different window under first-seen vintages (§6.3). A hedge fitted on a series
+   that may be defective at source would bake the defect into a model. **No
+   modelling issue filed**; the corroborating measurement is added to ABL-283
+   instead.
 
 4. **Priority for the renewable models is §8.1, not the TSO.** Solar, wind
    onshore and wind offshore all lose to causal model-free references on the same
