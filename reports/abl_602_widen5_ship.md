@@ -1,8 +1,10 @@
-# ABL-602 — the ABL-316 widened set: five artifacts, fitted and serving-verified
+# ABL-602 — the ABL-316 widened set: five artifacts fitted, four shipping
 
 **Issue:** ABL-602, under ABL-316.
 **Board answer:** `widen7` on ABL-316, 2026-08-28 — adopt the causally-available
 standard for the widened set.
+**CEO ruling:** 2026-08-28T12:35Z on ABL-602 — `HU` `wind_onshore` **withdrawn**;
+the other four ship unchanged and were not refitted. See §1.1.
 **Author:** Forecasting Scientist.
 **Read at:** `origin/main` `79433d0b`, branch `ABL-602-widen5-artifacts`.
 
@@ -10,6 +12,17 @@ standard for the widened set.
 > gate, and promotes nothing.** Every letter, margin and grade quoted below is
 > read out of a committed record; none is re-derived. Membership of the widened
 > set is the CEO's disposition. The production deploy is a separate issue.
+
+> **Counting convention, because two numbers are both correct.** **Five** pairs
+> were fitted, reproduced, serving-verified and screened, at 12:05–14:05Z on
+> 2026-08-28. **Four** ship. The withdrawal landed at 12:35Z, after the
+> measurements, so §§4–7 report five rows — they are the record of what was
+> executed and are not edited to match a later decision. Every one of those
+> sections marks HU's row. **The deploy's list is
+> `reports/abl_602_ship_disposition.json`, which is four rows and is the only
+> file that should be read as a shipping instruction.** The filename
+> `abl_602_widen5_ship.md` is left alone because ABL-316 and ABL-603 already
+> cite it; the `5` in it is the batch as filed, not the ship count.
 
 ---
 
@@ -27,13 +40,13 @@ Five artifacts, fitted through the **graded** gate-harness path, each with:
   training log — with each served artifact re-hashed against the training
   record.
 
-| pair | tranche | scope | algorithm | features |
-|---|:---:|---|:---:|:---:|
-| `LT` `solar` | 2d | `abl316-t2d` | catboost | 27 |
-| `SE` `solar` | 2d | `abl316-t2d` | catboost | 27 |
-| `HR` `wind_onshore` | 2e | `abl417-tranche2e` | catboost | 24 |
-| `HU` `wind_onshore` | 2e | `abl417-tranche2e` | catboost | 24 |
-| `PL` `wind_onshore` | 2b | `abl406-tranche2b` | catboost | 24 |
+| pair | tranche | scope | algorithm | features | ships |
+|---|:---:|---|:---:|:---:|:---:|
+| `LT` `solar` | 2d | `abl316-t2d` | catboost | 27 | **yes** |
+| `SE` `solar` | 2d | `abl316-t2d` | catboost | 27 | **yes** |
+| `HR` `wind_onshore` | 2e | `abl417-tranche2e` | catboost | 24 | **yes** |
+| `HU` `wind_onshore` | 2e | `abl417-tranche2e` | catboost | 24 | **no — withdrawn, §1.1** |
+| `PL` `wind_onshore` | 2b | `abl406-tranche2b` | catboost | 24 | **yes** |
 
 `NO` and `RO` `wind_onshore` are **not** here and are not in `SHIP_SET` at all.
 Both clear G1 and fail **G4** — the sign test on the challenger's own slope and
@@ -50,6 +63,64 @@ G4 is computed from the challenger's own predictions against the actuals in the
 gate window. It is not a reference comparison and carries no hindsight, so it is
 admissible under exactly the standard the Board adopted. The exclusion is the
 CEO's ruling on ABL-316; this pack only confirms the records it was taken on.
+
+### 1.1 `HU` `wind_onshore` is withdrawn — CEO ruling, 2026-08-28T12:35Z
+
+This pack was filed with five shipping pairs and §3.3 as a correction to the
+issue's reading of HU. The CEO ruled on that correction the same day. **The bar,
+in his words, stated once so it is reusable:**
+
+> A pair ships unless a **causally-available screen shows a readable loss**. An
+> abstention — margin inside the readability floor — does not block.
+
+Applied to this batch:
+
+| pair | worst causally-available screen | reading | ships |
+|---|---|---|:---:|
+| `LT` `solar` | G3 −6.87% vs a 10.65% floor | abstention | yes |
+| `SE` `solar` | G3 −8.65% vs a 10.65% floor | abstention | yes |
+| `HR` `wind_onshore` | G2 +2.80% / G3 +2.02% | beats both references | yes |
+| `PL` `wind_onshore` | A under all four conventions | clears | yes |
+| `HU` `wind_onshore` | G2/G3 −22.83% to −28.68% vs a 7.51% floor | **readable loss** | **no** |
+| `NO`, `RO` `wind_onshore` | G4 sign test | fails | no — already out |
+
+That is why LT, SE and HR ship despite moving A → N under the amended defaults
+(§3.2): `N` there is *cannot be read*, not *lost*. HU is the only pair in the
+batch on the other side of the line, and what decides it is not the magnitude —
+which is convention-dependent — but the **sign, negative in 6 of 6 band ×
+reference cells under both levellings**. There is no reading of the record under
+which HU beats a flat line. `abl_444_g23_floor_reread.json` records its
+trailing-28d cells as `failed`, not `not_readable`.
+
+It is the same argument that took NO and RO out on G4: G2 and G3 are as causally
+available as G4 is, all three being built from data available at the forecast
+issue instant. A single standard cannot exclude two pairs on one causally-
+available screen and ship a third that fails another one readably.
+
+**This is a disposition, not a re-grade.** No registered letter moves and
+`abl417-tranche2e` stays pinned at `fit_window`/`sign_test`. The bar reads both
+conventions and can therefore only ever *remove* a pair, never add one — it
+cannot be used to launder a pair in through the amended defaults.
+
+**Nothing was refitted.** The four remaining artifacts are byte-identical to
+those measured in §4; their sha256s stand, their reproducibility was proved
+per-pair at `max|a − b| = 0.000e+00`, and their serving verification was read
+per-pair out of the sidecar. 240 rows became 192 by deletion, not by
+re-measurement. HU's own numbers stay in §§4–7 because they were measured.
+
+**Where the withdrawal is recorded, so it cannot be lost:**
+
+- `SHIP_SET` — HU's row carries a `hold` naming the ruling. It keeps its row
+  rather than being deleted: a deleted row fits nothing and *says* nothing, and
+  the hazard here is an artifact that already exists in a gitignored `models/`
+  tree beside four that ship.
+- `reports/abl_602_ship_disposition.json` — the deploy's list, one row per pair
+  with `deploy: true|false` and the digest beside it, generated by
+  `scripts/abl602_ship_disposition.py` from the two committed records rather
+  than retyped.
+- `tests/test_abl602_widened_batch.py` — the membership split, the digest join,
+  and `test_hu_is_a_readable_loss_under_the_amended_defaults`, which is now the
+  withdrawal's evidence rather than a caveat.
 
 ---
 
@@ -150,15 +221,17 @@ combinations. Worst-band pair letters:
 | `HR` `wind_onshore` | **A** | **N** — G2 +2.80% / G3 +2.02%, inside the 7.51% floor | A |
 | `HU` `wind_onshore` | **B** | **B** | N |
 
-### 3.2 Four of the five move, not two
+### 3.2 Four of the five move across the four conventions, not two
 
-Caveat 3 names HR and HU as the convention-sensitive pairs. The record says
-**LT, SE and HR** move — all three A → N — and **only PL** holds a letter under
-all four conventions. All three N's are *abstentions*: the margin sits inside the
-readability floor, which is "cannot be read", not "lost". That does not block
-shipping under the adopted standard. It does mean a reader given only the
-published letter would not know which four move, which is what caveat 3 exists to
-prevent.
+Caveat 3 names HR and HU as the convention-sensitive pairs. Between the two
+**endpoints** the record says **LT, SE and HR** move — all three A → N — and
+across **all four** conventions a fourth moves too, HU B → N under the mixed
+`fit_window/floored`, leaving **only PL** holding grade A everywhere. All three
+A → N moves are *abstentions*: the margin sits inside the readability floor,
+which is "cannot be read", not "lost". That does not block shipping under the
+adopted standard, and §1.1 is the ruling that says so in terms. It does mean a
+reader given only the published letter would not know which four move, which is
+what caveat 3 exists to prevent.
 
 ### 3.3 HU is not an abstention under either endpoint
 
@@ -188,11 +261,17 @@ available at the forecast issue instant. The argument that excluded NO and RO on
 G4 applies to HU on G2/G3 under the amended levelling, and does not apply under
 the registered one.
 
-**HU is fitted and verified here anyway**, because membership is the CEO's
-disposition and the Board answered `widen7`. This is a decision point, not a
-blocker: dropping the HU row leaves the other four untouched.
+**HU was fitted and verified before this was resolved**, because membership is
+the CEO's disposition and the Board had answered `widen7`. **He ruled on this
+reading at 12:35Z the same day and withdrew HU** (§1.1); the other four were
+left untouched, exactly as the last sentence of this analysis anticipated.
 `tests/test_abl602_widened_batch.py::test_hu_is_a_readable_loss_under_the_amended_defaults`
-holds the correction so the abstention reading cannot be quietly restored.
+holds the correction so the abstention reading cannot be quietly restored — it
+is unchanged, and is now the withdrawal's evidence rather than a caveat against
+a shipping pair.
+
+*(Everything above in §3.3 is as filed. Only this closing paragraph was
+rewritten, because it described the disposition as open and it is not.)*
 
 ### 3.4 The other two caveats, carried
 
@@ -220,20 +299,29 @@ Machine record: `reports/abl_602_ship_set_training.json`, generated
 2026-08-28T12:05:25Z under `.venv\Scripts\python.exe` (Python 3.14.3), replica
 `C:\Code\able\data\energy_dashboard.db` at 10,718,515,200 bytes.
 
-| pair | algo | features | fit rows retained / intended | unique targets | build s | fit s | artifact sha256 |
-|---|:---:|:---:|---:|---:|---:|---:|---|
-| `LT` `solar` | catboost | 27 | 41,724 / 42,816 | 5,247 | 191.8 | 4.0 | `c48696a9bff5f9c0d08e8209e3860e5978ab0feed237645cfac360dbff27e421` |
-| `SE` `solar` | catboost | 27 | 42,320 / 42,816 | 5,322 | 198.0 | 6.3 | `8d359c3feb7ab312ea0a9e221180016d011aa979fbd52ac0f047e4177d2b97d3` |
-| `HR` `wind_onshore` | catboost | 24 | 42,384 / 42,816 | 5,328 | 62.9 | 4.2 | `d802a9612622ad6eeaef796c6e7ac3efca889219103d81926abd1aee058dc22f` |
-| `HU` `wind_onshore` | catboost | 24 | 42,384 / 42,816 | 5,328 | 63.1 | 3.9 | `1a531989bacfd0b8bb8e365e67b4069a2f9a005399a9d36dc98acff74199188b` |
-| `PL` `wind_onshore` | catboost | 24 | 42,384 / 42,816 | 5,328 | 63.3 | 4.0 | `26947d53695235caa8ac07565586c3b975424f3eff70b25f66ea7658f28efa69` |
+**Five rows, because five were fitted.** The withdrawal came 30 minutes after
+this run and the record is not edited to match it; HU's row is marked, and its
+digest is kept precisely so the deploy can identify the file it must *not* copy.
+
+| pair | ships | algo | features | fit rows retained / intended | unique targets | build s | fit s | artifact sha256 |
+|---|:---:|:---:|:---:|---:|---:|---:|---:|---|
+| `LT` `solar` | yes | catboost | 27 | 41,724 / 42,816 | 5,247 | 191.8 | 4.0 | `c48696a9bff5f9c0d08e8209e3860e5978ab0feed237645cfac360dbff27e421` |
+| `SE` `solar` | yes | catboost | 27 | 42,320 / 42,816 | 5,322 | 198.0 | 6.3 | `8d359c3feb7ab312ea0a9e221180016d011aa979fbd52ac0f047e4177d2b97d3` |
+| `HR` `wind_onshore` | yes | catboost | 24 | 42,384 / 42,816 | 5,328 | 62.9 | 4.2 | `d802a9612622ad6eeaef796c6e7ac3efca889219103d81926abd1aee058dc22f` |
+| `HU` `wind_onshore` | **no** | catboost | 24 | 42,384 / 42,816 | 5,328 | 63.1 | 3.9 | `1a531989bacfd0b8bb8e365e67b4069a2f9a005399a9d36dc98acff74199188b` |
+| `PL` `wind_onshore` | yes | catboost | 24 | 42,384 / 42,816 | 5,328 | 63.3 | 4.0 | `26947d53695235caa8ac07565586c3b975424f3eff70b25f66ea7658f28efa69` |
+
+**The four shipping digests are unchanged by the withdrawal** — nothing was
+refitted, and a refit would have moved all four (`save` stamps `saved_at`; §5).
+They are reproduced with `deploy: true` in
+`reports/abl_602_ship_disposition.json`, copied by machine from this record.
 
 | pair | retained target window | in-sample mean MW | rows excluded (missing actual or feature) |
 |---|---|---:|---:|
 | `LT` `solar` | 2026-01-12 00:00 → 2026-08-21 18:00 | 345.79 | 1,092 |
 | `SE` `solar` | 2026-01-12 00:00 → 2026-08-21 23:00 | 441.72 | 496 |
 | `HR` `wind_onshore` | 2026-01-12 00:00 → 2026-08-21 23:00 | 320.89 | 432 |
-| `HU` `wind_onshore` | 2026-01-12 00:00 → 2026-08-21 23:00 | 61.10 | 432 |
+| `HU` `wind_onshore` *(withdrawn)* | 2026-01-12 00:00 → 2026-08-21 23:00 | 61.10 | 432 |
 | `PL` `wind_onshore` | 2026-01-12 00:00 → 2026-08-21 23:00 | 2,103.85 | 432 |
 
 The retained windows start **2026-01-12** for all five, which measures rather than
@@ -273,11 +361,12 @@ on purpose — this measures artifact equality, not generalisation.
 | `LT` `solar` | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
 | `SE` `solar` | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
 | `HR` `wind_onshore` | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
-| `HU` `wind_onshore` | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
+| `HU` `wind_onshore` *(withdrawn)* | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
 | `PL` `wind_onshore` | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
 
 **5 / 5 reproducible, and stronger than the 1e-12 bar: every pair is
-bit-identical.** `feature_columns` and `training_source` round-tripped
+bit-identical.** The proof is per-pair, so it is **4 / 4 on the shipping set**
+by deletion of a row; withdrawing HU disturbs nothing here. `feature_columns` and `training_source` round-tripped
 identically in all five, so a matching prediction vector cannot be a coincidence
 on a mismatched column order.
 
@@ -315,10 +404,13 @@ Both runs reported `Success: 4/4` and `Success: 6/6`, `Failed: 0`, `Skipped: 0`,
 | `LT` `solar` | 48 | 08-29, 08-30 | 9–56 | 0.0 | 923.41 | 295.15 | 0 | 14 | **yes** |
 | `SE` `solar` | 48 | 08-29, 08-30 | 9–56 | 0.0 | 1151.60 | 311.35 | 0 | 18 | **yes** |
 | `HR` `wind_onshore` | 48 | 08-29, 08-30 | 9–56 | 82.40 | 472.72 | 261.69 | 0 | 0 | **yes** |
-| `HU` `wind_onshore` | 48 | 08-29, 08-30 | 9–56 | 7.91 | 51.47 | 28.57 | 0 | 0 | **yes** |
+| `HU` `wind_onshore` *(withdrawn)* | 48 | 08-29, 08-30 | 9–56 | 7.91 | 51.47 | 28.57 | 0 | 0 | **yes** |
 | `PL` `wind_onshore` | 48 | 08-29, 08-30 | 9–56 | 698.21 | 3392.81 | 1794.61 | 0 | 0 | **yes** |
 
-**5 / 5 verified.** "Verified" is the conjunction of four things, not a row
+**5 / 5 verified**, and **4 / 4 on the shipping set** — this was read per pair
+out of the sidecar, so dropping HU takes 240 rows to 192 by deletion, not by
+re-measurement. **HU was not withdrawn on a serving failure**; it served
+correctly and lost on its gate reading (§1.1). "Verified" is the conjunction of four things, not a row
 count: both horizons produced a full 24 hours on their own target day; the
 artifact on disk re-hashes to the sha256 in the training record **and**
 deserialises to the same `feature_columns` and `training_source`; the clamp
@@ -376,7 +468,7 @@ Machine record: `reports/abl_602_contamination_screens.json`. Read-only against
 the replica; screens the **fit** window (223 days), which is wider than the
 gate's registered 178 and is the window no existing record covers.
 
-| screen | LT `solar` | SE `solar` | HR `wind` | HU `wind` | PL `wind` |
+| screen | LT `solar` | SE `solar` | HR `wind` | HU `wind` *(withdrawn)* | PL `wind` |
 |---|---|---|---|---|---|
 | **ABL-332** sub-hourly | quarter-hourly; 20,993 → 5,274 h | quarter-hourly; 21,400 → 5,350 h | 21,404 → 5,352 h | 21,408 → 5,352 h | 21,408 → 5,352 h |
 | **ABL-188** constant runs nulled | 0 | 0 | 0 | 0 | 0 |
@@ -475,7 +567,7 @@ Where that leaves the deploy, stated exactly:
   the same path, including ABL-583's CH `solar`. It is a property of the shipping
   programme, not of these five.
 
-**Action for the deploy issue:** load one of these five under the pinned
+**Action for the deploy issue:** load one of the four shipping artifacts under the pinned
 environment before serving any of them, and re-run
 `scripts/abl597_artifact_load_path.py --check-intercept` after copying. Raised on
 ABL-316 as well, since it covers the whole staged set rather than this batch.
@@ -497,14 +589,21 @@ ABL-316 as well, since it covers the whole staged set rather than this batch.
    at both horizons from the artifacts this pack fitted. It measures no error.
 4. **The artifacts are not protected by a commit.** They live at
    `C:\Code\able\ef-abl602\models\<country>\<type>\model.joblib` in a gitignored
-   directory. The deploy issue must copy them to
+   directory. The deploy issue must copy the **four** rows marked
+   `deploy: true` in `reports/abl_602_ship_disposition.json` to
    `C:\Code\able\energy-forecast\models` — which is where the scheduled job
    resolves `config.MODELS_DIR` — and **re-check each sha256 against section 4
    after copying**. A missing artifact makes the rail log "no trained model",
-   write nothing for that pair, and still exit 0.
-5. **The HU question is open and is the CEO's.** Section 3.3 is a correction to
-   the issue's reading, not a decision. HU is fitted, verified and ready; whether
-   it ships is a disposition on ABL-316.
+   write nothing for that pair, and still exit 0. **`HU/wind_onshore` is
+   `deploy: false`: do not copy it, and remove it if it is already there.** A
+   fifth directory left in place is served silently by the scheduled job — it
+   reads the tree, not this pack.
+5. **The HU question is closed: withdrawn.** §3.3 was a correction to the
+   issue's reading; the CEO ruled on it at 12:35Z on 2026-08-28 and HU does not
+   ship (§1.1). Its artifact exists, is reproducible and serves correctly — and
+   must not be deployed. What this pack does **not** establish is anything about
+   HU's fitness under a *different* bar: the withdrawal is a disposition on the
+   committed gate record, not a new measurement of the pair.
 6. **`SE` `solar` is the withdrawal candidate.** 0.64pp of headroom at k = 1. Any
    future move in the readability floor should be checked against it first.
 7. **These artifacts have not been loaded under the ABL-597 pinned numpy.** They
@@ -518,7 +617,10 @@ ABL-316 as well, since it covers the whole staged set rather than this batch.
 
 ```bash
 # All four steps under .venv, from the repo root, with ENERGY_DB_PATH set.
-python scripts/abl525_train_ship_set.py       --batch abl602 --replica-db <replica> --models-dir <dir>
+# --include-held is now required to reproduce HU's row: it carries a hold (1.1),
+# so the default run fits the four that ship.
+python scripts/abl525_train_ship_set.py       --batch abl602 --replica-db <replica> --models-dir <dir> \
+                                              --include-held
 python scripts/abl525_repro_check.py          --record reports/abl_602_ship_set_training.json \
                                               --json-out reports/abl_602_reproducibility.json
 python scripts/abl580_contamination_screens.py --batch abl602 --replica-db <replica>
@@ -527,6 +629,18 @@ python scripts/abl602_serving_verification.py --sidecar <scratch.db> \
                                               --record reports/abl_602_ship_set_training.json
 ```
 
-`tests/test_abl602_widened_batch.py` (19 tests) holds the batch membership, both
-feature-list equalities, the per-scope convention pins, the HU correction and the
-serving verifier's clamp/horizon contracts. It opens no database.
+The deploy's list is derived from the two committed records and needs no
+database, no interpreter pin and no artifact:
+
+```bash
+python scripts/abl602_ship_disposition.py   # -> reports/abl_602_ship_disposition.json
+```
+
+`tests/test_abl602_widened_batch.py` (24 tests) holds the batch membership and
+the four-of-five shipping split, both feature-list equalities, the per-scope
+convention pins, the HU correction, the digest join between the training record
+and the deploy's list, and the serving verifier's clamp/horizon contracts. It
+opens no database. `tests/test_abl580_ship_set_batches.py` carries the other
+half of the withdrawal: its `test_no_row_pins_a_list_while_none_is_held` is now
+`test_the_only_hold_is_a_disposition_and_no_row_pins_a_list`, because a row is
+held for the first time since ABL-583 and the vacuity it asserted is gone.

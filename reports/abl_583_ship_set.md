@@ -162,6 +162,13 @@ A consequence worth naming rather than leaving to be found: with CH readmitted, 
 than a silent one, and the pin machinery stays because the ship set shrinks as well as grows --
 CH is the worked example of both directions.
 
+> **Addendum, 2026-08-28 (ABL-602).** The paragraph above describes the table as it stood on
+> 2026-08-27 and is left as written. It no longer describes today's table: ABL-602 withdrew `HU`
+> `wind_onshore` after fitting it, so exactly one row is now held and the vacuity is gone. The
+> assertion moved with it -- `test_no_row_pins_a_list_while_none_is_held` is now
+> `test_the_only_hold_is_a_disposition_and_no_row_pins_a_list`. **No row pins a feature list**,
+> which is the half of the claim that still holds and the half ABL-525 item 2 depends on.
+
 ## 3. The fit
 
 Source `energy_generation` (ABL-321/ABL-348 registered, and `meta.source_is_scope_registered` is

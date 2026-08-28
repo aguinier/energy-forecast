@@ -224,21 +224,44 @@ def test_only_a_withdrawn_row_pins_its_own_feature_list(trainer):
     current list if `--include-held` were ever exercised, which is the CH failure
     the pin exists to make impossible.
 
-    Since ABL-583 readmitted CH, **no row is held and no row pins a list**, so
-    this passes vacuously today. It is kept, and the vacuity is named here rather
-    than left to be discovered, because the ship set shrinks as well as grows and
-    the next withdrawal has to land on a rule that is already in place.
-    `test_no_row_pins_a_list_while_none_is_held` is the other half.
+    Since ABL-583 readmitted CH, no row pins a list, so this passes vacuously
+    today. It is kept, and the vacuity is named here rather than left to be
+    discovered, because the ship set shrinks as well as grows and the next
+    withdrawal has to land on a rule that is already in place.
+    `test_the_only_hold_is_a_disposition_and_no_row_pins_a_list` is the other
+    half -- and ABL-602's HU is that next withdrawal, which is why it now names
+    a subject instead of asserting an empty set.
     """
     for row in trainer.SHIP_SET:
         if row.get("feature_columns"):
             assert row["hold"], f"{row['country']}/{row['forecast_type']} pins a list but ships"
 
 
-def test_no_row_pins_a_list_while_none_is_held(trainer):
-    """The converse, so the vacuity above is asserted rather than assumed."""
-    assert not [row for row in trainer.SHIP_SET if row["hold"]]
+def test_the_only_hold_is_a_disposition_and_no_row_pins_a_list(trainer):
+    """The converse, restated once a row was actually held.
+
+    This was `test_no_row_pins_a_list_while_none_is_held` and asserted the
+    vacuity of the test above: no row held, no row pinning. ABL-602 withdrew
+    `HU` `wind_onshore` on 2026-08-28, so half of that is no longer true, and
+    the honest invariant is the one that survives a withdrawal:
+
+    * **no row pins a feature list** -- unchanged, and the ABL-525 item 2 guard
+      against a per-country serving fork;
+    * **every hold is a disposition hold, not a feature-list hold.** The two
+      are different hazards. CH's hold was a *pin* against a builder that had
+      moved, so `--include-held` would have refitted it at a list nobody
+      graded. HU's hold is a decision about a pair whose feature list is
+      exactly the one it was graded on, so `--include-held` refits it
+      faithfully; what must not happen to HU is a *deploy*, not a refit.
+    """
+    held = [row for row in trainer.SHIP_SET if row["hold"]]
+    assert [(row["country"], row["forecast_type"]) for row in held] == [
+        ("HU", "wind_onshore")
+    ]
     assert not [row for row in trainer.SHIP_SET if row.get("feature_columns")]
+    assert not [row for row in held if row.get("feature_columns")], (
+        "HU's hold is a disposition, not a pin -- a pin here would mean the "
+        "list it was graded on had moved, which is a different finding")
 
 
 def test_ch_solar_rejoined_at_the_current_27_name_list(trainer):

@@ -1,11 +1,13 @@
-"""ABL-602: the widened batch is five pairs, and its letters carry their convention.
+"""ABL-602: five pairs were fitted, four ship, and the letters carry their convention.
 
 The Board answered `widen7` on ABL-316 (2026-08-28), adopting the
 causally-available standard for the widened set. Applying that standard to the
 committed records leaves **five** pairs, not seven, and the letters those five
-carry are not convention-free. This file holds the two properties that make the
-batch safe to read later, both against committed machine records rather than
-against prose:
+carry are not convention-free. Applying it once more -- to G2/G3 rather than
+only to G4 -- took a third pair out: the CEO withdrew `HU` `wind_onshore` at
+12:35Z on the day it was fitted, so **five artifacts exist and four ship**.
+This file holds the properties that make the batch safe to read later, all
+against committed machine records rather than against prose:
 
 **1. The set is five because two pairs fail G4, and G4 is causally available.**
 `NO` and `RO` `wind_onshore` clear G1 and lose on the sign test over the
@@ -29,6 +31,15 @@ the amended defaults, where its G2/G3 margins are roughly -27% and -25% against 
 that stops the abstention reading being quietly restored, and it derives both
 letters from `reports/abl_444_g23_floor_reread.json` rather than restating them.
 
+**3. Five fitted and four shipping is a fact about two different files, and both
+must say so.** The training record lists five pairs because five were fitted at
+12:05:25Z; it is the record of a run and is not edited when a disposition
+changes 30 minutes later. `SHIP_SET` carries the withdrawal as a `hold` on HU's
+row, and `reports/abl_602_ship_disposition.json` is the join of the two --
+per pair, `deploy: true|false` with the digest beside it. The hazard the tests
+below close is a deploy that reads `pairs` out of the training record and
+copies five artifacts out of a gitignored directory.
+
 Nothing here fits a model or opens the replica.
 """
 import importlib.util
@@ -51,6 +62,8 @@ WIND_2E_RECORD = REPO / "experiments" / "ABL348" / "results_abl417_tranche2e.jso
 WIND_2B_RETRO_RECORD = REPO / "reports" / "abl_418_retro_grade.json"
 CONVENTIONS_RECORD = REPO / "reports" / "abl_444_g23_floor_reread.json"
 FEATURE_MANIFEST = REPO / "tests" / "feature_list_manifest.json"
+TRAINING_RECORD = REPO / "reports" / "abl_602_ship_set_training.json"
+DISPOSITION_RECORD = REPO / "reports" / "abl_602_ship_disposition.json"
 
 BATCH = "abl602"
 
@@ -61,6 +74,13 @@ WIDENED_FIVE = {
     ("HR", "wind_onshore"), ("HU", "wind_onshore"), ("PL", "wind_onshore"),
 }
 EXCLUDED_ON_G4 = {("NO", "wind_onshore"), ("RO", "wind_onshore")}
+
+#: Of the five that were fitted, the four the CEO's 2026-08-28 ruling ships, and
+#: the one it withdrew. Two names rather than one, because "the batch" and "what
+#: deploys" are no longer the same set and every claim below has to say which it
+#: means.
+WITHDRAWN_ON_G23 = {("HU", "wind_onshore")}
+SHIPPING_FOUR = WIDENED_FIVE - WITHDRAWN_ON_G23
 
 #: The registered convention for every scope in this batch, and the default a
 #: *new* scope would inherit. Both axes, because the letters move on both.
@@ -108,12 +128,40 @@ def _rows(trainer):
     return [row for row in trainer.SHIP_SET if row["batch"] == BATCH]
 
 
+def _pairs(rows):
+    return {(row["country"], row["forecast_type"]) for row in rows}
+
+
+@pytest.fixture(scope="module")
+def disposition():
+    return json.loads(DISPOSITION_RECORD.read_text(encoding="utf-8"))
+
+
 # --------------------------------------------------------------------------
-# 1. The batch is the five the standard admits
+# 1. The batch is the five the standard admits, of which four ship
 # --------------------------------------------------------------------------
 
 def test_the_batch_is_the_five_widened_pairs(trainer):
-    assert {(row["country"], row["forecast_type"]) for row in _rows(trainer)} == WIDENED_FIVE
+    assert _pairs(_rows(trainer)) == WIDENED_FIVE
+
+
+def test_four_of_the_five_ship_and_hu_is_the_one_held(trainer):
+    """The CEO's 2026-08-28 ruling, as a property of the membership table.
+
+    The row stays and carries a `hold` rather than being deleted. A deleted row
+    would fit nothing and *say* nothing, and the hazard is not a stray refit --
+    it is an artifact that already exists in a gitignored `models/` tree beside
+    four that ship.
+    """
+    rows = _rows(trainer)
+    assert _pairs(row for row in rows if row["hold"] is None) == SHIPPING_FOUR
+    assert _pairs(row for row in rows if row["hold"]) == WITHDRAWN_ON_G23
+
+    hu = next(row for row in rows if row["country"] == "HU")
+    assert "WITHDRAWN" in hu["hold"]
+    assert "2026-08-28" in hu["hold"]
+    assert hu.get("feature_columns") is None, (
+        "HU's hold is a disposition, not a feature-list pin")
 
 
 def test_no_and_ro_are_not_in_the_ship_set_at_all(trainer):
@@ -318,6 +366,9 @@ def test_hu_and_hr_rows_state_their_convention_on_the_record(trainer):
     assert "READABLE" in hu
     assert "-26.78" in hu and "-25.51" in hu
     assert "fit_window/floored" in hu
+    # Both of HU's moves, on one row -- the CH precedent. A withdrawn pair that
+    # reads as one which was never admitted hides why the artifact exists.
+    assert "ADMITTED" in hu and "WITHDRAWN" in hu
 
     hr = rows[("HR", "wind_onshore")]["admission_history"]
     assert "trailing_28d/floored" in hr
@@ -372,6 +423,79 @@ def test_the_batch_registers_a_contamination_screen_record():
                            REPO / "scripts" / "abl580_contamination_screens.py")
     assert screens.BATCH_RECORDS[BATCH] == "reports/abl_602_contamination_screens.json"
     assert screens.BATCH_ISSUES[BATCH] == "ABL-602"
+
+
+def test_the_training_record_still_lists_all_five_it_fitted(trainer):
+    """The record of a run is not edited when a decision changes after it.
+
+    Five pairs were fitted at 12:05:25Z and the ruling landed at 12:35Z. Moving
+    HU out of `pairs` would make the file claim a run that never happened, and
+    would also silently orphan the digest that says which file on disk is HU's.
+    The disagreement between this record and `SHIP_SET` is deliberate, and this
+    test is what stops a later reader "tidying" it.
+    """
+    record = json.loads(TRAINING_RECORD.read_text(encoding="utf-8"))
+    assert _pairs(record["pairs"]) == WIDENED_FIVE
+    assert record["held"] == [], "nothing was held at fit time; HU was fitted"
+    hu = next(p for p in record["pairs"] if p["country"] == "HU")
+    assert hu["artifact_sha256"], "HU's digest is what identifies the file not to ship"
+
+
+def test_the_disposition_record_is_the_deploys_list(disposition):
+    """Four `deploy: true`, one `deploy: false`, and a digest on every one.
+
+    This is the file ABL-603 reads. A deploy that read `pairs` out of the
+    training record instead would copy five artifacts out of a gitignored
+    directory, one of them withdrawn.
+    """
+    rows = {(row["country"], row["forecast_type"]): row for row in disposition["pairs"]}
+    assert set(rows) == WIDENED_FIVE
+    assert {key for key, row in rows.items() if row["deploy"]} == SHIPPING_FOUR
+    assert {key for key, row in rows.items() if not row["deploy"]} == WITHDRAWN_ON_G23
+    assert disposition["counts"] == {"fitted": 5, "ships": 4, "withdrawn": 1}
+
+    for key, row in rows.items():
+        assert row["fitted"] is True
+        assert len(row["artifact_sha256"]) == 64, key
+        assert row["serving_verified"] is True, (
+            f"{key}: all five were serving-verified; HU is withdrawn on its "
+            f"gate reading, not on a serving failure")
+
+    assert rows[("HU", "wind_onshore")]["withdrawn_reason"]
+    assert disposition["decision"]["is_a_regrade"] is False
+    assert disposition["decision"]["registered_letters_moved"] is False
+
+
+def test_the_disposition_digests_are_the_training_records(disposition):
+    """Copied by machine from the training record, never retyped.
+
+    A transcribed hash that is wrong in one nibble fails the deploy's re-hash
+    check and looks like a corrupted artifact.
+    """
+    record = json.loads(TRAINING_RECORD.read_text(encoding="utf-8"))
+    fitted = {(p["country"], p["forecast_type"]): p for p in record["pairs"]}
+    for row in disposition["pairs"]:
+        source = fitted[(row["country"], row["forecast_type"])]
+        assert row["artifact_sha256"] == source["artifact_sha256"]
+        assert row["in_sample_prediction_digest"] == source["in_sample_prediction_digest"]
+        assert row["algorithm"] == source["algorithm"]
+        assert row["n_features"] == source["n_features"]
+
+
+def test_the_disposition_record_is_rebuilt_from_the_committed_sources(disposition):
+    """Regenerating it reproduces every row, so it cannot drift from `SHIP_SET`.
+
+    Everything but `generated_at` is a function of the two committed records and
+    the membership table, so a hand-edit of the JSON goes red here.
+    """
+    builder = _load_module("abl602_ship_disposition",
+                           REPO / "scripts" / "abl602_ship_disposition.py")
+    rebuilt = builder.build(
+        json.loads(TRAINING_RECORD.read_text(encoding="utf-8")),
+        json.loads((REPO / "reports" / "abl_602_serving_verification.json")
+                   .read_text(encoding="utf-8")),
+    )
+    assert rebuilt == disposition["pairs"]
 
 
 def test_the_evidence_of_record_names_a_source_for_every_pair(trainer):

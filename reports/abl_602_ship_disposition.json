@@ -1,0 +1,102 @@
+{
+  "issue": "ABL-602",
+  "batch": "abl602",
+  "generated_at": "2026-08-28T13:19:02.270298+00:00",
+  "purpose": "The deploy's list. Five pairs were fitted; four ship. Derived by joining SHIP_SET (which carries the hold) onto the committed training and serving records (which carry the digests and the verification). Nothing here is re-measured.",
+  "decision": {
+    "board_answer": "abl316 widen7, 2026-08-28 -- adopt the causally-available standard for the widened set",
+    "ceo_ruling": "2026-08-28T12:35Z on ABL-602: a pair ships unless a causally-available screen shows a READABLE loss; an abstention (margin inside the readability floor) does not block. HU wind_onshore is the only pair in the batch on the wrong side of that bar and is withdrawn. NO and RO wind_onshore were already out on G4 and are not in SHIP_SET at all.",
+    "is_a_regrade": false,
+    "registered_letters_moved": false
+  },
+  "sources": {
+    "membership": "scripts/abl525_train_ship_set.py -> SHIP_SET (`hold` is the withdrawal)",
+    "digests": "abl_602_ship_set_training.json",
+    "serving": "abl_602_serving_verification.json",
+    "note": "The training record still lists five pairs because five were fitted at 2026-08-28T12:05:25Z. It is the record of a run and is not edited when a disposition changes; this file is the disposition."
+  },
+  "counts": {
+    "fitted": 5,
+    "ships": 4,
+    "withdrawn": 1
+  },
+  "deploy_check": "Per shipping row: copy the artifact, re-hash, compare against artifact_sha256. Then load under the ABL-597 pinned environment and reproduce in_sample_prediction_digest -- a file hash cannot see a wrong-interpreter load, which keeps the trees and resets the intercept.",
+  "pairs": [
+    {
+      "country": "LT",
+      "forecast_type": "solar",
+      "deploy": true,
+      "tranche": "2d (abl316-t2d)",
+      "fitted": true,
+      "algorithm": "catboost",
+      "training_source": "energy_generation",
+      "n_features": 27,
+      "artifact_path": "C:\\Code\\able\\ef-abl602\\models\\LT\\solar\\model.joblib",
+      "artifact_sha256": "c48696a9bff5f9c0d08e8209e3860e5978ab0feed237645cfac360dbff27e421",
+      "in_sample_prediction_digest": "78401dd1778c43a29c2c30da7cf67ea285bc0fb42dbc34653e29a0cb62fab4b6",
+      "in_sample_prediction_mean": 345.79092419830556,
+      "serving_verified": true
+    },
+    {
+      "country": "SE",
+      "forecast_type": "solar",
+      "deploy": true,
+      "tranche": "2d (abl316-t2d)",
+      "fitted": true,
+      "algorithm": "catboost",
+      "training_source": "energy_generation",
+      "n_features": 27,
+      "artifact_path": "C:\\Code\\able\\ef-abl602\\models\\SE\\solar\\model.joblib",
+      "artifact_sha256": "8d359c3feb7ab312ea0a9e221180016d011aa979fbd52ac0f047e4177d2b97d3",
+      "in_sample_prediction_digest": "18716e2c6afc5d447d505bfaf943c54df3b39d8891cfc1da4a8bfba8b08fe9bc",
+      "in_sample_prediction_mean": 441.72491437522115,
+      "serving_verified": true
+    },
+    {
+      "country": "HR",
+      "forecast_type": "wind_onshore",
+      "deploy": true,
+      "tranche": "2e (abl417-tranche2e)",
+      "fitted": true,
+      "algorithm": "catboost",
+      "training_source": "energy_generation",
+      "n_features": 24,
+      "artifact_path": "C:\\Code\\able\\ef-abl602\\models\\HR\\wind_onshore\\model.joblib",
+      "artifact_sha256": "d802a9612622ad6eeaef796c6e7ac3efca889219103d81926abd1aee058dc22f",
+      "in_sample_prediction_digest": "dd16a3d26385c60b44fd41f893c87f14b13df7298c0fd6ca3f1f6e560250a48d",
+      "in_sample_prediction_mean": 320.88845970380027,
+      "serving_verified": true
+    },
+    {
+      "country": "HU",
+      "forecast_type": "wind_onshore",
+      "deploy": false,
+      "tranche": "2e (abl417-tranche2e)",
+      "fitted": true,
+      "algorithm": "catboost",
+      "training_source": "energy_generation",
+      "n_features": 24,
+      "artifact_path": "C:\\Code\\able\\ef-abl602\\models\\HU\\wind_onshore\\model.joblib",
+      "artifact_sha256": "1a531989bacfd0b8bb8e365e67b4069a2f9a005399a9d36dc98acff74199188b",
+      "in_sample_prediction_digest": "3c273a6cadb4de3986fde321693f6d630a8875e90e3dc9954b2298e03c8bef57",
+      "in_sample_prediction_mean": 61.10373365096434,
+      "serving_verified": true,
+      "withdrawn_reason": "WITHDRAWN by CEO ruling 2026-08-28, after the artifact had been fitted. The bar: a pair ships unless a causally-available screen shows a READABLE loss; an abstention (margin inside the readability floor) does not block. HU is the only pair in the widened batch on the wrong side of it -- G2/G3 are negative in 6 of 6 band x reference cells under BOTH levellings, and under trailing_28d they are -22.83% to -28.68% against a 7.51% floor, recorded as `failed` rather than `not_readable` in reports/abl_444_g23_floor_reread.json. There is no reading of the record under which HU beats a flat line. This is a disposition, not a re-grade: no registered letter moves and abl417-tranche2e stays pinned at fit_window/sign_test. The artifact from the 2026-08-28T12:05:25Z run exists on disk and MUST NOT be deployed; reports/abl_602_ship_disposition.json is the machine-readable list of what does."
+    },
+    {
+      "country": "PL",
+      "forecast_type": "wind_onshore",
+      "deploy": true,
+      "tranche": "2b (abl406-tranche2b, graded by the ABL-418 retro ladder)",
+      "fitted": true,
+      "algorithm": "catboost",
+      "training_source": "energy_generation",
+      "n_features": 24,
+      "artifact_path": "C:\\Code\\able\\ef-abl602\\models\\PL\\wind_onshore\\model.joblib",
+      "artifact_sha256": "26947d53695235caa8ac07565586c3b975424f3eff70b25f66ea7658f28efa69",
+      "in_sample_prediction_digest": "77b7b487e656ecf416518bdbe2a823e50b46cd3d868d92154d7df564c9fbe8a5",
+      "in_sample_prediction_mean": 2103.8503643217496,
+      "serving_verified": true
+    }
+  ]
+}

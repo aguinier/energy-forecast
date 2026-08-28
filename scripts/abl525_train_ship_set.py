@@ -25,10 +25,13 @@ machine record, and no run refits another batch's artifacts.
              pre-registered scope. It was pair 8 of the original `ship8` roster
              and was withdrawn on 2026-08-27; the row records both moves.
     abl602   the five pairs the Board's `widen7` answer admits once the
-             causally-available standard is applied to the machine record. This
-             batch is a *widening* of the roster rather than an admission under
-             the standing rule, so it carries a Board answer of its own; see
-             "THE ABL-602 WIDENED SET" below for why it is five and not seven.
+             causally-available standard is applied to the machine record, of
+             which **four ship**: `HU` `wind_onshore` was fitted and then
+             withdrawn by CEO ruling on 2026-08-28, and its row carries a
+             `hold`. This batch is a *widening* of the roster rather than an
+             admission under the standing rule, so it carries a Board answer of
+             its own; see "THE ABL-602 WIDENED SET" below for why it is five
+             and not seven, and "HU IS WITHDRAWN" for why four of the five ship.
 
 A pair appears **once**. A batch is the admission that authorises the row as it
 stands, not a log of every disposition the row has had -- that is what
@@ -187,11 +190,13 @@ all four combinations. The worst-band letters:
     HR wind_onshore   A                       N   (G2 +2.80 / G3 +2.02, inside 7.51)
     HU wind_onshore   B                       B   (G2 -26.78 / G3 -25.51)
 
-Only PL holds a letter under both. That is a property of the evidence, not a
-defect in it -- an abstention (`N`) is "the margin is inside the floor", not a
-loss -- but a reader given only the published letter would not know which four
-move.
+Only PL holds grade A under all four conventions. That is a property of the
+evidence, not a defect in it -- an abstention (`N`) is "the margin is inside the
+floor", not a loss -- but a reader given only the published letter would not
+know which four move.
 
+HU IS WITHDRAWN: FIVE FITTED, FOUR SHIP
+----------------------------------------
 `HU` is the row to read twice. ABL-602's own description characterises it as
 "G2/G3 inside floor -- abstention, not a readable loss". That is true under
 `fit_window/floored` and under neither endpoint: HU is `B` under the registered
@@ -199,9 +204,32 @@ convention (G2 -1.75%, G3 -2.13% at the worst band -- a loss, unreadable but
 signed) and `B` under the fully amended defaults, where the same margins become
 **-26.78% and -25.51%**, three and a half times the 7.51% wind floor and
 unambiguously readable. `N` appears only when ABL-444's floor is applied
-*without* ABL-437's levelling. This script still fits HU, because membership is
-the CEO's and this script fits what membership names; the correction is carried
-in `reports/abl_602_widen5_ship.md` section 3 and reported on ABL-316.
+*without* ABL-437's levelling.
+
+On that reading the CEO **withdrew HU on 2026-08-28**, on a bar stated once and
+reusable: *a pair ships unless a causally-available screen shows a readable
+loss; an abstention -- a margin inside the readability floor -- does not block.*
+That is why LT, SE and HR ship despite moving A -> N under the amended defaults
+(`N` there is "cannot be read", not "lost") and why HU does not: its sign is
+negative in 6 of 6 band x reference cells under **both** levellings, and only
+the magnitude is convention-dependent. It is the same argument that took NO and
+RO out on G4 -- G2 and G3 are as causally available as G4 is -- so the standard
+in force stays single. The bar reads both conventions and can therefore only
+ever *remove* a pair, never add one; it cannot launder a pair in through the
+amended defaults.
+
+This is a **disposition, not a re-grade**: no registered letter moves and
+`abl417-tranche2e` stays pinned at `fit_window`/`sign_test`.
+
+HU was already fitted when the ruling landed, so its artifact exists on disk in
+a gitignored `models/` tree. Its row therefore keeps a `hold` rather than
+leaving the table: a deleted row would fit nothing *and say nothing*, and the
+hazard here is an artifact that exists and must not be served. The hold is a
+disposition hold, not the CH-shaped feature-list hold -- HU pins no list, and
+under `--include-held` it would refit at the same 24 names it was graded on.
+The correction is carried in `reports/abl_602_widen5_ship.md` sections 3.3 and
+1.1, the shipping four are named in `reports/abl_602_ship_disposition.json`,
+and both are reported on ABL-316.
 """
 
 import argparse
@@ -246,8 +274,11 @@ from scripts.evaluate_wind_retrain import ALGORITHMS as WIND_ALGORITHMS  # noqa:
 #: `experiments/ABL348/results_abl581_ch_solar_f27.json`. Nothing here re-derives
 #: any of them -- this script fits and records; it scores nothing. `hold` marks a
 #: pair this run refuses to fit, with the reason, so the committed record carries
-#: the absence. No row is held today; the mechanism stays because the ship set
-#: shrinks as well as grows, and CH is the worked example of both.
+#: the absence. Exactly one row is held today: `HU` `wind_onshore`, withdrawn by
+#: CEO ruling 2026-08-28 *after* it had been fitted, which is why the hold and
+#: not a deletion -- the artifact exists on disk and the table is what says it
+#: must not be served. CH is the worked example of the same machinery in both
+#: directions.
 SHIP_SET = (
     {"country": "EE", "forecast_type": "wind_onshore", "batch": "abl525",
      "tranche": "2e", "hold": None},
@@ -307,6 +338,8 @@ SHIP_SET = (
     },
     # ABL-602: the five pairs the Board's `widen7` answer (2026-08-28) admits
     # once the causally-available standard is applied to the committed records.
+    # Four of them ship -- HU was fitted and then withdrawn the same day; see
+    # its `hold` and the "HU IS WITHDRAWN" section of the module docstring.
     # None pins a feature list, and for each type the reason is checked rather
     # than assumed:
     #
@@ -348,7 +381,23 @@ SHIP_SET = (
          "Quote the convention with the letter; see the module docstring."
      )},
     {"country": "HU", "forecast_type": "wind_onshore", "batch": "abl602",
-     "tranche": "2e (abl417-tranche2e)", "hold": None,
+     "tranche": "2e (abl417-tranche2e)",
+     "hold": (
+         "WITHDRAWN by CEO ruling 2026-08-28, after the artifact had been "
+         "fitted. The bar: a pair ships unless a causally-available screen "
+         "shows a READABLE loss; an abstention (margin inside the readability "
+         "floor) does not block. HU is the only pair in the widened batch on "
+         "the wrong side of it -- G2/G3 are negative in 6 of 6 band x "
+         "reference cells under BOTH levellings, and under trailing_28d they "
+         "are -22.83% to -28.68% against a 7.51% floor, recorded as `failed` "
+         "rather than `not_readable` in reports/abl_444_g23_floor_reread.json. "
+         "There is no reading of the record under which HU beats a flat line. "
+         "This is a disposition, not a re-grade: no registered letter moves "
+         "and abl417-tranche2e stays pinned at fit_window/sign_test. The "
+         "artifact from the 2026-08-28T12:05:25Z run exists on disk and MUST "
+         "NOT be deployed; reports/abl_602_ship_disposition.json is the "
+         "machine-readable list of what does."
+     ),
      "admission_history": (
          "Grade B under the registered convention AND under the amended "
          "defaults -- not an abstention under either endpoint. G1 holds "
@@ -358,8 +407,10 @@ SHIP_SET = (
          "trailing-28d levelling, where they are far outside the 7.51% floor "
          "and therefore READABLE. The N reading in ABL-602's description comes "
          "from fit_window/floored, which applies ABL-444 without ABL-437. "
-         "Fitted here because membership is the CEO's; the correction is "
-         "reported on ABL-316."
+         "ADMITTED to the batch on the Board's widen7 answer and fitted "
+         "2026-08-28T12:05:25Z; WITHDRAWN by CEO ruling the same day on that "
+         "readable G2/G3 loss -- the same causally-available argument that "
+         "excluded NO and RO on G4. See `hold`; the row records both moves."
      )},
     {"country": "PL", "forecast_type": "wind_onshore", "batch": "abl602",
      "tranche": "2b (abl406-tranche2b, graded by the ABL-418 retro ladder)",
@@ -694,17 +745,30 @@ def main():
                 "levelling_conventions": "reports/abl_444_g23_floor_reread.json",
                 "board_answer": "abl316 widen7, 2026-08-28, adopting the "
                                 "causally-available standard for the widened set",
+                "disposition": "FIVE FITTED, FOUR SHIP. HU wind_onshore was "
+                               "withdrawn by CEO ruling 2026-08-28 after the "
+                               "12:05:25Z fit, on a readable G2/G3 loss under "
+                               "the amended levelling -- the same "
+                               "causally-available argument that excluded NO "
+                               "and RO on G4. Its SHIP_SET row now carries a "
+                               "hold, so a re-run of this script fits four. "
+                               "The shipping four and their digests are in "
+                               "reports/abl_602_ship_disposition.json.",
                 "note": "Read at origin/main 79433d0b. Registered convention for "
                         "all three scopes is fit_window levelling with a "
                         "sign_test G2/G3 (CAUSAL_LEVELLING / G23_READABILITY "
                         "pin every published scope by value). Under the "
-                        "ABL-437/444 amended defaults the worst-band letters "
-                        "move for four of the five: LT A->N, SE A->N, HR A->N, "
-                        "HU B->B, PL A->A. NO and RO wind_onshore are NOT in "
-                        "this batch -- both fail G4, which is causally "
-                        "available, so the standard the Board adopted excludes "
-                        "them. Grades and membership are the CEO's disposition; "
-                        "nothing here re-derives or re-grades them.",
+                        "ABL-437/444 amended defaults three of the five "
+                        "worst-band letters move between the endpoints -- LT "
+                        "A->N, SE A->N, HR A->N -- while HU is B->B and PL is "
+                        "A->A; a fourth move, HU B->N, appears only under the "
+                        "mixed fit_window/floored convention, which is why "
+                        "only PL holds grade A under all four. NO and RO "
+                        "wind_onshore are NOT in this batch -- both fail G4, "
+                        "which is causally available, so the standard the "
+                        "Board adopted excludes them. Grades and membership "
+                        "are the CEO's disposition; nothing here re-derives or "
+                        "re-grades them.",
             },
         },
         "protocol": {
