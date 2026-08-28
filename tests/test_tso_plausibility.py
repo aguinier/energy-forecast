@@ -653,6 +653,15 @@ GUARDED_READ_SITES = (
     # over-forecasts -- see `EXEMPT_READS` for `abl607_d2_load_diagnosis.py`,
     # which reads only that arm and is exempt for exactly this reason.
     "scripts/abl246_tso_d1_load_pack.py",
+    # ABL-247. Guards its TSO arm per country in `read_tso_vintages`
+    # (`guard_tso_frame`, refusals counted into `attrs["guard_refusals"]` and
+    # dropped before the vintage stack is collapsed into a feature), for all
+    # four registered archive series rather than load alone. The guard runs on
+    # the raw read, before the cutoff selection and before the hourly average,
+    # so a refused value cannot be averaged into a surviving neighbour first.
+    # Its own-forecast arm is read raw from `forecasts` for the same
+    # one-sidedness reason as ABL-246's ML arm.
+    "scripts/abl247_tso_feature_backtest.py",
     "scripts/abl247_vintage_availability_probe.py",
     "scripts/abl430_ro_country_diagnosis.py",
     "scripts/abl439_reporting_basis_probe.py",
