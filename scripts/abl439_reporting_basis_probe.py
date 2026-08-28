@@ -80,9 +80,12 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pandas as pd
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 from src import db
+from src.tso_plausibility import TSO_FORECAST_SOURCES, guard_tso_series
 
 #: Column carrying each forecast type in both source tables.
 TYPE_COLUMN = {
@@ -148,13 +151,34 @@ def _hourly(conn, table: str, column: str, country: str, start: str, end: str,
     (ABL-332: 22 of 24 carry sub-hourly rows in `energy_renewable`), so an
     average over raw rows is cadence-weighted and changes when the resolution
     does -- which is a second discontinuity that would be confused for this one.
+
+    ABL-462: a read of a registered TSO forecast column goes through the ABL-431
+    plausibility guard first -- before the hourly mean, so a refused value cannot
+    be averaged into its neighbour. The membership test is
+    `TSO_FORECAST_SOURCES`, whose keys are exactly the forecast (table, column)
+    pairs, so the two actuals tables this helper also serves are untouched by
+    construction rather than by a hand-maintained list. Measured read-only on
+    the live replica over this probe's widest window
+    (`energy_generation_forecast.wind_onshore_mw`, NL and DE,
+    `2021-01-01..2026-08-11`, 393,044 rows): the guard nulls **0 rows**, so
+    every number this script has published is unchanged by wiring it. It is here
+    so that the next contaminated pair is caught rather than averaged in.
     """
     buckets = defaultdict(list)
     sql = (f"SELECT {time_column}, {column} FROM {table} "
            f"WHERE country_code = ? AND {time_column} >= ? AND {time_column} < ?")
-    for stamp, value in conn.execute(sql, (country, start, end)):
-        if value is None:
-            continue
+    rows = [(stamp, value)
+            for stamp, value in conn.execute(sql, (country, start, end))
+            if value is not None]
+    if rows and (table, column) in TSO_FORECAST_SOURCES:
+        guarded = guard_tso_series(
+            pd.Series([value for _, value in rows], dtype="float64"),
+            conn, country, table, column,
+            context=f"ABL-439 {country} {table}.{column}")
+        rows = [(stamp, value)
+                for (stamp, _), value in zip(rows, guarded)
+                if value == value]  # noqa: PLR0124 -- drops the guard's NaNs
+    for stamp, value in rows:
         buckets[_norm(stamp).replace(minute=0, second=0)].append(value)
     return {hour: sum(vs) / len(vs) for hour, vs in buckets.items()}
 
