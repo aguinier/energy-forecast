@@ -202,7 +202,7 @@ for +15 rows in total, `8,436 → 8,451`. A country gaining one row and one day
 can only have gained the window's final hour, `2026-08-28 00:00`, whose actual
 had not landed when the first run read the replica. Separately, **IT, SE and SI
 moved their WAPE with both `n` and `days` unchanged** (10.33→10.21, 5.91→5.79,
-15.66→15.41), so already-scored actuals were revised underneath the pinned
+15.66→15.40), so already-scored actuals were revised underneath the pinned
 window as well. Neither run is wrong: the re-read has the completer data, on a
 uniform 16 days for every country instead of a 12/12 split at 16 and 15.
 
