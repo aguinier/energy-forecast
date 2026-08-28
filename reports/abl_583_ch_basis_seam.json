@@ -1,0 +1,130 @@
+{
+  "issue": "ABL-583",
+  "check": "where CH solar's source basis changes, resolved to months",
+  "country": "CH",
+  "forecast_type": "solar",
+  "generated_at": "2026-08-27T16:36:17.053119+00:00",
+  "fit_window": [
+    "2026-01-11",
+    "2026-08-22"
+  ],
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 10664824832,
+  "night_threshold_mw": 1.0,
+  "months": [
+    {
+      "month": "2026-01",
+      "n_hours": 504,
+      "n_night_hours": 261,
+      "n_night_above_threshold": 16,
+      "pct_night_above_threshold": 6.13,
+      "night_mean_mw": 0.2082,
+      "night_max_mw": 2.8225,
+      "daylight_mean_mw": 291.72,
+      "n_hours_in_both_tables": 504,
+      "generation_over_renewable_ratio": 0.7214
+    },
+    {
+      "month": "2026-02",
+      "n_hours": 672,
+      "n_night_hours": 316,
+      "n_night_above_threshold": 80,
+      "pct_night_above_threshold": 25.32,
+      "night_mean_mw": 0.743,
+      "night_max_mw": 5.543,
+      "daylight_mean_mw": 555.05,
+      "n_hours_in_both_tables": 644,
+      "generation_over_renewable_ratio": 1.1046
+    },
+    {
+      "month": "2026-03",
+      "n_hours": 744,
+      "n_night_hours": 297,
+      "n_night_above_threshold": 177,
+      "pct_night_above_threshold": 59.6,
+      "night_mean_mw": 1.6355,
+      "night_max_mw": 5.8363,
+      "daylight_mean_mw": 1012.08,
+      "n_hours_in_both_tables": 744,
+      "generation_over_renewable_ratio": 1.1716
+    },
+    {
+      "month": "2026-04",
+      "n_hours": 720,
+      "n_night_hours": 236,
+      "n_night_above_threshold": 210,
+      "pct_night_above_threshold": 88.98,
+      "night_mean_mw": 2.4912,
+      "night_max_mw": 5.4596,
+      "daylight_mean_mw": 1448.67,
+      "n_hours_in_both_tables": 720,
+      "generation_over_renewable_ratio": 1.1983
+    },
+    {
+      "month": "2026-05",
+      "n_hours": 744,
+      "n_night_hours": 194,
+      "n_night_above_threshold": 191,
+      "pct_night_above_threshold": 98.45,
+      "night_mean_mw": 2.9338,
+      "night_max_mw": 5.7382,
+      "daylight_mean_mw": 1525.77,
+      "n_hours_in_both_tables": 744,
+      "generation_over_renewable_ratio": 0.9581
+    },
+    {
+      "month": "2026-06",
+      "n_hours": 720,
+      "n_night_hours": 150,
+      "n_night_above_threshold": 0,
+      "pct_night_above_threshold": 0.0,
+      "night_mean_mw": 0.0,
+      "night_max_mw": 0.0,
+      "daylight_mean_mw": 1665.03,
+      "n_hours_in_both_tables": 720,
+      "generation_over_renewable_ratio": 1.0
+    },
+    {
+      "month": "2026-07",
+      "n_hours": 744,
+      "n_night_hours": 173,
+      "n_night_above_threshold": 0,
+      "pct_night_above_threshold": 0.0,
+      "night_mean_mw": 0.0,
+      "night_max_mw": 0.0,
+      "daylight_mean_mw": 1835.09,
+      "n_hours_in_both_tables": 744,
+      "generation_over_renewable_ratio": 1.0
+    },
+    {
+      "month": "2026-08",
+      "n_hours": 504,
+      "n_night_hours": 147,
+      "n_night_above_threshold": 0,
+      "pct_night_above_threshold": 0.0,
+      "night_mean_mw": 0.0,
+      "night_max_mw": 0.0,
+      "daylight_mean_mw": 1600.96,
+      "n_hours_in_both_tables": 504,
+      "generation_over_renewable_ratio": 1.0
+    }
+  ],
+  "pre_seam_months": [
+    "2026-01",
+    "2026-02",
+    "2026-03",
+    "2026-04",
+    "2026-05"
+  ],
+  "post_seam_months": [
+    "2026-06",
+    "2026-07",
+    "2026-08"
+  ],
+  "seam_date": "2026-06-01",
+  "seam_is_where_expected": true,
+  "seam_is_the_gate_boundary": false,
+  "reading": "Two screens, one event, one date. Before the seam the two source tables are different series and the actuals carry a small positive night floor; from the seam they are one identical series with a hard zero at night. The ABL-439 screen's fit-window ratio of 1.0424 is a BLEND of the two regimes, not a level, and its gate-window 1.0000 is not a change -- it is the post-seam regime the fit window already contains. The seam is NOT the fit/gate boundary.",
+  "consequence_for_this_artifact": "ABL-581's read is unaffected: it fits and scores on the registered energy_generation at both ends, so the cross-table divergence is not in its path, and its gate window lies wholly post-seam. But THIS artifact is fitted across the seam while serving into the post-seam regime -- a train/serve mismatch in the actuals, and a candidate explanation for any night level in the served series. Reported, not fixed: the fit window is the ship set's shared module constant and moving it for one country would fork the batch.",
+  "magnitude_caveat": "Small. Pre-seam night means are 0.21-2.93 MW against daylight means of 292-1526 MW, and the contamination screen's own wape_floor_pct_if_clamped over the whole fit window is 0.054%. This is a basis change, not a BG-scale contamination."
+}

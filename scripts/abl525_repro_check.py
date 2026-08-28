@@ -1,7 +1,12 @@
 #!/usr/bin/env python
-"""Prove the ABL-525 ship-set refit is reproducible, by predictions rather than by hash.
+"""Prove a ship-set refit is reproducible, by predictions rather than by hash.
 
-ABL-525 item 7. An artifact sha256 cannot witness a refit: `Forecaster.save`
+ABL-525 item 7, ABL-580 item 4, ABL-583 item 3. The pairs are read from the
+training record `--record` names, so this runs on any batch's record without an
+edit; `--json-out` and the record's own `issue` field keep each batch's
+reproducibility evidence in its own file.
+
+An artifact sha256 cannot witness a refit: `Forecaster.save`
 stamps `saved_at`, so three byte-identical fits give three different digests and
 a hash comparison reports drift that is not there. The witness is what the two
 artifacts *predict*.
@@ -81,7 +86,7 @@ def probe_matrix(country, forecast_type, replica_db):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Refit the ABL-525 ship set and prove prediction equality at 1e-12."
+        description="Refit a ship-set batch and prove prediction equality at 1e-12."
     )
     parser.add_argument("--replica-db", default=config.DATABASE_PATH)
     parser.add_argument("--models-dir", default=str(config.MODELS_DIR))
@@ -153,18 +158,42 @@ def main():
             )
 
     payload = {
-        "issue": "ABL-525",
+        # From the record being re-checked, not from a constant here: this
+        # script runs on whichever batch's record `--record` names, and a
+        # hardcoded issue would mislabel every batch but one.
+        "issue": record.get("issue", "ABL-316"),
+        "batch": record.get("batch"),
+        "training_record": str(Path(args.record).as_posix()),
         "check": "prediction equality across an independent refit",
         "tolerance": TOLERANCE,
         "probe_window": [PROBE_START, f"+{PROBE_HOURS}h"],
+        # The refit reads the replica live, so the two arms are only comparable
+        # if the replica did not move between the original fit and this run.
+        # `able-db-sync` replaces every non-weather table inside one transaction,
+        # so a sync landing in between would report a data change as a drift.
+        # Recorded on both sides rather than assumed away.
+        "replica": {
+            "path": str(Path(args.replica_db)),
+            "bytes_now": Path(args.replica_db).stat().st_size,
+            "bytes_at_original_fit": record.get("environment", {}).get("replica_bytes"),
+        },
         "all_pairs_reproducible": all(r["identical_within_tolerance"] for r in results),
         "every_artifact_sha256_differed": all(r["artifact_sha256_differs"] for r in results),
         "pairs": results,
     }
+    payload["replica"]["unchanged_since_original_fit"] = (
+        payload["replica"]["bytes_at_original_fit"] is not None
+        and payload["replica"]["bytes_at_original_fit"] == payload["replica"]["bytes_now"]
+    )
     out = Path(args.json_out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"\nWrote {out}")
+    if not payload["replica"]["unchanged_since_original_fit"]:
+        print("NOTE: the replica moved between the original fit and this refit "
+              f"({payload['replica']['bytes_at_original_fit']} -> "
+              f"{payload['replica']['bytes_now']} bytes). A prediction difference "
+              "below may be a data change rather than a drift.")
     return 0 if payload["all_pairs_reproducible"] else 1
 
 

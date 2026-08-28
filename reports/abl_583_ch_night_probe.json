@@ -1,0 +1,104 @@
+{
+  "issue": "ABL-583",
+  "country": "CH",
+  "forecast_type": "solar",
+  "generated_at": "2026-08-27T18:04:47.026860+00:00",
+  "reference_date": "2026-08-27",
+  "horizon_days": [
+    1,
+    2
+  ],
+  "target_window": [
+    "2026-08-28 00:00:00",
+    "2026-08-29 23:00:00"
+  ],
+  "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+  "replica_bytes": 10664824832,
+  "artifact": {
+    "path": "C:\\Code\\able\\wt-abl583\\models\\CH\\solar\\model.joblib",
+    "n_features": 27,
+    "training_source": "energy_generation",
+    "algorithm": "catboost"
+  },
+  "clamp_configuration": {
+    "night_threshold_deg": -8.0,
+    "zeroed_night_mw_threshold": 1.0,
+    "night_generation_possible": false,
+    "night_mask_applied": true,
+    "representative_point": [
+      46.999,
+      7.671
+    ]
+  },
+  "pre_clamp": {
+    "all_hours": {
+      "n": 48,
+      "mean_mw": 914.5679,
+      "min_mw": -17.062,
+      "max_mw": 3561.4181,
+      "n_negative": 7,
+      "pct_negative": 14.58
+    },
+    "night_hours": {
+      "n": 16,
+      "mean_mw": -2.013,
+      "min_mw": -17.062,
+      "max_mw": 3.4012,
+      "n_negative": 6,
+      "pct_negative": 37.5
+    },
+    "daylight_hours": {
+      "n": 32,
+      "mean_mw": 1372.8584,
+      "min_mw": -7.9032,
+      "max_mw": 3561.4181,
+      "n_negative": 1,
+      "pct_negative": 3.12
+    }
+  },
+  "post_clamp": {
+    "all_hours": {
+      "n": 48,
+      "mean_mw": 915.4036,
+      "min_mw": 0.0,
+      "max_mw": 3561.4181,
+      "n_negative": 0,
+      "pct_negative": 0.0
+    },
+    "night_hours": {
+      "n": 16,
+      "mean_mw": 0.0,
+      "min_mw": 0.0,
+      "max_mw": 0.0,
+      "n_negative": 0,
+      "pct_negative": 0.0
+    },
+    "any_served_row_negative": false,
+    "every_night_row_exactly_zero": true
+  },
+  "clamp_log_fields": {
+    "rows_total": 48,
+    "night_hours": 16,
+    "hours_zeroed_night": 16,
+    "hours_raised_floor": 1,
+    "mw_removed_night": -32.2087,
+    "mw_added_floor": 7.9032,
+    "mw_removed_total": -40.1119,
+    "min_forecast_mw": -17.062,
+    "max_night_forecast_mw": 3.4012
+  },
+  "how_to_read_hours_raised_floor": "For CH the night mask applies, and `raised` is `(~zeroing) & (original < 0.0)`, so hours_raised_floor counts DAYLIGHT negatives only. A negative night prediction is counted by hours_zeroed_night, which is on |prediction| and takes either sign. Read pre_clamp.night_hours.pct_negative for the night question.",
+  "night_actual": {
+    "source": "reports/abl_583_contamination_screens.json",
+    "window": [
+      "2026-01-11",
+      "2026-08-22"
+    ],
+    "n_night_rows": 1774,
+    "night_mean_mw": 1.09,
+    "night_max_mw": 5.84,
+    "n_night_above_1mw": 674,
+    "n_night_negative": 0
+  },
+  "not_a_defect_measurement": "ABL-395 measured CH's night-negative rate over eight control fits at 77.05% +/- 10.11 with a 27.34pp single-seed null; 80.47% (f25) and 64.06% (f27) at seed 42 both sit inside it. This is one fit's draw, reported for the artifact being shipped. Nothing here grades, and nothing here is fixed."
+}

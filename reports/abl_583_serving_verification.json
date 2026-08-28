@@ -1,0 +1,132 @@
+{
+  "issue": "ABL-583",
+  "check": "end-to-end serving verification (ABL-583 item 6)",
+  "generated_at": "2026-08-27T18:05:31.954506+00:00",
+  "country": "CH",
+  "forecast_type": "solar",
+  "command": "scripts/forecast_daily.py --countries CH --types solar --horizons 1,2",
+  "wrote_to": {
+    "sidecar": "C:\\Users\\guill\\AppData\\Local\\Temp\\paperclip-run-abl-583-cc940386-20c-cmdPrZ\\abl583\\abl583_serving.db",
+    "is_scratch": true,
+    "replica_written": false,
+    "note": "FORECAST_OUTPUT_DB was pointed at a run-scoped scratch file, so the replica was not written. Serving into production is a deploy and is outside this issue."
+  },
+  "served": {
+    "n_rows": 48,
+    "target_window": [
+      "2026-08-28T00:00:00",
+      "2026-08-29T23:00:00"
+    ],
+    "horizon_hours_min": 3,
+    "horizon_hours_max": 50,
+    "model_names": [
+      "catboost"
+    ],
+    "min_mw": 0.0,
+    "max_mw": 3561.4181,
+    "mean_mw": 915.4036,
+    "positive_hours_mean_mw": 1417.3991,
+    "n_negative": 0,
+    "n_exactly_zero": 17,
+    "any_served_row_negative": false
+  },
+  "clamp_log": {
+    "clamped_at": "2026-08-27T20:01:52.755255",
+    "generated_at": "2026-08-27T20:01:52.268847",
+    "country_code": "CH",
+    "model_name": "catboost",
+    "renewable_type": "solar",
+    "night_threshold_deg": -8.0,
+    "zeroed_night_mw_threshold": 1.0,
+    "night_generation_possible": 0,
+    "night_mask_applied": 1,
+    "rows_total": 48,
+    "night_hours": 16,
+    "hours_zeroed_night": 16,
+    "hours_raised_floor": 1,
+    "mw_removed_night": -32.208679706802286,
+    "mw_added_floor": 7.9032302208677265,
+    "mw_removed_total": -40.11190992767001,
+    "min_forecast_mw": -17.062033035739773,
+    "max_night_forecast_mw": 3.401212601731345,
+    "target_start": "2026-08-28T00:00:00",
+    "target_end": "2026-08-29T23:00:00"
+  },
+  "agreement_with_night_probe": {
+    "fields_compared": [
+      "rows_total",
+      "night_hours",
+      "hours_zeroed_night",
+      "hours_raised_floor",
+      "mw_removed_night",
+      "mw_added_floor",
+      "mw_removed_total",
+      "min_forecast_mw",
+      "max_night_forecast_mw"
+    ],
+    "per_field": {
+      "rows_total": {
+        "served": 48,
+        "probe": 48,
+        "agrees": true
+      },
+      "night_hours": {
+        "served": 16,
+        "probe": 16,
+        "agrees": true
+      },
+      "hours_zeroed_night": {
+        "served": 16,
+        "probe": 16,
+        "agrees": true
+      },
+      "hours_raised_floor": {
+        "served": 1,
+        "probe": 1,
+        "agrees": true
+      },
+      "mw_removed_night": {
+        "served": -32.2087,
+        "probe": -32.2087,
+        "agrees": true
+      },
+      "mw_added_floor": {
+        "served": 7.9032,
+        "probe": 7.9032,
+        "agrees": true
+      },
+      "mw_removed_total": {
+        "served": -40.1119,
+        "probe": -40.1119,
+        "agrees": true
+      },
+      "min_forecast_mw": {
+        "served": -17.062,
+        "probe": -17.062,
+        "agrees": true
+      },
+      "max_night_forecast_mw": {
+        "served": 3.4012,
+        "probe": 3.4012,
+        "agrees": true
+      }
+    },
+    "mismatched_fields": [],
+    "probe_reproduces_the_served_clamp": true
+  },
+  "clock_dependence": {
+    "observed": true,
+    "note": "The first probe run of this issue (16:36Z) disagreed with the serving run (18:01Z) on every night field, at identical artifact, replica and reference date. predict_d2 anchors its feature build on wall-clock time as well as on the reference date. Re-running the probe in the same hour as the serving run reproduces its clamp log exactly. The agreement recorded here is therefore a same-hour agreement.",
+    "superseded_probe_run": {
+      "generated_at": "2026-08-27T16:36:37.063949+00:00",
+      "hours_zeroed_night": 9,
+      "hours_raised_floor": 2,
+      "mw_removed_night": -63.6291,
+      "min_forecast_mw": -21.4604,
+      "max_night_forecast_mw": 2.4043,
+      "pre_clamp_night_mean_mw": -3.9768,
+      "pre_clamp_night_pct_negative": 43.75
+    }
+  },
+  "scored_or_graded": false
+}

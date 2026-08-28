@@ -1,0 +1,119 @@
+{
+  "issue": "ABL-583",
+  "batch": "abl583",
+  "generated_at": "2026-08-27T16:33:30.549376+00:00",
+  "board_decision": "abl316:ship-decision:v4 = ship8, 2026-08-22T08:25Z",
+  "admission_rule": "ABL-316 ledger 14.6 / 15.1, approved by the Board alongside ship8: a held pair that later satisfies the same rule joins the shipping set without a new Board card; a shipping pair a later correction moves outside it is withdrawn. Both are reported by comment on ABL-316. Membership is the CEO's; this script fits what membership names and scores nothing.",
+  "evidence_of_record": {
+    "abl525": {
+      "path": "reports/abl_444_g23_floor_reread.json",
+      "blob": "1e8f37f6b1c4befd2c938363306e664ea58a21e7",
+      "sha256_prefix": "45fa753fc356b123",
+      "note": "Verified byte-unchanged since the a0b9ffd pin. Not re-derived here."
+    },
+    "abl580": {
+      "cz_solar": "experiments/ABL348/results_abl426_tranche2a_generation.json",
+      "ro_solar": "experiments/ABL348/results_abl426_tranche2a_generation.json",
+      "nl_wind_offshore": "ABL-316 ledger 14.3; the pilot's own read is experiments/ABL322/results_abl436_offshore_reread.json",
+      "note": "Grades and margins are the CEO's disposition on ABL-316. Nothing here re-derives or re-grades them."
+    },
+    "abl583": {
+      "ch_solar": "experiments/ABL348/results_abl581_ch_solar_f27.json",
+      "scope": "abl581-ch-solar-f27, registered 82e3108, read 49ab9e9, merged as PR #89 (dda64fc3)",
+      "note": "PASS 3/3, grade A/A/A. The read is ABL-581's and the readmission is the CEO's; nothing here re-derives either. Note that this fit window COVERS that gate window, so those figures are not out-of-sample for this artifact -- see fitted_on_the_gate_window."
+    }
+  },
+  "protocol": {
+    "fit_path": "src.wind_features.RenewableFeatureBuilder + src.evaluation.wind_retrain.build_vintage_frame",
+    "artifact_writer": "src.evaluation.gate_artifacts.save_gate_artifact (-> Forecaster.save)",
+    "renewable_source": "energy_generation",
+    "vintages_per_target": 8,
+    "lookback_days": 14,
+    "algorithm_by_type": {
+      "wind_offshore": "xgboost",
+      "wind_onshore": "catboost",
+      "solar": "catboost"
+    },
+    "algorithm_source": "evaluate_wind_retrain.ALGORITHMS and solar_retrain.ALGORITHM, imported not restated",
+    "scored_or_graded": false,
+    "fitted_on_the_gate_window": true,
+    "fit_window_bounded_by": "weather_data data_quality='forecast' begins 2026-01-11 for every country in this set; energy_generation reaches 2021-01-01 but a serve-faithful row cannot be built without the weather archive"
+  },
+  "environment": {
+    "python": "3.14.3",
+    "executable": "C:\\Code\\able\\energy-forecast\\.venv\\Scripts\\python.exe",
+    "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "replica_bytes": 10664824832,
+    "models_dir": "C:/Code/able/wt-abl583/models"
+  },
+  "pairs": [
+    {
+      "country": "CH",
+      "forecast_type": "solar",
+      "algorithm": "catboost",
+      "training_source": "energy_generation",
+      "fit_window_requested": [
+        "2026-01-11",
+        "2026-08-22"
+      ],
+      "fit_window_retained": [
+        "2026-01-12 00:00:00",
+        "2026-08-21 23:00:00"
+      ],
+      "n_features": 27,
+      "feature_columns": [
+        "hour",
+        "day_of_week",
+        "month",
+        "is_weekend",
+        "hour_sin",
+        "hour_cos",
+        "day_sin",
+        "day_cos",
+        "month_sin",
+        "month_cos",
+        "target_value_lag_1d",
+        "target_value_lag_7d",
+        "target_value_lag_14d",
+        "target_value_roll_24h_mean",
+        "target_value_roll_24h_std",
+        "target_value_roll_24h_min",
+        "target_value_roll_24h_max",
+        "target_value_roll_168h_mean",
+        "target_value_roll_168h_std",
+        "target_value_roll_168h_min",
+        "target_value_roll_168h_max",
+        "shortwave_radiation_wm2",
+        "direct_radiation_wm2",
+        "diffuse_radiation_wm2",
+        "temperature_c",
+        "sun_elevation_deg",
+        "is_night"
+      ],
+      "intended_rows": 42816,
+      "retained_rows": 42384,
+      "excluded_missing_actual_or_feature": 432,
+      "unique_fit_targets": 5328,
+      "degraded_lag_1d_rows": 29325,
+      "hyperparams": {
+        "iterations": 500,
+        "depth": 8,
+        "learning_rate": 0.05,
+        "l2_leaf_reg": 3,
+        "random_seed": 42,
+        "verbose": 0,
+        "thread_count": -1
+      },
+      "artifact_path": "C:\\Code\\able\\wt-abl583\\models\\CH\\solar\\model.joblib",
+      "artifact_sha256": "7bcfecd590a42c01b06fc4c0584b238db7724ed8fe5807b34989429318239793",
+      "seconds_feature_build": 195.37,
+      "seconds_fit": 3.7,
+      "in_sample_prediction_digest": "767f5aca5d7e74e67121ee7399f970e60c9e0038e7679701f52dbe5a3f29bf26",
+      "in_sample_prediction_mean": 911.3286398432997,
+      "batch": "abl583",
+      "tranche": "abl581-ch-solar-f27 (fresh pre-registered read at 27)",
+      "admission_history": "Pair 8 of the Board's ship8 roster (2026-08-22), graded under abl316-t1b at the legacy 25-name solar list. WITHDRAWN by CEO ruling 2026-08-27: ABL-395 had moved solar.FEATURE_COLUMNS to 27 (adds sun_elevation_deg, is_night) while SCOPE_FEATURES ['abl316-t1b'] pins the tranche to the legacy 25, so fitting at 27 would ship a model nobody graded and fitting at 25 would be a per-country serving fork on a list the builder no longer produces. READMITTED 2026-08-27 under the standing rule (ABL-316 ledger 14.6 / 15.1, no new Board card) on ABL-581's fresh read under the new scope abl581-ch-solar-f27: registered at 82e3108, read at 49ab9e9, PASS 3/3 grade A/A/A on the registered energy_generation. The readmission is the CEO's disposition; nothing here re-derives it."
+    }
+  ],
+  "held": []
+}

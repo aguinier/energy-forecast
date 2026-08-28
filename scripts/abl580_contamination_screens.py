@@ -1,14 +1,20 @@
 #!/usr/bin/env python
-"""Contamination screens for the three pairs ABL-580 ships, in one committed record.
+"""Contamination screens for one ABL-316 ship-set batch, in one committed record.
 
-ABL-580 item 5. Five screens, on the window these artifacts were actually fitted
-on rather than on the window their gate read was taken over -- which is the whole
-point, since the fit window is 223 days against the gate's registered 178 and no
-existing record covers the extra 45.
+ABL-580 item 5, and ABL-583 item 4 for the CH batch. The screens run on the
+window the artifacts were actually fitted on rather than on the window their gate
+read was taken over -- which is the whole point, since the fit window is 223 days
+against the gate's registered 178 and no existing record covers the extra 45.
 
-Three are the standing screens ABL-525 answered, restated here because a screen
-answered on seven `wind_onshore` pairs is not answered on two `solar` pairs and
-an offshore one:
+`--batch` selects which ship-set rows to screen and `BATCH_RECORDS` fixes where
+each batch's record lands, the same shape `abl525_train_ship_set.py` uses and for
+the same reason (ABL-387: a scoped run must not be able to overwrite another
+scope's published evidence through a flag default). A batch with no registered
+record has to be given `--json-out` explicitly.
+
+Three are the standing screens ABL-525 answered, restated per batch because a
+screen answered on seven `wind_onshore` pairs is not answered on two `solar`
+pairs and an offshore one, nor on a third country's solar:
 
   ABL-332  the hourly-aggregation contract in the fit-and-serve path.
   ABL-200  the cross-table zero disproof, and whether it fires at all here.
@@ -16,17 +22,29 @@ an offshore one:
 
 Two are specific to this set and are the reason the issue names them:
 
-  night floor   CZ and RO `solar`, against the BG signature. ABL-405's probe read
-                `energy_generation` while its *fit* read `energy_renewable`;
-                ABL-426's re-read is the first where both are one series, and
-                this run is the first where the screen covers the fit window of
-                the artifact being shipped.
-  NL vintage    the ABL-439 fit-to-gate ratio discontinuity for NL
-                `wind_offshore`, re-derived here rather than cited.
+  night floor   every `solar` pair in the batch, against the BG signature.
+                ABL-405's probe read `energy_generation` while its *fit* read
+                `energy_renewable`; ABL-426's re-read is the first where both are
+                one series, and this run is the first where the screen covers the
+                fit window of the artifact being shipped.
+  vintage       the ABL-439 fit-to-gate ratio discontinuity, re-derived rather
+                than cited. Pinned to a published value where one exists on
+                `origin/main`'s evidence trail (NL `wind_offshore`, ABL-471) and
+                reported unpinned where none does.
+
+WHAT THIS SCREEN IS AND IS NOT, FOR A PAIR WITH NO PIN
+------------------------------------------------------
+The discontinuity is the quantity that can void a gate read: a model is fitted
+*and* scored on the registered `energy_generation`, so a steady offset between
+the two source tables voids nothing and only a change of basis between the fit
+and gate windows can. Running it on a pair with no published prior gives a
+diagnostic against ABL-471's own 0.02 cut -- **not** a reproduction check, and
+`reproduces_published` is null rather than false so a reader cannot mistake
+"nothing to compare against" for "compared and disagreed".
 
 WHY THE NL RATIO IS RE-DERIVED AND NOT QUOTED
 ---------------------------------------------
-ABL-580's description cites this screen as "ABL-471 (merged, PR #83)". PR #83 is
+ABL-580's description cited this screen as "ABL-471 (merged, PR #83)". PR #83 is
 **closed, not merged** -- `mergedAt` and `mergeCommit` are both null, it was
 closed 2026-08-24T06:41:51Z two minutes after PR #82 merged, and none of its four
 files is on `origin/main`. Its numbers are right; what is missing is a tracked
@@ -74,7 +92,15 @@ from scripts.abl525_train_ship_set import (  # noqa: E402
     SHIP_SET,
 )
 
-BATCH = "abl580"
+#: Where each batch's screen record lands. Same protection as the trainer's
+#: `BATCH_RECORDS` and for the same reason: a flag default that can point at
+#: another batch's published record is the ABL-387 defect one layer down.
+BATCH_RECORDS = {
+    "abl580": "reports/abl_580_contamination_screens.json",
+    "abl583": "reports/abl_583_contamination_screens.json",
+}
+
+BATCH_ISSUES = {"abl580": "ABL-580", "abl583": "ABL-583"}
 
 #: ABL-338's threshold, the one the serving clamp and every published night
 #: screen use. Imported would be better; it is a module-private constant in
@@ -97,11 +123,31 @@ BG_SIGNATURE = {
              "night_max_mw": 1087.9, "pct_of_total_energy_at_night": 4.98},
 }
 
-#: What ABL-471 published for NL `wind_offshore`, on branch
-#: `ABL-471-source-table-ratio-screen` at `d6c8408` -- a commit that is *not* an
-#: ancestor of `origin/main`. These are the values the ABL-580 description quotes
-#: as NL's basis for joining the shipping set, so they are the pins.
-ABL471_NL_PINS = {"fit_ratio": 0.9922, "gate_ratio": 0.9912, "discontinuity": 0.0010}
+#: Published fit/gate ratios, keyed by the pair they were published for. NL
+#: `wind_offshore` is ABL-471's, on branch `ABL-471-source-table-ratio-screen` at
+#: `d6c8408` -- a commit that is *not* an ancestor of `origin/main`. Those are
+#: the values the ABL-580 description quoted as NL's basis for joining the
+#: shipping set, so they are the pins. A pair absent from this table has no
+#: published prior to check against and is reported unpinned.
+PUBLISHED_VINTAGE_PINS = {
+    ("NL", "wind_offshore"): {
+        "fit_ratio": 0.9922, "gate_ratio": 0.9912, "discontinuity": 0.0010,
+        "provenance": {
+            "issue": "ABL-471",
+            "branch": "ABL-471-source-table-ratio-screen",
+            "commit": "d6c8408",
+            "pr": 83,
+            "pr_state": "CLOSED",
+            "merged": False,
+            "on_origin_main": False,
+            "note": ("The ABL-580 description said 'merged, PR #83'. It is not: "
+                     "mergedAt and mergeCommit are both null, closed "
+                     "2026-08-24T06:41:51Z. The figures are right; the record "
+                     "backing them is untracked, which is why this run "
+                     "re-derives rather than cites."),
+        },
+    },
+}
 
 #: ABL-471's own cut between "no discontinuity" and "a revision vintage". The gap
 #: between the two is two orders of magnitude wide and empty on the 41 screened
@@ -120,9 +166,9 @@ COLUMN_BY_TYPE = {
 }
 
 
-def batch_pairs():
+def batch_pairs(batch):
     return [(row["country"], row["forecast_type"])
-            for row in SHIP_SET if row["batch"] == BATCH]
+            for row in SHIP_SET if row["batch"] == batch]
 
 
 # ---------------------------------------------------------------------------
@@ -309,10 +355,24 @@ def vintage_screen(country, forecast_type, replica):
         gate = ratio_over(conn, column, country, *ABL348_GATE_WINDOW)
     discontinuity = (round(fit["ratio"] - gate["ratio"], 4)
                      if fit["ratio"] and gate["ratio"] else None)
-    reproduces = (
-        fit["ratio"] == ABL471_NL_PINS["fit_ratio"]
-        and gate["ratio"] == ABL471_NL_PINS["gate_ratio"]
-        and discontinuity == ABL471_NL_PINS["discontinuity"])
+
+    pin = PUBLISHED_VINTAGE_PINS.get((country, forecast_type))
+    if pin is None:
+        # No published prior on this pair. `None` rather than `False`, so a
+        # reader cannot read "nothing to compare against" as "compared and
+        # disagreed" -- the same distinction the harnesses draw between
+        # UNREADABLE and FAIL.
+        reproduces = None
+        published = None
+        provenance = None
+    else:
+        reproduces = bool(
+            fit["ratio"] == pin["fit_ratio"]
+            and gate["ratio"] == pin["gate_ratio"]
+            and discontinuity == pin["discontinuity"])
+        published = {k: v for k, v in pin.items() if k != "provenance"}
+        provenance = pin["provenance"]
+
     return {
         "screen": "ABL-439 fit-to-gate source-table ratio discontinuity",
         "country": country,
@@ -324,21 +384,9 @@ def vintage_screen(country, forecast_type, replica):
         "verdict": ("basis-consistent"
                     if discontinuity is not None and abs(discontinuity) < NO_DISCONTINUITY
                     else "basis-INCONSISTENT"),
-        "abl471_published": dict(ABL471_NL_PINS),
-        "reproduces_abl471": bool(reproduces),
-        "abl471_provenance": {
-            "branch": "ABL-471-source-table-ratio-screen",
-            "commit": "d6c8408",
-            "pr": 83,
-            "pr_state": "CLOSED",
-            "merged": False,
-            "on_origin_main": False,
-            "note": ("The ABL-580 description says 'merged, PR #83'. It is not: "
-                     "mergedAt and mergeCommit are both null, closed "
-                     "2026-08-24T06:41:51Z. The figures are right; the record "
-                     "backing them is untracked, which is why this run "
-                     "re-derives rather than cites."),
-        },
+        "published": published,
+        "reproduces_published": reproduces,
+        "published_provenance": provenance,
         # ABL-580 item 5's second addition, carried rather than dropped.
         "gate_revision_caveat": (
             "This pair's gate window is 100% first-publication, so its gate-side "
@@ -351,25 +399,37 @@ def vintage_screen(country, forecast_type, replica):
 
 def main():
     parser = argparse.ArgumentParser(
-        description=("Contamination screens for the three pairs ABL-580 ships "
+        description=("Contamination screens for one ABL-316 ship-set batch "
                      "(ABL-332, ABL-200, ABL-188, night floor, ABL-439 vintage)."))
     parser.add_argument("--replica-db", default=config.DATABASE_PATH,
                         help="Read-only replica (default: ENERGY_DB_PATH).")
-    parser.add_argument("--json-out", default="reports/abl_580_contamination_screens.json")
+    parser.add_argument("--batch", default="abl580", choices=sorted(BATCH_RECORDS),
+                        help="Ship-set batch to screen.")
+    parser.add_argument(
+        "--json-out", default=None,
+        help=("Committed machine record. Defaults to the record registered for "
+              "--batch, so a run cannot land on another batch's published one."))
     args = parser.parse_args()
+
+    batch = args.batch
+    json_out = args.json_out or BATCH_RECORDS[batch]
 
     replica = Path(args.replica_db)
     if not replica.is_file():
         raise SystemExit(f"replica not found: {replica}")
 
     pairs = []
-    for country, forecast_type in batch_pairs():
+    for country, forecast_type in batch_pairs(batch):
         print(f"[SCREEN] {country}/{forecast_type} ...", flush=True)
         entry = {
             "country": country,
             "forecast_type": forecast_type,
             "abl332": hourly_contract(country, forecast_type, replica),
             "abl188": constant_run_screen(country, forecast_type, replica),
+            # Runs for every pair, not only the wind ones: a change of basis
+            # between the fit and gate windows is what can void a gate read, and
+            # that question is asked of a solar pair on the same terms.
+            "vintage": vintage_screen(country, forecast_type, replica),
         }
         if forecast_type == "solar":
             entry["night_floor"] = {
@@ -386,14 +446,12 @@ def main():
                 ],
                 "compared_against": BG_SIGNATURE,
             }
-        else:
-            entry["vintage"] = vintage_screen(country, forecast_type, replica)
         pairs.append(entry)
         print(f"[OK    ] {country}/{forecast_type}", flush=True)
 
     payload = {
-        "issue": "ABL-580",
-        "batch": BATCH,
+        "issue": BATCH_ISSUES[batch],
+        "batch": batch,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "fit_window_screened": [FIT_START, FIT_END],
         "gate_boundary": GATE_START,
@@ -410,20 +468,22 @@ def main():
         },
         "pairs": pairs,
     }
-    out = Path(args.json_out)
+    out = Path(json_out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"\nWrote {out}")
 
+    # `is False` and not `not ...`: an unpinned pair reports None, which is not
+    # a failed reproduction and must not exit non-zero.
     failures = [p["vintage"] for p in pairs
-                if "vintage" in p and not p["vintage"]["reproduces_abl471"]]
+                if p["vintage"]["reproduces_published"] is False]
     if failures:
-        print("REPRODUCTION FAILED against the ABL-471 pins:")
+        print("REPRODUCTION FAILED against the published pins:")
         for entry in failures:
             print(f"  {entry['country']}/{entry['forecast_type']}: "
                   f"fit {entry['abl348_fit_window']['ratio']} "
                   f"gate {entry['abl348_gate_window']['ratio']} "
-                  f"vs published {entry['abl471_published']}")
+                  f"vs published {entry['published']}")
         return 1
     return 0
 
