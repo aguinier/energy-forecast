@@ -492,9 +492,15 @@ def attach_references(panel: pd.DataFrame, actuals: pd.DataFrame) -> pd.DataFram
         # or before the issue instant -- `baselines.aligned_point_baselines`'s
         # rule, not the target's own lag, which no live system could hold.
         anchors = grp["generated_at"].dt.floor("h")
-        grp["persistence"] = [
-            series.loc[:anchor].iloc[-1] if len(series.loc[:anchor]) else np.nan
-            for anchor in anchors]
+        if len(series):
+            position = np.searchsorted(series.index.to_numpy(),
+                                       anchors.to_numpy(), side="right") - 1
+            grp["persistence"] = np.where(
+                position >= 0,
+                series.to_numpy()[np.clip(position, 0, None)],
+                np.nan)
+        else:
+            grp["persistence"] = np.nan
 
         grp, _ = attach_trailing_references(grp, series,
                                             window_days=TRAILING_WINDOW_DAYS)
