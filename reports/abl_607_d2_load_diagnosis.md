@@ -200,10 +200,12 @@ on inputs before any metric, precisely so this could be told apart. **12 of 24
 countries gained a target day** — 11 of them by exactly one row, BG by four —
 for +15 rows in total, `8,436 → 8,451`. A country gaining one row and one day
 can only have gained the window's final hour, `2026-08-28 00:00`, whose actual
-had not landed when the first run read the replica. Separately, **IT, SE and SI
-moved their WAPE with both `n` and `days` unchanged** (10.33→10.21, 5.91→5.79,
-15.66→15.40), so already-scored actuals were revised underneath the pinned
-window as well. Neither run is wrong: the re-read has the completer data, on a
+had not landed when the first run read the replica. Separately, **the other 12
+had already-scored actuals revised underneath the pinned window** — same `n`,
+same `days`, moved mean load — and in four of them the revision reaches the
+second decimal of WAPE (BE 7.03→6.99, IT 10.33→10.21, SE 5.91→5.79,
+SI 15.66→15.40). Between the two effects, **not one of the 24 countries is
+unchanged**. Neither run is wrong: the re-read has the completer data, on a
 uniform 16 days for every country instead of a 12/12 split at 16 and 15.
 
 **What it does and does not change.** DE's central estimate is still a **loss**

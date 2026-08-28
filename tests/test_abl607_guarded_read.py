@@ -443,13 +443,38 @@ def test_the_published_census_could_have_detected_something():
     assert census["rows_would_be_refused"] == report["meta"]["guard_would_refuse"]
     assert census["rows_dropped"] == report["meta"]["guard_rows_dropped"]
 
-
 # --------------------------------------------------------------------------
 # 4. the corrected count carries its own fragility
 # --------------------------------------------------------------------------
+#
+# Section 3.1 corrects a published count -- 10 readable losers to 9 -- and then
+# argues the 9 is no firmer than the 10 was. Both halves are quantitative, and
+# both are recomputable: the pack's first run and the re-read sit on disk side
+# by side, which is what makes the vintage comparison checkable rather than
+# asserted. So the prose is held to the two records here.
+#
+# This is not belt-and-braces. Review on PR #101 caught one drifted figure in
+# this section by eye (SI quoted as 15.41 against a record holding 15.4046),
+# and the first run of these tests caught a second the review had not: BE
+# belongs in the revised set and the list named three countries. A section
+# whose whole argument is that numbers move underneath you is the last place
+# in the repo to quote them from memory.
 
 #: U+2212. The reports use a real minus sign, not a hyphen.
-MINUS = "\u2212"
+MINUS = "−"
+
+#: Spelled out in the prose, so a pin on the count has to spell it too.
+NUMBER_WORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+
+
+def _flat(text):
+    """Prose with its line wrapping collapsed.
+
+    Every claim below spans a line break somewhere, and re-wrapping a paragraph
+    must not turn a pin red -- otherwise the next person to reflow this file
+    learns to delete the test rather than to trust it.
+    """
+    return " ".join(text.split())
 
 
 def _paired_by_country(report_path):
@@ -458,48 +483,51 @@ def _paired_by_country(report_path):
             for row in report["section_a_reproduction"]["paired_ml_band_vs_d7"]}
 
 
-def _margin_table(prose):
+def _per_country(report_path):
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    return {row["country"]: row
+            for row in report["section_a_reproduction"]["per_country"]}
+
+
+def _margin_table(raw_prose):
     """The section 3.1 margin table, as {country: shown ci_lo string}.
 
     Scoped to the table rather than swept over the whole file: several other
-    tables in this report carry a country and a signed number, and a regex
-    loose enough to catch them would pin the wrong rows.
+    tables in this report carry a country beside a signed number, and a regex
+    loose enough to catch those would pin the wrong rows.
     """
-    start = prose.index("| readable losers, by margin |")
-    block = prose[start:prose.index("\n\n", start)]
+    start = raw_prose.index("| readable losers, by margin |")
+    block = raw_prose[start:raw_prose.index("\n\n", start)]
     return dict(re.findall(rf"\| ([A-Z]{{2}}) \| ([+{MINUS}][\d.]+) \|", block))
 
 
 def test_the_margin_table_agrees_with_the_records():
-    """Section 3.1 corrects a published count from 10 to 9, then argues the 9
-    is no firmer than the 10 was, by quoting each cell's distance from the
-    readability threshold against the size of one observed vintage step.
+    """Each surviving cell's distance from the readability threshold, measured
+    against the size of one observed vintage step.
 
-    That argument is worth something only if its numbers are the records'.
-    Both records are on disk -- the first run and the re-read -- so the margins
-    and the step size are recomputable, and this holds the prose to them. It
-    fails in both directions: a table row that drifts from the record is red,
+    Fails in both directions: a table row that drifts from the record is red,
     and so is a record that moves under a table left as it was.
     """
-    prose = PROSE.read_text(encoding="utf-8")
+    raw = PROSE.read_text(encoding="utf-8")
+    prose = _flat(raw)
     published, reread = _paired_by_country(PUBLISHED), _paired_by_country(REPORT)
 
     # The size of one vintage step, at the precision the prose states it to.
     steps = {c: abs(reread[c]["ci_lo"] - published[c]["ci_lo"])
              for c in reread.keys() & published.keys()}
     worst = max(steps, key=steps.__getitem__)
-    assert f"at most **{steps[worst]:.2f} pp**" in prose and f"({worst})" in prose, (
-        f"section 3.1 states a maximum vintage step the two records do not "
-        f"give; recomputed {steps[worst]:.2f} pp on {worst}")
+    assert f"at most **{steps[worst]:.2f} pp**" in prose, (
+        f"3.1 states a maximum vintage step the two records do not give; "
+        f"recomputed {steps[worst]:.2f} pp on {worst}")
+    assert f"({worst})" in prose, f"the largest step is {worst}'s"
 
     # Every cell the table names, at the sign and precision shown.
-    shown = _margin_table(prose)
+    shown = _margin_table(raw)
     assert len(shown) == 8, f"the margin table lost rows -- parsed {sorted(shown)}"
     for country, quoted in shown.items():
         actual = f"{reread[country]['ci_lo']:+.2f}".replace("-", MINUS)
         assert actual == quoted, (
-            f"section 3.1 shows {country} at ci_lo {quoted}, "
-            f"the re-read record has {actual}")
+            f"3.1 shows {country} at ci_lo {quoted}, the re-read has {actual}")
 
     # The claim that separates a finding from a provisional count: the cells
     # called out as robust are exactly the losers outside one observed step.
@@ -508,24 +536,71 @@ def test_the_margin_table_agrees_with_the_records():
               and r["ci_lo"] > steps[worst]}
     assert robust == {"AT", "CZ", "SI", "SK"}, (
         f"the losers outside one vintage step are now {sorted(robust)}; "
-        f"section 3.1 names SK, AT, CZ and SI")
+        f"3.1 names SK, AT, CZ and SI")
     assert "**SK, AT, CZ and SI**" in prose
     margins = sorted(reread[c]["ci_lo"] for c in robust)
-    assert f"+{margins[0]:.2f} \u2026 +{margins[-1]:.2f}" in prose, (
-        f"the table's range row for the four robust cells is not "
-        f"+{margins[0]:.2f} … +{margins[-1]:.2f}")
+    assert f"+{margins[0]:.2f} … +{margins[-1]:.2f}" in prose, (
+        f"the range row for the four robust cells should read "
+        f"+{margins[0]:.2f} ... +{margins[-1]:.2f}")
 
 
-def test_the_margin_table_is_red_when_the_prose_drifts():
-    """The anti-vacuity half: a table that agreed with nothing would satisfy
-    the test above just as well if the parse silently found no rows."""
-    prose = PROSE.read_text(encoding="utf-8")
+def test_the_margin_table_is_not_vacuous():
+    """A table the parse silently found no rows in would satisfy the test above
+    just as well, and would certify whatever the section said."""
     reread = _paired_by_country(REPORT)
-    shown = _margin_table(prose)
+    shown = _margin_table(PROSE.read_text(encoding="utf-8"))
 
-    assert shown, "the margin table parsed to nothing -- the test above is vacuous"
-    # Every parsed row must name a country that exists and is quoted with the
-    # sign its interval actually has, or the parse is matching decoration.
+    assert shown, "the margin table parsed to nothing -- the pin above is vacuous"
     for country, quoted in shown.items():
         assert country in reread, f"{country} is not a scored country"
-        assert quoted.startswith(MINUS) == (reread[country]["ci_lo"] < 0)
+        assert quoted.startswith(MINUS) == (reread[country]["ci_lo"] < 0), (
+            f"{country} is quoted as {quoted}, against an interval of the "
+            f"other sign -- the parse is matching decoration, not the table")
+
+
+def test_the_vintage_paragraph_agrees_with_the_records():
+    """Section 3.1's attribution paragraph: why the move from 10 to 9 is a data
+    vintage and not a correction. These numbers *are* the argument."""
+    prose = _flat(PROSE.read_text(encoding="utf-8"))
+    published, reread = _per_country(PUBLISHED), _per_country(REPORT)
+    n_countries = len(reread)
+
+    # Arm one: the countries that gained rows.
+    gained = {c: reread[c]["n"] - published[c]["n"]
+              for c in reread if reread[c]["n"] != published[c]["n"]}
+    assert f"**{len(gained)} of {n_countries} countries gained a target day**" in prose, (
+        f"{len(gained)} of {n_countries} countries gained rows, "
+        f"which is not what 3.1 states")
+    by_one = [c for c, d in gained.items() if d == 1]
+    biggest = max(gained, key=gained.__getitem__)
+    assert f"{len(by_one)} of them by exactly one row, {biggest} by " in prose
+
+    a, b = (json.loads(p.read_text(encoding="utf-8"))["meta"]["panel_a_n_scored_pairs"]
+            for p in (PUBLISHED, REPORT))
+    assert f"for +{b - a} rows in total, `{a:,} → {b:,}`" in prose, (
+        f"3.1 states a row delta the records do not give; "
+        f"recomputed +{b - a}, {a:,} -> {b:,}")
+
+    # Arm two: the countries whose actuals were revised under a fixed panel.
+    revised = sorted(c for c in reread
+                     if reread[c]["n"] == published[c]["n"]
+                     and reread[c]["days"] == published[c]["days"]
+                     and reread[c]["mean_load_mw"] != published[c]["mean_load_mw"])
+    assert len(gained) + len(revised) == n_countries, (
+        f"the two arms no longer partition the countries, so 3.1's claim that "
+        f"not one of the {n_countries} is unchanged does not follow: "
+        f"{len(gained)} gained + {len(revised)} revised")
+    assert f"**the other {len(revised)} had already-scored actuals revised" in prose
+    assert f"**not one of the {n_countries} countries is unchanged**" in prose
+
+    # Every country whose revision is visible at the precision 3.1 quotes.
+    visible = [c for c in revised
+               if round(reread[c]["wape_ml_band"], 2)
+               != round(published[c]["wape_ml_band"], 2)]
+    assert f"in {NUMBER_WORDS[len(visible)]} of them the revision reaches" in prose, (
+        f"{len(visible)} countries move WAPE at two decimals; "
+        f"3.1 states a different count")
+    for country in visible:
+        pair = (f"{country} {published[country]['wape_ml_band']:.2f}"
+                f"→{reread[country]['wape_ml_band']:.2f}")
+        assert pair in prose, f"3.1's visible-revision list is missing {pair}"
