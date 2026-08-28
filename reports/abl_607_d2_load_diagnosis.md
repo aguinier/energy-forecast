@@ -2,7 +2,11 @@
 
 **Author:** Forecasting Scientist · **Date:** 2026-08-28 · **Status:** diagnosis, no fix, no serving change
 
-Machine record: `reports/abl_607_d2_load_diagnosis.json`
+Machine records: `reports/abl_607_d2_load_diagnosis.json` (the 15:58 UTC run,
+which every number here is quoted from) and
+`reports/abl_607_d2_load_diagnosis_reread.json` (the ABL-619 re-read on the
+rebuilt replica, which carries the §2.1 census and moves the headline count
+from 10 to 9 — **read §3.1 before quoting a count from this document**).
 Reproduce:
 `.venv\Scripts\python.exe scripts/abl607_d2_load_diagnosis.py --replica-db C:\Code\able\data\energy_dashboard.db --json-out reports/abl_607_d2_load_diagnosis.json --models-dir models`
 
@@ -65,7 +69,7 @@ Inherited from ABL-246 so the two packs are comparable.
 | **Basis** | **out-of-sample** throughout, except the one column labelled in-sample in §5.4 |
 | **Truth** | `energy_load`, hourly means (ABL-332), 0.0 rows dropped |
 | **Reads** | replica opened `file:...?mode=ro`; nothing written outside `reports/` |
-| **Plausibility** | nothing filtered (§2.1). The census that measures what the ABL-431 guard *would* have refused is **not yet run — ABL-619**; §2.1 carries the ceiling it cannot exceed |
+| **Plausibility** | nothing filtered; the ABL-431 guard would have refused **0 of 67,008** archive rows, 24/24 countries evaluable — §2.1, §3.1 |
 | **Interpreter** | the rail — Python 3.14.3, xgboost 3.3.0 |
 
 **Arms.** `ml_band` is ABL-246's arm verbatim (latest leak-free vintage in the
@@ -114,34 +118,33 @@ reference over exactly the scored rows and reports what the guard *would* have
 refused, using `implausible_mask` (the predicate) rather than `guard_series`
 (the filter).
 
-**That run has not happened yet, and this section says so rather than implying
-otherwise — ABL-619.** The census landed in the script after this report was
-generated, and the replica has since been held by an exclusive writer (probed
-14 times over 19 minutes on 2026-08-28, `database is locked` every time), so
-section 0 is absent from the machine record. Until the run lands, the exemption
-is warranted by the census code and its unit tests, not by a published count.
+**Measured: the guard would have refused nothing. 0 of 67,008 archive rows**
+(ABL-619, machine record `reports/abl_607_d2_load_diagnosis_reread.json`
+section 0 — the census landed in the script after this report was first
+generated, and the run that produced it is §3.1's re-read).
 
-**What can be said without the replica is a ceiling**, because a flagged row is
-an enormous error and WAPE counts every row. A flagged row has `f > 3R`, where
-`R = max(p99.5 TSO day-ahead vintages, p99.5 energy_load)` over the whole
-history; its absolute error therefore exceeds `2R`. With
-`WAPE = 100·Σ|f−a| / Σa` and `Σa = n · mean_load_mw`, the number of flagged rows
-`k` obeys `k ≤ WAPE · n · mean_load_mw / (200 · R)`, and since `R ≥ mean_load_mw`,
+All **24 of 24** countries had an evaluable reference, so this is a zero that
+was actually tested rather than a zero that was never evaluated. The headroom
+is wide and it is wide everywhere: the largest value our model published, as a
+fraction of that country's refusal threshold, runs from **0.1997 (SE)** to
+**0.3234 (ES)**. Nowhere did we come within a factor of three of the bar.
 
-> **k ≤ WAPE · n / 200.**
+| | reference `R` | threshold `3R` | our max | max / threshold |
+|---|---:|---:|---:|---:|
+| ES — tightest | 37,376 MW | 112,128 MW | 36,260 MW | **0.3234** |
+| DE — largest fleet | 75,512 MW | 226,535 MW | 59,772 MW | 0.2639 |
+| SE — loosest | 23,474 MW | 70,422 MW | 14,061 MW | **0.1997** |
 
-Evaluated on §3's own per-country numbers that is **at most 371 of the 8,436
-scored rows (4.40%)** fleet-wide, and **at most 156 of 3,509 (4.45%)** across the
-ten losers. It is tightest exactly where our model is best — FI **≤ 4**, NO
-**≤ 5**, SE **≤ 10** — and loosest at SI (**≤ 27**), the worst loss. Two limits
-on it: it is conservative, since `R ≥ mean_load_mw` discards most of the margin
-(`R` is an all-time p99.5 and this is an August window), and it constrains only
-rows that reached the scored panel, not the wider archive read the census walks.
-It is a sanity envelope, not a substitute for the measurement.
+`R = max(p99.5 TSO day-ahead vintages, p99.5 energy_load)` per country over the
+whole history (`reference_scale`, `as_of=None`), with our own `source = 'ml'`
+rows excluded from setting it by `forecast_read` — so an arm that overshot
+could not lift the bar it is judged against.
 
-Note also that the census **cannot change any number in this report**: it
-filters nothing by construction, so it decides how the ranking is *read*, never
-its arithmetic. A non-zero count would be a finding about our own model.
+Note that the census **cannot change any number in this report**: it filters
+nothing by construction, so it decides how the ranking is *read*, never its
+arithmetic. A non-zero count would have been a finding about our own model and
+would have gone to its own issue. It is zero, so the ranking below rests on
+inputs measured plausible rather than assumed so.
 
 An exemption that could not have detected anything would be the vacuous kind, so
 both halves are pinned by `tests/test_abl607_guarded_read.py`: that the panel
@@ -167,6 +170,56 @@ On `panel_a`, n = **8,436**, the same number ABL-246 scored:
 | GR (the win) | -6.60 [-10.16, -3.04] | **-6.600 [-10.162, -3.038]** |
 
 The diagnosis below is built on a reproduced finding, not a re-measured one.
+
+### 3.1 Re-read on a later replica vintage — the count is 9, not 10
+
+Everything above and below is the run of **2026-08-28 15:58 UTC**. ABL-619 then
+required a second run to publish §2.1's census, and the replica had been
+rebuilt in between. The re-read uses the **identical pinned window** and the
+identical script (`DEFAULT_MAX_TARGET = 2026-08-28 01:00`,
+`GENUINE_VINTAGE_FLOOR = 2026-08-12`); machine record
+`reports/abl_607_d2_load_diagnosis_reread.json`.
+
+**It does not reproduce 10 of 23. It gives 9, and the difference is DE.**
+
+| | 15:58 run | re-read | |
+|---|---|---|---|
+| `panel_a` scored pairs | 8,436 | **8,451** | +15 |
+| target days per country | 16 for 12, 15 for 12 | **16 for all 24** | uniform basis |
+| readable losers | **10** | **9** | DE drops out |
+| readable winners | 1: GR | 1: GR | unchanged |
+| DE, ML − D-7 | +3.59 [+0.88, +6.30] | **+2.70 [−0.46, +5.85]** | crosses zero |
+| LV (was most marginal) | +3.39 [+0.03, +6.75] | +4.20 [+0.64, +7.76] | strengthens |
+| SI (worst) | +10.07 [+5.22, +14.93] | +10.08 [+5.23, +14.94] | unchanged |
+| GR (the win) | −6.60 [−10.16, −3.04] | −6.45 [−9.95, −2.95] | unchanged |
+| fleet median ML D+2 | 8.85% | 8.85% | |
+| fleet median D-7 | 5.10% | 5.07% | |
+
+**This is a data-vintage effect, not a correction.** The two runs were compared
+on inputs before any metric, precisely so this could be told apart. **12 of 24
+countries gained a target day** — 11 of them by exactly one row, BG by four —
+for +15 rows in total, `8,436 → 8,451`. A country gaining one row and one day
+can only have gained the window's final hour, `2026-08-28 00:00`, whose actual
+had not landed when the first run read the replica. Separately, **IT, SE and SI
+moved their WAPE with both `n` and `days` unchanged** (10.33→10.21, 5.91→5.79,
+15.66→15.41), so already-scored actuals were revised underneath the pinned
+window as well. Neither run is wrong: the re-read has the completer data, on a
+uniform 16 days for every country instead of a 12/12 split at 16 and 15.
+
+**What it does and does not change.** DE's central estimate is still a **loss**
+of +2.70 pp; what it stopped being is *readable* at 95% on 16 paired days. Nine
+countries still lose readably, one still wins, and the mechanism in §4 — which
+is about which row the model anchors on, not about interval width — is
+untouched. This is precisely the caveat this pack and ABL-246 both carried:
+**a fortnight is short, and a marginal cell can be moved by a single day.** It
+is an argument for the ~30-day re-read before any intervention, not against the
+finding. Treat **9 of 23** as the current count and DE as a borderline cell.
+
+Every number outside this subsection is the 15:58 vintage, quoted from
+`reports/abl_607_d2_load_diagnosis.json`. They are not restated against the
+re-read, because the shifts are in the third decimal and mixing two vintages
+inside one table is how a report starts lying quietly; the re-read record is
+committed whole for anyone who needs it.
 
 ---
 
@@ -386,13 +439,16 @@ ABL-246, for whoever next reads a D+2 number off that band.
 - **The archive read is deliberately unfiltered** (§2.1), so no plausibility
   screen stands between the archive and these numbers. That is the correct
   choice for an arm being *graded* rather than fitted on, but it is a choice,
-  and the protection it gives up is **not yet measured: the census run is
-  ABL-619 and the replica has been locked**. What bounds it today is §2.1's
-  ceiling — at most 4.40% of scored rows fleet-wide could be flagged, and less
-  than that in every country where our model wins. So the honest claim is
-  "little enough implausible material is in here to leave the ranking intact",
-  not "nothing implausible is in here", and certainly not "nothing implausible
-  could be".
+  and the protection it gives up is measured rather than assumed: the ABL-431
+  guard would have refused **0 of 67,008** rows, across 24/24 countries with an
+  evaluable reference, with our largest published value never above **32.3%**
+  of any country's threshold. So the claim is "nothing implausible is in here,
+  and that was tested" — not "nothing implausible could be".
+- **The count is 9, not 10, on the later replica vintage (§3.1).** DE's loss
+  stays a loss in point estimate (+2.70 pp) but stops being readable at 95%
+  once the window's final target day lands. A fortnight is short enough that
+  one day moves a marginal cell; that is an argument for the 30-day re-read,
+  and it is the same caveat ABL-246 carried.
 - **Contamination.** ABL-111/ABL-109 (zero-as-missing actual load): **1 row** in
   the whole window, dropped. ABL-67 (fabricated net_position) does not touch
   load. **ABL-71** applies equally to every arm, so it cannot manufacture a gap

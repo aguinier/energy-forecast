@@ -57,11 +57,11 @@ so it reads no TSO row, and the ABL-431 guard is one-sided -- filtering here
 could only delete our own largest over-forecasts, which are the errors this pack
 exists to measure. The guard's reference is still computed over exactly these
 rows and written to section 0 (`plausibility_census`) by every run of this
-script, so the count it *would* have refused is measured rather than assumed --
-but the committed report predates that section and does not yet carry it
-**(pending: ABL-619)**, because the replica has been held by an exclusive
-writer. Read this paragraph as a statement about the script until that run
-lands; `tests/test_abl607_guarded_read.py` will not let the two drift.
+script, so the count it *would* have refused is measured rather than assumed:
+**0 of 67,008 rows, 24/24 countries evaluable** (ABL-619, published in
+`reports/abl_607_d2_load_diagnosis_reread.json`; the first run predates the
+census). `tests/test_abl607_guarded_read.py` holds this paragraph against that
+artifact in both directions, so it cannot drift from it.
 Truth is `energy_load` aggregated to hourly means (ABL-332), with
 0.0 rows dropped -- ABL-111/ABL-109 encode missing as zero. Every arm is scored
 on one identical (country, target-hour) intersection. NL is scored but held out

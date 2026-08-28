@@ -24,11 +24,12 @@ at a file the moment it goes on `EXEMPT_READS`:
 
 Not run against the live replica on purpose: a rule pinned against live data
 stops being a test the day the data moves. The live count is measured by the
-script and belongs in section 0 of `reports/abl_607_d2_load_diagnosis.json` --
-which does not yet carry it **(pending: ABL-619)**: the script grew the census,
-the replica went under an exclusive writer, and the report was never
-regenerated. Section 3 below is what makes that state impossible to state
-wrongly, in either direction.
+script and published in section 0 of
+`reports/abl_607_d2_load_diagnosis_reread.json` (ABL-619): **0 of 67,008 rows
+would have been refused**, 24/24 countries evaluable. The first run of the pack
+predates the census, which is why the record that carries it is the re-read.
+Section 3 below holds the three texts against that artifact so neither can
+drift from the other.
 """
 
 import ast
@@ -50,7 +51,15 @@ from src.tso_plausibility import (  # noqa: E402
 
 REPO_ROOT = Path(__file__).parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "abl607_d2_load_diagnosis.py"
-REPORT = REPO_ROOT / "reports" / "abl_607_d2_load_diagnosis.json"
+#: The record that carries the census. It is the *re-read*, not the pack's
+#: first run: the census landed in the script after that run, and the replica
+#: was under an exclusive writer for the rest of the day (ABL-619). The two
+#: records are kept apart rather than the first overwritten, because the
+#: re-read is a later replica vintage and every metric in it moved slightly --
+#: merging them would leave the prose of the first quoting numbers its own
+#: machine record no longer contained, which is the defect this file exists to
+#: prevent, at a hundred sites instead of three.
+REPORT = REPO_ROOT / "reports" / "abl_607_d2_load_diagnosis_reread.json"
 
 
 @pytest.fixture(autouse=True)
