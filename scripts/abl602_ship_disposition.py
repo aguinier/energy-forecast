@@ -184,10 +184,13 @@ def main():
         },
         "deploy_check": (
             "Per shipping row: copy the artifact, re-hash, compare against "
-            "artifact_sha256. Then load under the ABL-597 pinned environment "
-            "and reproduce in_sample_prediction_digest -- a file hash cannot "
-            "see a wrong-interpreter load, which keeps the trees and resets "
-            "the intercept."
+            "artifact_sha256. Then run abl597_artifact_load_path.py "
+            "--check-intercept INSIDE THE CONTAINER, not on the workstation "
+            "models directory -- the workstation reads them back under the "
+            "rail's own numpy 2.5.1, the version that wrote them, so it "
+            "answers a question nobody asked (CEO correction 2026-08-28T12:35Z, "
+            "carried to ABL-603). A file hash cannot see a wrong-interpreter "
+            "load either: it keeps the trees and silently resets the intercept."
         ),
         "pairs": rows,
     }

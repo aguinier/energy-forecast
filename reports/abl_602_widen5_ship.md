@@ -519,7 +519,7 @@ actual in the fit window.
 
 ---
 
-## 7.2 A deploy finding that arrived mid-run: these are the first `numpy._core` artifacts
+## 7.2 A deploy finding that arrived mid-run: these artifacts are on the `numpy._core` path
 
 `origin/main` moved from `79433d0b` to `e0ec351` while this work was in flight,
 landing **ABL-597**, which pinned the serving dependencies exactly. That pin
@@ -540,12 +540,35 @@ parsed, 0 errors.** Every one names exactly three symbols:
 | `numpy._core.multiarray.scalar` | 5 |
 | `numpy.dtype` | 5 |
 
-**`numpy._core`, with the underscore.** ABL-597 measured the 67 artifacts in the
-production models directory and found 49 carrying `numpy.core.multiarray.scalar`
-— the **pre-2.0** path that resolves only through numpy's compatibility shim.
-**None carries `numpy._core`.** These five are the first artifacts in the
-programme on the numpy-2.x private path, because they were pickled by the rail
-`.venv` at numpy **2.5.1**.
+**`numpy._core`, with the underscore** — the numpy-2.x private path, because
+they were pickled by the rail `.venv` at numpy **2.5.1**.
+
+> **Correction, CEO 2026-08-28T12:35Z. This section was filed claiming these
+> were "the first `numpy._core` artifacts in the programme". Withdraw that
+> claim; the sample it rested on cannot support it.** ABL-597's 67-artifact
+> read is of `C:/Code/able/energy-forecast/models` — the **workstation**
+> directory, not production. Its renewable coverage is AT/BE/DE/FR `solar` and
+> `wind_onshore` plus BE/FR `wind_offshore`: the **pre-ABL-316 baseline**, which
+> contains *none* of the widened pairs — not CZ, RO or CH `solar`, not NL
+> `wind_offshore`, none of the ABL-525 seven. Production carries **78**
+> artifacts, eleven more, and those eleven are exactly the rail-fitted ones this
+> claim was about. So "49 of 67 on the pre-2.0 shim and none on `numpy._core`"
+> is measured over a population that **excludes every artifact the widening
+> programme has shipped**. The claim may still be true; this evidence cannot
+> show it, and it is withdrawn rather than restated. Any other statistic quoted
+> off that 67-artifact record inherits the same defect — check membership
+> before reusing one.
+
+> **And there is executed evidence, which this section was filed without.**
+> ABL-601 finished at 12:14Z: the Deployment Engineer rebuilt the production
+> container on the ABL-597 pins and ran
+> `docker exec energy-forecast python3 scripts/abl597_artifact_load_path.py
+> --check-intercept` **inside it** — 78 artifacts, 0 parse errors, 18/18 xgboost
+> intercepts identical to 1e-9, exit 0, under the real pinned numpy **2.4.6**.
+> That is not proof for these four, which are not in that set. It does make the
+> decisive check cheap: **if any already-deployed rail-fitted artifact in
+> production carries `numpy._core`, the symbol has been resolving under 2.4.6 in
+> production since 2026-08-27 and the hazard is closed by execution.**
 
 Where that leaves the deploy, stated exactly:
 
@@ -565,12 +588,23 @@ Where that leaves the deploy, stated exactly:
   numpy 2.4.6, and this pack does not claim to have.
 - This is **not specific to ABL-602.** Every artifact fitted on this rail carries
   the same path, including ABL-583's CH `solar`. It is a property of the shipping
-  programme, not of these five.
+  programme, not of these four.
 
-**Action for the deploy issue:** load one of the four shipping artifacts under the pinned
-environment before serving any of them, and re-run
-`scripts/abl597_artifact_load_path.py --check-intercept` after copying. Raised on
-ABL-316 as well, since it covers the whole staged set rather than this batch.
+**Action for the deploy issue, as corrected by the CEO.** Run
+`scripts/abl597_artifact_load_path.py --check-intercept` **inside the container**
+after copying, before any real forecast run — *not* on the workstation
+directory. Running it on the workstation reads the artifacts back under the
+rail's own numpy 2.5.1, which is the version they were written with: it would
+answer a question nobody asked, cleanly. The CEO has carried this corrected
+condition to ABL-603, which is where it fires. Also raised on ABL-316, since the
+load path covers the whole staged set rather than this batch.
+
+**The xgboost gap is ABL-599**, and its premise inherits the same sampling
+defect: *"all 18 xgboost artifacts on disk were written by xgboost 2.1.4"* is
+measured over that same 67-artifact workstation directory, which does **not**
+contain `NL` `wind_offshore` — the one rail-fitted xgboost pair actually
+deployed. The CEO is recording that correction on ABL-599. It does not touch
+this batch: all four shipping pairs are catboost.
 
 ---
 
@@ -609,7 +643,13 @@ ABL-316 as well, since it covers the whole staged set rather than this batch.
 7. **These artifacts have not been loaded under the ABL-597 pinned numpy.** They
    were fitted under numpy 2.5.1 and production pins 2.4.6 (section 7.2). The
    symbol they name exists in 2.4.6; that is a read of the pickle bytes, not an
-   executed load.
+   executed load. ABL-601 *did* execute the load path inside the pinned
+   container over production's 78 artifacts with 0 errors — but these four are
+   not in that set, so it is neighbouring evidence, not a check of them.
+8. **"First `numpy._core` artifacts in the programme" is withdrawn.** §7.2 was
+   filed with that claim; the 67-artifact record it rested on is the workstation
+   directory and excludes every widened pair (CEO correction, 12:35Z). The claim
+   is not disproved — it is unsupported, and this pack no longer makes it.
 
 ---
 

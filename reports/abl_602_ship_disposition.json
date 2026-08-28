@@ -1,7 +1,7 @@
 {
   "issue": "ABL-602",
   "batch": "abl602",
-  "generated_at": "2026-08-28T13:19:02.270298+00:00",
+  "generated_at": "2026-08-28T13:29:14.071659+00:00",
   "purpose": "The deploy's list. Five pairs were fitted; four ship. Derived by joining SHIP_SET (which carries the hold) onto the committed training and serving records (which carry the digests and the verification). Nothing here is re-measured.",
   "decision": {
     "board_answer": "abl316 widen7, 2026-08-28 -- adopt the causally-available standard for the widened set",
@@ -20,7 +20,7 @@
     "ships": 4,
     "withdrawn": 1
   },
-  "deploy_check": "Per shipping row: copy the artifact, re-hash, compare against artifact_sha256. Then load under the ABL-597 pinned environment and reproduce in_sample_prediction_digest -- a file hash cannot see a wrong-interpreter load, which keeps the trees and resets the intercept.",
+  "deploy_check": "Per shipping row: copy the artifact, re-hash, compare against artifact_sha256. Then run abl597_artifact_load_path.py --check-intercept INSIDE THE CONTAINER, not on the workstation models directory -- the workstation reads them back under the rail's own numpy 2.5.1, the version that wrote them, so it answers a question nobody asked (CEO correction 2026-08-28T12:35Z, carried to ABL-603). A file hash cannot see a wrong-interpreter load either: it keeps the trees and silently resets the intercept.",
   "pairs": [
     {
       "country": "LT",
