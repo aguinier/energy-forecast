@@ -746,7 +746,14 @@ MENTION_ONLY_EXEMPT = (
     "scripts/attest_net_position_serve_faithfulness.py",
 )
 
-#: Files that read a TSO forecast column raw, on purpose, with the reason.
+#: Files that read a TSO forecast *table* raw, on purpose, with the reason.
+#: Widened from "column" on ABL-611. The sweep matches table names, so an entry
+#: here is one of two things and its reason must say which: a deliberate raw
+#: read of a TSO forecast column (the original case), or a read of a non-TSO
+#: slice of a table that also holds TSO rows (ABL-607). For the second kind the
+#: reason must say why guarding the read would be *wrong*, not merely
+#: unnecessary -- "we do not need it here" is how a real TSO read gets added
+#: later under a stale exemption.
 EXEMPT_READS = (
     # ABL-607/ABL-611: not a TSO read. `load_archive` selects
     # `forecast_type = 'load' AND source = 'ml'` -- our own forecasts -- and

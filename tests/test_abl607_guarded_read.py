@@ -6,7 +6,8 @@ in `EXEMPT_READS` in `test_tso_plausibility.py` and in the docstring of
 `plausibility_census`; what is pinned here is that the code does what the
 exemption claims.
 
-Two claims, and neither is checkable by the static sweep:
+Three claims, and none is checkable by the static sweep -- which stops looking
+at a file the moment it goes on `EXEMPT_READS`:
 
 1. **The read filters nothing.** The guard is one-sided, so on the arm under
    test the only rows it could remove are our own largest over-forecasts --
@@ -16,12 +17,17 @@ Two claims, and neither is checkable by the static sweep:
 2. **The exemption still carries a measurement.** The pack publishes a count
    of what the guard *would* have refused. An exemption whose census could not
    have detected anything is the vacuous kind.
+3. **The file still reads only our own `source = 'ml'` rows.** That is the
+   premise the whole exemption rests on, and it is the one an ordinary future
+   edit can quietly break -- add a TSO arm for comparison and the read becomes
+   exactly what ABL-431 was filed about, still exempt.
 
 Not run against the live replica on purpose: a rule pinned against live data
 stops being a test the day the data moves. The live count is measured by the
 script and reported in section 0 of `reports/abl_607_d2_load_diagnosis.json`.
 """
 
+import ast
 import sqlite3
 import sys
 from pathlib import Path
@@ -32,7 +38,10 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from scripts.abl607_d2_load_diagnosis import plausibility_census  # noqa: E402
-from src.tso_plausibility import clear_reference_cache  # noqa: E402
+from src.tso_plausibility import (  # noqa: E402
+    VINTAGE_ARCHIVE_TABLE,
+    clear_reference_cache,
+)
 
 REPO_ROOT = Path(__file__).parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "abl607_d2_load_diagnosis.py"
@@ -139,6 +148,73 @@ def test_the_source_file_never_calls_a_filtering_entry_point():
         assert filtering_call not in text, (
             f"{SCRIPT.name} calls {filtering_call} -- this read is EXEMPT_READS "
             f"and must not filter; see plausibility_census's docstring")
+
+
+def _sweep_tso_tables() -> tuple:
+    """`TSO_TABLES` from the sweep, read rather than copied.
+
+    Parsed out of the source instead of imported: `tests/` is not a package and
+    nothing else in the repo imports across test modules, so an import idiom
+    would be new here. Single-sourced because a copy is the failure this test
+    exists to prevent -- an exempt file is skipped by the sweep, so if the
+    sweep widened its table list and this list did not, the widening would
+    reach every file in the repo except the one holding an intent claim.
+    """
+    sweep = ast.parse((REPO_ROOT / "tests" / "test_tso_plausibility.py")
+                      .read_text(encoding="utf-8"))
+    names = {"VINTAGE_ARCHIVE_TABLE": VINTAGE_ARCHIVE_TABLE}
+    for node in sweep.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if [t.id for t in node.targets
+                if isinstance(t, ast.Name)] != ["TSO_TABLES"]:
+            continue
+        return tuple(
+            e.value if isinstance(e, ast.Constant) else names[e.id]
+            for e in node.value.elts)
+    raise AssertionError("TSO_TABLES not found in tests/test_tso_plausibility.py")
+
+
+def test_no_query_in_the_file_ever_selects_a_tso_slice():
+    """The other half of the exemption, and the half that can rot.
+
+    `EXEMPT_READS` carries an *intent* claim -- "this file reads only our own
+    `source = 'ml'` rows" -- and the sweep stops looking once a file is on the
+    list. So the day someone adds a TSO arm here for comparison, the file would
+    be reading a genuinely unguarded TSO forecast with a stale exemption
+    covering it, and the sweep would be silent by construction.
+
+    Checked over the parsed source so that the four `tso` mentions in comments
+    and docstrings, the census's `n_tso_day_ahead_rows` column and the
+    `src.tso_plausibility` import cannot satisfy or trip it: only string
+    constants that are actually SQL against one of the sweep's tables count,
+    and each must pin `source` to `'ml'`.
+    """
+    tree = ast.parse(SCRIPT.read_text(encoding="utf-8"))
+    docstrings = {id(ast.get_docstring(n, clean=False))
+                  for n in ast.walk(tree)
+                  if isinstance(n, (ast.Module, ast.FunctionDef,
+                                    ast.AsyncFunctionDef, ast.ClassDef))}
+    tso_tables = _sweep_tso_tables()
+
+    queries = [
+        n.value for n in ast.walk(tree)
+        if isinstance(n, ast.Constant) and isinstance(n.value, str)
+        and "FROM " in n.value and id(n.value) not in docstrings
+        and any(t in n.value for t in tso_tables)
+    ]
+    assert queries, (
+        "no SQL against a TSO-bearing table found in "
+        f"{SCRIPT.name} -- this test has stopped checking anything")
+
+    for sql in queries:
+        assert "source = 'ml'" in sql, (
+            f"a query in {SCRIPT.name} reads {tso_tables} without pinning "
+            f"source = 'ml'; the EXEMPT_READS entry claims this file reads "
+            f"only our own forecasts:\n{sql}")
+        assert "'tso'" not in sql, (
+            f"a query in {SCRIPT.name} selects TSO rows; the EXEMPT_READS "
+            f"entry no longer holds and the read needs a guard:\n{sql}")
 
 
 # --------------------------------------------------------------------------
