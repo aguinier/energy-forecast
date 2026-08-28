@@ -200,10 +200,12 @@ on inputs before any metric, precisely so this could be told apart. **12 of 24
 countries gained a target day** — 11 of them by exactly one row, BG by four —
 for +15 rows in total, `8,436 → 8,451`. A country gaining one row and one day
 can only have gained the window's final hour, `2026-08-28 00:00`, whose actual
-had not landed when the first run read the replica. Separately, **IT, SE and SI
-moved their WAPE with both `n` and `days` unchanged** (10.33→10.21, 5.91→5.79,
-15.66→15.40), so already-scored actuals were revised underneath the pinned
-window as well. Neither run is wrong: the re-read has the completer data, on a
+had not landed when the first run read the replica. Separately, **the other 12
+had already-scored actuals revised underneath the pinned window** — same `n`,
+same `days`, moved mean load — and in four of them the revision reaches the
+second decimal of WAPE (BE 7.03→6.99, IT 10.33→10.21, SE 5.91→5.79,
+SI 15.66→15.40). Between the two effects, **not one of the 24 countries is
+unchanged**. Neither run is wrong: the re-read has the completer data, on a
 uniform 16 days for every country instead of a 12/12 split at 16 and 15.
 
 **What it does and does not change.** DE's central estimate is still a **loss**
@@ -213,7 +215,30 @@ is about which row the model anchors on, not about interval width — is
 untouched. This is precisely the caveat this pack and ABL-246 both carried:
 **a fortnight is short, and a marginal cell can be moved by a single day.** It
 is an argument for the ~30-day re-read before any intervention, not against the
-finding. Treat **9 of 23** as the current count and DE as a borderline cell.
+finding. Treat **9 of 23** as the current count.
+
+**9 is not a firmer number than 10 was.** DE is not *the* borderline cell; it is
+the cell that happened to cross. Measuring the margins against the size of the
+step that moved it — one vintage step shifted `ci_lo` by at most **1.34 pp**
+(DE), median 0.06, p75 0.20 across the 24 countries — five of the nine
+survivors sit inside that observed maximum, and four cells with a positive
+central estimate sit inside it on the other side of the line:
+
+| readable losers, by margin | `ci_lo` (pp) | | below the line | `ci_lo` (pp) |
+|---|---:|---|---|---:|
+| PT | +0.15 | | NO | −0.05 |
+| PL | +0.56 | | FR | −0.27 |
+| LV | +0.64 | | DE | −0.46 |
+| SE | +0.89 | | BE | −1.15 |
+| ES | +1.03 | | | |
+| SK, AT, CZ, SI | +1.82 … +5.23 | | | |
+
+So the count is not a stable property of the fortnight: it is a threshold
+crossing on cells whose margins are the same size as one day of data arriving.
+Of the ten readable cells, only **SK, AT, CZ and SI** — and the GR win, whose
+binding bound is `ci_hi` = −2.95 — are outside the range a single vintage step
+has already been observed to move. Read those five as the findings; read the
+count itself as provisional until the ~30-day re-read.
 
 Every number outside this subsection is the 15:58 vintage, quoted from
 `reports/abl_607_d2_load_diagnosis.json`. They are not restated against the
