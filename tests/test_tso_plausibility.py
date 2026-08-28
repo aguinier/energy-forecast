@@ -649,15 +649,6 @@ GUARDED_READ_SITES = (
     "scripts/abl247_vintage_availability_probe.py",
     "scripts/abl430_ro_country_diagnosis.py",
     "scripts/abl439_reporting_basis_probe.py",
-    # ABL-607. Reads `source = 'ml'` rows only -- our own forecasts, not an
-    # ingested TSO series -- so this is not the read class ABL-431 was filed
-    # about, and its sibling pack ABL-246 guards its TSO arm while leaving its
-    # ML arm raw. Registered guarded anyway because the script's published
-    # claim is a per-country WAPE *ranking* and WAPE is unbounded above: one
-    # row three orders of magnitude out would decide a country's cell on its
-    # own. The reference is set from the `tso-day_ahead` slice and the actuals,
-    # so our own arm cannot raise the bar it is held to.
-    "scripts/abl607_d2_load_diagnosis.py",
     "src/challengers/v014_features.py",
     "src/chronos2/input_builder.py",
     "src/evaluation/scorecard.py",
@@ -757,6 +748,28 @@ MENTION_ONLY_EXEMPT = (
 
 #: Files that read a TSO forecast column raw, on purpose, with the reason.
 EXEMPT_READS = (
+    # ABL-607/ABL-611: not a TSO read. `load_archive` selects
+    # `forecast_type = 'load' AND source = 'ml'` -- our own forecasts -- and
+    # the file reads no TSO row anywhere. The guard's archive reference is the
+    # exact complement (`forecast_read` bounds it on `source = 'tso' AND
+    # model_name = 'tso-day_ahead'`), so the sweep has matched a table *name*,
+    # not a TSO read.
+    #
+    # Filtering it would also be a scoring defect rather than hygiene. The
+    # guard is one-sided, so on the arm under test the only rows it can remove
+    # are our own largest over-forecasts -- the errors that pack measures --
+    # and every arm scores on one shared intersection, so a dropped row takes
+    # the D-7 comparator's cell with it in the hour our model was worst. The
+    # effect is one-directional and in our own favour. ABL-431's case is the
+    # opposite: there the implausible value is an input about to be fitted on,
+    # here it would be an output being graded.
+    #
+    # The guard's reference is still computed over these rows and published:
+    # `plausibility_census` reports what it would have refused, using
+    # `implausible_mask` (the predicate) rather than `guard_series` (the
+    # filter), so the exemption carries a measurement and not just a claim.
+    # Pinned by `tests/test_abl607_guarded_read.py`.
+    "scripts/abl607_d2_load_diagnosis.py",
     # Column->covariate mapping only; the read itself is input_builder's.
     "src/chronos2/covariate_mapper.py",
     # `TSOBaseline` queries a `timestamp_utc` column that neither TSO table
