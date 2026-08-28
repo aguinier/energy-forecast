@@ -646,6 +646,13 @@ def test_the_archive_bounds_its_reference_on_target_timestamp_for_a_backtest():
 #: failure mode this pins -- it would pass every other test in the suite and
 #: only show up as a model that fitted on a 140 GW row.
 GUARDED_READ_SITES = (
+    # ABL-246. Guards its TSO arm (`guard_tso` -> `guard_tso_frame` per
+    # country, refusals counted into `attrs["guard_refusals"]` and dropped
+    # before `build_arms`). Its ML arm is read raw, deliberately: the guard is
+    # one-sided, so on an arm being *scored* it can only remove our own largest
+    # over-forecasts -- see `EXEMPT_READS` for `abl607_d2_load_diagnosis.py`,
+    # which reads only that arm and is exempt for exactly this reason.
+    "scripts/abl246_tso_d1_load_pack.py",
     "scripts/abl247_vintage_availability_probe.py",
     "scripts/abl430_ro_country_diagnosis.py",
     "scripts/abl439_reporting_basis_probe.py",
