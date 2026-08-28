@@ -265,7 +265,30 @@ the same `fit_one` into a scratch directory; load original and refit through
 actually round-tripped; build **one** shared feature matrix and predict with
 both; assert `max |a − b| < 1e-12`.
 
-<!--TABLE:REPRO-->
+Probe: a fixed block of 168 target hours from 2026-08-01, inside the fit window
+on purpose — this measures artifact equality, not generalisation.
+
+| pair | probe rows | `max abs(a − b)` | bit-identical | feature cols match | training source | artifact sha256 differs |
+|---|---:|---:|:---:|:---:|---|:---:|
+| `LT` `solar` | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
+| `SE` `solar` | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
+| `HR` `wind_onshore` | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
+| `HU` `wind_onshore` | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
+| `PL` `wind_onshore` | 168 | **0.000e+00** | yes | yes | `energy_generation` | yes |
+
+**5 / 5 reproducible, and stronger than the 1e-12 bar: every pair is
+bit-identical.** `feature_columns` and `training_source` round-tripped
+identically in all five, so a matching prediction vector cannot be a coincidence
+on a mismatched column order.
+
+**Every artifact's sha256 differed across the refit** while every prediction was
+bit-identical — the concrete demonstration that a digest cannot witness a refit
+and predictions can. The digest is still load-bearing for a different question
+(section 6: *is this the same file the record described*).
+
+The refit reads the replica live, so both arms are only comparable if the replica
+did not move in between. It did not: **10,718,515,200 bytes at both the original
+fit and the refit**, recorded on both sides rather than assumed away.
 
 ---
 
