@@ -778,11 +778,16 @@ EXEMPT_READS = (
     # opposite: there the implausible value is an input about to be fitted on,
     # here it would be an output being graded.
     #
-    # The guard's reference is still computed over these rows and published:
+    # The guard's reference is still computed over these rows:
     # `plausibility_census` reports what it would have refused, using
     # `implausible_mask` (the predicate) rather than `guard_series` (the
-    # filter), so the exemption carries a measurement and not just a claim.
-    # Pinned by `tests/test_abl607_guarded_read.py`.
+    # filter), so the exemption is warranted by a measurement rather than by a
+    # claim. That measurement is **not yet on disk (pending: ABL-619)** -- the
+    # committed report predates the census and the replica has been held by an
+    # exclusive writer -- so until that run lands the warrant is the census
+    # code and its unit tests, not a published number. Pinned by
+    # `tests/test_abl607_guarded_read.py`, which fails if this comment and the
+    # committed report ever disagree about which of the two it is.
     "scripts/abl607_d2_load_diagnosis.py",
     # Column->covariate mapping only; the read itself is input_builder's.
     "src/chronos2/covariate_mapper.py",

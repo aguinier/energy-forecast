@@ -24,10 +24,15 @@ at a file the moment it goes on `EXEMPT_READS`:
 
 Not run against the live replica on purpose: a rule pinned against live data
 stops being a test the day the data moves. The live count is measured by the
-script and reported in section 0 of `reports/abl_607_d2_load_diagnosis.json`.
+script and belongs in section 0 of `reports/abl_607_d2_load_diagnosis.json` --
+which does not yet carry it **(pending: ABL-619)**: the script grew the census,
+the replica went under an exclusive writer, and the report was never
+regenerated. Section 3 below is what makes that state impossible to state
+wrongly, in either direction.
 """
 
 import ast
+import json
 import sqlite3
 import sys
 from pathlib import Path
@@ -45,6 +50,7 @@ from src.tso_plausibility import (  # noqa: E402
 
 REPO_ROOT = Path(__file__).parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "abl607_d2_load_diagnosis.py"
+REPORT = REPO_ROOT / "reports" / "abl_607_d2_load_diagnosis.json"
 
 
 @pytest.fixture(autouse=True)
@@ -275,3 +281,151 @@ def test_a_non_evaluable_reference_is_reported_as_such():
     assert census["evaluable"] is False
     assert census["max_over_threshold"] is None
     assert census["n_would_be_refused"] == 0
+
+
+# --------------------------------------------------------------------------
+# 3. the measurement is on disk, not merely computable (ABL-619)
+# --------------------------------------------------------------------------
+#
+# Everything above pins the *code*. None of it could catch ABL-619, which is
+# the failure that actually happened: the census landed, the report was never
+# regenerated, and three merged texts went on saying its output was published.
+# The `EXEMPT_READS` warrant is "the exemption carries a measurement and not
+# just a claim" -- a sentence about an artifact. So it is checked against the
+# artifact.
+
+
+def _script_dict_keys(name: str) -> tuple:
+    """The literal keys of a top-level `name = {...}` in the script.
+
+    Read out of the source rather than copied, for the same reason
+    `_sweep_tso_tables` is: a copy is the failure this test exists to prevent.
+    If the section is renamed, this follows it and still demands the report
+    carry it -- whereas a hardcoded key would quietly start asserting nothing.
+    """
+    tree = ast.parse(SCRIPT.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Dict):
+            continue
+        if [t.id for t in node.targets if isinstance(t, ast.Name)] != [name]:
+            continue
+        return tuple(k.value for k in node.value.keys
+                     if isinstance(k, ast.Constant) and isinstance(k.value, str))
+    raise AssertionError(f"no top-level `{name} = {{...}}` in {SCRIPT.name}")
+
+
+#: The qualifier the three texts carry while the census is *not* on disk. It is
+#: the whole mechanism: prose cannot read a JSON file, so instead the prose
+#: declares which of the two states it is describing, and the test holds that
+#: declaration against the artifact.
+PENDING_MARKER = "(pending: ABL-619)"
+
+#: The three merged texts that describe the census. Each one asserted the count
+#: was published while the committed report had no such key -- that is ABL-619.
+CENSUS_TEXTS = (
+    ("scripts/abl607_d2_load_diagnosis.py", "the protocol block"),
+    ("tests/test_tso_plausibility.py", "the EXEMPT_READS entry's reason"),
+    ("tests/test_abl607_guarded_read.py", "this module's docstring"),
+)
+
+
+def _census_text(relpath: str) -> str:
+    """The prose of one of the three texts, isolated from the machinery.
+
+    For this module that is the module docstring alone: `PENDING_MARKER` and
+    `CENSUS_TEXTS` are defined here too, and a naive substring search over the
+    file would find the constant and report the marker as present no matter
+    what the docstring said -- a test that always passes.
+    """
+    path = REPO_ROOT / relpath
+    if path.name == Path(__file__).name:
+        return ast.get_docstring(ast.parse(path.read_text(encoding="utf-8")))
+    return path.read_text(encoding="utf-8")
+
+
+def test_no_text_claims_a_census_the_committed_report_does_not_carry():
+    """ABL-619's finding, pinned as an invariant rather than a re-wording.
+
+    At `ffb097f` all three texts said the count the guard would have refused
+    was published. All three were true of the code and false of the artifact:
+    `section_0_plausibility_census` and the four `meta.guard_*` mirrors were
+    absent, because the script grew a census and the replica went under an
+    exclusive writer before anything re-ran.
+
+    Re-tensing the sentences fixes that instance and nothing else. So what is
+    pinned here is the **agreement**, in both directions:
+
+      * report carries the census  -> no text may still say it is pending
+      * report does not            -> every text must say so
+
+    which makes the failure red whichever way it happens: publishing the
+    report without dropping the qualifier, or claiming publication without
+    regenerating the report. The static sweep cannot cover either -- it stops
+    looking at a file the moment that file goes on `EXEMPT_READS`.
+    """
+    report = json.loads(REPORT.read_text(encoding="utf-8"))
+    section, = [k for k in _script_dict_keys("record") if "census" in k]
+    published = section in report
+
+    for relpath, what in CENSUS_TEXTS:
+        text = _census_text(relpath)
+        assert text, f"{relpath}: {what} is empty; this test has gone blind"
+        marked = PENDING_MARKER in text
+        assert marked != published, (
+            f"{relpath} ({what}) and {REPORT.name} disagree: the report "
+            f"{'carries' if published else 'does not carry'} {section!r}, but "
+            f"the text {'still carries' if marked else 'omits'} "
+            f"{PENDING_MARKER!r}. "
+            + (f"Drop the qualifier -- the census is published now."
+               if published else
+               f"Either regenerate the report or mark the text pending; a flat "
+               f"claim that the count is published is false today."))
+
+    if not published:
+        return
+
+    guard_keys = [k for k in _script_dict_keys("meta") if k.startswith("guard")]
+    assert guard_keys, "meta no longer mirrors the census; this test is stale"
+    missing = [k for k in guard_keys if k not in report["meta"]]
+    assert not missing, (
+        f"{REPORT.name} carries {section!r} but its meta is missing "
+        f"{missing} -- the report was written by a script older than the "
+        f"mirrors, or the mirrors were dropped")
+
+
+def test_the_published_census_could_have_detected_something():
+    """A census that evaluated nothing would satisfy the test above while
+    certifying whatever we published -- the vacuous exemption in artifact form.
+
+    So the on-disk record has to show a reference was actually built: at least
+    one country with `evaluable` true, and headroom recorded for it. `0 rows
+    would be refused` is evidence only once it is `0 out of N, against a
+    threshold, with a ratio we cleared it by`.
+    """
+    report = json.loads(REPORT.read_text(encoding="utf-8"))
+    section, = [k for k in _script_dict_keys("record") if "census" in k]
+    census = report.get(section)
+    if census is None:
+        pytest.skip("no census on disk -- test_the_published_report_carries_"
+                    "the_census_the_texts_promise owns that failure")
+
+    per_country = census["per_country"]
+    assert per_country, "census ran over no countries"
+
+    evaluable = [c for c in per_country if c["evaluable"]]
+    assert evaluable, (
+        "no country had an evaluable plausibility reference, so the census "
+        "refused nothing because it tested nothing")
+    assert all(c["max_over_threshold"] is not None for c in evaluable)
+
+    # The report must not contradict itself: the totals the texts quote are
+    # the per-country rows added up, and the read filters nothing.
+    assert census["rows_dropped"] == 0, (
+        "the report records dropped rows -- this read is EXEMPT_READS and "
+        "must filter nothing; see plausibility_census's docstring")
+    assert census["rows_read"] == sum(c["n_rows"] for c in per_country)
+    assert census["rows_would_be_refused"] == sum(
+        c["n_would_be_refused"] for c in per_country)
+    assert census["rows_read"] == report["meta"]["guard_rows_read"]
+    assert census["rows_would_be_refused"] == report["meta"]["guard_would_refuse"]
+    assert census["rows_dropped"] == report["meta"]["guard_rows_dropped"]

@@ -65,6 +65,7 @@ Inherited from ABL-246 so the two packs are comparable.
 | **Basis** | **out-of-sample** throughout, except the one column labelled in-sample in §5.4 |
 | **Truth** | `energy_load`, hourly means (ABL-332), 0.0 rows dropped |
 | **Reads** | replica opened `file:...?mode=ro`; nothing written outside `reports/` |
+| **Plausibility** | nothing filtered (§2.1). The census that measures what the ABL-431 guard *would* have refused is **not yet run — ABL-619**; §2.1 carries the ceiling it cannot exceed |
 | **Interpreter** | the rail — Python 3.14.3, xgboost 3.3.0 |
 
 **Arms.** `ml_band` is ABL-246's arm verbatim (latest leak-free vintage in the
@@ -80,6 +81,75 @@ most marginal cell (LV, ci_lo = +0.03) is decided by a handful of rows.**
 `panel` (n = 8,402) adds the full lag ladder. `panel_g` (n = 8,025, 15 target
 days) additionally requires both run-day offsets for the same target hour. Every
 section below says which it used.
+
+### 2.1 The plausibility guard, and why this read is exempt from it
+
+ABL-462 widened the TSO plausibility sweep (ABL-431/458) past `src/`, and it
+named this script. The disposition, settled on ABL-611, is **`EXEMPT_READS`**,
+and it is a measurement question rather than a hygiene one, so it is stated here
+next to the numbers it protects.
+
+**The read is not a TSO read.** `load_archive` selects
+`forecast_type = 'load' AND source = 'ml'` — our own forecasts. No TSO row is
+read anywhere in this script. The guard's archive reference is the exact
+complement: `forecast_read` bounds it on
+`source = 'tso' AND model_name = 'tso-day_ahead'`, because "`source = 'ml'` rows
+are our own forecasts … not a published TSO series"
+(`src/tso_plausibility.py`). The sweep is a substring match on three table
+names; here it matched a table *name*, not a TSO read.
+
+**And filtering it would be a scoring defect.** The guard is one-sided — a bare
+`>` against `3 × reference`. On the arm *under test*, the only rows it can
+remove are our own largest over-forecasts, which are exactly the errors this
+pack measures. Every arm scores on one shared (country, target-hour)
+intersection, so a dropped ML row takes the D-7 comparator's cell with it, in
+precisely the hour our model was worst. The bias is one-directional: filtering
+could only ever **shrink** the D+2-vs-D-7 gap, never widen it. ABL-431's case is
+the mirror image — there the implausible value is an *input* about to be fitted
+on; here it would be an *output* being graded. Same table, same rows, opposite
+role.
+
+**The measurement is kept anyway.** `plausibility_census` computes the same
+reference over exactly the scored rows and reports what the guard *would* have
+refused, using `implausible_mask` (the predicate) rather than `guard_series`
+(the filter).
+
+**That run has not happened yet, and this section says so rather than implying
+otherwise — ABL-619.** The census landed in the script after this report was
+generated, and the replica has since been held by an exclusive writer (probed
+14 times over 19 minutes on 2026-08-28, `database is locked` every time), so
+section 0 is absent from the machine record. Until the run lands, the exemption
+is warranted by the census code and its unit tests, not by a published count.
+
+**What can be said without the replica is a ceiling**, because a flagged row is
+an enormous error and WAPE counts every row. A flagged row has `f > 3R`, where
+`R = max(p99.5 TSO day-ahead vintages, p99.5 energy_load)` over the whole
+history; its absolute error therefore exceeds `2R`. With
+`WAPE = 100·Σ|f−a| / Σa` and `Σa = n · mean_load_mw`, the number of flagged rows
+`k` obeys `k ≤ WAPE · n · mean_load_mw / (200 · R)`, and since `R ≥ mean_load_mw`,
+
+> **k ≤ WAPE · n / 200.**
+
+Evaluated on §3's own per-country numbers that is **at most 371 of the 8,436
+scored rows (4.40%)** fleet-wide, and **at most 156 of 3,509 (4.45%)** across the
+ten losers. It is tightest exactly where our model is best — FI **≤ 4**, NO
+**≤ 5**, SE **≤ 10** — and loosest at SI (**≤ 27**), the worst loss. Two limits
+on it: it is conservative, since `R ≥ mean_load_mw` discards most of the margin
+(`R` is an all-time p99.5 and this is an August window), and it constrains only
+rows that reached the scored panel, not the wider archive read the census walks.
+It is a sanity envelope, not a substitute for the measurement.
+
+Note also that the census **cannot change any number in this report**: it
+filters nothing by construction, so it decides how the ranking is *read*, never
+its arithmetic. A non-zero count would be a finding about our own model.
+
+An exemption that could not have detected anything would be the vacuous kind, so
+both halves are pinned by `tests/test_abl607_guarded_read.py`: that the panel
+comes back row-for-row identical (`assert_frame_equal`, and a source check that
+no filtering entry point is ever called here), and that the census fires at the
+ABL-431 incident's own scale. A non-zero count would be a finding about **our
+own model** — a published load forecast above three times a country's fleet peak
+deserves its own issue — and it would be scored and reported, never deleted.
 
 ---
 
@@ -313,6 +383,16 @@ ABL-246, for whoever next reads a D+2 number off that band.
   the served frames: **0% of rows affected in 21 countries, 39.8% in EE and
   68.0% in LV**. It compounds the anchor defect for exactly those two and is
   worth carrying into the fix, not a separate cause.
+- **The archive read is deliberately unfiltered** (§2.1), so no plausibility
+  screen stands between the archive and these numbers. That is the correct
+  choice for an arm being *graded* rather than fitted on, but it is a choice,
+  and the protection it gives up is **not yet measured: the census run is
+  ABL-619 and the replica has been locked**. What bounds it today is §2.1's
+  ceiling — at most 4.40% of scored rows fleet-wide could be flagged, and less
+  than that in every country where our model wins. So the honest claim is
+  "little enough implausible material is in here to leave the ranking intact",
+  not "nothing implausible is in here", and certainly not "nothing implausible
+  could be".
 - **Contamination.** ABL-111/ABL-109 (zero-as-missing actual load): **1 row** in
   the whole window, dropped. ABL-67 (fabricated net_position) does not touch
   load. **ABL-71** applies equally to every arm, so it cannot manufacture a gap
