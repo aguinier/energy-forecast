@@ -408,12 +408,17 @@ def feature_at_cutoffs(tso: pd.DataFrame, cutoffs: pd.DatetimeIndex) -> pd.DataF
     if tso.empty or len(cutoffs) == 0:
         return pd.DataFrame(columns=["generated_at", "country_code", "target",
                                      "f_tso", "tso_first_seen"])
-    ordered = tso.sort_values("first_seen")
+    ordered = tso.sort_values("first_seen").reset_index(drop=True)
+    # Sorted once, then sliced by position per cutoff. The equivalent boolean
+    # mask would rebuild a full-length array for every distinct run instant, and
+    # there is one of those per production run per day across four series.
+    seen_values = ordered["first_seen"].to_numpy()
     frames = []
     for cutoff in pd.DatetimeIndex(cutoffs).unique():
-        visible = ordered[ordered["first_seen"] <= cutoff]
-        if visible.empty:
+        upto = int(np.searchsorted(seen_values, np.datetime64(cutoff), side="right"))
+        if upto == 0:
             continue
+        visible = ordered.iloc[:upto]
         latest = visible.drop_duplicates(["country_code", "target"], keep="last")
         latest = latest.assign(hour=latest["target"].dt.floor("h"))
         agg = (latest.groupby(["country_code", "hour"], as_index=False)
