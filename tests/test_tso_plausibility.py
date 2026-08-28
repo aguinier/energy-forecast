@@ -649,6 +649,15 @@ GUARDED_READ_SITES = (
     "scripts/abl247_vintage_availability_probe.py",
     "scripts/abl430_ro_country_diagnosis.py",
     "scripts/abl439_reporting_basis_probe.py",
+    # ABL-607. Reads `source = 'ml'` rows only -- our own forecasts, not an
+    # ingested TSO series -- so this is not the read class ABL-431 was filed
+    # about, and its sibling pack ABL-246 guards its TSO arm while leaving its
+    # ML arm raw. Registered guarded anyway because the script's published
+    # claim is a per-country WAPE *ranking* and WAPE is unbounded above: one
+    # row three orders of magnitude out would decide a country's cell on its
+    # own. The reference is set from the `tso-day_ahead` slice and the actuals,
+    # so our own arm cannot raise the bar it is held to.
+    "scripts/abl607_d2_load_diagnosis.py",
     "src/challengers/v014_features.py",
     "src/chronos2/input_builder.py",
     "src/evaluation/scorecard.py",

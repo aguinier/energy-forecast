@@ -51,7 +51,10 @@ Protocol, inherited from ABL-246 so the two packs are comparable
 ---------------------------------------------------------------
 Vintages are first-seen rows from `forecast_vintage_archive` (ABL-184) at
 `first_seen_at >= 2026-08-12`; the 2026-08-11 bucket is the go-live backfill and
-is excluded. Truth is `energy_load` aggregated to hourly means (ABL-332), with
+is excluded. **The archive read is routed through the ABL-431/458 plausibility
+guard** (`guard_ml_vintages`, section 0) -- see that function for what the guard
+refuses here and why the refusal count is the number to read before any other.
+Truth is `energy_load` aggregated to hourly means (ABL-332), with
 0.0 rows dropped -- ABL-111/ABL-109 encode missing as zero. Every arm is scored
 on one identical (country, target-hour) intersection. NL is scored but held out
 of every conclusion: its realized series is net of behind-the-meter solar while
@@ -83,6 +86,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import config
 from config import SUPPORTED_COUNTRIES
+from src.tso_plausibility import (
+    PLAUSIBILITY_TOLERANCE,
+    VINTAGE_ARCHIVE_TABLE,
+    guard_tso_frame,
+    reference_scale,
+)
 
 #: The archive's go-live backfill is stamped 2026-08-11 and carries retained
 #: post-revision values for target days back to 2018. ABL-246's floor, reused.
@@ -128,6 +137,99 @@ def connect_ro(path: str) -> sqlite3.Connection:
     return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
 
 
+def guard_ml_vintages(df: pd.DataFrame,
+                      conn: sqlite3.Connection) -> pd.DataFrame:
+    """Route the archive read through the ABL-431/458 plausibility guard.
+
+    **Why this read is guarded at all.** ABL-431's guard exists for a TSO
+    ingest defect -- HU's published `wind_onshore_mw` at 140,996 MW against a
+    283 MW fleet -- and this script reads `source = 'ml'` rows only, which are
+    our own forecasts rather than an ingested TSO series. The sibling pack
+    ABL-246 guards its **TSO** arm and leaves its ML arm raw, so this is not an
+    existing convention being restored; it is a new one. It is worth adopting
+    anyway, for a reason that has nothing to do with where the row came from:
+    this issue's published claim is a per-country *ranking*, WAPE is
+    unbounded above, and one row three orders of magnitude out would decide a
+    country's cell on its own. A read that could be decided by a single
+    unchecked value should be checked, whoever wrote the value.
+
+    **What the reference is.** `TSO_FORECAST_SOURCES` registers
+    (`forecast_vintage_archive`, `load`) against `energy_load.load_mw`, and
+    `forecast_read` takes the archive side over the `tso-day_ahead` slice
+    alone. So the bar is `3 x max(p99.5 of the country's TSO day-ahead load
+    vintages, p99.5 of its realized load)` -- our own `source = 'ml'` rows are
+    excluded from setting it by construction. That is the right direction here:
+    our arm is held to the fleet's scale and cannot raise its own bar by
+    overshooting, which is exactly the failure a self-referential threshold
+    would have.
+
+    **What it can and cannot do.** The test is one-sided (`>`), so a published
+    zero or a low outlier is never refused -- an under-forecast that hurt our
+    WAPE stays in, and must, or the guard would flatter the arm it is checking.
+    No `as_of` is passed, matching ABL-246: the reference is the whole history
+    of a slowly-varying fleet property, not a target-correlated signal.
+
+    Refused values become NaN and are dropped, so a refusal costs that
+    (country, target-hour) cell from every arm's shared intersection rather
+    than from the ML arm alone. The count and the per-country headroom are
+    reported in section 0 of the record: a bare "0 refused" is not evidence
+    without the ratio it cleared by.
+    """
+    # The guard is per country (the reference is), so the read has to be split
+    # and rejoined. Rejoined **in the original row order**, not in the
+    # concatenation's: `build_ml_arms` picks its vintage with
+    # `sort_values("first_seen").groupby(...).last()`, and pandas' default sort
+    # is quicksort, which is not stable. Reordering the input could therefore
+    # change which of two same-`first_seen` rows wins a tie, and this pass has
+    # to be able to claim that a zero-refusal guard leaves the panel identical.
+    guarded = pd.concat(
+        [guard_tso_frame(grp, conn, country_code=cc,
+                         table=VINTAGE_ARCHIVE_TABLE, column="load",
+                         frame_column="forecast_value",
+                         timestamp_column="target",
+                         context=f"ABL-607 {cc} ML D+2 load vintages")
+         for cc, grp in df.groupby("country_code", sort=True)]
+    ).loc[df.index]
+
+    census = []
+    for cc, grp in df.groupby("country_code", sort=True):
+        ref = reference_scale(conn, cc, VINTAGE_ARCHIVE_TABLE, "load")
+        observed = pd.to_numeric(grp["forecast_value"], errors="coerce")
+        mx = float(observed.max()) if observed.notna().any() else None
+        # `forecast_value` is declared NOT NULL, so this should be 0. Counted
+        # anyway: without it a pre-existing null would be reported as a guard
+        # refusal, which is the one number this section exists to state.
+        n_null_before = int(observed.isna().sum())
+        census.append({
+            "country": cc,
+            "n_rows": int(len(grp)),
+            "n_null_before_guard": n_null_before,
+            "evaluable": bool(ref.evaluable),
+            "reference_mw": ref.reference_mw,
+            "threshold_mw": ref.threshold_mw,
+            "n_tso_day_ahead_rows": int(ref.n_forecast),
+            "n_actual_rows": int(ref.n_actual),
+            "ml_max_mw": mx,
+            "ml_min_mw": float(observed.min()) if observed.notna().any() else None,
+            "max_over_threshold": (mx / ref.threshold_mw
+                                   if mx is not None and ref.evaluable else None),
+            "n_refused": int(len(grp)) - n_null_before - int(
+                guarded.loc[guarded["country_code"] == cc,
+                            "forecast_value"].notna().sum()),
+            "reason": ref.reason,
+        })
+
+    n_null_before_total = int(
+        pd.to_numeric(df["forecast_value"], errors="coerce").isna().sum())
+    refused = int(guarded["forecast_value"].isna().sum()) - n_null_before_total
+    out = guarded.dropna(subset=["forecast_value"])
+    out.attrs["guard_refusals"] = refused
+    out.attrs["guard_rows_read"] = int(len(df))
+    out.attrs["guard_nulls_before"] = n_null_before_total
+    out.attrs["guard_census"] = census
+    return out
+
+
 def load_archive(conn: sqlite3.Connection, max_target: str) -> pd.DataFrame:
     """Our own ML load vintages, genuine (non-backfill) rows only.
 
@@ -135,6 +237,10 @@ def load_archive(conn: sqlite3.Connection, max_target: str) -> pd.DataFrame:
     the archive stamps `first_seen_at`, when our poller saw the row, which lags
     generation by a variable few minutes. The horizon is stamped by the runner
     at generation, so the subtraction is exact and the poller lag drops out.
+
+    The values are guarded before any arm is built (`guard_ml_vintages`), so a
+    refused row cannot be averaged into a neighbour or selected as a vintage
+    first.
     """
     sql = """
         SELECT country_code, target_timestamp_utc, model_name,
@@ -151,6 +257,9 @@ def load_archive(conn: sqlite3.Connection, max_target: str) -> pd.DataFrame:
     df["first_seen"] = pd.to_datetime(
         df["first_seen_at"], format="mixed", utc=True).dt.tz_localize(None)
     df = df[df["target"] < pd.Timestamp(max_target)]
+    # Guarded on exactly the rows this diagnosis reads -- after the window and
+    # fleet filters, before any arm is built.
+    df = guard_ml_vintages(df, conn)
     df["generated_at"] = df["target"] - pd.to_timedelta(df["horizon_hours"], unit="h")
     df["run_day"] = df["generated_at"].dt.normalize()
     df["target_day"] = df["target"].dt.normalize()
@@ -710,6 +819,10 @@ def main() -> int:
     conn = connect_ro(replica)
 
     archive = load_archive(conn, args.max_target)
+    guard_census = pd.DataFrame(archive.attrs.get("guard_census", []))
+    guard_refusals = int(archive.attrs.get("guard_refusals", 0))
+    guard_rows_read = int(archive.attrs.get("guard_rows_read", 0))
+    guard_nulls_before = int(archive.attrs.get("guard_nulls_before", 0))
     ml = build_ml_arms(archive)
 
     # Reach back a full seasonal-naive lag *and* the serving lookback before the
@@ -846,6 +959,9 @@ def main() -> int:
         "basis": "out-of-sample except the labelled in-sample debias column",
         "truth": "energy_load hourly means, 0.0 rows dropped (ABL-111/ABL-109)",
         "zero_rows_dropped": zero_rows,
+        "guard": "ABL-431/458 plausibility guard applied to the archive read",
+        "guard_rows_read": guard_rows_read,
+        "guard_refusals": guard_refusals,
         "replica": replica,
         "models_dir": str(models_dir),
         "python": sys.version.split()[0],
@@ -856,6 +972,22 @@ def main() -> int:
 
     record = {
         "meta": meta,
+        "section_0_plausibility_guard": {
+            "table": VINTAGE_ARCHIVE_TABLE,
+            "column": "load",
+            "tolerance": PLAUSIBILITY_TOLERANCE,
+            "rows_read": guard_rows_read,
+            "rows_refused": guard_refusals,
+            "rows_null_before_guard": guard_nulls_before,
+            "as_of": None,
+            "note": (
+                "reference = 3 x max(p99.5 TSO day-ahead load vintages, p99.5 "
+                "energy_load) per country; source='ml' rows are excluded from "
+                "setting it by TSO_FORECAST_SOURCES/forecast_read. One-sided: "
+                "low outliers are never refused"),
+            "per_country": json.loads(guard_census.to_json(orient="records"))
+            if not guard_census.empty else [],
+        },
         "per_country": json.loads(table.to_json(orient="records")),
         "per_country_panel_g": json.loads(table_g.to_json(orient="records")),
         "fleet_medians": medians(ev, [f"wape_{a}" for a in band_arms]),
@@ -913,6 +1045,16 @@ def main() -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(record, indent=2, default=str), encoding="utf-8")
 
+    print(f"== 0: ABL-431/458 plausibility guard on the archive read ==")
+    print(f"  rows read {guard_rows_read} | refused {guard_refusals} | "
+          f"null before the guard {guard_nulls_before} | "
+          f"tolerance {PLAUSIBILITY_TOLERANCE}x")
+    if not guard_census.empty:
+        print(fmt(guard_census.sort_values("max_over_threshold", ascending=False),
+                  ["country", "n_rows", "evaluable", "reference_mw",
+                   "threshold_mw", "ml_max_mw", "max_over_threshold",
+                   "n_null_before_guard", "n_refused"]))
+    print()
     print(f"panel   {meta['window_start']} -> {meta['window_end']} | "
           f"{meta['target_days']} target days | n={meta['n_scored_pairs']} | "
           f"{meta['countries_evaluable']} evaluable")
