@@ -59,11 +59,12 @@ Protocol, inherited from ABL-246 so the two packs are comparable
 Vintages are first-seen rows from `forecast_vintage_archive` (ABL-184) at
 `first_seen_at >= 2026-08-12`; the 2026-08-11 bucket is the go-live backfill and
 is excluded. The archive read is **deliberately unfiltered** and registered in
-the ABL-462 sweep's `EXEMPT_READS` (ABL-611): it selects `source = 'ml'` only,
-so it reads no TSO row, and the ABL-431 guard is one-sided -- filtering here
-could only delete our own largest over-forecasts, which are the errors this pack
-exists to measure. The guard's reference is still computed over exactly these
-rows and written to section 0 (`plausibility_census`) by every run of this
+the ABL-462 sweep's `ML_SLICE_ONLY_EXEMPT` (ABL-611, recategorised on ABL-617
+so the slice is machine-checked rather than claimed): it selects `source = 'ml'`
+only, so it reads no TSO row, and the ABL-431 guard is one-sided -- filtering
+here could only delete our own largest over-forecasts, which are the errors this
+pack exists to measure. The guard's reference is still computed over exactly
+these rows and written to section 0 (`plausibility_census`) by every run of this
 script, so the count it *would* have refused is measured rather than assumed:
 **0 of 67,008 rows, 24/24 countries evaluable** (ABL-619, published in
 `reports/abl_607_d2_load_diagnosis_reread.json`; the first run predates the
@@ -164,7 +165,9 @@ def plausibility_census(df: pd.DataFrame,
     complement: `forecast_read` bounds it on
     `source = 'tso' AND model_name = 'tso-day_ahead'`, because (the module's
     own docstring) "`source = 'ml'` rows are our own forecasts ... not a
-    published TSO series". Registered in `EXEMPT_READS`, per ABL-611.
+    published TSO series". Registered on ABL-611, and on `ML_SLICE_ONLY_EXEMPT`
+    since ABL-617 -- the category whose membership condition is that claim,
+    checked over this file's SQL rather than reviewed once.
 
     **Why filtering here would be a scoring defect, not hygiene.** The guard is
     one-sided: it refuses values *above* `3 x` the fleet reference and nothing
@@ -962,6 +965,8 @@ def main() -> int:
         "basis": "out-of-sample except the labelled in-sample debias column",
         "truth": "energy_load hourly means, 0.0 rows dropped (ABL-111/ABL-109)",
         "zero_rows_dropped": zero_rows,
+        # Names ABL-611's category, not ABL-617's, on purpose: see the
+        # `disposition` key below.
         "guard": ("ABL-431/458 plausibility reference measured over the archive "
                   "read, report-only; the read is EXEMPT_READS (ABL-611)"),
         "guard_rows_read": guard_rows_read,
@@ -984,6 +989,16 @@ def main() -> int:
             "rows_read": guard_rows_read,
             "rows_would_be_refused": guard_would_refuse,
             "rows_dropped": guard_rows_dropped,
+            # ABL-617 moved this file to `ML_SLICE_ONLY_EXEMPT` and deliberately
+            # did **not** touch this string. A report is the record of a run,
+            # and at the run that produced the committed
+            # `abl_607_d2_load_diagnosis_reread.json` the disposition was
+            # `EXEMPT_READS`. Rewriting it here would leave the code claiming
+            # one thing and the published artifact carrying another, with no
+            # re-run to reconcile them -- which is ABL-619 exactly. The current
+            # category is in `plausibility_census`'s docstring, which is prose
+            # and lands in no artifact. Change this only in a commit that also
+            # regenerates the report.
             "disposition": "EXEMPT_READS (ABL-611): report-only, filters nothing",
             "as_of": None,
             "note": (

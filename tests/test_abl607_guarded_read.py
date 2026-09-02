@@ -1,13 +1,14 @@
 """ABL-607: the archive read is exempt from the guard, and exempt *correctly*.
 
 ABL-462 widened the plausibility sweep past `src/` and it named this script.
-ABL-611 settled the disposition: `EXEMPT_READS`, not a guard. The reasoning is
-in `EXEMPT_READS` in `test_tso_plausibility.py` and in the docstring of
+ABL-611 settled the disposition: exempt, not guarded. ABL-617 then split the
+exemption into a checked category -- `ML_SLICE_ONLY_EXEMPT` -- so the reasoning
+lives in `test_tso_plausibility.py` and in the docstring of
 `plausibility_census`; what is pinned here is that the code does what the
-exemption claims.
+exemption claims, in the two respects that are particular to this file.
 
-Three claims, and none is checkable by the static sweep -- which stops looking
-at a file the moment it goes on `EXEMPT_READS`:
+Two claims, and neither is checkable by the static sweep -- which stops looking
+at a file the moment it goes on any exempt list:
 
 1. **The read filters nothing.** The guard is one-sided, so on the arm under
    test the only rows it could remove are our own largest over-forecasts --
@@ -17,10 +18,13 @@ at a file the moment it goes on `EXEMPT_READS`:
 2. **The exemption still carries a measurement.** The pack publishes a count
    of what the guard *would* have refused. An exemption whose census could not
    have detected anything is the vacuous kind.
-3. **The file still reads only our own `source = 'ml'` rows.** That is the
-   premise the whole exemption rests on, and it is the one an ordinary future
-   edit can quietly break -- add a TSO arm for comparison and the read becomes
-   exactly what ABL-431 was filed about, still exempt.
+
+A third claim -- **the file still reads only our own `source = 'ml'` rows** --
+was pinned here too, and is not any more. It is not particular to this file:
+it is what `ML_SLICE_ONLY_EXEMPT` *means*, so ABL-617 made it the condition of
+joining that list (`ml_slice_violations`, with negative controls per way the
+claim can rot). Pinning it per file left the next entry to remember to bring
+its own test, which is the same intent-claim problem one level up.
 
 Not run against the live replica on purpose: a rule pinned against live data
 stops being a test the day the data moves. The live count is measured by the
@@ -46,10 +50,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from scripts.abl607_d2_load_diagnosis import plausibility_census  # noqa: E402
-from src.tso_plausibility import (  # noqa: E402
-    VINTAGE_ARCHIVE_TABLE,
-    clear_reference_cache,
-)
+from src.tso_plausibility import clear_reference_cache  # noqa: E402
 
 REPO_ROOT = Path(__file__).parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "abl607_d2_load_diagnosis.py"
@@ -166,75 +167,18 @@ def test_the_source_file_never_calls_a_filtering_entry_point():
     for filtering_call in ("guard_tso_series(", "guard_tso_frame(",
                            "guard_series("):
         assert filtering_call not in text, (
-            f"{SCRIPT.name} calls {filtering_call} -- this read is EXEMPT_READS "
-            f"and must not filter; see plausibility_census's docstring")
+            f"{SCRIPT.name} calls {filtering_call} -- this read is "
+            f"ML_SLICE_ONLY_EXEMPT and must not filter; see "
+            f"plausibility_census's docstring")
 
 
-def _sweep_tso_tables() -> tuple:
-    """`TSO_TABLES` from the sweep, read rather than copied.
-
-    Parsed out of the source instead of imported: `tests/` is not a package and
-    nothing else in the repo imports across test modules, so an import idiom
-    would be new here. Single-sourced because a copy is the failure this test
-    exists to prevent -- an exempt file is skipped by the sweep, so if the
-    sweep widened its table list and this list did not, the widening would
-    reach every file in the repo except the one holding an intent claim.
-    """
-    sweep = ast.parse((REPO_ROOT / "tests" / "test_tso_plausibility.py")
-                      .read_text(encoding="utf-8"))
-    names = {"VINTAGE_ARCHIVE_TABLE": VINTAGE_ARCHIVE_TABLE}
-    for node in sweep.body:
-        if not isinstance(node, ast.Assign):
-            continue
-        if [t.id for t in node.targets
-                if isinstance(t, ast.Name)] != ["TSO_TABLES"]:
-            continue
-        return tuple(
-            e.value if isinstance(e, ast.Constant) else names[e.id]
-            for e in node.value.elts)
-    raise AssertionError("TSO_TABLES not found in tests/test_tso_plausibility.py")
-
-
-def test_no_query_in_the_file_ever_selects_a_tso_slice():
-    """The other half of the exemption, and the half that can rot.
-
-    `EXEMPT_READS` carries an *intent* claim -- "this file reads only our own
-    `source = 'ml'` rows" -- and the sweep stops looking once a file is on the
-    list. So the day someone adds a TSO arm here for comparison, the file would
-    be reading a genuinely unguarded TSO forecast with a stale exemption
-    covering it, and the sweep would be silent by construction.
-
-    Checked over the parsed source so that the four `tso` mentions in comments
-    and docstrings, the census's `n_tso_day_ahead_rows` column and the
-    `src.tso_plausibility` import cannot satisfy or trip it: only string
-    constants that are actually SQL against one of the sweep's tables count,
-    and each must pin `source` to `'ml'`.
-    """
-    tree = ast.parse(SCRIPT.read_text(encoding="utf-8"))
-    docstrings = {id(ast.get_docstring(n, clean=False))
-                  for n in ast.walk(tree)
-                  if isinstance(n, (ast.Module, ast.FunctionDef,
-                                    ast.AsyncFunctionDef, ast.ClassDef))}
-    tso_tables = _sweep_tso_tables()
-
-    queries = [
-        n.value for n in ast.walk(tree)
-        if isinstance(n, ast.Constant) and isinstance(n.value, str)
-        and "FROM " in n.value and id(n.value) not in docstrings
-        and any(t in n.value for t in tso_tables)
-    ]
-    assert queries, (
-        "no SQL against a TSO-bearing table found in "
-        f"{SCRIPT.name} -- this test has stopped checking anything")
-
-    for sql in queries:
-        assert "source = 'ml'" in sql, (
-            f"a query in {SCRIPT.name} reads {tso_tables} without pinning "
-            f"source = 'ml'; the EXEMPT_READS entry claims this file reads "
-            f"only our own forecasts:\n{sql}")
-        assert "'tso'" not in sql, (
-            f"a query in {SCRIPT.name} selects TSO rows; the EXEMPT_READS "
-            f"entry no longer holds and the read needs a guard:\n{sql}")
+# The third claim -- "the file still reads only our own `source = 'ml'` rows"
+# -- used to be pinned here, per file. ABL-617 made it the membership condition
+# of `ML_SLICE_ONLY_EXEMPT` instead (`ml_slice_violations` in
+# `tests/test_tso_plausibility.py`, with its own negative controls), so it now
+# holds for every file that ever joins that category rather than for this one.
+# Deleted here rather than kept alongside: two copies of the same rule is how
+# the weaker one ends up being the one that runs.
 
 
 # --------------------------------------------------------------------------
@@ -304,7 +248,7 @@ def test_a_non_evaluable_reference_is_reported_as_such():
 # Everything above pins the *code*. None of it could catch ABL-619, which is
 # the failure that actually happened: the census landed, the report was never
 # regenerated, and three merged texts went on saying its output was published.
-# The `EXEMPT_READS` warrant is "the exemption carries a measurement and not
+# The exemption's warrant is "the exemption carries a measurement and not
 # just a claim" -- a sentence about an artifact. So it is checked against the
 # artifact.
 
@@ -312,10 +256,10 @@ def test_a_non_evaluable_reference_is_reported_as_such():
 def _script_dict_keys(name: str) -> tuple:
     """The literal keys of a top-level `name = {...}` in the script.
 
-    Read out of the source rather than copied, for the same reason
-    `_sweep_tso_tables` is: a copy is the failure this test exists to prevent.
-    If the section is renamed, this follows it and still demands the report
-    carry it -- whereas a hardcoded key would quietly start asserting nothing.
+    Read out of the source rather than copied: a copy is the failure this test
+    exists to prevent. If the section is renamed, this follows it and still
+    demands the report carry it -- whereas a hardcoded key would quietly start
+    asserting nothing.
     """
     tree = ast.parse(SCRIPT.read_text(encoding="utf-8"))
     for node in ast.walk(tree):
@@ -338,7 +282,7 @@ PENDING_MARKER = "(pending: ABL-619)"
 #: was published while the committed report had no such key -- that is ABL-619.
 CENSUS_TEXTS = (
     ("scripts/abl607_d2_load_diagnosis.py", "the protocol block"),
-    ("tests/test_tso_plausibility.py", "the EXEMPT_READS entry's reason"),
+    ("tests/test_tso_plausibility.py", "the ML_SLICE_ONLY_EXEMPT entry's reason"),
     ("tests/test_abl607_guarded_read.py", "this module's docstring"),
 )
 
@@ -375,7 +319,7 @@ def test_no_text_claims_a_census_the_committed_report_does_not_carry():
     which makes the failure red whichever way it happens: publishing the
     report without dropping the qualifier, or claiming publication without
     regenerating the report. The static sweep cannot cover either -- it stops
-    looking at a file the moment that file goes on `EXEMPT_READS`.
+    looking at a file the moment that file goes on an exempt list.
     """
     report = json.loads(REPORT.read_text(encoding="utf-8"))
     section, = [k for k in _script_dict_keys("record") if "census" in k]
@@ -435,8 +379,8 @@ def test_the_published_census_could_have_detected_something():
     # The report must not contradict itself: the totals the texts quote are
     # the per-country rows added up, and the read filters nothing.
     assert census["rows_dropped"] == 0, (
-        "the report records dropped rows -- this read is EXEMPT_READS and "
-        "must filter nothing; see plausibility_census's docstring")
+        "the report records dropped rows -- this read is ML_SLICE_ONLY_EXEMPT "
+        "and must filter nothing; see plausibility_census's docstring")
     assert census["rows_read"] == sum(c["n_rows"] for c in per_country)
     assert census["rows_would_be_refused"] == sum(
         c["n_would_be_refused"] for c in per_country)
