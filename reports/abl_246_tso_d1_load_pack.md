@@ -5,6 +5,16 @@
 Machine record: `reports/abl_246_tso_d1_load.json`
 Reproduce: `.venv\Scripts\python.exe scripts/abl246_tso_d1_load_pack.py --replica-db C:\Code\able\data\energy_dashboard.db --json-out reports/abl_246_tso_d1_load.json --csv-out <path>`
 
+> **Correction, after publication (ABL-623) — read before quoting §4.1's count.**
+> §4.1's *"readably loses to a D-7 seasonal naive in **10** of 23"* was re-read on
+> a later replica vintage by ABL-607/ABL-619 and **does not reproduce: it gives 9.**
+> **DE** is the only cell that moves, and it moves out of readability, not out of
+> loss. **Treat 9 of 23 as the current count.** Everything else in this pack —
+> including every TSO-vs-ML number and the whole of §8's recommendation — is
+> untouched. Full working: `reports/abl_607_d2_load_diagnosis.md` §3.1; machine
+> record `reports/abl_607_d2_load_diagnosis_reread.json`, `section_a_reproduction`.
+> See §4.1 and §7.
+
 ---
 
 ## 1. Headline
@@ -15,9 +25,11 @@ by a wide margin — fleet median WAPE **3.26% (TSO D+1) against 8.85% (ML D+2)*
 
 The finding that should worry us more is the baseline one: **our ML load
 forecast readably loses to a D-7 seasonal naive in 10 of 23 countries and
-readably beats it in 1.** That is a model-quality problem independent of
-anything the TSO does, and it is the same conclusion ABL-128 §2 reached by a
-different route.
+readably beats it in 1** — as measured here; the ABL-607 re-read on a later
+replica vintage gives **9 of 23**, which is the count to quote (§4.1, and the
+correction note above). That is a model-quality problem independent of anything
+the TSO does,
+and it is the same conclusion ABL-128 §2 reached by a different route.
 
 **And the premise this issue was gated on does not survive.** ABL-246 was held
 14 days because the pre-archive `energy_load_forecast` kept only post-revision
@@ -149,6 +161,23 @@ ES +4.39, LV +3.39, PL +5.02, PT +2.71, SE +2.45, SI +10.07, SK +4.71 pp. The
 remaining 12 are not readable over this window. A D+2 product is entitled to be
 worse than a D+1 one; it is not entitled to be worse than a lag.
 
+> **Corrected count (ABL-623).** ABL-607 re-ran this section from the same
+> pinned window and the same panel — 8,436 scored pairs here — on a replica
+> vintage a few hours later, and got **8,451 pairs and 9 readable losers, not
+> 10**. Readable in either direction becomes **10 of 23**, not 11; the single
+> readable win (GR) is unchanged. **DE is the only cell that moves:**
+> **+3.59 [+0.88, +6.30] → +2.70 [−0.46, +5.85]** — still a central loss of
+> 2.70 pp, no longer readable at 95% on 16 paired days. LV, the most marginal
+> cell in the list above, *strengthened* (+3.39 → +4.20). ABL-607 §3.1
+> establishes this is a data-vintage effect and not a correction to either run,
+> by comparing the two runs' **inputs before any metric**: 12 of 24 countries
+> gained the window's final hour once its actual landed, and the other 12 had
+> already-scored actuals revised underneath the pinned window. **Treat 9 of 23
+> as the current count**, and see §7 — this is the "15 target days is short"
+> caveat arriving on schedule, which is an argument for the ~30-day re-read
+> before any intervention, not against the finding. Neither the mechanism
+> (ABL-607 §4) nor anything in §8 depends on which of 9 or 10 is right.
+
 **4.2 The revision-optimism premise is refuted.** `tso_d1_last` vs `tso_final`
 differ by a mean of **0.016 pp** across 23 countries, max **0.283 pp** (GR), and
 exceed 0.1 pp in only 2. The 14-day archive gate was a reasonable precaution and
@@ -269,6 +298,13 @@ same correction is neutral-to-harmful (BG 3.50 → 4.27, GR 2.47 → 2.80), so a
   interval over k = 14–16 days rather than by a WAPE point estimate, for that
   reason. The two `HOLD` verdicts are cells where 15 days is genuinely not
   enough, not cells where the answer is "no".
+- **This caveat has since fired, on §4.1 (ABL-623).** A re-read hours later, on
+  a rebuilt replica and the same pinned window, moved §4.1's count from **10 to
+  9** — DE crossed out of readability — while leaving every §3 TSO-vs-ML verdict
+  and all of §8 standing. It is the concrete instance of the bullet above, and
+  the reason the ~30-day re-read is worth waiting for before anyone acts on
+  §4.1. Working: `reports/abl_607_d2_load_diagnosis.md` §3.1; record
+  `reports/abl_607_d2_load_diagnosis_reread.json`.
 - **Contamination.** ABL-111/ABL-109 (zero-as-missing actual load): **1 row**
   in the whole window, dropped, immaterial. ABL-67 (fabricated net_position) does
   not touch load. **ABL-71** (prod ingest stale, fixes undeployed) touches the
@@ -301,8 +337,9 @@ same correction is neutral-to-harmful (BG 3.50 → 4.27, GR 2.47 → 2.80), so a
 3. **Do not serve TSO in LT** as-is. A trailing-bias correction reaches parity
    with our ML but not past D-7; LT is a modelling problem, not a sourcing one.
 4. **Treat §4.1 as the priority, not this pack.** Adopting the TSO at D+1
-   improves the D+1 slot and leaves a D+2 product that loses to a lag in 10 of
-   23 countries. Sourcing the D+1 slot externally does not fix that.
+   improves the D+1 slot and leaves a D+2 product that loses to a lag in 9 of
+   23 countries (10 as first measured; see §4.1's corrected count). Sourcing the
+   D+1 slot externally does not fix that, at either count.
 
 **Follow-ups.** I searched before filing; two of the three findings here already
 have owners, so this pack contributes evidence to them rather than duplicating
