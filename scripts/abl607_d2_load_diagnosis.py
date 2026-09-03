@@ -53,6 +53,9 @@ does.
   section J  direct reconstruction of the served feature vector -- what the
              proxy row actually carried, against what a target-aligned block
              would have carried
+  section K  day completeness (ABL-639) -- how many hours each country-day was
+             actually scored on, against how many the window allows it, plus
+             the complete-days-only arm of every paired interval above
 
 Protocol, inherited from ABL-246 so the two packs are comparable
 ---------------------------------------------------------------
@@ -76,6 +79,11 @@ of every conclusion: its realized series is net of behind-the-meter solar while
 our forecast is gross (ABL-277 / ABL-505 / ABL-506), so scoring it measures a
 basis mismatch rather than skill.
 
+Every paired interval weights a target day equally, so it also depends on each
+day having been scored on a comparable number of hours. Section K measures that
+and `--min-day-completeness` screens on it; the default is 0.0, which screens
+nothing, so the pack's published protocol is unchanged unless asked (ABL-639).
+
 Out-of-sample throughout. The one in-sample number, in section G, is labelled.
 
 Usage:
@@ -83,6 +91,7 @@ Usage:
       --replica-db C:\\Code\\able\\data\\energy_dashboard.db
       --json-out reports/abl_607_d2_load_diagnosis.json
       --models-dir models
+      [--min-day-completeness 0.0]
 """
 
 from __future__ import annotations
@@ -142,6 +151,11 @@ T_CRIT = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571, 7: 2.447,
           8: 2.365, 9: 2.306, 10: 2.262, 11: 2.228, 12: 2.201, 13: 2.179,
           14: 2.160, 15: 2.145, 16: 2.131, 17: 2.120, 18: 2.110, 19: 2.101,
           20: 2.093}
+
+#: The day-completeness threshold reported beside the primary as a sensitivity
+#: arm (ABL-639): complete days only. Fixed rather than exposed, because the
+#: point of the arm is that a reader sees the *same* alternative every run.
+SENSITIVITY_MIN_DAY_COMPLETENESS = 1.0
 
 
 # --------------------------------------------------------------------------
@@ -381,25 +395,103 @@ def wape(err: np.ndarray, actual: np.ndarray) -> float:
     return float(np.abs(err).sum() / denom * 100) if denom else float("nan")
 
 
-def paired_daily(panel: pd.DataFrame, arm_a: str, arm_b: str) -> pd.DataFrame:
+def hours_expected_per_day(panel: pd.DataFrame) -> pd.Series:
+    """Target hours each calendar day *could* contribute, given the window.
+
+    Indexed by normalised day, over the panel's own inclusive target span. This
+    is the denominator of the ABL-639 completeness ratio, and the reason that
+    ratio is not `hours / 24`.
+
+    The window's two end days are legitimately partial and must not be read as
+    defective. ABL-607's panel runs `2026-08-13 08:00` -> `2026-08-28 00:00`,
+    so its first day expects 16 hours and its last expects **1** -- and that
+    terminal hour is the single largest difference the pack recorded between
+    its two reads. A constant-24 screen would drop both ends for every country
+    at once, silently, which is a worse defect than the one being screened for.
+
+    Computed fleet-wide, from one span shared by every country, on purpose. A
+    per-country span would be defined by the very truncation this measures, so
+    every country would score 100% complete by construction -- the vacuous
+    form of the check.
+    """
+    span = pd.date_range(panel["target"].min(), panel["target"].max(), freq="h")
+    return pd.Series(1, index=span).groupby(span.normalize()).sum()
+
+
+def day_completeness(panel: pd.DataFrame) -> pd.DataFrame:
+    """Scored hours per (country, target day) against what the window allows.
+
+    `hours_present` counts rows that survived into `panel`, so it is one number
+    short of nothing: a missing vintage, a missing D-7 comparator and a missing
+    hour of truth all reduce it identically. That is wider than the
+    truth-side cause ABL-639 was filed on (`load_actuals` resamples with no
+    `min_count`, so an hour holding one quarter-hourly slot still yields a
+    mean), and wider is what the paired interval actually needs: the weight a
+    day carries in `paired_daily` is set by the hours it was *scored* on, not
+    by the hours that existed somewhere upstream.
+
+    Emitted unconditionally, whether or not a screen is applied.
+    """
+    expected = hours_expected_per_day(panel)
+    day = panel["target"].dt.normalize()
+    present = panel.groupby([panel["country_code"], day]).size()
+    rows = []
+    for (country, d), n in present.items():
+        exp = int(expected.loc[d])
+        rows.append({"country": country, "day": str(d.date()),
+                     "hours_expected": exp, "hours_present": int(n),
+                     "completeness": float(n) / exp if exp else float("nan"),
+                     "is_short": bool(n < exp)})
+    return pd.DataFrame(rows).sort_values(["country", "day"], ignore_index=True)
+
+
+def paired_daily(panel: pd.DataFrame, arm_a: str, arm_b: str,
+                 min_day_completeness: float = 0.0) -> pd.DataFrame:
     """Per-country paired t-interval on the daily WAPE difference (a - b).
 
-    ABL-246's function, reused unchanged. A point estimate on 15-odd days is
-    not a result on its own; this says whether the gap survives day-to-day
-    variation. Positive mean favours arm b.
+    ABL-246's function. A point estimate on 15-odd days is not a result on its
+    own; this says whether the gap survives day-to-day variation. Positive mean
+    favours arm b.
+
+    `min_day_completeness` (ABL-639) drops a country-day whose scored hours
+    fall below that fraction of the hours its day could have carried. Each day
+    contributes exactly one `a - b` regardless of how many hours it was
+    computed on, so without a screen a country-day holding 2 surviving hours is
+    weighted like a 24-hour one, and `k = len(d)` -- which keys `T_CRIT` --
+    counts it as a full observation. The truncation is per-country, so the
+    countries are not even scored over the same window.
+
+    **The default 0.0 is a provable no-op**: a group yielded by `groupby` is
+    never empty, so `hours_present >= 0.0 * hours_expected` holds for every
+    day. The screen is off unless it is asked for, and the arm order and
+    float summation order are unchanged, so the interval is bit-identical to
+    the unscreened one. `tests/test_abl639_day_completeness.py` pins that
+    against a verbatim copy of the pre-ABL-639 function.
+
+    Screening trades bias for variance and the trade is reported rather than
+    assumed: dropping days lowers `k`, `T_CRIT` is keyed on `k`, so a screened
+    interval is *wider*. `k_days_screened_out` carries the cost per country.
     """
     rows = []
     panel = panel.copy()
     panel["day"] = panel["target"].dt.normalize()
+    expected = hours_expected_per_day(panel)
     for country, grp in panel.groupby("country_code", sort=True):
         diffs = []
-        for _, day in grp.groupby("day"):
+        n_short, n_dropped = 0, 0
+        for day_ts, day in grp.groupby("day"):
+            hours_expected = int(expected.loc[day_ts])
+            hours_present = len(day)
+            n_short += hours_present < hours_expected
+            if hours_present < min_day_completeness * hours_expected:
+                n_dropped += 1
+                continue
             a = wape((day[arm_a] - day["actual"]).to_numpy(), day["actual"].to_numpy())
             b = wape((day[arm_b] - day["actual"]).to_numpy(), day["actual"].to_numpy())
             diffs.append(a - b)
         d = np.array(diffs, dtype=float)
         k = len(d)
-        mean = float(d.mean())
+        mean = float(d.mean()) if k else float("nan")
         if k > 1:
             se = float(d.std(ddof=1) / np.sqrt(k))
             tcrit = T_CRIT.get(k, 2.086)
@@ -409,8 +501,19 @@ def paired_daily(panel: pd.DataFrame, arm_a: str, arm_b: str) -> pd.DataFrame:
         rows.append({"country": country, "k_days": k, "mean_daily_wape_diff": mean,
                      "ci_lo": lo, "ci_hi": hi,
                      "readable": bool(k > 1 and (lo > 0 or hi < 0)),
-                     "days_arm_a_better": int((d < 0).sum())})
+                     "days_arm_a_better": int((d < 0).sum()),
+                     "k_days_short": int(n_short),
+                     "k_days_screened_out": int(n_dropped)})
     return pd.DataFrame(rows)
+
+
+def readable_cells(paired: pd.DataFrame) -> Dict[str, List[str]]:
+    """The readable losers and winners of a paired frame, NL held out."""
+    ev = paired[~paired["country"].isin(NOT_EVALUABLE) & paired["readable"]]
+    return {
+        "readable_losers": sorted(ev[ev["mean_daily_wape_diff"] > 0]["country"]),
+        "readable_winners": sorted(ev[ev["mean_daily_wape_diff"] < 0]["country"]),
+    }
 
 
 def score(panel: pd.DataFrame, arms: List[str]) -> pd.DataFrame:
@@ -815,7 +918,16 @@ def main() -> int:
                     help="artifact root for the section I audit (default: config.MODELS_DIR)")
     ap.add_argument("--max-target", default=DEFAULT_MAX_TARGET,
                     help="exclusive upper bound on target hours (default: ABL-246's window end)")
+    ap.add_argument("--min-day-completeness", type=float, default=0.0,
+                    help="ABL-639: drop a country-day from the paired intervals "
+                         "when its scored hours fall below this fraction of the "
+                         "hours the window allows that day. Default 0.0 keeps "
+                         "every day, which is what the pack published; the "
+                         f"{SENSITIVITY_MIN_DAY_COMPLETENESS} arm is reported "
+                         "beside it either way")
     args = ap.parse_args()
+    if not 0.0 <= args.min_day_completeness <= 1.0:
+        ap.error("--min-day-completeness must be in [0.0, 1.0]")
 
     replica = args.replica_db or str(config.DATABASE_PATH)
     models_dir = Path(args.models_dir) if args.models_dir else Path(config.MODELS_DIR)
@@ -867,22 +979,62 @@ def main() -> int:
     ev = table[table["evaluable"]]
     ev_g = table_g[table_g["evaluable"]]
 
+    # Every paired interval below is screened at the same threshold, so the
+    # primary read is one protocol rather than a mixture. `mdc` is 0.0 unless
+    # asked for, and 0.0 drops nothing.
+    mdc = args.min_day_completeness
+    sens = SENSITIVITY_MIN_DAY_COMPLETENESS
+
     # ---- A: reproduce ABL-246 section 4.1 (panel_a) -----------------------
-    a_band_vs_d7 = paired_daily(panel_a, "ml_band", "d7_naive")
+    a_band_vs_d7 = paired_daily(panel_a, "ml_band", "d7_naive", mdc)
     table_a = score(panel_a, ["ml_band", "d7_naive"])
-    losers = sorted(a_band_vs_d7[a_band_vs_d7["readable"] &
-                                 (a_band_vs_d7["mean_daily_wape_diff"] > 0) &
-                                 (~a_band_vs_d7["country"].isin(NOT_EVALUABLE))]["country"])
-    winners = sorted(a_band_vs_d7[a_band_vs_d7["readable"] &
-                                  (a_band_vs_d7["mean_daily_wape_diff"] < 0) &
-                                  (~a_band_vs_d7["country"].isin(NOT_EVALUABLE))]["country"])
+    a_readable = readable_cells(a_band_vs_d7)
+    losers, winners = a_readable["readable_losers"], a_readable["readable_winners"]
 
     # ---- B: the run-day offset split (panel_g) ----------------------------
-    b_g2_vs_g1 = paired_daily(panel_g, "ml_g2", "ml_g1")
+    b_g2_vs_g1 = paired_daily(panel_g, "ml_g2", "ml_g1", mdc)
 
     # ---- C: each ML arm against the lag ladder (panel_g) ------------------
-    c_g2_vs_d7 = paired_daily(panel_g, "ml_g2", "d7_naive")
-    c_g1_vs_d7 = paired_daily(panel_g, "ml_g1", "d7_naive")
+    c_g2_vs_d7 = paired_daily(panel_g, "ml_g2", "d7_naive", mdc)
+    c_g1_vs_d7 = paired_daily(panel_g, "ml_g1", "d7_naive", mdc)
+
+    # ---- K: day completeness, and the complete-days-only arm (ABL-639) ----
+    # The diagnostic is emitted whatever the threshold; the sensitivity arm is
+    # recomputed at 1.0 beside the primary so both intervals are on the page.
+    k_completeness = {
+        name: {
+            "window_start": str(p["target"].min()),
+            "window_end": str(p["target"].max()),
+            "hours_expected_per_day": {str(d.date()): int(n) for d, n
+                                       in hours_expected_per_day(p).items()},
+            "n_country_days": int(len(tbl)),
+            "n_short_country_days": int(tbl["is_short"].sum()),
+            "per_country_day": json.loads(tbl.to_json(orient="records")),
+            "short_country_days": json.loads(
+                tbl[tbl["is_short"]].to_json(orient="records")),
+        }
+        for name, p, tbl in (("panel_a", panel_a, day_completeness(panel_a)),
+                             ("panel_g", panel_g, day_completeness(panel_g)))
+    }
+    k_sens = {
+        "section_a_ml_band_vs_d7": paired_daily(panel_a, "ml_band", "d7_naive", sens),
+        "section_b_ml_g2_vs_ml_g1": paired_daily(panel_g, "ml_g2", "ml_g1", sens),
+        "section_c_ml_g2_vs_d7": paired_daily(panel_g, "ml_g2", "d7_naive", sens),
+        "section_c_ml_g1_vs_d7": paired_daily(panel_g, "ml_g1", "d7_naive", sens),
+    }
+    #: Primary beside sensitivity, per country, so the k trade is visible in
+    #: the record rather than left to a reader to recompute from two tables.
+    #: `k_days_short` counts the same days in both arms -- it is a property of
+    #: the panel, not of the threshold -- so it is carried once, unsuffixed,
+    #: rather than as two always-equal columns.
+    k_compare = {
+        name: primary.merge(k_sens[name].drop(columns=["k_days_short"]),
+                            on="country", suffixes=("_primary", "_screened"))
+        for name, primary in (("section_a_ml_band_vs_d7", a_band_vs_d7),
+                              ("section_b_ml_g2_vs_ml_g1", b_g2_vs_g1),
+                              ("section_c_ml_g2_vs_d7", c_g2_vs_d7),
+                              ("section_c_ml_g1_vs_d7", c_g1_vs_d7))
+    }
 
     # ---- D: anchor identification (panel_g) -------------------------------
     d_anchor_g2 = anchor_identification(panel_g, truth, "ml_g2")
@@ -891,7 +1043,7 @@ def main() -> int:
     # ---- E/F: weekday signature (panel_g) ---------------------------------
     e_weekday = weekday_profile(panel_g, ["ml_g2", "ml_band", "d7_naive"])
     f_amp = weekly_amplitude(truth, panel["target"].min(), panel["target"].max() + HOUR)
-    gap = paired_daily(panel_g, "ml_g2", "d7_naive").merge(f_amp, on="country")
+    gap = paired_daily(panel_g, "ml_g2", "d7_naive", mdc).merge(f_amp, on="country")
     gap = gap[~gap["country"].isin(NOT_EVALUABLE)]
     rho_amp = spearman(gap["weekly_amplitude_pct"].to_numpy(),
                        gap["mean_daily_wape_diff"].to_numpy())
@@ -962,6 +1114,22 @@ def main() -> int:
         "basis": "out-of-sample except the labelled in-sample debias column",
         "truth": "energy_load hourly means, 0.0 rows dropped (ABL-111/ABL-109)",
         "zero_rows_dropped": zero_rows,
+        # ABL-639. Deliberately not prefixed `guard`: the ABL-619 pin in
+        # tests/test_abl607_guarded_read.py reads every `meta` key starting
+        # with that word out of this literal and demands the *committed*
+        # report carry it, so a new one there would go red on an artifact this
+        # change is forbidden to rewrite.
+        "min_day_completeness": mdc,
+        "sensitivity_min_day_completeness": sens,
+        "day_completeness_note": (
+            "ABL-639: each country-day contributes one daily WAPE difference to "
+            "the paired interval regardless of the hours it was scored on, so a "
+            "truncated day is weighted like a whole one and counts as a full "
+            "observation in the k that keys T_CRIT. hours_expected is the hours "
+            "the fleet-wide window allows that day, not a constant 24 -- the "
+            "window's end days are legitimately partial (16 and 1 here). The "
+            "primary threshold above screens nothing at 0.0; the complete-days-"
+            "only arm is in section_k_day_completeness.sensitivity either way"),
         "guard": ("ABL-431/458 plausibility reference measured over the archive "
                   "read, report-only; the read is EXEMPT_READS (ABL-611)"),
         "guard_rows_read": guard_rows_read,
@@ -1048,6 +1216,34 @@ def main() -> int:
             "summary": json.loads(j_summary.to_json(orient="records"))
             if not j_summary.empty else [],
         },
+        "section_k_day_completeness": {
+            "min_day_completeness": mdc,
+            "sensitivity_min_day_completeness": sens,
+            "screen_applied_to": [
+                "section_a_reproduction.paired_ml_band_vs_d7",
+                "section_b_run_offset.paired_ml_g2_vs_ml_g1",
+                "section_c_vs_lag_ladder.paired_ml_g2_vs_d7",
+                "section_c_vs_lag_ladder.paired_ml_g1_vs_d7",
+                "section_f_amplitude.gap_vs_axes",
+            ],
+            "not_screened": (
+                "the pooled WAPE tables (per_country, fleet_medians, sections "
+                "E/G/H) weight by hour, so a short day already contributes "
+                "proportionally there and needs no screen; only the daily "
+                "paired intervals give every day equal weight"),
+            "panels": k_completeness,
+            "sensitivity": {
+                name: json.loads(frame.to_json(orient="records"))
+                for name, frame in k_sens.items()
+            },
+            "primary_vs_sensitivity": {
+                name: json.loads(frame.to_json(orient="records"))
+                for name, frame in k_compare.items()
+            },
+            "sensitivity_section_a_readable": readable_cells(
+                k_sens["section_a_ml_band_vs_d7"]),
+            "primary_section_a_readable": a_readable,
+        },
     }
 
     out_path = Path(args.json_out)
@@ -1131,6 +1327,26 @@ def main() -> int:
     print("\n== J: what the proxy row carried ==")
     if not j_summary.empty:
         print(fmt(j_summary))
+    print(f"\n== K: day completeness (ABL-639, primary screen "
+          f"{mdc:.2f}, sensitivity {sens:.2f}) ==")
+    for name, blk in k_completeness.items():
+        print(f"  {name} {blk['window_start']} -> {blk['window_end']} | "
+              f"{blk['n_short_country_days']} of {blk['n_country_days']} "
+              f"country-days short of the hours the window allows")
+        short = pd.DataFrame(blk["short_country_days"])
+        if not short.empty:
+            print(fmt(short.sort_values("completeness"), n=25))
+    cmp_a = k_compare["section_a_ml_band_vs_d7"]
+    print("\n  section A, all days vs complete days only:")
+    print(fmt(cmp_a[["country", "k_days_primary", "k_days_screened",
+                     "k_days_short", "mean_daily_wape_diff_primary",
+                     "ci_lo_primary", "mean_daily_wape_diff_screened",
+                     "ci_lo_screened", "readable_primary", "readable_screened"]]))
+    sens_a = record["section_k_day_completeness"]["sensitivity_section_a_readable"]
+    print(f"  readable losers  primary   {losers}")
+    print(f"  readable losers  screened  {sens_a['readable_losers']}")
+    print(f"  readable winners primary   {winners}")
+    print(f"  readable winners screened  {sens_a['readable_winners']}")
     print(f"\nwrote {out_path}")
     return 0
 
