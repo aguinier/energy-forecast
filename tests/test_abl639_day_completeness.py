@@ -33,6 +33,7 @@ in `section_k_day_completeness` of the run's own record.
 """
 
 import ast
+import json
 import sys
 from pathlib import Path
 
@@ -350,6 +351,127 @@ def test_screening_costs_precision_which_is_why_it_is_not_the_default():
     screen is reported beside the primary instead of replacing it."""
     assert T_CRIT[13] > T_CRIT[16]
     assert SENSITIVITY_MIN_DAY_COMPLETENESS == 1.0
+
+
+# --------------------------------------------------------------------------
+# 5. the note agrees with the record it was written from
+# --------------------------------------------------------------------------
+#
+# ABL-619 is the failure this guards: three merged texts went on describing a
+# measurement the committed artifact did not carry, because the code moved and
+# nothing regenerated the report. `reports/abl_639_day_completeness.md` states
+# a conditional finding -- LV's readable loss does not survive the screen -- and
+# the whole force of it is in numbers a later re-read will move. So the prose is
+# derived from the record here rather than trusted, in both directions.
+
+RECORD = (Path(__file__).parent.parent / "reports"
+          / "abl_607_d2_load_diagnosis_completeness.json")
+NOTE = Path(__file__).parent.parent / "reports" / "abl_639_day_completeness.md"
+
+
+def _flat(text):
+    """Prose with its line wrapping collapsed, so reflowing a paragraph does
+    not turn a pin red -- otherwise the next person to rewrap this file learns
+    to delete the test rather than to trust it."""
+    return " ".join(text.split())
+
+
+def _record():
+    return json.loads(RECORD.read_text(encoding="utf-8"))
+
+
+def _sf(value, dp=2):
+    """Signed, fixed precision, ASCII minus -- the note's own convention."""
+    return f"{value:+.{dp}f}"
+
+
+def test_the_note_quotes_the_record_it_was_written_from():
+    """Every figure in the note, recomputed. A record that moves under a note
+    left as it was is red, and so is a note that drifts from the record."""
+    record = _record()
+    prose = _flat(NOTE.read_text(encoding="utf-8"))
+    meta = record["meta"]
+    section = record["section_k_day_completeness"]
+
+    # protocol
+    assert f"**n = {meta['panel_a_n_scored_pairs']}** scored pairs" in prose
+    assert (f"`{meta['window_start'][:16]}` → `{meta['window_end'][:16]}` "
+            f"inclusive, {meta['target_days']} target days") in prose
+    assert f"`zero_rows_dropped = {meta['zero_rows_dropped']}`" in prose
+    assert f"defaults to `{meta['min_day_completeness']}`" in prose
+    assert meta["min_day_completeness"] == 0.0, (
+        "the committed record was produced with a screen applied; the note "
+        "describes it as the unscreened default read")
+
+    # the short-day counts, both panels
+    for name, phrase in (("panel_a", "**{short} of {total} country-days"),
+                         ("panel_g", "({short} of {total} on")):
+        blk = section["panels"][name]
+        assert phrase.format(short=blk["n_short_country_days"],
+                             total=blk["n_country_days"]) in prose, (
+            f"{name} carries {blk['n_short_country_days']} of "
+            f"{blk['n_country_days']} short country-days; the note disagrees")
+
+    # the two table rows
+    rows = {c["country"]: c
+            for c in section["primary_vs_sensitivity"]["section_a_ml_band_vs_d7"]}
+    yes_no = {True: "yes", False: "no"}
+    for cc in ("LV", "EE"):
+        c = rows[cc]
+        row = (f"| {cc} | {c['k_days_primary']} | {c['k_days_screened']} | "
+               f"{_sf(c['mean_daily_wape_diff_primary'])} → "
+               f"{_sf(c['mean_daily_wape_diff_screened'])} | "
+               f"{_sf(c['ci_lo_primary'])} → {_sf(c['ci_lo_screened'])} | "
+               f"{yes_no[c['readable_primary']]} → "
+               f"{yes_no[c['readable_screened']]} |")
+        assert row in prose, f"the note's {cc} row is not the record's:\n{row}"
+
+    # the loser sets, as membership and as counts
+    primary = section["primary_section_a_readable"]
+    screened = section["sensitivity_section_a_readable"]
+    assert (f"`{' '.join(primary['readable_losers'])}` "
+            f"({len(primary['readable_losers'])})") in prose
+    assert (f"`{' '.join(screened['readable_losers'])}` "
+            f"({len(screened['readable_losers'])})") in prose
+    assert primary["readable_winners"] == screened["readable_winners"] == ["GR"], (
+        "the note says GR is the one readable winner under both arms")
+
+
+def test_the_note_names_every_cell_whose_readability_moved():
+    """The claim that makes this a finding rather than a caveat: LV and only
+    LV. A count could not notice a second cell the note should name and does
+    not, so the set is recomputed and compared as a set."""
+    record = _record()
+    prose = _flat(NOTE.read_text(encoding="utf-8"))
+    rows = record["section_k_day_completeness"]["primary_vs_sensitivity"][
+        "section_a_ml_band_vs_d7"]
+
+    moved = {c["country"] for c in rows
+             if c["readable_primary"] != c["readable_screened"]}
+    assert moved == {"LV"}, (
+        f"readability now moves on {sorted(moved)}; the note claims LV alone "
+        f"and says no other cell's readability moves")
+    assert "no other cell's readability moves" in prose
+
+    short = {c["country"] for c in rows if c["k_days_short"]}
+    assert short == {"EE", "LV"}, (
+        f"country-days are now short on {sorted(short)}; the note says the "
+        f"short days fall on two countries, EE and LV")
+    assert "they fall on two countries" in prose
+
+
+def test_the_note_states_the_terminal_days_expected_hours():
+    """The trap, quoted. Both end-day figures come from the record's own
+    expected-hours map, not from the window arithmetic repeated by hand."""
+    record = _record()
+    prose = _flat(NOTE.read_text(encoding="utf-8"))
+    expected = record["section_k_day_completeness"]["panels"]["panel_a"][
+        "hours_expected_per_day"]
+
+    first, last = min(expected), max(expected)
+    assert f"`{first}` can only carry {expected[first]} target hours" in prose
+    assert f"`{last}` exactly **{expected[last]}**" in prose
+    assert expected[last] == 1 and expected[first] == 16
 
 
 def test_readable_cells_holds_nl_out():
