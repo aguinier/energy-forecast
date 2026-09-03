@@ -354,10 +354,10 @@ re-derived once there are meaningfully more post-fix vintages.
 | only pooled ships | `load_registry` raises `CalibrationRegistrationError` on any other `mode` |
 | a model with no band is left alone | `baseline-V012` and `xgboost-V014` are unregistered; an unregistered model serves what its head emitted |
 | a replay is not calibrated | `reconstruct_v010_vintages.py` and `apply_v016_to_vintages.py` are exempt with reasons — a replay must reproduce the row it replays. The serve-faithful attestation reads point rows only, which this change cannot move |
-| a new writer cannot forget | a static sweep fails any file with `INSERT OR REPLACE INTO forecast_quantiles` that neither imports `src.quantile_calibration` nor is exempt with a reason |
+| a new writer cannot forget | a static sweep fails any file that reaches `forecast_quantiles` — either by issuing `INSERT OR REPLACE INTO forecast_quantiles` itself **or by calling `save_quantile_forecasts`** — and neither imports `src.quantile_calibration` nor is exempt with a reason |
 
-Tests: `tests/test_abl650_quantile_calibration.py` (18). Full suite
-**1,717 passed, 1 skipped** under `.venv` (3.14.3).
+Tests: `tests/test_abl650_quantile_calibration.py` (21). Full suite
+**1,745 passed, 1 skipped** under `.venv` (3.14.3).
 
 ---
 
@@ -374,3 +374,80 @@ Tests: `tests/test_abl650_quantile_calibration.py` (18). Full suite
 - **It does not deploy.** The change is code plus a registration; it takes effect
   on the next scheduled run of the two quantile-emitting models, and shipping it
   is the Founding Engineer's and Deployment Engineer's call.
+
+---
+
+## 8. Revert runbook
+
+Added after the PR #107 merge review, which executed the revert rather than
+reading it and found that it is **serving-exact and not test-clean**. Merged at
+`3419031`.
+
+### The trigger, as pre-registered on ABL-674
+
+Over the **first 10 post-merge vintages**, revert if either holds:
+
+- the champion's pooled 10–90 coverage measured on `gate_scope` lands **outside
+  [70, 90]%**; or
+- **any zone's mean band width exceeds 5× that zone's MAE**.
+
+Read the coverage against a **vintage-block** interval, never a row count: 10
+vintages is 10 blocks of 24 hours, not 240 trials (§3).
+
+### The revert
+
+```
+rm experiments/net_position_quantile_calibration.json
+```
+
+Nothing else. `load_registry` reads a missing file as "no calibration", logs
+`no quantile-calibration registration at <path>; every band is served as
+emitted`, and every model then serves the band its head emitted. No code change
+is needed and no stored row is touched — the calibration only ever ran on new
+rows, so already-served vintages are unaffected either way.
+
+### The five tests that go red, by design
+
+They pin the *shipped* registration, so deleting it is supposed to fail them.
+They are **not** made to skip on a missing registry: an accidental deletion has
+to stay loud. Executed on a throwaway worktree at the branch head — **5 failed,
+26 passed** across the two affected files:
+
+| test | why it reds |
+|---|---|
+| `test_abl650_quantile_calibration.py::test_the_shipped_registration_loads_and_composes` | there is no shipped registration to load |
+| `…::test_only_the_two_models_that_emit_quantiles_are_registered` | `load_registry()` returns `{}`, not the two models |
+| `…::test_calibrate_quantile_dict_applies_the_registered_multipliers` | no multipliers to apply |
+| `…::test_the_registry_path_resolves_inside_the_repo` | asserts `REGISTRY_PATH.exists()` |
+| `test_challenger_rail.py::test_v016_applies_the_fit_and_keeps_quantiles_ordered` | `KeyError: 'chronos-2-V016'` reading the spec |
+
+**Any other failure means the revert misfired.** The list is derived, not
+remembered: `test_the_deregistration_redlist_covers_every_test_that_reads_the_registry`
+walks every test that reads the default registry and fails if one is missing
+from `DEREGISTRATION_REDLIST` / `DEREGISTRATION_STILL_GREEN`, so a test added
+later cannot surprise whoever runs the revert.
+
+### What must still be green after the revert — the serving contract
+
+If any of these reds, the revert did *not* restore the previous behaviour:
+
+- `test_a_missing_registry_means_no_calibration_not_an_error` — a missing file
+  is "no calibration", not a crash
+- `test_an_unregistered_model_serves_the_band_it_emitted` — pass-through is exact
+- `test_v016_passthrough_country_reproduces_the_champion` — the challenger rail
+  still reproduces the champion
+- `test_the_serving_entry_points_call_the_calibration`,
+  `test_every_forecast_quantiles_writer_calibrates_or_says_why_not`,
+  `test_the_sweep_sees_the_champions_own_serving_path` — the write paths still
+  route through the calibration, so re-registering later needs no code change
+
+```
+.venv\Scripts\python.exe -m pytest tests/test_abl650_quantile_calibration.py \
+    tests/test_challenger_rail.py -v
+```
+
+### To land the revert on `main` rather than run it locally
+
+Delete the registration **and** the five pins in the same commit, and say in the
+message that the deregistration is deliberate. Do not weaken the pins to make
+the suite green while the registration is still shipped.
