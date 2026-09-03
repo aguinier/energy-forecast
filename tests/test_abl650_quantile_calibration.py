@@ -250,25 +250,75 @@ WRITERS_EXEMPT = {
 }
 
 
-def test_every_forecast_quantiles_writer_calibrates_or_says_why_not():
-    """A new serving path that forgets the calibration would ship a band
-    labelled p10-p90 that is not one -- the exact defect this issue is about,
-    reintroduced silently."""
-    offenders = []
+# A file reaches `forecast_quantiles` either by issuing the SQL itself or by
+# calling the storage primitive that issues it. The champion's own serving path
+# does the latter -- `scripts/forecast_chronos2.py` contains no INSERT at all --
+# so a sweep keyed on the raw SQL alone is blind to the one path whose band is
+# actually drawn on the dashboard. Both markers, or the guard cannot see the
+# case it was written for.
+QUANTILE_WRITE_MARKERS = (
+    "INSERT OR REPLACE INTO forecast_quantiles",
+    "save_quantile_forecasts",
+)
+
+
+def _swept_sources():
+    """`{repo-relative path: source}` for every module the sweep looks at."""
+    out = {}
     for path in sorted(REPO.rglob("*.py")):
         rel = path.relative_to(REPO).as_posix()
         if rel.startswith(("tests/", ".claude/")) or "__pycache__" in rel:
             continue
-        src = path.read_text(encoding="utf-8", errors="ignore")
-        if "INSERT OR REPLACE INTO forecast_quantiles" not in src:
-            continue
-        if rel in WRITERS_EXEMPT or "quantile_calibration" in src:
-            continue
-        offenders.append(rel)
+        out[rel] = path.read_text(encoding="utf-8", errors="ignore")
+    return out
+
+
+def _writes_quantiles(src):
+    return any(marker in src for marker in QUANTILE_WRITE_MARKERS)
+
+
+def _is_offender(rel, src):
+    return (_writes_quantiles(src) and rel not in WRITERS_EXEMPT
+            and "quantile_calibration" not in src)
+
+
+def test_every_forecast_quantiles_writer_calibrates_or_says_why_not():
+    """A new serving path that forgets the calibration would ship a band
+    labelled p10-p90 that is not one -- the exact defect this issue is about,
+    reintroduced silently."""
+    offenders = [rel for rel, src in _swept_sources().items()
+                 if _is_offender(rel, src)]
     assert not offenders, (
-        f"{offenders} write to forecast_quantiles without importing "
-        f"src.quantile_calibration. Either calibrate the band or add the file "
-        f"to WRITERS_EXEMPT with the reason.")
+        f"{offenders} write to forecast_quantiles (directly, or through "
+        f"save_quantile_forecasts) without importing src.quantile_calibration. "
+        f"Either calibrate the band or add the file to WRITERS_EXEMPT with the "
+        f"reason.")
+
+
+def test_the_sweep_sees_the_champions_own_serving_path():
+    """`scripts/forecast_chronos2.py` writes the band that is actually drawn on
+    the Net position tab, and it writes it through `save_quantile_forecasts`.
+    Keying the sweep on the raw SQL alone left that file outside the guard
+    entirely -- it passed by not matching, not by calibrating."""
+    rel = "scripts/forecast_chronos2.py"
+    src = (REPO / rel).read_text(encoding="utf-8")
+    assert "INSERT OR REPLACE INTO forecast_quantiles" not in src, (
+        "the raw-SQL marker now matches this file, so it no longer witnesses "
+        "the gap the primitive marker was added to close")
+    assert _writes_quantiles(src)
+    assert not _is_offender(rel, src)
+    # Negative control: the file passes because it calibrates, not because the
+    # sweep cannot see it. Drop the import and the sweep has to catch it.
+    assert _is_offender(rel, src.replace("quantile_calibration", "_removed_"))
+
+
+def test_both_write_markers_match_a_real_file():
+    """A marker that matches nothing is a guard that can never fire."""
+    sources = _swept_sources()
+    for marker in QUANTILE_WRITE_MARKERS:
+        assert any(marker in src for src in sources.values()), (
+            f"no swept file contains {marker!r}; the sweep is vacuous on that "
+            f"marker and would pass whatever the writers do")
 
 
 def test_the_serving_entry_points_call_the_calibration():
@@ -282,3 +332,92 @@ def test_the_serving_entry_points_call_the_calibration():
 def test_the_registry_path_resolves_inside_the_repo():
     assert REGISTRY_PATH == REPO / "experiments" / "net_position_quantile_calibration.json"
     assert REGISTRY_PATH.exists()
+
+
+# ---------------------------------------------------------------------------
+# the pre-registered revert
+# ---------------------------------------------------------------------------
+
+# ABL-674 registers the revert as: delete
+# `experiments/net_position_quantile_calibration.json`. That restores the
+# serving behaviour exactly -- `load_registry` reads a missing file as "no
+# calibration", so every model serves the band its head emitted -- but it does
+# NOT leave the suite green, because the tests below pin the *shipped*
+# registration on purpose. Executed on the merged tree, the deletion gives
+# 5 failed / 23 passed across the two affected files.
+#
+# Both halves matter. An accidental deletion has to stay loud, so these are not
+# skipped. A deliberate one happens under time pressure inside the 10-vintage
+# watch window, so the expected red is written down instead of discovered:
+# `reports/abl_650_band_calibration.md` section 8.
+DEREGISTRATION_REDLIST = {
+    "tests/test_abl650_quantile_calibration.py::"
+    "test_the_shipped_registration_loads_and_composes",
+    "tests/test_abl650_quantile_calibration.py::"
+    "test_only_the_two_models_that_emit_quantiles_are_registered",
+    "tests/test_abl650_quantile_calibration.py::"
+    "test_calibrate_quantile_dict_applies_the_registered_multipliers",
+    "tests/test_abl650_quantile_calibration.py::"
+    "test_the_registry_path_resolves_inside_the_repo",
+    "tests/test_challenger_rail.py::"
+    "test_v016_applies_the_fit_and_keeps_quantiles_ordered",
+}
+
+# Reads the shipped registry and passes without it: an unregistered model is
+# served exactly as emitted whether the file is there or not.
+DEREGISTRATION_STILL_GREEN = {
+    "tests/test_abl650_quantile_calibration.py::"
+    "test_an_unregistered_model_serves_the_band_it_emitted",
+}
+
+# `{function: index of the `path` parameter}`. A call that supplies a registry
+# path is pointing at a tmp file, not at the shipped registration.
+_DEFAULT_REGISTRY_READERS = {"load_registry": 0, "registered_calibration": 2,
+                             "calibrate_quantile_dict": 3}
+
+
+def _reads_the_shipped_registry(node):
+    for n in ast.walk(node):
+        if isinstance(n, ast.Name) and n.id == "REGISTRY_PATH":
+            return True
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Name):
+            pos = _DEFAULT_REGISTRY_READERS.get(n.func.id)
+            if pos is None:
+                continue
+            if len(n.args) > pos or any(k.arg == "path" for k in n.keywords):
+                continue
+            return True
+    return False
+
+
+def _tests_that_read_the_shipped_registry():
+    found = set()
+    for path in sorted((REPO / "tests").glob("test_*.py")):
+        src = path.read_text(encoding="utf-8")
+        if "quantile_calibration" not in src:
+            continue
+        rel = path.relative_to(REPO).as_posix()
+        for node in ast.walk(ast.parse(src)):
+            if (isinstance(node, ast.FunctionDef)
+                    and node.name.startswith("test_")
+                    and _reads_the_shipped_registry(node)):
+                found.add(f"{rel}::{node.name}")
+    return found
+
+
+def test_the_deregistration_redlist_covers_every_test_that_reads_the_registry():
+    """The revert's expected failures are derived, not remembered.
+
+    A test added later that reads the shipped registration would go red during
+    the revert with nobody having written that down, and whoever is executing
+    the revert mid-incident would have to decide on the spot whether it
+    misfired. This fails at the time that test is written instead."""
+    documented = DEREGISTRATION_REDLIST | DEREGISTRATION_STILL_GREEN
+    found = _tests_that_read_the_shipped_registry()
+    assert found == documented, (
+        f"unclassified: {sorted(found - documented)}; "
+        f"stale: {sorted(documented - found)}. Every test that reads the "
+        f"shipped registration must be listed either in DEREGISTRATION_REDLIST "
+        f"(goes red when the registration is deleted) or in "
+        f"DEREGISTRATION_STILL_GREEN (passes either way), and the runbook in "
+        f"reports/abl_650_band_calibration.md section 8 updated to match.")
