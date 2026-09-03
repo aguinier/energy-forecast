@@ -438,7 +438,13 @@ it discovers nothing. Both DBs open readonly. Rules that bite (full history:
   0.27 / −0.20 / 0.06 over three folds). **Read a coverage number against its
   vintage-block interval**, never its row count — 480 hours is 20 runs, and at
   20 vintages a *perfectly* calibrated band still lands only ~13.7 of 19 zones
-  inside [75, 85]%.
+  inside [75, 85]%. **The revert is one deletion and five expected red tests** —
+  `reports/abl_650_band_calibration.md` §8 has the trigger, names the five, and
+  names what must stay green. They are not made to skip on a missing registry,
+  because an accidental deletion has to stay loud. **A file reaches
+  `forecast_quantiles` through `save_quantile_forecasts` as often as through the
+  raw `INSERT`** — the champion's own serving path only does the former — so the
+  writer sweep keys on both markers. Add a marker if you add a third route.
 
 ## All-type forecast scorecard
 
