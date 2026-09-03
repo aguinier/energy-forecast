@@ -650,8 +650,9 @@ GUARDED_READ_SITES = (
     # country, refusals counted into `attrs["guard_refusals"]` and dropped
     # before `build_arms`). Its ML arm is read raw, deliberately: the guard is
     # one-sided, so on an arm being *scored* it can only remove our own largest
-    # over-forecasts -- see `EXEMPT_READS` for `abl607_d2_load_diagnosis.py`,
-    # which reads only that arm and is exempt for exactly this reason.
+    # over-forecasts -- see `ML_SLICE_ONLY_EXEMPT` for
+    # `abl607_d2_load_diagnosis.py`, which reads only that arm and is exempt
+    # for exactly this reason.
     "scripts/abl246_tso_d1_load_pack.py",
     # ABL-247. Guards its TSO arm per country in `read_tso_vintages`
     # (`guard_tso_frame`, refusals counted into `attrs["guard_refusals"]` and
@@ -762,15 +763,25 @@ MENTION_ONLY_EXEMPT = (
     "scripts/attest_net_position_serve_faithfulness.py",
 )
 
-#: Files that read a TSO forecast *table* raw, on purpose, with the reason.
-#: Widened from "column" on ABL-611. The sweep matches table names, so an entry
-#: here is one of two things and its reason must say which: a deliberate raw
-#: read of a TSO forecast column (the original case), or a read of a non-TSO
-#: slice of a table that also holds TSO rows (ABL-607). For the second kind the
-#: reason must say why guarding the read would be *wrong*, not merely
-#: unnecessary -- "we do not need it here" is how a real TSO read gets added
-#: later under a stale exemption.
-EXEMPT_READS = (
+#: Files that read a **non-TSO slice** of a table that also holds TSO rows.
+#:
+#: ABL-611 widened `EXEMPT_READS` from "column" to "table" to admit this second
+#: kind of claim, and ABL-617 split it back out, because the two kinds are not
+#: reviewable the same way. A deliberate raw read of a TSO column is a judgement
+#: about a value; "this file reads only our own `source = 'ml'` rows" is a
+#: statement about the file's SQL -- and the sweep stops looking at a file the
+#: moment it is listed, so an ordinary future edit adding a TSO arm for
+#: comparison would be reading a genuinely unguarded TSO forecast under a stale
+#: exemption, silently by construction.
+#:
+#: So this category is **checked, not claimed**, the way `MENTION_ONLY_EXEMPT`
+#: is: `test_ml_slice_exemptions_read_only_our_own_rows` holds every entry to
+#: `ml_slice_violations`. Joining this list is therefore a condition on the
+#: file, not a sentence in a review. An entry whose read cannot be checked --
+#: SQL assembled at runtime, or a slice bound as a parameter rather than
+#: written in the query -- belongs on `EXEMPT_READS` with a reviewed reason, or
+#: behind the guard.
+ML_SLICE_ONLY_EXEMPT = (
     # ABL-607/ABL-611: not a TSO read. `load_archive` selects
     # `forecast_type = 'load' AND source = 'ml'` -- our own forecasts -- and
     # the file reads no TSO row anywhere. The guard's archive reference is the
@@ -800,6 +811,16 @@ EXEMPT_READS = (
     # fails if this comment and that artifact ever disagree, in either
     # direction.
     "scripts/abl607_d2_load_diagnosis.py",
+)
+
+#: Files that read a TSO forecast *column* raw, on purpose, with the reason.
+#: This is the original ABL-431 case and the one that can only be reviewed: the
+#: entry asserts something about a value, not about a query, so its reason must
+#: say why guarding the read would be *wrong*, not merely unnecessary -- "we do
+#: not need it here" is how a real TSO read gets added later under a stale
+#: exemption. A file whose claim is instead "it reads only our own rows" goes
+#: on `ML_SLICE_ONLY_EXEMPT`, where that claim is machine-checked.
+EXEMPT_READS = (
     # Column->covariate mapping only; the read itself is input_builder's.
     "src/chronos2/covariate_mapper.py",
     # `TSOBaseline` queries a `timestamp_utc` column that neither TSO table
@@ -815,7 +836,7 @@ EXEMPT_READS = (
     "src/chronos_train.py",
 )
 
-SWEEP_EXEMPT = MENTION_ONLY_EXEMPT + EXEMPT_READS
+SWEEP_EXEMPT = MENTION_ONLY_EXEMPT + ML_SLICE_ONLY_EXEMPT + EXEMPT_READS
 
 
 def test_no_unguarded_module_reads_a_tso_forecast_table():
@@ -925,5 +946,268 @@ def test_mention_only_exemptions_execute_no_query_against_a_tso_table(
     queried = {name.lower() for name in _QUERY_CONTEXT.findall(text)}
     assert not queried & set(TSO_TABLES), (
         f"{relative_path} is exempt as mention-only but now queries "
-        f"{sorted(queried & set(TSO_TABLES))}; guard the read or move it to "
-        f"EXEMPT_READS with a reason")
+        f"{sorted(queried & set(TSO_TABLES))}; guard the read, or move it to "
+        f"ML_SLICE_ONLY_EXEMPT if it reads only our own rows, or to "
+        f"EXEMPT_READS with a reason if it really does read a TSO column")
+
+
+# --------------------------------------------------------------------------
+# ABL-617: the ML-slice exemption is a condition on the file, not a claim
+# --------------------------------------------------------------------------
+
+#: The clause an ML-slice read must pin, and the literal that disqualifies it.
+#: Matched as **text in the query**, deliberately. A `WHERE source = ?` bound to
+#: `"ml"` at call time is the same read and is still refused here, because the
+#: value is not in the file the check can see -- and a category whose whole
+#: purpose is to stop being an intent claim cannot resolve the binding on
+#: trust. That is a real restriction on what may join `ML_SLICE_ONLY_EXEMPT`,
+#: and it is the point.
+ML_SLICE_CLAUSE = "source = 'ml'"
+TSO_SLICE_LITERAL = "'tso'"
+
+#: A literal segment of an f-string that stops exactly where a table name goes.
+_DYNAMIC_TABLE = re.compile(r"\b(?:FROM|JOIN|INTO|UPDATE)\s+$", re.IGNORECASE)
+
+
+def _tables_queried(sql: str, tables) -> set:
+    """The TSO tables ``sql`` selects from, by the sweep's own definition.
+
+    `_QUERY_CONTEXT` is reused rather than re-expressed so this category and
+    `MENTION_ONLY_EXEMPT` cannot drift apart on what "queries a TSO table"
+    means -- and so a bare mention ("... excluded from the energy_load read")
+    is not mistaken for one, which a substring search on the table name would
+    do the first time a report line was worded that way.
+    """
+    return {name.lower() for name in _QUERY_CONTEXT.findall(sql)} & set(tables)
+
+
+def _docstring_nodes(tree):
+    """The `ast.Constant` nodes that are docstrings, by identity.
+
+    By node rather than by value: two equal short strings can be the same
+    object under interning, so an identity test on the *value* can mistake an
+    ordinary constant for a docstring. The nodes are unambiguous.
+    """
+    nodes = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Module, ast.FunctionDef,
+                                 ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        first = node.body[0] if node.body else None
+        if (isinstance(first, ast.Expr)
+                and isinstance(first.value, ast.Constant)
+                and isinstance(first.value.value, str)):
+            nodes.add(id(first.value))
+    return nodes
+
+
+def ml_slice_violations(source: str, tables=TSO_TABLES):
+    """Why ``source`` fails the ML-slice claim; empty when it holds.
+
+    Factored out of the assertion for the same reason `unguarded_tso_readers`
+    is: a check that has never been observed to fail is exactly the shape of
+    defect ABL-462 was filed about.  The controls below point this at synthetic
+    sources and prove each arm fires.
+
+    Four arms, one per way the claim can be false or unverifiable:
+
+    1. **A query that is not the ML slice.**  Any static SQL constant selecting
+       from a TSO-bearing table must pin `source = 'ml'` and must not name the
+       TSO slice.  This is the arm that catches the failure ABL-617 was filed
+       about -- a TSO arm added later, for comparison, under an exemption
+       written before it existed.
+    2. **A query the check cannot read.**  SQL assembled at runtime (an
+       f-string naming one of these tables, or interpolating the table name
+       itself) is not evidence of a TSO read, but it does mean the file's claim
+       is unverifiable -- which disqualifies it from a machine-checked
+       category, rather than being waved through.  String concatenation needs
+       no arm of its own: the constant carrying `FROM <table>` is checked on
+       its own and fails arm 1 unless the slice is pinned in that same piece.
+    3. **The TSO slice named outside any query.**  Arms 1 and 2 both key off a
+       constant that contains `FROM <table>`, and one line defeats both without
+       writing one: `TSO = QUERY.replace("'ml'", "'tso'")` turns the file's
+       own passing query into a TSO read, and every constant in the file is
+       still individually clean.  So in this category the literal `'tso'` is
+       refused wherever it appears in code.  That is broader than a read -- it
+       would also refuse `model_name != 'tso'` -- and deliberately so: a file
+       whose warrant is "it reads only our own rows" has no use for the
+       literal, and the alternative is resolving a runtime rewrite on trust,
+       which is the intent claim this category exists to stop being.
+    4. **No such query at all.**  The entry is stale, or it is a mention-only
+       file on the wrong list.  Without this arm a file could satisfy the
+       category by no longer reading anything, and the exemption would go on
+       covering whatever was added next.
+
+    Docstrings are excluded: these table names appear in prose throughout the
+    repo, and a comment must be able neither to satisfy nor to trip the check.
+    """
+    tree = ast.parse(source)
+    docstrings = _docstring_nodes(tree)
+    reasons, queries = [], []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.JoinedStr):
+            parts = [v.value for v in node.values
+                     if isinstance(v, ast.Constant) and isinstance(v.value, str)]
+            joined = "".join(parts)
+            if (_tables_queried(joined, tables)
+                    or any(_DYNAMIC_TABLE.search(part) for part in parts)):
+                reasons.append(
+                    f"SQL is assembled at runtime, so the slice cannot be read "
+                    f"off the query: {joined.strip()!r}")
+            continue
+
+        if not (isinstance(node, ast.Constant) and isinstance(node.value, str)):
+            continue
+        if id(node) in docstrings:
+            continue
+        sql = node.value
+        if not _tables_queried(sql, tables):
+            if TSO_SLICE_LITERAL in sql:
+                reasons.append(
+                    f"the TSO slice {TSO_SLICE_LITERAL} is named outside any "
+                    f"query, so a TSO read can be assembled at runtime out of "
+                    f"constants that each pass on their own: {sql!r}")
+            continue
+
+        queries.append(sql)
+        if ML_SLICE_CLAUSE not in sql:
+            reasons.append(
+                f"a query selects from a TSO-bearing table without pinning "
+                f"{ML_SLICE_CLAUSE!r}:\n{sql}")
+        if TSO_SLICE_LITERAL in sql:
+            reasons.append(
+                f"a query names the TSO slice {TSO_SLICE_LITERAL}; the read is "
+                f"a TSO read and needs the guard:\n{sql}")
+
+    if not queries:
+        reasons.append(
+            "no static SQL against a TSO-bearing table found at all -- the "
+            "entry is stale, or the file is mention-only and belongs on "
+            "MENTION_ONLY_EXEMPT where that is what gets checked")
+    return reasons
+
+
+@pytest.mark.parametrize("relative_path", ML_SLICE_ONLY_EXEMPT)
+def test_ml_slice_exemptions_read_only_our_own_rows(relative_path):
+    """What makes `ML_SLICE_ONLY_EXEMPT` a category rather than a list.
+
+    The sweep stops looking at a file the moment it is exempt, so before
+    ABL-617 the claim "this file reads only our own `source = 'ml'` rows" was
+    reviewed once and never again -- and the one entry that existed was pinned
+    by a test of its own, which the next entry would not have inherited.  Here
+    the check is a condition of being on the list.
+    """
+    source = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+    violations = ml_slice_violations(source)
+    assert not violations, (
+        f"{relative_path} is exempt as an ML-slice read, but: "
+        + "; ".join(violations))
+
+
+#: One synthetic source per arm, each a minimal edit away from a source that
+#: passes.  Named so a failure says which arm went quiet, and written as whole
+#: files so the parse sees what the real check sees.
+_ML_SLICE_OK = '''"""A guarded-free read of our own rows: forecast_vintage_archive."""
+import pandas as pd
+
+QUERY = """
+    SELECT country_code, forecast_value
+    FROM forecast_vintage_archive
+    WHERE forecast_type = 'load' AND source = 'ml'
+"""
+
+
+def read(conn):
+    return pd.read_sql(QUERY, conn)
+'''
+
+_ML_SLICE_ROT = {
+    "the slice flipped to the TSO arm":
+        _ML_SLICE_OK.replace("source = 'ml'", "source = 'tso'"),
+    "a second, unpinned query added beside the ML one":
+        _ML_SLICE_OK + '\n\nTSO = "SELECT * FROM energy_load_forecast"\n',
+    "a TSO arm added for comparison, written out as its own query":
+        _ML_SLICE_OK + '\nTSO_SQL = """\n    SELECT forecast_value\n'
+                       "    FROM forecast_vintage_archive\n"
+                       "    WHERE source = 'tso'\n\"\"\"\n",
+    # Kept apart from the case above on purpose. Held together they were one
+    # control, and it passed on the written-out query alone -- the rewrite arm
+    # was never exercised and the check did not have it. A control that stays
+    # green when the vector it names is removed is the vacuity ABL-462 is about.
+    "a TSO arm assembled at runtime from the file's own passing query":
+        _ML_SLICE_OK + "\nTSO = QUERY.replace(\"'ml'\", \"'tso'\")\n",
+    "the table name interpolated, so the slice cannot be read off the query":
+        _ML_SLICE_OK.replace(
+            'QUERY = """\n    SELECT country_code, forecast_value\n'
+            "    FROM forecast_vintage_archive\n"
+            "    WHERE forecast_type = 'load' AND source = 'ml'\n\"\"\"",
+            'TABLE = "forecast_vintage_archive"\n'
+            'QUERY = f"SELECT country_code, forecast_value FROM {TABLE} "\\\n'
+            '        f"WHERE forecast_type = \'load\' AND source = \'ml\'"'),
+    "the read removed, leaving an exemption over nothing":
+        '"""Only mentions forecast_vintage_archive, in prose."""\n',
+    "the slice bound as a parameter instead of written in the query":
+        _ML_SLICE_OK.replace("AND source = 'ml'", "AND source = ?"),
+}
+
+
+def test_the_ml_slice_control_passes_before_it_is_broken():
+    """Without this, every case below could be red for an unrelated reason and
+    the controls would prove nothing about the arms they name."""
+    assert ml_slice_violations(_ML_SLICE_OK) == []
+
+
+@pytest.mark.parametrize("how", sorted(_ML_SLICE_ROT))
+def test_the_ml_slice_check_fires_on_every_way_the_claim_can_rot(how):
+    """The negative controls.  `MENTION_ONLY_EXEMPT` has one of these and it is
+    the reason that category is trustworthy; this gives the ML-slice category
+    the same standing, and it is what ABL-617 asked for that a per-file test
+    could not provide.
+    """
+    assert ml_slice_violations(_ML_SLICE_ROT[how]), (
+        f"the ML-slice check did not fire on: {how}")
+
+
+def test_a_docstring_can_neither_satisfy_nor_trip_the_ml_slice_check():
+    """The tables are named in prose all over this repo -- including in the
+    reasons on the exempt lists themselves.  A file whose only mention of a
+    TSO table is a comment is mention-only, not an ML-slice read, and must be
+    told so rather than certified.
+    """
+    prose = ('"""Selects FROM forecast_vintage_archive WHERE '
+             "source = 'ml', it says here.\"\"\"\n")
+
+    violations = ml_slice_violations(prose)
+
+    assert len(violations) == 1 and violations[0].startswith("no static SQL"), (
+        f"a docstring was read as a query: {violations}")
+
+
+def test_no_file_is_on_two_of_the_sweep_s_four_lists():
+    """A file on two lists is claiming two different things about itself, and
+    only the weaker check would ever run.  The three exempt categories are held
+    against the guarded one too: an exemption sitting beside a wired read site
+    is a contradiction, not belt-and-braces.
+
+    Entries are also required to exist.  A path that has been renamed or deleted
+    takes its own check down with it silently -- `ML_SLICE_ONLY_EXEMPT` would
+    parametrize over nothing, and the sweep would go on skipping a filename that
+    no longer means anything.
+    """
+    lists = {"MENTION_ONLY_EXEMPT": MENTION_ONLY_EXEMPT,
+             "ML_SLICE_ONLY_EXEMPT": ML_SLICE_ONLY_EXEMPT,
+             "EXEMPT_READS": EXEMPT_READS,
+             "GUARDED_READ_SITES": GUARDED_READ_SITES}
+    for name, entries in lists.items():
+        assert len(set(entries)) == len(entries), f"{name} repeats an entry"
+        for entry in entries:
+            assert (REPO_ROOT / entry).is_file(), (
+                f"{name} lists {entry}, which does not exist")
+
+    seen = {}
+    for name, entries in lists.items():
+        for entry in entries:
+            assert entry not in seen, (
+                f"{entry} is on both {seen[entry]} and {name}")
+            seen[entry] = name
