@@ -356,8 +356,8 @@ re-derived once there are meaningfully more post-fix vintages.
 | a replay is not calibrated | `reconstruct_v010_vintages.py` and `apply_v016_to_vintages.py` are exempt with reasons — a replay must reproduce the row it replays. The serve-faithful attestation reads point rows only, which this change cannot move |
 | a new writer cannot forget | a static sweep fails any file that reaches `forecast_quantiles` — either by issuing `INSERT OR REPLACE INTO forecast_quantiles` itself **or by calling `save_quantile_forecasts`** — and neither imports `src.quantile_calibration` nor is exempt with a reason |
 
-Tests: `tests/test_abl650_quantile_calibration.py` (18). Full suite
-**1,717 passed, 1 skipped** under `.venv` (3.14.3).
+Tests: `tests/test_abl650_quantile_calibration.py` (21). Full suite
+**1,745 passed, 1 skipped** under `.venv` (3.14.3).
 
 ---
 

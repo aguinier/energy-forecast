@@ -344,7 +344,7 @@ def test_the_registry_path_resolves_inside_the_repo():
 # calibration", so every model serves the band its head emitted -- but it does
 # NOT leave the suite green, because the tests below pin the *shipped*
 # registration on purpose. Executed on the merged tree, the deletion gives
-# 5 failed / 23 passed across the two affected files.
+# 5 failed / 26 passed across the two affected files.
 #
 # Both halves matter. An accidental deletion has to stay loud, so these are not
 # skipped. A deliberate one happens under time pressure inside the 10-vintage
