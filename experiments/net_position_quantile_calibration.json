@@ -1,0 +1,42 @@
+{
+  "issue": "ABL-650",
+  "generated_by": "scripts/abl650_band_calibration.py",
+  "evidence": "reports/abl_650_band_calibration.json",
+  "protocol": "Split-conformal, two multipliers per model, anchored at the stored q50. Fitted pooled over every gated zone: ABL-650 measured per-zone multipliers losing to no calibration at all on held-out vintages (champion 9 -> 4 zones inside [75, 85]%), because a zone's measured coverage does not persist window to window (fit-to-eval Pearson r 0.27 / -0.20 / 0.06 over three folds). The pooled form is the only one that survives out-of-sample.",
+  "invariants": [
+    "q50 is a fixed point: the served point forecast cannot move",
+    "the map is increasing on each side of q50: no new crossings",
+    "new rows only; stored quantile history is never rewritten"
+  ],
+  "models": {
+    "chronos-2-V010": {
+      "mode": "pooled",
+      "alpha": 0.1,
+      "s_lo_total": 1.0722,
+      "s_hi_total": 1.0091,
+      "s_lo_applied": 1.0722,
+      "s_hi_applied": 1.0091,
+      "fit_window": [
+        "2026-08-05",
+        "2026-09-02"
+      ],
+      "fit_vintages": 29,
+      "fit_rows": 12978
+    },
+    "chronos-2-V016": {
+      "mode": "pooled",
+      "alpha": 0.1,
+      "s_lo_total": 1.3138,
+      "s_hi_total": 1.1623,
+      "s_lo_applied": 1.2253,
+      "s_hi_applied": 1.1518,
+      "fit_window": [
+        "2026-08-05",
+        "2026-09-02"
+      ],
+      "fit_vintages": 26,
+      "fit_rows": 11610,
+      "upstream": "chronos-2-V010"
+    }
+  }
+}

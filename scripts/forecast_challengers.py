@@ -37,6 +37,7 @@ from src.challengers.v014 import load_model as load_v014_model
 from src.challengers.v014_features import ServeWindow, build_cache, build_features
 from src.db import get_connection
 from src.evaluation.net_position import _parse_ts, _ro_connect, as_of_for_vintage
+from src.quantile_calibration import calibrate_quantile_dict
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(levelname)s - %(message)s")
@@ -211,7 +212,7 @@ def run_v016(spec, countries, target_date, generated_at, actuals,
     version = generated_at.strftime("%Y%m%d_%H%M%S")
     q_levels = [c for c in champion.columns if c.startswith("q")]
 
-    rows, qrows, identity = [], [], []
+    rows, qrows, identity, calibrated = [], [], [], []
     for cc in countries:
         g = champion[champion["country_code"] == cc].sort_values("target_ts")
         if g.empty:
@@ -231,11 +232,23 @@ def run_v016(spec, countries, target_date, generated_at, actuals,
                  for ts, v in zip(targets, corrected)]
         # Quantiles get the same affine map plus the same AR shift. The map is
         # monotone (slope > 0 is a fit guard), so the band stays ordered.
+        corrected_q = {}
         for qcol in q_levels:
             if g[qcol].isna().all():
                 continue
-            shifted = apply_correction(g[qcol].to_numpy(), targets, fit, resid, resid_ts)
-            level = int(qcol[1:]) / 100.0
+            corrected_q[int(qcol[1:]) / 100.0] = apply_correction(
+                g[qcol].to_numpy(), targets, fit, resid, resid_ts)
+        # Then the registered band recalibration (ABL-650). The affine map above
+        # scales V016's half-widths in exact proportion to the champion's, so
+        # V016 already inherits whatever widening the champion carries; its
+        # registered multiplier is the *increment* on top, and the registry
+        # loader checks that increment x champion reproduces the measured total.
+        if corrected_q:
+            corrected_q, cal = calibrate_quantile_dict(
+                corrected_q, spec.model_name, cc)
+            if cal is not None:
+                calibrated.append(cc)
+        for level, shifted in corrected_q.items():
             qrows += [{"country_code": cc, "target_ts": ts, "quantile": level,
                        "forecast_value": float(v), "generated_at": generated_at,
                        "model_name": spec.model_name}
@@ -243,6 +256,10 @@ def run_v016(spec, countries, target_date, generated_at, actuals,
     if identity:
         logger.info("V016: passing through uncorrected (V016 == V010 here): %s",
                     "; ".join(identity))
+    logger.info("V016: band recalibration applied in %d/%d zones%s",
+                len(calibrated), len(countries),
+                "" if calibrated else " (no registered calibration for "
+                f"{spec.model_name} - band as emitted)")
     return rows, qrows
 
 

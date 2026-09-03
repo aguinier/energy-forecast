@@ -420,6 +420,25 @@ it discovers nothing. Both DBs open readonly. Rules that bite (full history:
   provably cannot reach the gate's slope band on V010 (`slope → rho²`), and the
   AR carry is negligible at a D+2 horizon. Do not propose another correction
   layer without reading `docs/claude/09-model-details.md` first.
+- **The drawn band is recalibrated on the way out** (ABL-650):
+  `src/quantile_calibration.py` scales the emitted quantiles around `q50` by two
+  registered multipliers per model
+  (`experiments/net_position_quantile_calibration.json`), so a p10-p90 band
+  covers what its label claims. `q50` is a fixed point, so the served point
+  forecast cannot move; the map is increasing either side of it, so it cannot
+  create a crossing; new rows only, stored history never rewritten. Only
+  `chronos-2-V010` and `chronos-2-V016` emit quantiles at all. **V016's
+  registered multiplier is an increment, not a total** — its band is an affine
+  image of the champion's and inherits the champion's widening exactly, so
+  `load_registry` refuses a registration whose `s_applied × upstream` misses the
+  measured `s_total`. **`mode` is `pooled` and the loader refuses anything
+  else**: per-zone multipliers were measured and *lose to no calibration at all*
+  out-of-sample (champion 9 → 4 zones inside [75, 85]%), because a zone's
+  measured coverage does not persist across a fortnight (fit→eval Pearson r
+  0.27 / −0.20 / 0.06 over three folds). **Read a coverage number against its
+  vintage-block interval**, never its row count — 480 hours is 20 runs, and at
+  20 vintages a *perfectly* calibrated band still lands only ~13.7 of 19 zones
+  inside [75, 85]%.
 
 ## All-type forecast scorecard
 
