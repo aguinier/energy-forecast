@@ -1,0 +1,1381 @@
+{
+  "issue": "ABL-650",
+  "registry": {
+    "chronos-2-V010": {
+      "mode": "pooled",
+      "alpha": 0.1,
+      "s_lo_total": 1.0722,
+      "s_hi_total": 1.0091,
+      "s_lo_applied": 1.0722,
+      "s_hi_applied": 1.0091,
+      "fit_window": [
+        "2026-08-05",
+        "2026-09-02"
+      ],
+      "fit_vintages": 29,
+      "fit_rows": 12978
+    },
+    "chronos-2-V016": {
+      "mode": "pooled",
+      "alpha": 0.1,
+      "s_lo_total": 1.3138,
+      "s_hi_total": 1.1623,
+      "s_lo_applied": 1.2253,
+      "s_hi_applied": 1.1518,
+      "fit_window": [
+        "2026-08-05",
+        "2026-09-02"
+      ],
+      "fit_vintages": 26,
+      "fit_rows": 11610,
+      "upstream": "chronos-2-V010"
+    }
+  },
+  "holdout_window_vintages": [
+    "2026-08-19",
+    "2026-09-02"
+  ],
+  "models": {
+    "chronos-2-V010": {
+      "applied_out_of_sample": {
+        "s_lo": 0.9895,
+        "s_hi": 1.0597,
+        "n_fit": 6840,
+        "alpha_lo": 0.1,
+        "alpha_hi": 0.1
+      },
+      "applied_fit_window": [
+        "2026-08-05",
+        "2026-08-19"
+      ],
+      "registered_for_serving": {
+        "mode": "pooled",
+        "alpha": 0.1,
+        "s_lo_total": 1.0722,
+        "s_hi_total": 1.0091,
+        "s_lo_applied": 1.0722,
+        "s_hi_applied": 1.0091,
+        "fit_window": [
+          "2026-08-05",
+          "2026-09-02"
+        ],
+        "fit_vintages": 29,
+        "fit_rows": 12978
+      },
+      "holdout_rows": 6138,
+      "holdout_vintages": 14,
+      "median_max_abs_delta_mw": 0.0,
+      "point_max_abs_delta_mw": 0.0,
+      "point_rows_bit_identical": true,
+      "q50_rows_bit_identical": true,
+      "crossings_after": 0,
+      "pooled_before": {
+        "coverage_pct": 76.8,
+        "ci95_pct": [
+          71.98,
+          81.3
+        ],
+        "blocks": 14,
+        "rows": 6138,
+        "outside_80": false
+      },
+      "pooled_after": {
+        "coverage_pct": 77.73,
+        "ci95_pct": [
+          72.87,
+          82.28
+        ],
+        "blocks": 14,
+        "rows": 6138,
+        "outside_80": false
+      },
+      "mean_width_before_mw": 2566.9,
+      "mean_width_after_mw": 2630.5,
+      "pinball_before_mw": 325.56,
+      "pinball_after_mw": 325.5,
+      "zones_in_75_85_before": 9,
+      "zones_in_75_85_after": 11,
+      "per_zone": [
+        {
+          "country_code": "AT",
+          "n": 312,
+          "coverage_before_pct": 82.7,
+          "coverage_after_pct": 84.3,
+          "width_before_mw": 2250.9,
+          "width_after_mw": 2306.4,
+          "width_change_pct": 2.5,
+          "mae_mw": 682.8,
+          "width_over_mae_before": 3.3,
+          "width_over_mae_after": 3.38,
+          "ci_before": {
+            "coverage_pct": 82.69,
+            "ci95_pct": [
+              71.47,
+              92.0
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 84.29,
+            "ci95_pct": [
+              73.4,
+              93.27
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "BE",
+          "n": 312,
+          "coverage_before_pct": 70.2,
+          "coverage_after_pct": 70.5,
+          "width_before_mw": 2860.7,
+          "width_after_mw": 2927.4,
+          "width_change_pct": 2.3,
+          "mae_mw": 1142.4,
+          "width_over_mae_before": 2.5,
+          "width_over_mae_after": 2.56,
+          "ci_before": {
+            "coverage_pct": 70.19,
+            "ci95_pct": [
+              54.49,
+              84.29
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 70.51,
+            "ci95_pct": [
+              54.81,
+              84.94
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "BG",
+          "n": 312,
+          "coverage_before_pct": 77.2,
+          "coverage_after_pct": 78.2,
+          "width_before_mw": 1136.4,
+          "width_after_mw": 1163.3,
+          "width_change_pct": 2.4,
+          "mae_mw": 356.2,
+          "width_over_mae_before": 3.19,
+          "width_over_mae_after": 3.27,
+          "ci_before": {
+            "coverage_pct": 77.24,
+            "ci95_pct": [
+              69.55,
+              84.94
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 78.21,
+            "ci95_pct": [
+              69.87,
+              86.55
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "CZ",
+          "n": 336,
+          "coverage_before_pct": 75.9,
+          "coverage_after_pct": 76.2,
+          "width_before_mw": 1145.6,
+          "width_after_mw": 1172.9,
+          "width_change_pct": 2.4,
+          "mae_mw": 387.5,
+          "width_over_mae_before": 2.96,
+          "width_over_mae_after": 3.03,
+          "ci_before": {
+            "coverage_pct": 75.89,
+            "ci95_pct": [
+              64.29,
+              87.2
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 76.19,
+            "ci95_pct": [
+              64.58,
+              87.5
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "DE",
+          "n": 312,
+          "coverage_before_pct": 72.4,
+          "coverage_after_pct": 75.6,
+          "width_before_mw": 12530.3,
+          "width_after_mw": 12841.8,
+          "width_change_pct": 2.5,
+          "mae_mw": 4237.8,
+          "width_over_mae_before": 2.96,
+          "width_over_mae_after": 3.03,
+          "ci_before": {
+            "coverage_pct": 72.44,
+            "ci95_pct": [
+              60.25,
+              84.62
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 75.64,
+            "ci95_pct": [
+              64.42,
+              86.55
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "EE",
+          "n": 336,
+          "coverage_before_pct": 87.5,
+          "coverage_after_pct": 87.2,
+          "width_before_mw": 355.3,
+          "width_after_mw": 365.8,
+          "width_change_pct": 3.0,
+          "mae_mw": 81.9,
+          "width_over_mae_before": 4.34,
+          "width_over_mae_after": 4.47,
+          "ci_before": {
+            "coverage_pct": 87.5,
+            "ci95_pct": [
+              79.16,
+              94.64
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 87.2,
+            "ci95_pct": [
+              78.86,
+              94.64
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "ES",
+          "n": 312,
+          "coverage_before_pct": 55.8,
+          "coverage_after_pct": 57.4,
+          "width_before_mw": 2583.2,
+          "width_after_mw": 2647.7,
+          "width_change_pct": 2.5,
+          "mae_mw": 1200.6,
+          "width_over_mae_before": 2.15,
+          "width_over_mae_after": 2.21,
+          "ci_before": {
+            "coverage_pct": 55.77,
+            "ci95_pct": [
+              45.83,
+              66.67
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          },
+          "ci_after": {
+            "coverage_pct": 57.37,
+            "ci95_pct": [
+              47.44,
+              67.95
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          }
+        },
+        {
+          "country_code": "FI",
+          "n": 312,
+          "coverage_before_pct": 73.7,
+          "coverage_after_pct": 75.3,
+          "width_before_mw": 2118.9,
+          "width_after_mw": 2177.9,
+          "width_change_pct": 2.8,
+          "mae_mw": 710.9,
+          "width_over_mae_before": 2.98,
+          "width_over_mae_after": 3.06,
+          "ci_before": {
+            "coverage_pct": 73.72,
+            "ci95_pct": [
+              56.41,
+              88.78
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 75.32,
+            "ci95_pct": [
+              58.33,
+              89.74
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "FR",
+          "n": 336,
+          "coverage_before_pct": 85.1,
+          "coverage_after_pct": 86.0,
+          "width_before_mw": 7255.5,
+          "width_after_mw": 7426.2,
+          "width_change_pct": 2.4,
+          "mae_mw": 1772.8,
+          "width_over_mae_before": 4.09,
+          "width_over_mae_after": 4.19,
+          "ci_before": {
+            "coverage_pct": 85.12,
+            "ci95_pct": [
+              75.59,
+              93.75
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 86.01,
+            "ci95_pct": [
+              76.19,
+              94.64
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "HR",
+          "n": 336,
+          "coverage_before_pct": 74.4,
+          "coverage_after_pct": 74.4,
+          "width_before_mw": 1112.7,
+          "width_after_mw": 1139.8,
+          "width_change_pct": 2.4,
+          "mae_mw": 367.6,
+          "width_over_mae_before": 3.03,
+          "width_over_mae_after": 3.1,
+          "ci_before": {
+            "coverage_pct": 74.4,
+            "ci95_pct": [
+              61.01,
+              87.2
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 74.4,
+            "ci95_pct": [
+              60.71,
+              87.21
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "HU",
+          "n": 312,
+          "coverage_before_pct": 91.0,
+          "coverage_after_pct": 92.0,
+          "width_before_mw": 1787.0,
+          "width_after_mw": 1830.4,
+          "width_change_pct": 2.4,
+          "mae_mw": 448.1,
+          "width_over_mae_before": 3.99,
+          "width_over_mae_after": 4.08,
+          "ci_before": {
+            "coverage_pct": 91.03,
+            "ci95_pct": [
+              84.94,
+              95.83
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          },
+          "ci_after": {
+            "coverage_pct": 91.99,
+            "ci95_pct": [
+              86.86,
+              96.16
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          }
+        },
+        {
+          "country_code": "LT",
+          "n": 336,
+          "coverage_before_pct": 81.2,
+          "coverage_after_pct": 82.1,
+          "width_before_mw": 795.5,
+          "width_after_mw": 816.3,
+          "width_change_pct": 2.6,
+          "mae_mw": 255.6,
+          "width_over_mae_before": 3.11,
+          "width_over_mae_after": 3.19,
+          "ci_before": {
+            "coverage_pct": 81.25,
+            "ci95_pct": [
+              73.81,
+              88.39
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 82.14,
+            "ci95_pct": [
+              75.3,
+              88.7
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "LV",
+          "n": 312,
+          "coverage_before_pct": 77.9,
+          "coverage_after_pct": 78.5,
+          "width_before_mw": 382.8,
+          "width_after_mw": 392.7,
+          "width_change_pct": 2.6,
+          "mae_mw": 128.4,
+          "width_over_mae_before": 2.98,
+          "width_over_mae_after": 3.06,
+          "ci_before": {
+            "coverage_pct": 77.88,
+            "ci95_pct": [
+              65.06,
+              88.78
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 78.53,
+            "ci95_pct": [
+              65.71,
+              89.42
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "NL",
+          "n": 336,
+          "coverage_before_pct": 76.5,
+          "coverage_after_pct": 76.5,
+          "width_before_mw": 5322.7,
+          "width_after_mw": 5447.6,
+          "width_change_pct": 2.3,
+          "mae_mw": 1770.0,
+          "width_over_mae_before": 3.01,
+          "width_over_mae_after": 3.08,
+          "ci_before": {
+            "coverage_pct": 76.49,
+            "ci95_pct": [
+              63.69,
+              87.2
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 76.49,
+            "ci95_pct": [
+              63.69,
+              87.5
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "PL",
+          "n": 312,
+          "coverage_before_pct": 75.3,
+          "coverage_after_pct": 76.0,
+          "width_before_mw": 2967.6,
+          "width_after_mw": 3046.1,
+          "width_change_pct": 2.6,
+          "mae_mw": 943.2,
+          "width_over_mae_before": 3.15,
+          "width_over_mae_after": 3.23,
+          "ci_before": {
+            "coverage_pct": 75.32,
+            "ci95_pct": [
+              62.81,
+              85.9
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 75.96,
+            "ci95_pct": [
+              63.46,
+              86.22
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "PT",
+          "n": 312,
+          "coverage_before_pct": 67.9,
+          "coverage_after_pct": 70.2,
+          "width_before_mw": 1794.0,
+          "width_after_mw": 1839.1,
+          "width_change_pct": 2.5,
+          "mae_mw": 689.7,
+          "width_over_mae_before": 2.6,
+          "width_over_mae_after": 2.67,
+          "ci_before": {
+            "coverage_pct": 67.95,
+            "ci95_pct": [
+              57.37,
+              77.56
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          },
+          "ci_after": {
+            "coverage_pct": 70.19,
+            "ci95_pct": [
+              59.29,
+              80.13
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "RO",
+          "n": 334,
+          "coverage_before_pct": 70.7,
+          "coverage_after_pct": 71.3,
+          "width_before_mw": 1739.0,
+          "width_after_mw": 1789.9,
+          "width_change_pct": 2.9,
+          "mae_mw": 566.3,
+          "width_over_mae_before": 3.07,
+          "width_over_mae_after": 3.16,
+          "ci_before": {
+            "coverage_pct": 70.66,
+            "ci95_pct": [
+              57.78,
+              82.44
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 71.26,
+            "ci95_pct": [
+              58.43,
+              82.74
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "SI",
+          "n": 334,
+          "coverage_before_pct": 84.4,
+          "coverage_after_pct": 85.0,
+          "width_before_mw": 338.0,
+          "width_after_mw": 346.3,
+          "width_change_pct": 2.5,
+          "mae_mw": 99.2,
+          "width_over_mae_before": 3.41,
+          "width_over_mae_after": 3.49,
+          "ci_before": {
+            "coverage_pct": 84.43,
+            "ci95_pct": [
+              75.89,
+              92.17
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 85.03,
+            "ci95_pct": [
+              76.19,
+              92.86
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "SK",
+          "n": 334,
+          "coverage_before_pct": 77.5,
+          "coverage_after_pct": 78.7,
+          "width_before_mw": 603.6,
+          "width_after_mw": 619.3,
+          "width_change_pct": 2.6,
+          "mae_mw": 218.5,
+          "width_over_mae_before": 2.76,
+          "width_over_mae_after": 2.83,
+          "ci_before": {
+            "coverage_pct": 77.54,
+            "ci95_pct": [
+              69.64,
+              85.42
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 78.74,
+            "ci95_pct": [
+              71.43,
+              86.01
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          }
+        }
+      ]
+    },
+    "chronos-2-V016": {
+      "applied_out_of_sample": {
+        "s_lo": 1.1906,
+        "s_hi": 1.2483,
+        "n_fit": 5472,
+        "alpha_lo": 0.1,
+        "alpha_hi": 0.1
+      },
+      "applied_fit_window": [
+        "2026-08-05",
+        "2026-08-19"
+      ],
+      "registered_for_serving": {
+        "mode": "pooled",
+        "alpha": 0.1,
+        "s_lo_total": 1.3138,
+        "s_hi_total": 1.1623,
+        "s_lo_applied": 1.2253,
+        "s_hi_applied": 1.1518,
+        "fit_window": [
+          "2026-08-05",
+          "2026-09-02"
+        ],
+        "fit_vintages": 26,
+        "fit_rows": 11610,
+        "upstream": "chronos-2-V010"
+      },
+      "holdout_rows": 6138,
+      "holdout_vintages": 14,
+      "median_max_abs_delta_mw": 0.0,
+      "point_max_abs_delta_mw": 0.0,
+      "point_rows_bit_identical": true,
+      "q50_rows_bit_identical": true,
+      "crossings_after": 0,
+      "pooled_before": {
+        "coverage_pct": 69.94,
+        "ci95_pct": [
+          65.22,
+          74.25
+        ],
+        "blocks": 14,
+        "rows": 6138,
+        "outside_80": true
+      },
+      "pooled_after": {
+        "coverage_pct": 78.97,
+        "ci95_pct": [
+          75.27,
+          82.5
+        ],
+        "blocks": 14,
+        "rows": 6138,
+        "outside_80": false
+      },
+      "mean_width_before_mw": 2191.5,
+      "mean_width_after_mw": 2673.0,
+      "pinball_before_mw": 333.09,
+      "pinball_after_mw": 330.58,
+      "zones_in_75_85_before": 6,
+      "zones_in_75_85_after": 6,
+      "per_zone": [
+        {
+          "country_code": "AT",
+          "n": 312,
+          "coverage_before_pct": 75.3,
+          "coverage_after_pct": 83.0,
+          "width_before_mw": 1859.5,
+          "width_after_mw": 2267.7,
+          "width_change_pct": 22.0,
+          "mae_mw": 667.7,
+          "width_over_mae_before": 2.78,
+          "width_over_mae_after": 3.4,
+          "ci_before": {
+            "coverage_pct": 75.32,
+            "ci95_pct": [
+              63.14,
+              85.26
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 83.01,
+            "ci95_pct": [
+              71.15,
+              91.99
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "BE",
+          "n": 312,
+          "coverage_before_pct": 51.3,
+          "coverage_after_pct": 58.7,
+          "width_before_mw": 1919.0,
+          "width_after_mw": 2338.2,
+          "width_change_pct": 21.8,
+          "mae_mw": 1140.7,
+          "width_over_mae_before": 1.68,
+          "width_over_mae_after": 2.05,
+          "ci_before": {
+            "coverage_pct": 51.28,
+            "ci95_pct": [
+              35.58,
+              65.38
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          },
+          "ci_after": {
+            "coverage_pct": 58.65,
+            "ci95_pct": [
+              41.03,
+              74.04
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          }
+        },
+        {
+          "country_code": "BG",
+          "n": 312,
+          "coverage_before_pct": 77.2,
+          "coverage_after_pct": 87.5,
+          "width_before_mw": 1136.4,
+          "width_after_mw": 1384.9,
+          "width_change_pct": 21.9,
+          "mae_mw": 356.2,
+          "width_over_mae_before": 3.19,
+          "width_over_mae_after": 3.89,
+          "ci_before": {
+            "coverage_pct": 77.24,
+            "ci95_pct": [
+              69.55,
+              84.94
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 87.5,
+            "ci95_pct": [
+              81.41,
+              93.27
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          }
+        },
+        {
+          "country_code": "CZ",
+          "n": 336,
+          "coverage_before_pct": 64.6,
+          "coverage_after_pct": 73.2,
+          "width_before_mw": 943.8,
+          "width_after_mw": 1150.3,
+          "width_change_pct": 21.9,
+          "mae_mw": 399.0,
+          "width_over_mae_before": 2.37,
+          "width_over_mae_after": 2.88,
+          "ci_before": {
+            "coverage_pct": 64.58,
+            "ci95_pct": [
+              52.08,
+              77.38
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": true
+          },
+          "ci_after": {
+            "coverage_pct": 73.21,
+            "ci95_pct": [
+              61.9,
+              84.52
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "DE",
+          "n": 312,
+          "coverage_before_pct": 69.9,
+          "coverage_after_pct": 79.5,
+          "width_before_mw": 11746.2,
+          "width_after_mw": 14326.4,
+          "width_change_pct": 22.0,
+          "mae_mw": 4255.1,
+          "width_over_mae_before": 2.76,
+          "width_over_mae_after": 3.37,
+          "ci_before": {
+            "coverage_pct": 69.87,
+            "ci95_pct": [
+              56.73,
+              83.33
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 79.49,
+            "ci95_pct": [
+              69.54,
+              89.43
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "EE",
+          "n": 336,
+          "coverage_before_pct": 81.0,
+          "coverage_after_pct": 89.9,
+          "width_before_mw": 326.1,
+          "width_after_mw": 399.0,
+          "width_change_pct": 22.4,
+          "mae_mw": 86.1,
+          "width_over_mae_before": 3.79,
+          "width_over_mae_after": 4.63,
+          "ci_before": {
+            "coverage_pct": 80.95,
+            "ci95_pct": [
+              71.13,
+              89.58
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 89.88,
+            "ci95_pct": [
+              81.55,
+              96.73
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": true
+          }
+        },
+        {
+          "country_code": "ES",
+          "n": 312,
+          "coverage_before_pct": 32.1,
+          "coverage_after_pct": 42.0,
+          "width_before_mw": 2071.0,
+          "width_after_mw": 2526.1,
+          "width_change_pct": 22.0,
+          "mae_mw": 1452.4,
+          "width_over_mae_before": 1.43,
+          "width_over_mae_after": 1.74,
+          "ci_before": {
+            "coverage_pct": 32.05,
+            "ci95_pct": [
+              24.68,
+              40.06
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          },
+          "ci_after": {
+            "coverage_pct": 41.99,
+            "ci95_pct": [
+              33.97,
+              49.68
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          }
+        },
+        {
+          "country_code": "FI",
+          "n": 312,
+          "coverage_before_pct": 68.9,
+          "coverage_after_pct": 80.4,
+          "width_before_mw": 2044.8,
+          "width_after_mw": 2499.0,
+          "width_change_pct": 22.2,
+          "mae_mw": 753.5,
+          "width_over_mae_before": 2.71,
+          "width_over_mae_after": 3.32,
+          "ci_before": {
+            "coverage_pct": 68.91,
+            "ci95_pct": [
+              51.6,
+              83.65
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 80.45,
+            "ci95_pct": [
+              64.1,
+              93.59
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "FR",
+          "n": 336,
+          "coverage_before_pct": 80.4,
+          "coverage_after_pct": 85.1,
+          "width_before_mw": 5765.5,
+          "width_after_mw": 7025.7,
+          "width_change_pct": 21.9,
+          "mae_mw": 1751.4,
+          "width_over_mae_before": 3.29,
+          "width_over_mae_after": 4.01,
+          "ci_before": {
+            "coverage_pct": 80.36,
+            "ci95_pct": [
+              70.54,
+              89.59
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 85.12,
+            "ci95_pct": [
+              75.3,
+              93.75
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "HR",
+          "n": 336,
+          "coverage_before_pct": 73.5,
+          "coverage_after_pct": 81.0,
+          "width_before_mw": 1033.1,
+          "width_after_mw": 1259.7,
+          "width_change_pct": 21.9,
+          "mae_mw": 351.8,
+          "width_over_mae_before": 2.94,
+          "width_over_mae_after": 3.58,
+          "ci_before": {
+            "coverage_pct": 73.51,
+            "ci95_pct": [
+              59.81,
+              86.61
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 80.95,
+            "ci95_pct": [
+              69.05,
+              91.96
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "HU",
+          "n": 312,
+          "coverage_before_pct": 90.1,
+          "coverage_after_pct": 98.4,
+          "width_before_mw": 1761.8,
+          "width_after_mw": 2148.0,
+          "width_change_pct": 21.9,
+          "mae_mw": 440.1,
+          "width_over_mae_before": 4.0,
+          "width_over_mae_after": 4.88,
+          "ci_before": {
+            "coverage_pct": 90.06,
+            "ci95_pct": [
+              84.94,
+              94.55
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          },
+          "ci_after": {
+            "coverage_pct": 98.4,
+            "ci95_pct": [
+              97.12,
+              99.36
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          }
+        },
+        {
+          "country_code": "LT",
+          "n": 336,
+          "coverage_before_pct": 81.2,
+          "coverage_after_pct": 88.1,
+          "width_before_mw": 795.5,
+          "width_after_mw": 971.1,
+          "width_change_pct": 22.1,
+          "mae_mw": 255.6,
+          "width_over_mae_before": 3.11,
+          "width_over_mae_after": 3.8,
+          "ci_before": {
+            "coverage_pct": 81.25,
+            "ci95_pct": [
+              73.81,
+              88.39
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 88.1,
+            "ci95_pct": [
+              82.14,
+              93.45
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": true
+          }
+        },
+        {
+          "country_code": "LV",
+          "n": 312,
+          "coverage_before_pct": 69.2,
+          "coverage_after_pct": 76.3,
+          "width_before_mw": 343.2,
+          "width_after_mw": 418.9,
+          "width_change_pct": 22.1,
+          "mae_mw": 127.1,
+          "width_over_mae_before": 2.7,
+          "width_over_mae_after": 3.3,
+          "ci_before": {
+            "coverage_pct": 69.23,
+            "ci95_pct": [
+              55.77,
+              80.77
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 76.28,
+            "ci95_pct": [
+              64.42,
+              86.22
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "NL",
+          "n": 336,
+          "coverage_before_pct": 53.6,
+          "coverage_after_pct": 61.6,
+          "width_before_mw": 3244.5,
+          "width_after_mw": 3953.4,
+          "width_change_pct": 21.8,
+          "mae_mw": 1684.1,
+          "width_over_mae_before": 1.93,
+          "width_over_mae_after": 2.35,
+          "ci_before": {
+            "coverage_pct": 53.57,
+            "ci95_pct": [
+              42.26,
+              64.29
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": true
+          },
+          "ci_after": {
+            "coverage_pct": 61.61,
+            "ci95_pct": [
+              50.6,
+              71.43
+            ],
+            "blocks": 14,
+            "rows": 336,
+            "outside_80": true
+          }
+        },
+        {
+          "country_code": "PL",
+          "n": 312,
+          "coverage_before_pct": 70.2,
+          "coverage_after_pct": 78.8,
+          "width_before_mw": 2643.8,
+          "width_after_mw": 3228.0,
+          "width_change_pct": 22.1,
+          "mae_mw": 952.3,
+          "width_over_mae_before": 2.78,
+          "width_over_mae_after": 3.39,
+          "ci_before": {
+            "coverage_pct": 70.19,
+            "ci95_pct": [
+              56.41,
+              81.73
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 78.85,
+            "ci95_pct": [
+              66.35,
+              89.1
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "PT",
+          "n": 312,
+          "coverage_before_pct": 66.7,
+          "coverage_after_pct": 74.7,
+          "width_before_mw": 1714.7,
+          "width_after_mw": 2091.7,
+          "width_change_pct": 22.0,
+          "mae_mw": 699.7,
+          "width_over_mae_before": 2.45,
+          "width_over_mae_after": 2.99,
+          "ci_before": {
+            "coverage_pct": 66.67,
+            "ci95_pct": [
+              55.44,
+              77.24
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": true
+          },
+          "ci_after": {
+            "coverage_pct": 74.68,
+            "ci95_pct": [
+              63.14,
+              85.26
+            ],
+            "blocks": 13,
+            "rows": 312,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "RO",
+          "n": 334,
+          "coverage_before_pct": 70.7,
+          "coverage_after_pct": 85.6,
+          "width_before_mw": 1739.0,
+          "width_after_mw": 2127.3,
+          "width_change_pct": 22.3,
+          "mae_mw": 566.3,
+          "width_over_mae_before": 3.07,
+          "width_over_mae_after": 3.76,
+          "ci_before": {
+            "coverage_pct": 70.66,
+            "ci95_pct": [
+              57.78,
+              82.44
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 85.63,
+            "ci95_pct": [
+              79.17,
+              91.62
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "SI",
+          "n": 334,
+          "coverage_before_pct": 74.3,
+          "coverage_after_pct": 85.3,
+          "width_before_mw": 297.3,
+          "width_after_mw": 362.6,
+          "width_change_pct": 22.0,
+          "mae_mw": 109.5,
+          "width_over_mae_before": 2.72,
+          "width_over_mae_after": 3.31,
+          "ci_before": {
+            "coverage_pct": 74.25,
+            "ci95_pct": [
+              65.77,
+              82.23
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 85.33,
+            "ci95_pct": [
+              78.27,
+              91.96
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          }
+        },
+        {
+          "country_code": "SK",
+          "n": 334,
+          "coverage_before_pct": 76.9,
+          "coverage_after_pct": 89.2,
+          "width_before_mw": 610.3,
+          "width_after_mw": 745.0,
+          "width_change_pct": 22.1,
+          "mae_mw": 220.2,
+          "width_over_mae_before": 2.77,
+          "width_over_mae_after": 3.38,
+          "ci_before": {
+            "coverage_pct": 76.95,
+            "ci95_pct": [
+              68.86,
+              84.94
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": false
+          },
+          "ci_after": {
+            "coverage_pct": 89.22,
+            "ci95_pct": [
+              84.43,
+              93.75
+            ],
+            "blocks": 14,
+            "rows": 334,
+            "outside_80": true
+          }
+        }
+      ]
+    }
+  }
+}

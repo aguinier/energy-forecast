@@ -31,6 +31,7 @@ import config
 from src.chronos2.engine import ChronosEngine
 from src.chronos2.input_builder import InputBuilder
 from src.db import get_connection, save_quantile_forecasts
+from src.quantile_calibration import calibrate_quantile_dict
 from src.runner_report import emit_record_count
 
 logging.basicConfig(
@@ -212,16 +213,24 @@ def run_forecast(
                     )
                     logger.info(f"  Saved {n_saved} point forecasts to DB")
 
-                    # Save quantile forecasts
+                    # Save quantile forecasts, recalibrated if this model has a
+                    # registered calibration (ABL-650). The map is anchored at
+                    # q50, so the point rows written just above cannot move --
+                    # only the band around them widens.
                     quantile_dict = {}
                     for qi, q_level in enumerate(config.CHRONOS2_QUANTILE_LEVELS):
                         quantile_dict[q_level] = quantiles[qi]
+                    quantile_dict, cal = calibrate_quantile_dict(
+                        quantile_dict, model_name, cc)
 
                     n_q = save_quantile_forecasts(
                         cc, ft, target_timestamps.tolist(),
                         quantile_dict, model_name, generated_at,
                     )
-                    logger.info(f"  Saved {n_q} quantile forecasts to DB")
+                    logger.info(
+                        "  Saved %d quantile forecasts to DB (%s)", n_q,
+                        f"calibrated s_lo={cal.s_lo:.4f} s_hi={cal.s_hi:.4f}"
+                        if cal else "no registered calibration - band as emitted")
 
             except Exception as e:
                 logger.error(f"Failed to forecast {cc}/{ft}: {e}")

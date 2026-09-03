@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from src.challengers.registry import (CHALLENGERS, CHAMPION_MODEL_NAME,
                                       model_name_for, spec_for)
+from src.quantile_calibration import load_registry
 
 TARGET_DATE = "2026-08-09"
 GENERATED_AT = pd.Timestamp("2026-08-07 06:00:00")
@@ -129,8 +130,18 @@ def test_v016_applies_the_fit_and_keeps_quantiles_ordered(rail, tmp_path, monkey
     q = pd.DataFrame(qrows).pivot_table(index="target_ts", columns="quantile",
                                         values="forecast_value")
     assert (q[0.1] < q[0.5]).all() and (q[0.5] < q[0.9]).all()
-    # An affine map with slope 2 widens the band by exactly 2.
-    assert (q[0.9] - q[0.1]).iloc[0] == pytest.approx(2.0 * 1000.0)
+    # Two effects compose on the band and exactly one of them is allowed to
+    # touch the median. The affine map with slope 2 widens each half by 2; the
+    # registered ABL-650 calibration then widens each half by its own side's
+    # multiplier. Pinning the halves separately rather than the total is what
+    # makes this test able to see an asymmetric calibration at all.
+    spec = load_registry()["chronos-2-V016"]
+    assert (q[0.5] - q[0.1]).iloc[0] == pytest.approx(
+        2.0 * 500.0 * spec["s_lo_applied"])
+    assert (q[0.9] - q[0.5]).iloc[0] == pytest.approx(
+        2.0 * 500.0 * spec["s_hi_applied"])
+    # The median is the anchor: it carries the affine map and nothing else.
+    assert q[0.5].iloc[0] == pytest.approx(rows[0]["forecast_value"])
 
 
 def test_v016_passthrough_country_reproduces_the_champion(rail, tmp_path, monkeypatch):
