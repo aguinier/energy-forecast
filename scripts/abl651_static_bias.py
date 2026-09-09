@@ -14,9 +14,10 @@ Three questions, kept apart because they have different answers:
    unchanged by the correction. They are, by construction; measuring it is the
    point, because it is the property the Board relied on.
 
-Read-only against both databases unless --write-sidecar is passed, which writes
-the corrected series to the sidecar under its own model_name and never touches
-the champion's rows or the replica.
+Read-only against both databases: there is no write path to the replica or the
+sidecar, and no flag that opens one. The only things this writes are the two
+JSON files named by `--json-out` and `--coefficients-out`. Serving the
+correction is a separate decision and would take a separate, reviewed writer.
 
 Usage:
     python scripts/abl651_static_bias.py --replica-db ... --sidecar-db ... \
