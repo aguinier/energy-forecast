@@ -466,7 +466,7 @@ ABL-246, for whoever next reads a D+2 number off that band.
   choice for an arm being *graded* rather than fitted on, but it is a choice,
   and the protection it gives up is measured rather than assumed: the ABL-431
   guard would have refused **0 of 67,008** rows, across 24/24 countries with an
-  evaluable reference, with our largest published value never above **32.3%**
+  evaluable reference, with our largest published value never above **32.4%**
   of any country's threshold. So the claim is "nothing implausible is in here,
   and that was tested" — not "nothing implausible could be".
 - **The count is 9, not 10, on the later replica vintage (§3.1).** DE's loss
