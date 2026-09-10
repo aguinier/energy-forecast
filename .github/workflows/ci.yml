@@ -21,7 +21,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # Full history, not the default depth-1. Several tests here grade a claim
+      # about *when* something was committed — ABL-443 asserts a registration
+      # landed before the read that depends on it, ABL-444 re-reads the bytes it
+      # graded. Under a shallow clone every commit looks like the same commit,
+      # so those tests do not fail honestly; they report the ordering as
+      # unverifiable. A git-history assertion needs the git history.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # The Python minor is pinned in .python-version and read from there, never
       # written twice. It tracks the serving container's `python:3.11-slim`

@@ -409,9 +409,16 @@ def _coverage_note(tranche: dict) -> str:
                 f"coverage check cannot be reported here — treat the grades as ungated on coverage.")
     covered = [cell for cell in cells if cell["minimum_n"]]
     tightest = min(covered, key=lambda cell: cell["n"] / cell["minimum_n"], default=None)
+    # Hoisted out of the f-string, and not for style: nesting same-type quotes
+    # inside an f-string expression is PEP 701, i.e. Python 3.12+. The serving
+    # container is `python:3.11-slim`, so the original line was a SyntaxError
+    # there — this module could not be imported by the Python that actually
+    # runs it, and the workstation .venv being 3.14 was the only reason anything
+    # here passed. Found by CI on its first full run (ABL-647).
+    short_pairs = ", ".join(f"{cell['pair']} {cell['band']}" for cell in short)
     lead = (f"All {len(cells)} cells clear ABL-348's minimum n" if not short
             else f"**{len(short)} of {len(cells)} cells are short of ABL-348's minimum n** "
-                 f"({', '.join(f'{cell['pair']} {cell['band']}' for cell in short)})")
+                 f"({short_pairs})")
     if tightest is None:
         return f"{lead}."
     return (f"{lead}; the tightest is {tightest['pair']} {tightest['band']} at n = {tightest['n']:,} against a "
