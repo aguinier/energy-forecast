@@ -50,10 +50,17 @@ from pathlib import Path
 # `tests/chronos2_env.py` carries the reasoning and the cost argument for not
 # installing torch on every PR.
 #
+# ABL-732 adds 10 (tests/test_abl732_transcript_wrap.py), so the count goes to
+# 1828. Four of them execute a PowerShell block and are gated on a `pwsh` or
+# `powershell` on PATH. PowerShell Core is preinstalled on `ubuntu-latest`, so
+# they are expected to RUN and `max_skipped` is left at 4; if the runner's image
+# ever drops it they skip instead, and this gate is the thing that says so
+# rather than the four quietly stopping.
+#
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": 1818,
+    "tests": 1828,
     "max_skipped": 4,
 }
 

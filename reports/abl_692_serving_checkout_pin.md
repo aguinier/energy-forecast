@@ -134,17 +134,106 @@ Step 1 refuses to run if `origin/main` does not yet carry the launcher, so the
 PR must land first. It also prints OK/MISSING for the three external inputs, so
 a broken install is visible then rather than at 08:00.
 
-Confirm at the next 08:00 run:
+Confirm at the next 08:00 run. **Grep a stitched view, not the raw file** — see
+*The log is hard-wrapped at 120 columns* below for why a naive `Select-String`
+reports a defect on a healthy system (ABL-732):
 
 ```powershell
-Select-String "net-position serving commit:" C:\Code\able\logs\net-position-forecast.log | Select-Object -Last 1
-Select-String "quantile forecasts to DB"     C:\Code\able\logs\net-position-forecast.log | Select-Object -Last 1
+$log   = "C:\Code\able\logs\net-position-forecast.log"
+$raw   = @(Get-Content $log)
+$rec   = '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'   # start of a Python log record
+$lines = New-Object System.Collections.Generic.List[string]
+$buf   = ""
+for ($i = 0; $i -lt $raw.Count; $i++) {
+    $buf += $raw[$i]
+    $wrapped = ($raw[$i].Length -eq 120) -and ($i + 1 -lt $raw.Count) -and ($raw[$i + 1] -notmatch $rec)
+    if (-not $wrapped) { $lines.Add($buf); $buf = "" }
+}
+if ($buf) { $lines.Add($buf) }
+
+# Report extracted fields, not whole lines: console output wraps at 120 too.
+$wit = $lines | Select-String "net-position serving commit:" | Select-Object -Last 1
+$cal = $lines | Select-String "quantile forecasts to DB"     | Select-Object -Last 1
+
+if ($wit) { "commit : " + [regex]::Match($wit.Line, '[0-9a-f]{40}').Value }
+else      { "commit : MISSING - the task is not running the serving launcher" }
+
+if (-not $cal) { "band   : MISSING - no save line at all" }
+else {
+    $m = [regex]::Match($cal.Line, 'calibrated s_lo=([\d.]+) s_hi=([\d.]+)\)')
+    if ($m.Success) { "band   : calibrated s_lo=" + $m.Groups[1].Value + " s_hi=" + $m.Groups[2].Value }
+    else            { "band   : UNCALIBRATED" }
+}
 ```
 
-The first must name a SHA at or after `3419031`; the second must then carry the
-`(calibrated s_lo=… s_hi=…)` suffix. If the first advances and the second does
-not, the calibration has a second, separate problem — and that is now
+Expected, once the task is re-pointed:
+
+```
+commit : 0cd9ec2640e0c7f887c770f020fe6f39ae1787ae
+band   : calibrated s_lo=1.0722 s_hi=1.0091
+```
+
+`commit` must name a SHA at or after `3419031` — check it, do not eyeball it:
+
+```powershell
+git -C C:\Code\able\energy-forecast-serving merge-base --is-ancestor 3419031 <sha>; $?
+```
+
+`band` must then read `calibrated`. If `commit` advances and `band` reads
+`UNCALIBRATED`, the calibration has a second, separate problem — and that is now
 distinguishable, which it was not before.
+
+Both checks print **extracted fields rather than the matched line**, on purpose.
+The console wraps its own output at 120 columns as well, so a command that
+echoes the 181-char witness line hands the reader two physical rows and re-opens
+the same failure one level up: piped into anything, the SHA read comes back
+truncated at `(origin/main, committed`. Each line above is under 60 chars and
+cannot wrap.
+
+### The log is hard-wrapped at 120 columns
+
+`Start-Transcript` records **native** (Python) output as the console renders it,
+hard-wrapped at the buffer width, which is 120 for a non-interactive
+`powershell.exe`. PowerShell's own `Write-Host` output is not wrapped.
+
+Measured on the live log, 2026-09-10 (3,352 physical lines):
+
+| | |
+|---|---|
+| Python-origin lines longer than 120 chars | **0** |
+| Python-origin lines exactly 120 chars | 189 |
+| lines longer than 120 chars | 53, all `Write-Host`/transcript-header origin |
+| exactly-120 lines whose successor opens a new record | **0** |
+
+So the two checks are affected differently, and only one of them was broken:
+
+- The **witness line is 181 chars and intact** — it is `Write-Host`. Check 1
+  worked as written, and the copies in `CLAUDE.md` and
+  `install-serving-checkout.ps1` (witness only) need no change.
+- The **calibrated save line is 133 chars and wraps.** The raw file holds
+  `… (calibrated s_lo=1.0722` with no `s_hi` and no closing paren; the
+  continuation ` s_hi=1.0091)` is the next physical line. A regex for
+  `calibrated s_lo=… s_hi=…` over the raw file matches **0** lines while the
+  system is working perfectly — and 0 is exactly the state this runbook defines
+  as "the calibration has a second, separate problem". The documented procedure
+  manufactured a false incident.
+
+Same log, same regex, both views: **stitched 18, raw 0.**
+
+Two details of the stitch rule are load-bearing:
+
+- **Exactly 120, not `>= 120`.** The 53 long lines are `Write-Host` output and
+  are *not* continued — joining them to their successor mangles the witness line
+  itself, which is one of the two things being read.
+- **And the next line must not open a new record.** A genuine 120-character
+  record is not a wrapped one. Nothing in today's log needs this clause (0 of
+  189), but it is what keeps the command correct if the wrap ever goes away —
+  the transcript is opened `-Append`, so this file will hold already-wrapped
+  lines regardless of any future change to the launcher's buffer width.
+
+Widening `$Host.UI.RawUI.BufferSize` before `Start-Transcript` would stop *new*
+output wrapping, and is worth doing on its own merits, but it is a change to a
+production launcher and it does not retire this command — see residual risk 4.
 
 ## Residual risks, stated
 
@@ -159,3 +248,18 @@ distinguishable, which it was not before.
    touched — reverting a change that never shipped.
 3. **ABL-651 (PR #108) is in the same position** and is still `in_progress`. Its
    change is likewise not live.
+4. **The log stays wrapped, and this runbook does not own the fix.** Widening
+   `$Host.UI.RawUI.BufferSize` in `run-net-position-serving.ps1` before
+   `Start-Transcript` is the durable fix for *future* output. It changes what a
+   production launcher emits, so it is the launcher owner's call and is routed
+   separately (ABL-733), not taken here. Two things bound its value, and both
+   argue for keeping the stitched command either way: the transcript is opened
+   `-Append`, so 3,352 already-wrapped lines stay in the file; and the effect is
+   only confirmable from a real hidden-console 08:00 run — it could not be
+   reproduced from an agent session, whose host reports a 500-column buffer and
+   does not route native output into the transcript at all.
+
+   Separately, `reports/abl693_pt_net_position_diagnosis.md` measured that this
+   log is **byte-truncated** outside the newest day's block (09-06..09-09 retain
+   5 records each). Both checks read `-Last 1` of today's block, so they are
+   unaffected — but nothing older than today is greppable here.

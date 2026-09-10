@@ -147,6 +147,13 @@ Read the SHA before claiming a serving change is live; never infer it:
 Select-String "net-position serving commit:" C:\Code\able\logs\net-position-forecast.log | Select-Object -Last 1
 ```
 
+That works only because the witness line is `Write-Host`. **`Start-Transcript`
+hard-wraps native (Python) output at 120 columns**, so any grep of that log for
+a string past column 120 matches zero lines on a healthy system — which is how
+the ABL-692 runbook's calibration check manufactured a false incident (ABL-732).
+Grep a stitched view; the runbook carries the command, `tests/test_abl732_*`
+pins it.
+
 The serving clone holds tracked code only, so `$Venv`, `$ModelsDir` and
 `$EvalRoot` are parameters resolving into the dev checkout. Each fails
 *silently* if wrong — a bad `--models-dir` makes V014 log "no trained model"
