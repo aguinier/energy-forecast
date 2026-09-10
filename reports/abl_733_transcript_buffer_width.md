@@ -134,21 +134,36 @@ grep assertions:
 Both are gated on a Windows console and skip on the ubuntu CI runner, which has
 none; `scripts/test_floor.py`'s allowance moves 4 → 6 to say so out loud.
 
-Mutations, each verified applied before the run:
+Six mutations, each re-read from disk to confirm it applied before the run —
+the harness also asserts the tree is clean before every one, so a failed restore
+cannot carry into the next:
 
 | mutation | caught by |
 |---|---|
-| `$size.Width = 120` instead of `$BufferWidth` (a no-op widen) | `test_the_shipped_widening_stops_native_output_wrapping` **only** |
-| drop the `try`/`catch` around the RawUI set | `test_the_widening_is_wrapped_in_its_own_try_catch` |
-| `catch { throw }` | `test_the_widening_is_wrapped_in_its_own_try_catch` |
+| `$size.Width = 120` instead of `$BufferWidth` (a no-op widen) | `test_the_shipped_widening_stops_native_output_wrapping` — **and nothing else** |
+| `$BufferWidth = 200` | `test_the_width_clears_the_widest_record_the_log_has_held` — and nothing else |
 | drop the `-lt $BufferWidth` guard (unconditional set) | `test_the_widening_never_narrows` |
-| `$BufferWidth = 200` | `test_the_width_clears_the_widest_record_the_log_has_held` |
+| `catch` rethrows instead of recording the reason | `test_the_widening_is_wrapped_in_its_own_try_catch`, `test_a_failure_to_widen_is_reported_not_hidden` |
+| `try {` → `if ($true) {` (no guard around the RawUI set) | `test_the_widening_is_wrapped_in_its_own_try_catch`, plus both executed tests |
 | move the block above `Start-Transcript` | `test_the_outcome_lands_inside_the_transcript` |
 
-The first and the fifth are the pair worth noting. A no-op widen passes every
-structural assertion in the file and is caught only by execution. A 200-column
-width passes every *executed* assertion — 133 and 174 both fit — and is caught
-only by the measured constant. Neither kind of test subsumes the other.
+The first two are the pair worth keeping. **A no-op widen passes every
+structural assertion in the file** and is caught only by execution — it is the
+whole argument for the two skips on CI. **A 200-column width passes every
+executed assertion** — 133 and 174 both fit under 200 — and is caught only by
+the measured constant. Neither kind of test subsumes the other.
+
+One result is honest rather than flattering: the `try {` mutation leaves an
+orphan `catch`, which is a *parse* error, so the two executed tests caught it by
+failing to run the script at all rather than by observing wrapped output. The
+structural test caught it for the intended reason.
+
+Planning these found a defect in the tests themselves. Both ordering tests
+originally used `launcher.index("Start-Transcript")`, and this launcher's
+comments name `Start-Transcript` twice before the call — so the anchor landed
+inside the param block, where nothing can precede it, and the tests would have
+passed however the block was placed. They now match a statement and assert the
+match is not inside a comment.
 
 ## What this does not do
 
