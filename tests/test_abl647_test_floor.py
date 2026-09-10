@@ -148,6 +148,152 @@ def test_refuses_an_unmeasured_floor_instead_of_passing_by_default(field: str) -
     assert "scripts/test_floor.py" in problems[0]
 
 
+# ---------------------------------------------------------------------------
+# slack -- the direction the gate could not see (ABL-742)
+# ---------------------------------------------------------------------------
+
+
+def test_reports_the_surplus_when_a_run_is_above_its_floor() -> None:
+    """The ABL-742 case: main ran 1833 against a floor of 1829 and stayed green."""
+    assert test_floor.slack(_counts(tests=1833), {"tests": 1829, "max_skipped": 4}) == 4
+
+
+def test_slack_is_none_when_the_run_meets_the_floor_exactly() -> None:
+    assert test_floor.slack(_counts(), FLOOR) is None
+
+
+def test_slack_is_none_when_the_run_came_in_short() -> None:
+    """A drop is `evaluate`'s job and a failure. Slack must not also claim it."""
+    assert test_floor.slack(_counts(tests=60), FLOOR) is None
+
+
+def test_slack_is_none_against_an_unmeasured_floor() -> None:
+    """`None` there already fails the build; there is no surplus to compute."""
+    assert test_floor.slack(_counts(tests=999), {"tests": None}) is None
+
+
+def test_slack_does_not_make_the_run_fail() -> None:
+    """The asymmetry is the design: a pull_request build runs the MERGE of head
+    into base, so a branch whose base gained tests legitimately runs more than
+    its own floor. Reporting slack must not turn that into a red PR."""
+    assert test_floor.evaluate(_counts(tests=1833), {"tests": 1829, "max_skipped": 4}) == []
+
+
+def test_the_notice_names_the_number_to_record_not_just_the_surplus() -> None:
+    """Naming the surplus leaves arithmetic to the reader, which is the step
+    every stale floor in this repo got wrong."""
+    notice = "\n".join(test_floor.describe_slack(1833, 4))
+    assert "FLOOR['tests'] = 1833" in notice
+
+
+def test_the_notice_carries_the_entry_point_rule() -> None:
+    """"I added no tests, so the floor does not move" is false in this repo:
+    a `scripts/*.py` entry point is +2 through two glob-parametrized families."""
+    notice = "\n".join(test_floor.describe_slack(1833, 4))
+    assert "+2" in notice and "scripts/*.py" in notice
+
+
+def test_the_docstring_names_the_tests_that_make_an_entry_point_plus_two() -> None:
+    """Measured on a checkout of main: adding one throwaway script took a
+    collect of these two files 292 -> 294, and a throwaway `src/` module took it
+    to 295. The docstring is the prominent copy of that rule, so it must keep
+    naming the tests responsible rather than just asserting the number."""
+    doc = test_floor.__doc__ or ""
+    assert "test_help_text_is_ascii" in doc
+    assert "test_script_import_preamble" in doc
+    assert "test_no_flat_intra_src_imports" in doc
+
+
+# ---------------------------------------------------------------------------
+# main -- what the CI log and the PR checks tab actually show
+# ---------------------------------------------------------------------------
+
+
+def _report_running(tmp_path: Path, tests: int, skipped: int = 0) -> Path:
+    return _write_report(
+        tmp_path,
+        f'<testsuites><testsuite tests="{tests}" failures="0" errors="0" '
+        f'skipped="{skipped}" /></testsuites>',
+    )
+
+
+def test_the_headline_shows_the_surplus_and_the_run_still_passes(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Reproduces run 34504649220 on main at `999cc0d`, whose log read
+    `1833 tests (floor 1829), 0 failed, 0 errored, 4 skipped` with no hint that
+    four tests were outside the floor's view."""
+    monkeypatch.setattr(test_floor, "FLOOR", {"tests": 1829, "max_skipped": 4})
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+
+    assert test_floor.main([str(_report_running(tmp_path, 1833, skipped=4))]) == 0
+
+    out = capsys.readouterr().out
+    assert "1833 tests (floor 1829, SLACK +4 -- raise it)" in out
+    assert "FLOOR['tests'] = 1833" in out
+
+
+def test_a_run_at_its_floor_says_nothing_about_slack(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The quiet case has to stay quiet, or the notice is noise and gets ignored."""
+    monkeypatch.setattr(test_floor, "FLOOR", {"tests": 1829, "max_skipped": 4})
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+
+    assert test_floor.main([str(_report_running(tmp_path, 1829))]) == 0
+
+    out = capsys.readouterr().out
+    assert "1829 tests (floor 1829)," in out
+    assert "SLACK" not in out
+
+
+def test_slack_is_annotated_on_a_github_runner(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A log line does not fix the visibility problem, because the problem is
+    that nobody opens a green job's log. The annotation renders on the run
+    summary and the checks tab without expanding a step."""
+    monkeypatch.setattr(test_floor, "FLOOR", {"tests": 1829, "max_skipped": 4})
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+
+    assert test_floor.main([str(_report_running(tmp_path, 1833, skipped=4))]) == 0
+
+    annotations = [
+        line for line in capsys.readouterr().out.splitlines() if line.startswith("::")
+    ]
+    assert len(annotations) == 1
+    assert annotations[0].startswith("::warning file=scripts/test_floor.py::")
+    assert "FLOOR['tests'] = 1833" in annotations[0]
+
+
+def test_no_annotation_off_a_github_runner(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`::warning` is literal text anywhere else -- a workstation run of the
+    gate should not print a line that only means something to Actions."""
+    monkeypatch.setattr(test_floor, "FLOOR", {"tests": 1829, "max_skipped": 4})
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+
+    test_floor.main([str(_report_running(tmp_path, 1833, skipped=4))])
+
+    assert "::warning" not in capsys.readouterr().out
+
+
+def test_the_annotation_is_a_single_line() -> None:
+    """A workflow command is line-delimited: a raw newline truncates the
+    annotation at the first one and leaks the rest as log noise."""
+    rendered = test_floor.github_warning("first\nsecond\r\nthird")
+    assert "\n" not in rendered and "\r" not in rendered
+    assert "%0A" in rendered and "%0D" in rendered
+
+
+def test_the_annotation_escapes_percent_before_anything_else() -> None:
+    """Escaping `%` after inserting `%0A` would re-escape the escapes."""
+    assert test_floor.github_warning("100%\n2") == (
+        "::warning file=scripts/test_floor.py::100%25%0A2"
+    )
+
+
 def test_the_recorded_floor_is_measured_not_left_unset() -> None:
     """The shipped FLOOR must carry real numbers.
 

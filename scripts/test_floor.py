@@ -11,12 +11,35 @@ exiting 0 having run less. `pytest.ini` pins `testpaths = tests` precisely
 because collection scope has bitten this repo before (ABL-336), and CI is the
 one reader that never notices a quiet drop, because nobody reads a green check.
 
+The count check fires on a DROP only, so the gate also reports SLACK -- a run
+that collected MORE than the recorded floor (ABL-742). Slack is not a build
+failure; see the note above `slack()` for why, and for what it prints instead.
+
+**Adding no test file does not mean the floor does not move.** Two families are
+glob-parametrized over the entry points, so a new `scripts/*.py` script is +2
+collected tests on its own::
+
+    tests/test_help_text_encoding.py::test_help_text_is_ascii[scripts/<name>.py]
+    tests/test_script_imports.py::test_script_import_preamble[<name>.py]
+
+and a new top-level `src/` module is +1 more::
+
+    tests/test_script_imports.py::test_no_flat_intra_src_imports[src/<name>.py]
+
+Measured, not read off the source: adding one throwaway script and one
+throwaway `src/` module to a checkout of main took a collect of those two files
+from 292 to 294 to 295. That is how main's floor went 4 stale -- the ABL-739
+train merged two PRs that added two entry points and no test file, so neither
+author had a reason to touch `FLOOR`, and CI ran 1833 against 1829 and stayed
+green.
+
 Standard library only, on purpose: it has to run in a job whose `pip install`
 step is the thing under suspicion.
 """
 
 from __future__ import annotations
 
+import os
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -72,19 +95,31 @@ from pathlib import Path
 # stayed green, because slack is invisible here: this gate only fires on a DROP.
 # Adding an entry point is a floor raise even when you add no tests.
 #
-# ABL-733 adds 12 (tests/test_abl733_transcript_buffer_width.py) -> 1845, which
-# is 1833 + 12. Confirmed from BOTH sides: the ubuntu-latest runner reported
-# `1845 tests (floor ...), 0 failed, 0 errored, 6 skipped` on the PR's merge
-# commit, and a workstation collect on the same merge reports 1845 too, so the
-# two agree exactly and neither is a platform artifact.
+# ABL-742 then records what main was ALREADY running but this number could not
+# see. 1833 is the CI number, from run 34504649220 on the runner -- the
+# workstation venv is on a different Python minor to `.python-version`, so a
+# workstation count is not admissible here. ABL-742 adds 14 to
+# `tests/test_abl647_test_floor.py` (purely additive: 14 collected -> 28), so
+# the count goes 1833 + 14 -> 1847, measured exact on main at `a9ca9f9` (run
+# 34508944465). None of the 14 are gated on anything -- they are stdlib,
+# `tmp_path` and `monkeypatch` -- so they do not move `max_skipped`.
 #
-# The arithmetic matters more than it looks. ABL-733 branched at 1828; ABL-735
-# (+1) and the train (+4) both landed on main while it was out. Those raises are
-# ADDITIVE -- resolve a conflict on this file by SUMMING the increments, never
-# by taking the higher of the two conflicting floors. Taking the higher side
-# here would have given 1841, four BELOW what the merged tree runs, and it would
-# have passed: a floor set too low is never red, just silently blind to exactly
-# the tests it can no longer see.
+# ABL-733 adds 12 (tests/test_abl733_transcript_buffer_width.py) -> 1859, which
+# is 1847 + 12. The +12 is measured, not assumed: against the earlier base
+# (`999cc0d`, running 1833) the ubuntu-latest runner reported `1845 tests, 0
+# failed, 0 errored, 6 skipped` on that merge commit, and a workstation collect
+# on the same merge reported 1845 too, so the two agreed exactly and the
+# increment is not a platform artifact. Only the base has moved since.
+#
+# The arithmetic matters more than it looks, and this file has now been resolved
+# against a moving main twice. ABL-733 branched at 1828; ABL-735 (+1), the train
+# (+4) and ABL-742 (+14) all landed on main while it was out. Those raises are
+# ADDITIVE -- resolve a conflict on this file by SUMMING the increments onto the
+# current base, never by taking the higher of the two conflicting floors. Taking
+# the higher side here gives 1847, twelve BELOW what the merged tree runs, and
+# it would have PASSED: a floor set too low is never red, just silently blind to
+# exactly the tests it can no longer see. `slack()` below is what turned that
+# from an invisible failure into a printed one.
 #
 # `max_skipped` goes 4 -> 6 for two of those twelve:
 # `test_the_control_reproduces_the_120_column_wrap` and
@@ -95,15 +130,16 @@ from pathlib import Path
 # these genuinely cannot run there; they run on the workstation, which is where
 # the launcher they cover runs in production. The other ten -- eight structural
 # and two that execute a block through plain redirected `pwsh` -- run on CI.
-# ABL-735's one and the train's four are not gated, so they do not move the
-# allowance. Unlike `tests`, `max_skipped` genuinely IS a max on merge -- it is a
-# ceiling, so take the higher side, and only raise it for increments whose tests
-# are actually gated. CI measured exactly 6, at the ceiling rather than over it.
+# ABL-735's one, the train's four and ABL-742's fourteen are not gated, so they
+# do not move the allowance. Unlike `tests`, `max_skipped` genuinely IS a max on
+# merge -- it is a ceiling, so take the higher side, and only raise it for
+# increments whose tests are actually gated. CI measured exactly 6, at the
+# ceiling rather than over it.
 #
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": 1845,
+    "tests": 1859,
     "max_skipped": 6,
 }
 
@@ -164,6 +200,80 @@ def evaluate(counts: dict[str, int], floor: dict[str, int | None]) -> list[str]:
     return problems
 
 
+# ---------------------------------------------------------------------------
+# Slack: the direction this gate could not see (ABL-742)
+# ---------------------------------------------------------------------------
+#
+# `evaluate` above fires on a DROP only. A floor set too LOW is therefore never
+# red -- and green is exactly what slack looks like, so nothing says so. Main at
+# `999cc0d` ran 1833 tests against a floor of 1829 and passed, blind to those 4
+# for as long as the number stayed stale.
+#
+# Slack is reported, not failed, and the asymmetry is deliberate. A
+# `pull_request` build runs the MERGE of head into base, so a branch whose base
+# gained tests while it was out legitimately collects more than its own floor;
+# failing on that would turn every open PR red the moment main added a test, and
+# the fix would be a rebase rather than anything about the branch. Exactness is
+# only attainable on a `push` to main, which catches the drift one commit AFTER
+# the merge that caused it -- a red main blocks everyone, so that trade is a CI
+# ergonomics decision and not this file's to make unilaterally.
+#
+# What it does instead is remove the excuse: it prints the surplus, the number
+# to record, and the rule that explains where the surplus came from.
+
+
+def slack(counts: dict[str, int], floor: dict[str, int | None]) -> int | None:
+    """How many tests this run collected ABOVE the recorded floor.
+
+    `None` means there is nothing to report: the floor is unmeasured (already a
+    hard failure in `evaluate`), the run met it exactly, or the run came in
+    short (`evaluate`'s job, and a failure rather than slack). Only a strictly
+    positive surplus comes back, so callers can treat the result as a flag.
+    """
+    floor_tests = floor.get("tests")
+    if floor_tests is None:
+        return None
+    surplus = counts["tests"] - floor_tests
+    return surplus if surplus > 0 else None
+
+
+def describe_slack(ran: int, surplus: int) -> list[str]:
+    """The lines to print when a run came in above its floor.
+
+    It names the number to WRITE, not just the number it saw. The reader
+    already has both counts in front of them and still has to work out what to
+    record; every stale floor this repo has had came from someone not doing
+    that arithmetic, or not knowing the floor had moved at all.
+    """
+    return [
+        f"SLACK: this run collected {surplus} more test(s) than the recorded floor.",
+        f"Record it: set FLOOR['tests'] = {ran} in scripts/test_floor.py, in the "
+        "commit that moved it.",
+        "A floor below what the suite runs is not a safe margin. It is blind to "
+        "exactly those tests disappearing again.",
+        "Adding no test FILE does not mean the floor does not move: a new "
+        "scripts/*.py entry point is +2 collected tests by itself, and a new "
+        "top-level src/ module is +1 more. This file's docstring names the three "
+        "glob-parametrized tests responsible.",
+        "If the base branch gained tests while this branch was out, this is the "
+        "expected shape on a pull_request build. Resolve a conflict on FLOOR by "
+        "SUMMING the increments, never by taking the higher of the two sides.",
+    ]
+
+
+def github_warning(message: str) -> str:
+    """Render a message as a GitHub Actions warning annotation.
+
+    A log line alone does not fix the visibility problem, because the problem IS
+    that nobody opens a green job's log. An annotation renders on the run
+    summary page and on the PR's checks tab without anyone expanding a step, and
+    it leaves the exit status alone. A workflow command is one line, so the
+    newlines have to be escaped rather than emitted.
+    """
+    escaped = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    return f"::warning file=scripts/test_floor.py::{escaped}"
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 1:
         print("usage: python scripts/test_floor.py <junit-xml-report>", file=sys.stderr)
@@ -192,13 +302,29 @@ def main(argv: list[str]) -> int:
 
     floor_tests = FLOOR.get("tests")
     max_skipped = FLOOR.get("max_skipped")
+    surplus = slack(counts, FLOOR)
+
+    floor_label = f"floor {floor_tests if floor_tests is not None else 'UNMEASURED'}"
+    if surplus is not None:
+        floor_label += f", SLACK +{surplus} -- raise it"
     print(
         f"test_floor: {counts['tests']} tests "
-        f"(floor {floor_tests if floor_tests is not None else 'UNMEASURED'}), "
+        f"({floor_label}), "
         f"{counts['failures']} failed, {counts['errors']} errored, "
         f"{counts['skipped']} skipped "
         f"(allowance {max_skipped if max_skipped is not None else 'UNMEASURED'})"
     )
+
+    # Not stderr: in this file stderr means the build is failing, and slack is
+    # not a failure. It goes out on stdout beside the headline it qualifies.
+    if surplus is not None:
+        advice = describe_slack(counts["tests"], surplus)
+        print("")
+        for line in advice:
+            print(f"  - {line}")
+        print("")
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            print(github_warning("\n".join(advice)))
 
     problems = evaluate(counts, FLOOR)
     if not problems:

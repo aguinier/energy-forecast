@@ -411,6 +411,20 @@ python scripts/compare_experiments.py --experiments V001,V003 --weeks all ...
 scratch files). Probe/benchmark scripts are named `probe_*.py`, never
 `test_*.py` — they execute training at import time and must not be collected.
 
+CI asserts the collected count against `FLOOR` in `scripts/test_floor.py`
+(ABL-647), and **raising it is your commit's job**. It is not only a job for a
+commit that adds a test file: two families are glob-parametrized over the entry
+points, so **a new `scripts/*.py` script is +2 collected tests on its own**
+(`test_help_text_is_ascii`, `test_script_import_preamble`) and a new top-level
+`src/` module is +1 more (`test_no_flat_intra_src_imports`). "I added no tests,
+so the floor does not move" is false here — it is how main came to run 1833
+against a floor of 1829 and stay green (ABL-742). The gate now prints
+`SLACK +N` and the number to record when that happens, but it does not fail on
+it: a `pull_request` build runs the merge of head into base, so slack is the
+expected shape whenever main gained tests while a branch was out. Resolve a
+conflict on `FLOOR["tests"]` by **summing** the increments, never by taking the
+higher side.
+
 ## Chronos-2 serve-faithfulness
 
 - **The context ends where the data ends, not where the schedule says.**
