@@ -1051,8 +1051,9 @@ def ml_slice_violations(source: str, tables=TSO_TABLES):
        written to go into SQL is written with SQL quotes -- that edit is the
        control below.  No literal match can be complete against someone
        working around it, `chr(116)` being the end of any such argument, so
-       the residual is carried by review of a list this file also holds to
-       entries that exist and appear nowhere else, not by this arm.
+       the residual is carried by review of a one-member list that
+       `test_no_file_is_on_two_of_the_sweep_s_four_lists` holds to entries
+       that exist and sit on no other list -- not by this arm.
     4. **No such query at all.**  The entry is stale, or it is a mention-only
        file on the wrong list.  Without this arm a file could satisfy the
        category by no longer reading anything, and the exemption would go on
