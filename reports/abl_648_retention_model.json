@@ -1,0 +1,915 @@
+{
+  "issue": "ABL-648",
+  "generated_at": "2026-09-10T07:55:26.513127+00:00",
+  "read_only": true,
+  "databases_opened": [
+    "C:\\Code\\able\\data\\energy_dashboard.db (mode=ro)"
+  ],
+  "replica_probe": {
+    "replica_db": "C:\\Code\\able\\data\\energy_dashboard.db",
+    "replica_bytes": 11507896320,
+    "weather_tables_present": [
+      "weather_data",
+      "weather_location",
+      "weather_source"
+    ],
+    "has_weather_observation": false,
+    "weather_data_by_quality": [
+      {
+        "data_quality": "actual",
+        "n_rows": 903192,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00",
+        "n_countries": 28,
+        "first_run_time": "2023-01-01T00:00:00+00:00",
+        "last_run_time": "2026-09-09 23:00:00"
+      },
+      {
+        "data_quality": "forecast",
+        "n_rows": 2129568,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00",
+        "n_countries": 28,
+        "first_run_time": "2026-01-11 18:00:00",
+        "last_run_time": "2026-09-09 12:00:00"
+      }
+    ],
+    "weather_location_count": 362,
+    "weather_location_max_rowid": 199182,
+    "weather_source_count": 29,
+    "weather_source_by_lead": [
+      {
+        "lead_time_hours": -1,
+        "n_sources": 7
+      },
+      {
+        "lead_time_hours": 0,
+        "n_sources": 1
+      },
+      {
+        "lead_time_hours": 24,
+        "n_sources": 7
+      },
+      {
+        "lead_time_hours": 48,
+        "n_sources": 7
+      },
+      {
+        "lead_time_hours": 72,
+        "n_sources": 7
+      }
+    ],
+    "weather_location_by_zone_type": [
+      {
+        "zone_type": "centroid",
+        "n_locations": 36,
+        "n_countries": 36
+      },
+      {
+        "zone_type": "solar",
+        "n_locations": 129,
+        "n_countries": 36
+      },
+      {
+        "zone_type": "solar_grid_v035",
+        "n_locations": 25,
+        "n_countries": 1
+      },
+      {
+        "zone_type": "wind_offshore",
+        "n_locations": 33,
+        "n_countries": 13
+      },
+      {
+        "zone_type": "wind_onshore",
+        "n_locations": 139,
+        "n_countries": 32
+      }
+    ],
+    "weather_data_reach_by_country": [
+      {
+        "country_code": "AT",
+        "data_quality": "actual",
+        "n_rows": 32256,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "AT",
+        "data_quality": "forecast",
+        "n_rows": 76272,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "BE",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "BE",
+        "data_quality": "forecast",
+        "n_rows": 76272,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "BG",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "BG",
+        "data_quality": "forecast",
+        "n_rows": 76272,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "CH",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "CH",
+        "data_quality": "forecast",
+        "n_rows": 75600,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "CZ",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "CZ",
+        "data_quality": "forecast",
+        "n_rows": 76608,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "DE",
+        "data_quality": "actual",
+        "n_rows": 32760,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "DE",
+        "data_quality": "forecast",
+        "n_rows": 76272,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "EE",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "EE",
+        "data_quality": "forecast",
+        "n_rows": 75600,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "ES",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "ES",
+        "data_quality": "forecast",
+        "n_rows": 75936,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "FI",
+        "data_quality": "actual",
+        "n_rows": 32256,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "FI",
+        "data_quality": "forecast",
+        "n_rows": 76272,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "FR",
+        "data_quality": "actual",
+        "n_rows": 32256,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "FR",
+        "data_quality": "forecast",
+        "n_rows": 75936,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "GR",
+        "data_quality": "actual",
+        "n_rows": 32256,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "GR",
+        "data_quality": "forecast",
+        "n_rows": 76608,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "HR",
+        "data_quality": "actual",
+        "n_rows": 32256,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "HR",
+        "data_quality": "forecast",
+        "n_rows": 75600,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "HU",
+        "data_quality": "actual",
+        "n_rows": 32256,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "HU",
+        "data_quality": "forecast",
+        "n_rows": 75936,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "IT",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "IT",
+        "data_quality": "forecast",
+        "n_rows": 75936,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "LT",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "LT",
+        "data_quality": "forecast",
+        "n_rows": 76272,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "LV",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "LV",
+        "data_quality": "forecast",
+        "n_rows": 75600,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "NL",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "NL",
+        "data_quality": "forecast",
+        "n_rows": 75936,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "NO",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "NO",
+        "data_quality": "forecast",
+        "n_rows": 75936,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "PL",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "PL",
+        "data_quality": "forecast",
+        "n_rows": 75936,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "PT",
+        "data_quality": "actual",
+        "n_rows": 32256,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "PT",
+        "data_quality": "forecast",
+        "n_rows": 75600,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "RO",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "RO",
+        "data_quality": "forecast",
+        "n_rows": 75264,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "SE",
+        "data_quality": "actual",
+        "n_rows": 32256,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "SE",
+        "data_quality": "forecast",
+        "n_rows": 76272,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "SI",
+        "data_quality": "actual",
+        "n_rows": 32208,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "SI",
+        "data_quality": "forecast",
+        "n_rows": 76272,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      },
+      {
+        "country_code": "SK",
+        "data_quality": "actual",
+        "n_rows": 32232,
+        "first_target": "2023-01-01T00:00:00+00:00",
+        "last_target": "2026-09-09 23:00:00"
+      },
+      {
+        "country_code": "SK",
+        "data_quality": "forecast",
+        "n_rows": 75600,
+        "first_target": "2026-01-11 00:00:00",
+        "last_target": "2026-09-22 23:00:00"
+      }
+    ],
+    "history_constraint_probe": {
+      "question": "ABL-338: AT and DE have under one seasonal cycle. Which table is that constraint in?",
+      "solar_mw_history": {
+        "energy_renewable": [
+          {
+            "country_code": "AT",
+            "n_rows": 30398,
+            "first": "2025-11-07T23:00:00",
+            "last": "2026-09-09 07:00:00"
+          },
+          {
+            "country_code": "BE",
+            "n_rows": 23825,
+            "first": "2024-01-01 00:00:00",
+            "last": "2026-09-09 08:00:00"
+          },
+          {
+            "country_code": "DE",
+            "n_rows": 36175,
+            "first": "2025-09-08T22:00:00",
+            "last": "2026-09-09 09:00:00"
+          },
+          {
+            "country_code": "ES",
+            "n_rows": 30287,
+            "first": "2025-11-08T23:00:00",
+            "last": "2026-09-09 10:15:00"
+          },
+          {
+            "country_code": "FR",
+            "n_rows": 79679,
+            "first": "2023-01-01 00:00:00",
+            "last": "2026-09-09 10:45:00"
+          }
+        ],
+        "energy_generation": [
+          {
+            "country_code": "AT",
+            "n_rows": 198404,
+            "first": "2021-01-01 00:00:00",
+            "last": "2026-09-09 07:00:00"
+          },
+          {
+            "country_code": "BE",
+            "n_rows": 49616,
+            "first": "2021-01-01 00:00:00",
+            "last": "2026-09-09 07:00:00"
+          },
+          {
+            "country_code": "DE",
+            "n_rows": 198377,
+            "first": "2021-01-01 00:00:00",
+            "last": "2026-09-09 09:00:00"
+          },
+          {
+            "country_code": "ES",
+            "n_rows": 162757,
+            "first": "2021-01-01 00:00:00",
+            "last": "2026-09-09 10:15:00"
+          },
+          {
+            "country_code": "FR",
+            "n_rows": 92040,
+            "first": "2021-01-01 00:00:00",
+            "last": "2026-09-09 10:45:00"
+          }
+        ]
+      },
+      "verdict": "The constraint is in energy_renewable (the training_source the four solar serving artifacts carry), not in any weather table. energy_generation holds the same countries back to 2021-01-01, and --renewable-source energy_generation is the documented way to reach it. weather_observation is not on either path."
+    }
+  },
+  "prod_volume_growth": {
+    "source": "C:\\Code\\able\\data\\ops-status-snapshots.jsonl",
+    "note": "peer = prod (QuietlyConfident); diskTotalBytes matches ABL-212's 907.13 GiB exactly. No prod query was issued -- this is the local snapshot log.",
+    "n_snapshots": 1325,
+    "window": [
+      "2026-08-27T08:03:32.348000+00:00",
+      "2026-09-10T07:47:43.783000+00:00"
+    ],
+    "window_days": 13.99,
+    "volume_total_gib": 907.13,
+    "used_now_gib": 585.04,
+    "used_pct": 64.5,
+    "free_now_gib": 322.1,
+    "rate_baseline_gib_per_day": 2.881,
+    "rate_baseline_gib_per_week": 20.17,
+    "rate_daily_median_gib_per_day": 3.906,
+    "rate_daily_median_gib_per_week": 27.34,
+    "step_events": {
+      "n": 58,
+      "written_gib": 150.02,
+      "deleted_gib": -132.34,
+      "net_retained_gib": 17.68,
+      "net_retained_gib_per_day": 1.264
+    },
+    "abl212_committed_rate_gib_per_day": 2.214,
+    "ratio_measured_to_abl212": 1.76,
+    "daily_medians": [
+      {
+        "date": "2026-08-27",
+        "used_gib": 530.36,
+        "n": 65
+      },
+      {
+        "date": "2026-08-28",
+        "used_gib": 537.25,
+        "n": 96
+      },
+      {
+        "date": "2026-08-29",
+        "used_gib": 542.41,
+        "n": 96
+      },
+      {
+        "date": "2026-08-30",
+        "used_gib": 545.33,
+        "n": 96
+      },
+      {
+        "date": "2026-08-31",
+        "used_gib": 552.89,
+        "n": 96
+      },
+      {
+        "date": "2026-09-01",
+        "used_gib": 555.98,
+        "n": 96
+      },
+      {
+        "date": "2026-09-02",
+        "used_gib": 558.65,
+        "n": 96
+      },
+      {
+        "date": "2026-09-03",
+        "used_gib": 561.43,
+        "n": 88
+      },
+      {
+        "date": "2026-09-04",
+        "used_gib": 564.94,
+        "n": 96
+      },
+      {
+        "date": "2026-09-05",
+        "used_gib": 567.74,
+        "n": 95
+      },
+      {
+        "date": "2026-09-06",
+        "used_gib": 570.4,
+        "n": 92
+      },
+      {
+        "date": "2026-09-07",
+        "used_gib": 577.7,
+        "n": 89
+      },
+      {
+        "date": "2026-09-08",
+        "used_gib": 580.4,
+        "n": 96
+      },
+      {
+        "date": "2026-09-09",
+        "used_gib": 583.13,
+        "n": 96
+      },
+      {
+        "date": "2026-09-10",
+        "used_gib": 585.04,
+        "n": 32
+      }
+    ],
+    "wall_at_90pct": {
+      "at_daily_median_rate": {
+        "headroom_gib": 231.4,
+        "days": 59,
+        "date": "2026-11-08"
+      },
+      "at_baseline_rate": {
+        "headroom_gib": 231.4,
+        "days": 80,
+        "date": "2026-11-29"
+      },
+      "at_abl212_rate": {
+        "headroom_gib": 231.4,
+        "days": 104,
+        "date": "2026-12-23"
+      }
+    },
+    "wall_at_100pct": {
+      "at_daily_median_rate": {
+        "headroom_gib": 322.1,
+        "days": 82,
+        "date": "2026-12-01"
+      },
+      "at_baseline_rate": {
+        "headroom_gib": 322.1,
+        "days": 112,
+        "date": "2026-12-30"
+      },
+      "at_abl212_rate": {
+        "headroom_gib": 322.1,
+        "days": 145,
+        "date": "2027-02-02"
+      }
+    }
+  },
+  "retention_model": {
+    "provenance": "MODELLED from ABL-163 rowid anchors + ABL-206 size. weather_observation is absent from the replica and must not be COUNT(*)-ed on prod, so no figure here is a direct measurement of that table.",
+    "bytes_per_row": 405.4,
+    "as_of": "2026-09-10",
+    "table_first_fetched_at": "2026-04-22",
+    "table_age_days": 141,
+    "modelled_rows_now": 1215294954,
+    "modelled_size_now_gib": 458.9,
+    "modelled_write_rate_gib_per_day": 2.881,
+    "calendar_horizons_on_fetched_at": {
+      "today": [
+        {
+          "horizon_months": 6,
+          "cutoff": "2026-03-11",
+          "freed_gib": 0.0,
+          "kept_gib": 458.9,
+          "bites_yet": false,
+          "first_bites_on": "2026-10-22"
+        },
+        {
+          "horizon_months": 12,
+          "cutoff": "2025-09-10",
+          "freed_gib": 0.0,
+          "kept_gib": 458.9,
+          "bites_yet": false,
+          "first_bites_on": "2027-04-22"
+        },
+        {
+          "horizon_months": 18,
+          "cutoff": "2025-03-11",
+          "freed_gib": 0.0,
+          "kept_gib": 458.9,
+          "bites_yet": false,
+          "first_bites_on": "2027-10-22"
+        },
+        {
+          "horizon_months": 24,
+          "cutoff": "2024-09-10",
+          "freed_gib": 0.0,
+          "kept_gib": 458.9,
+          "bites_yet": false,
+          "first_bites_on": "2028-04-21"
+        },
+        {
+          "horizon_months": "keep_all",
+          "cutoff": null,
+          "freed_gib": 0.0,
+          "kept_gib": 458.9,
+          "bites_yet": false,
+          "first_bites_on": null
+        }
+      ],
+      "at_the_90pct_wall": [
+        {
+          "horizon_months": 6,
+          "cutoff": "2026-05-09",
+          "freed_gib": 65.5,
+          "kept_gib": 563.4,
+          "bites_yet": true,
+          "first_bites_on": "2026-10-22"
+        },
+        {
+          "horizon_months": 12,
+          "cutoff": "2025-11-08",
+          "freed_gib": 0.0,
+          "kept_gib": 628.8,
+          "bites_yet": false,
+          "first_bites_on": "2027-04-22"
+        },
+        {
+          "horizon_months": 18,
+          "cutoff": "2025-05-09",
+          "freed_gib": 0.0,
+          "kept_gib": 628.8,
+          "bites_yet": false,
+          "first_bites_on": "2027-10-22"
+        },
+        {
+          "horizon_months": 24,
+          "cutoff": "2024-11-08",
+          "freed_gib": 0.0,
+          "kept_gib": 628.8,
+          "bites_yet": false,
+          "first_bites_on": "2028-04-21"
+        },
+        {
+          "horizon_months": "keep_all",
+          "cutoff": null,
+          "freed_gib": 0.0,
+          "kept_gib": 628.8,
+          "bites_yet": false,
+          "first_bites_on": null
+        }
+      ],
+      "at_abl212_committed_date_2027_01_28": [
+        {
+          "horizon_months": 6,
+          "cutoff": "2026-07-29",
+          "freed_gib": 337.9,
+          "kept_gib": 524.2,
+          "bites_yet": true,
+          "first_bites_on": "2026-10-22"
+        },
+        {
+          "horizon_months": 12,
+          "cutoff": "2026-01-28",
+          "freed_gib": 0.0,
+          "kept_gib": 862.2,
+          "bites_yet": false,
+          "first_bites_on": "2027-04-22"
+        },
+        {
+          "horizon_months": 18,
+          "cutoff": "2025-07-29",
+          "freed_gib": 0.0,
+          "kept_gib": 862.2,
+          "bites_yet": false,
+          "first_bites_on": "2027-10-22"
+        },
+        {
+          "horizon_months": 24,
+          "cutoff": "2025-01-28",
+          "freed_gib": 0.0,
+          "kept_gib": 862.2,
+          "bites_yet": false,
+          "first_bites_on": "2028-04-21"
+        },
+        {
+          "horizon_months": "keep_all",
+          "cutoff": null,
+          "freed_gib": 0.0,
+          "kept_gib": 862.2,
+          "bites_yet": false,
+          "first_bites_on": null
+        }
+      ]
+    },
+    "calendar_horizons_on_valid_at": {
+      "axis": "valid_at (target time)",
+      "era5_total_gib": 3.22,
+      "era5_span": [
+        "2024-01-01",
+        "2026-09-10"
+      ],
+      "rows": [
+        {
+          "horizon_months": 6,
+          "cutoff": "2026-03-11",
+          "freed_gib": 2.6,
+          "freed_pct_of_table": 0.57,
+          "era5_freed_gib": 2.62,
+          "era5_history_destroyed_pct": 81.4
+        },
+        {
+          "horizon_months": 12,
+          "cutoff": "2025-09-10",
+          "freed_gib": 2.0,
+          "freed_pct_of_table": 0.44,
+          "era5_freed_gib": 2.03,
+          "era5_history_destroyed_pct": 62.9
+        },
+        {
+          "horizon_months": 18,
+          "cutoff": "2025-03-11",
+          "freed_gib": 1.4,
+          "freed_pct_of_table": 0.31,
+          "era5_freed_gib": 1.43,
+          "era5_history_destroyed_pct": 44.3
+        },
+        {
+          "horizon_months": 24,
+          "cutoff": "2024-09-10",
+          "freed_gib": 0.8,
+          "freed_pct_of_table": 0.18,
+          "era5_freed_gib": 0.83,
+          "era5_history_destroyed_pct": 25.7
+        },
+        {
+          "horizon_months": "keep_all",
+          "cutoff": null,
+          "freed_gib": 0.0,
+          "freed_pct_of_table": 0.0,
+          "era5_freed_gib": 0.0,
+          "era5_history_destroyed_pct": 0.0
+        }
+      ],
+      "note": "Approximation: the vintage populations' valid_at is treated as their fetched_at (mean lead ~3.5d), which is immaterial at a 6-month granularity. The ERA5 term is exact given the ingest shape (one row per location-hour)."
+    },
+    "vintage_depth_options": [
+      {
+        "option": "latest_vintage_only",
+        "full_vintage_days": 0,
+        "kept_gib": 16.8,
+        "freed_gib": 442.0,
+        "freed_pct": 96.3,
+        "steady_state_growth_gib_per_day": 0.095,
+        "growth_reduction_factor": 30.3
+      },
+      {
+        "option": "30d_full_vintages",
+        "full_vintage_days": 30,
+        "kept_gib": 99.7,
+        "freed_gib": 359.2,
+        "freed_pct": 78.3,
+        "steady_state_growth_gib_per_day": 0.095,
+        "growth_reduction_factor": 30.3
+      },
+      {
+        "option": "60d_full_vintages",
+        "full_vintage_days": 60,
+        "kept_gib": 182.5,
+        "freed_gib": 276.3,
+        "freed_pct": 60.2,
+        "steady_state_growth_gib_per_day": 0.095,
+        "growth_reduction_factor": 30.3
+      },
+      {
+        "option": "90d_full_vintages",
+        "full_vintage_days": 90,
+        "kept_gib": 265.4,
+        "freed_gib": 193.5,
+        "freed_pct": 42.2,
+        "steady_state_growth_gib_per_day": 0.095,
+        "growth_reduction_factor": 30.3
+      }
+    ],
+    "distinct_triples": {
+      "n_locations": 362,
+      "n_sources": 29,
+      "modelled_distinct_triples": 44543376,
+      "modelled_vintages_per_triple": 27.3,
+      "latest_only_gib": 16.8,
+      "era5_share_gib": 3.2,
+      "era5_note": "The entire deep weather history -- ERA5, one vintage per hour per location, backfilled from 2024-01-01 -- is this many GiB. It is the part a calendar-history retention would destroy, and it is a rounding error in the total."
+    },
+    "valid_at_downsampling": {
+      "rule": "keep every 3rd valid_at, all vintages",
+      "row_reduction": 0.6666666666666666,
+      "kept_gib": 153.0,
+      "freed_gib": 305.9,
+      "steady_state_growth_gib_per_day": 0.96,
+      "growth_reduction_factor": 3.0,
+      "note": "Cuts rows but leaves vintage multiplicity untouched, so growth stays proportional to re-fetch frequency and the wall only moves out by a factor of 3, not to a bounded steady state."
+    },
+    "reclaim_feasibility": [
+      {
+        "path": "full VACUUM INTO (no policy)",
+        "copy_size_gib": 466.3,
+        "needs_free_gib_incl_50gib_margin": 516.3,
+        "fits_today": false,
+        "days_until_it_stops_fitting": 0,
+        "closes_on": "already closed"
+      },
+      {
+        "path": "filtered copy-out, 30d vintages",
+        "copy_size_gib": 99.7,
+        "needs_free_gib_incl_50gib_margin": 149.7,
+        "fits_today": true,
+        "days_until_it_stops_fitting": 44,
+        "closes_on": "2026-10-24"
+      },
+      {
+        "path": "filtered copy-out, latest-only",
+        "copy_size_gib": 16.8,
+        "needs_free_gib_incl_50gib_margin": 66.8,
+        "fits_today": true,
+        "days_until_it_stops_fitting": 65,
+        "closes_on": "2026-11-14"
+      },
+      {
+        "path": "filtered copy-out, 3-hourly",
+        "copy_size_gib": 153.0,
+        "needs_free_gib_incl_50gib_margin": 203.0,
+        "fits_today": true,
+        "days_until_it_stops_fitting": 30,
+        "closes_on": "2026-10-10"
+      }
+    ]
+  }
+}
