@@ -34,18 +34,27 @@ from pathlib import Path
 # build, so answering a red run with `@pytest.mark.skip` takes a diff and a
 # reason.
 #
-# The allowance is 1, which is lower than expected and is itself a result: tests
-# gated on the replica database and on `models/` artifacts were assumed to be a
-# sizeable set, and the runner has neither. It ran 1766 and skipped one. Those
-# tests do not skip on a bare runner — they assert against stored documents. The
-# pytest step passes `-rs`, so the log always names what skipped and why; read
-# that before changing this number.
+# The allowance was 1, which was lower than expected and is itself a result:
+# tests gated on the replica database and on `models/` artifacts were assumed to
+# be a sizeable set, and the runner has neither. It ran 1766 and skipped one.
+# Those tests do not skip on a bare runner — they assert against stored
+# documents. The pytest step passes `-rs`, so the log always names what skipped
+# and why; read that before changing this number.
+#
+# It is 4 as of ABL-715, which declared three of them. All three are the same
+# gate: the chronos-2 entry points (`scripts/forecast_chronos2.py`,
+# `scripts/train_chronos2.py`, and the `chronos-2` runner launch) import torch,
+# and no requirements file in this repo declares torch, so they cannot be
+# imported from a clean checkout. The gate is keyed on torch being absent, never
+# on the runner's name, so all three RUN on any box that has it —
+# `tests/chronos2_env.py` carries the reasoning and the cost argument for not
+# installing torch on every PR.
 #
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
     "tests": 1766,
-    "max_skipped": 1,
+    "max_skipped": 4,
 }
 
 
