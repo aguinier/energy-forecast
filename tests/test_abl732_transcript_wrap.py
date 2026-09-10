@@ -27,7 +27,6 @@ is discriminating by running the pre-fix command against the same bytes.
 import re
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -41,10 +40,18 @@ CHRONOS = REPO_ROOT / "scripts" / "forecast_chronos2.py"
 #: the measured wrap point of every native line in the live log.
 WRAP = 120
 
-POWERSHELL = shutil.which("powershell") or shutil.which("powershell.exe")
+#: `pwsh` first: PowerShell Core is preinstalled on the ubuntu-latest runner CI
+#: uses, so these tests execute there rather than skipping. The block is plain
+#: 5.1-compatible PowerShell with no Windows-only cmdlet, and the fixture path
+#: is rebound per run, so it does not depend on the host OS.
+POWERSHELL = (
+    shutil.which("pwsh")
+    or shutil.which("powershell")
+    or shutil.which("powershell.exe")
+)
 needs_powershell = pytest.mark.skipif(
-    POWERSHELL is None or sys.platform != "win32",
-    reason="the runbook command is Windows PowerShell; nothing to execute here",
+    POWERSHELL is None,
+    reason="no pwsh/powershell on PATH; the runbook command cannot be executed here",
 )
 
 
