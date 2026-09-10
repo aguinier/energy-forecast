@@ -25,8 +25,9 @@ Three properties, in the order they matter:
      set, and ABL-692 already settled that a missing vintage is worse than a
      wrapped one. The set is best-effort and its outcome is logged.
   2. **It actually stops the wrap** under the task's real console conditions --
-     asserted by executing the shipped block in a hidden console, against a
-     control that reproduces the 120-column wrap on the same bytes.
+     asserted by executing the shipped block in a hidden console, and the
+     shipped *file* through the scheduled task's own `wscript.exe` spawn, each
+     against a control that reproduces the 120-column wrap on the same bytes.
   3. **It does not retire the stitched read.** The transcript is opened
      `-Append`, so the log now holds wrapped history *and* unwrapped new
      records. The runbook's command is run over exactly that mixture here.
@@ -247,13 +248,18 @@ def test_the_launcher_is_ascii():
 _SENTINEL = "REACHED-THE-LINE-AFTER"
 
 
-def _harness(tmp_path: Path, launcher_text: str, *, widen: bool, log: Path) -> Path:
-    """A minimal launcher: transcript, the shipped block (or not), then output.
+def _write_payload(directory: Path) -> Path:
+    """The two long NATIVE lines, one per stream, written by Python.
 
-    The control differs from the treatment by the presence of that block and
-    nothing else -- same harness, same fixture, same bytes written.
+    Native because that is the only output `Start-Transcript` records *through*
+    the console screen buffer, and therefore the only kind that wraps -- 133
+    chars on stderr (the calibrated save line ABL-732 could not grep) and 174 on
+    stdout, so the measurement is not an artifact of one stream.
+
+    Shared by the extracted-block harness below and by the shipped-file
+    rehearsal in section 7, so the two are measured on identical bytes.
     """
-    payload = tmp_path / "payload.py"
+    payload = directory / "payload.py"
     payload.write_text(
         "import sys\n"
         f"sys.stderr.write({CALIBRATED!r} + '\\n')\n"
@@ -262,6 +268,16 @@ def _harness(tmp_path: Path, launcher_text: str, *, widen: bool, log: Path) -> P
         "sys.stdout.write('\\n')\n",
         encoding="ascii",
     )
+    return payload
+
+
+def _harness(tmp_path: Path, launcher_text: str, *, widen: bool, log: Path) -> Path:
+    """A minimal launcher: transcript, the shipped block (or not), then output.
+
+    The control differs from the treatment by the presence of that block and
+    nothing else -- same harness, same fixture, same bytes written.
+    """
+    _write_payload(tmp_path)
     body = _widen_block(launcher_text) if widen else "    # control: no widening"
     script = tmp_path / ("widen.ps1" if widen else "control.ps1")
     script.write_text(
@@ -666,3 +682,265 @@ def test_the_report_says_the_second_run_not_the_first():
         assert refuted not in text, (
             f"the refuted cutover claim is back in the report: {refuted!r}"
         )
+
+
+# ---------------------------------------------------------------------------
+# 7. Executed: the SHIPPED FILE, through the scheduled task's own spawn.
+#
+# Sections 3 and 4 execute the widening block *extracted* into a miniature
+# script; section 6 executes a *miniature* launcher against a miniature origin.
+# Neither runs `scripts/workstation/run-net-position-serving.ps1` byte for byte,
+# and neither goes through `wscript.exe //B //Nologo run-hidden.vbs` -- the
+# action string the scheduled task actually holds. ABL-733 closed that gap by
+# hand, once, on 2026-09-10; measuring something once is not pinning it.
+#
+# What this adds over section 4 is the whole-file path: the param block, the
+# dev-checkout refusal, `Start-Transcript` on a real -LogDir, the fetch/reset,
+# the witness line and the `& $job -Repo` invocation all run, in order, in the
+# console `wscript.exe` creates -- rather than a hand-written approximation of
+# the four lines in the middle.
+#
+# Production is untouched: a throwaway origin, a throwaway clone, a throwaway
+# log directory and a stub job. Nothing is written to C:/Code/able/logs, no
+# scheduled task is triggered, and no forecast runs.
+# ---------------------------------------------------------------------------
+
+#: The scheduled task's action is
+#:   wscript.exe //B //Nologo "C:\Users\guill\bin\run-hidden.vbs" "powershell.exe"
+#:     -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File <launcher>
+#: `wscript.exe` is a GUI-subsystem host with no console, so its
+#: `WshShell.Run(cmd, 0, True)` hands powershell.exe a NEW, hidden console --
+#: and that console's buffer width is what this entire file is about. Gating on
+#: the .vbs rather than reimplementing it is the point: a reimplementation is
+#: another approximation, and section 4 already holds one.
+RUN_HIDDEN_VBS = Path("C:/Users/guill/bin/run-hidden.vbs")
+WSCRIPT = shutil.which("wscript.exe") if sys.platform == "win32" else None
+
+needs_production_spawn = pytest.mark.skipif(
+    WSCRIPT is None or WINDOWS_POWERSHELL is None or not RUN_HIDDEN_VBS.exists(),
+    reason=(
+        "needs the workstation's production spawn: wscript.exe plus "
+        f"{RUN_HIDDEN_VBS}, which is the scheduled task's own action. The "
+        "ubuntu-latest runner has neither, and a substitute would measure a "
+        "different spawn than the one that serves."
+    ),
+)
+
+
+def _ps_single_quote(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _stub_job(python: str, payload: Path) -> str:
+    """Stand-in for scripts/workstation/run-net-position.ps1.
+
+    The launcher invokes the job as `& $job -Repo $Serving`, so the stub has to
+    accept -Repo or the real launcher's own invocation fails. It emits the two
+    long native lines and a sentinel, and opens no database.
+    """
+    return (
+        "param([string] $Repo)\n"
+        f"& {_ps_single_quote(python)} {_ps_single_quote(str(payload))}\n"
+        f'Write-Host "{_SENTINEL} exit=$LASTEXITCODE"\n'
+    )
+
+
+def _run_via_run_hidden(launcher: Path, serving: Path, log_dir: Path,
+                        extra: list[str]) -> int:
+    """Spawn exactly what Task Scheduler spawns, and return the exit code.
+
+    **No stdio arguments at all**, for the reason spelled out in
+    `_run_in_hidden_console`: `subprocess` sets `STARTF_USESTDHANDLES` if *any*
+    of stdin/stdout/stderr is passed, redirected handles bypass the console, and
+    native output then never reaches the transcript. That reads as "nothing
+    wrapped" while measuring nothing at all, and it is why the first attempt to
+    probe this effect came back inconclusive.
+
+    `powershell.exe` is passed by absolute path where the task passes the bare
+    name; `WshShell.Run` would resolve that off PATH to the same binary.
+    """
+    return subprocess.call(
+        [WSCRIPT, "//B", "//Nologo", str(RUN_HIDDEN_VBS),
+         WINDOWS_POWERSHELL, "-WindowStyle", "Hidden", "-NoProfile",
+         "-ExecutionPolicy", "Bypass", "-File", str(launcher),
+         "-Serving", str(serving), "-LogDir", str(log_dir), *extra],
+        timeout=300,
+    )
+
+
+@pytest.fixture(scope="module")
+def shipped_file_runs(tmp_path_factory):
+    """Run the merged launcher twice through the production spawn: control, then
+    treatment.
+
+    The control is `-BufferWidth 120`, which makes the widening a genuine no-op
+    on a 120-column console: the block still runs and still reports, and nothing
+    is resized. One parameter is the only difference between the two runs -- not
+    a different script, not a different fixture. If the control does not wrap,
+    the treatment measures nothing, which is the failure mode this pair exists
+    to make impossible.
+    """
+    root = tmp_path_factory.mktemp("abl733-shipped")
+    origin, clone = root / "origin", root / "clone"
+    payload = _write_payload(root)
+
+    def git(*args, cwd):
+        proc = subprocess.run(
+            [GIT, *args], cwd=str(cwd), capture_output=True, text=True, timeout=120
+        )
+        assert proc.returncode == 0, f"git {' '.join(args)}\n{proc.stdout}\n{proc.stderr}"
+        return proc.stdout.strip()
+
+    origin.mkdir()
+    git("init", "-q", ".", cwd=origin)
+    git("checkout", "-q", "-b", "main", cwd=origin)
+    # Hermetic against the host's global git config, including a signing key CI
+    # does not have -- and against autocrlf, which would renormalise the very
+    # bytes this fixture exists to preserve.
+    for k, v in (("user.email", "t@t.t"), ("user.name", "t"),
+                 ("commit.gpgsign", "false"), ("core.autocrlf", "false")):
+        git("config", k, v, cwd=origin)
+
+    workstation = origin / "scripts" / "workstation"
+    workstation.mkdir(parents=True)
+    (workstation / LAUNCHER.name).write_bytes(LAUNCHER.read_bytes())
+    (workstation / "run-net-position.ps1").write_text(
+        _stub_job(sys.executable, payload), encoding="ascii"
+    )
+    git("add", f"scripts/workstation/{LAUNCHER.name}",
+        "scripts/workstation/run-net-position.ps1", cwd=origin)
+    git("commit", "-q", "-m", "shipped launcher + stub job", cwd=origin)
+
+    git("clone", "-q", "-c", "core.autocrlf=false", str(origin), str(clone), cwd=root)
+    clone_launcher = clone / "scripts" / "workstation" / LAUNCHER.name
+    assert clone_launcher.read_bytes() == LAUNCHER.read_bytes(), (
+        "the clone does not hold the working tree's launcher byte for byte, so "
+        "the runs below would measure a different script"
+    )
+
+    runs = {}
+    for mode, extra in (("control", ["-BufferWidth", str(WRAP)]), ("treatment", [])):
+        log_dir = root / f"logs-{mode}"
+        rc = _run_via_run_hidden(clone_launcher, clone, log_dir, extra)
+        runs[mode] = {"rc": rc, "log": log_dir / "net-position-forecast.log"}
+    return {"runs": runs, "launcher_bytes": clone_launcher.read_bytes()}
+
+
+@needs_git
+@needs_production_spawn
+def test_the_rehearsal_executes_the_shipped_launcher_byte_for_byte(shipped_file_runs):
+    """Vacuity guard on the fixture, and the entire reason it exists.
+
+    Sections 3 and 4 execute an *extract* of the launcher, so they stay green if
+    the surrounding file stops parsing or the block stops being reached. This
+    one has to run the file. A single renormalised line ending is enough to make
+    everything below a statement about some other script.
+    """
+    assert shipped_file_runs["launcher_bytes"] == LAUNCHER.read_bytes(), (
+        "the executed launcher is not the shipped launcher"
+    )
+    for mode, run in shipped_file_runs["runs"].items():
+        assert run["rc"] == 0, (
+            f"the {mode} run of the shipped launcher exited {run['rc']}; through "
+            "the scheduled task that is a lost forecast"
+        )
+        assert run["log"].exists(), (
+            f"the {mode} run wrote no transcript at {run['log']}, so it did not "
+            "get a console and proves nothing either way"
+        )
+
+
+@needs_git
+@needs_production_spawn
+def test_the_shipped_file_reaches_the_witness_line_and_the_job(shipped_file_runs):
+    """The whole-file path, not just the widening.
+
+    This is what section 4 cannot assert: that the block sits in a file which
+    still syncs, still attributes the vintage to a SHA, and still invokes the
+    job -- in the console `wscript.exe` created. A widening that quietly cost
+    any of those would be a far worse trade than the wrap it removes.
+    """
+    for mode, run in shipped_file_runs["runs"].items():
+        lines = _log_lines(run["log"])
+        assert any(ln.startswith("net-position serving commit: ") for ln in lines), (
+            f"the {mode} run emitted no ABL-692 witness line:\n" + "\n".join(lines)
+        )
+        assert not any("STALE - sync failed" in ln for ln in lines), (
+            f"the {mode} run did not sync its clone, so the launcher's own "
+            "fetch/reset path was never exercised"
+        )
+        assert any(_SENTINEL in ln for ln in lines), (
+            f"the {mode} run never reached the job: `& $job -Repo` did not run"
+        )
+
+
+@needs_git
+@needs_production_spawn
+def test_the_shipped_file_control_still_wraps_at_120(shipped_file_runs):
+    """Control, and it is what gives the next test its meaning.
+
+    `-BufferWidth 120` is not "the block removed" -- the block runs and reports
+    `120 (already at least 120)`. So the pair differs by the width alone, and a
+    treatment that unwraps cannot be explained by the harness having changed.
+    """
+    lines = _log_lines(shipped_file_runs["runs"]["control"]["log"])
+    assert any(f"{WRAP} (already at least {WRAP})" in ln for ln in lines), (
+        "the control did not run the widening block as a no-op; it is not a "
+        "control for the treatment below:\n" + "\n".join(
+            ln for ln in lines if "transcript width" in ln
+        )
+    )
+    assert any(ln.startswith("2026-09-10 12:09:49,816") for ln in lines), (
+        "no native output reached the transcript at all, so nothing about "
+        "wrapping was measured:\n" + "\n".join(lines)
+    )
+    assert CALIBRATED not in lines, (
+        "the control did not wrap: this spawn does not reproduce the cron's "
+        f"{WRAP}-column console, so the treatment below proves nothing"
+    )
+    assert any(len(ln) == WRAP and ln.startswith("2026-09-10") for ln in lines), (
+        f"no native line was cut at exactly {WRAP} columns"
+    )
+    assert not any(
+        re.search(r"calibrated s_lo=[\d.]+ s_hi=[\d.]+\)", ln) for ln in lines
+    ), "the suffix survived in the control"
+
+
+@needs_git
+@needs_production_spawn
+def test_the_shipped_file_through_the_production_spawn_stops_the_wrap(
+    shipped_file_runs, launcher
+):
+    """The claim ABL-751 confirms in production, pinned here on the same file.
+
+    Same clone, same stub job, same payload bytes, same `wscript.exe //B` spawn
+    as the 08:00 task -- default `-BufferWidth`. The plain `Select-String` for
+    the calibrated suffix, which matched zero lines on a healthy system before
+    ABL-733, matches exactly once.
+    """
+    width = int(_param_default(launcher, "BufferWidth"))
+    lines = _log_lines(shipped_file_runs["runs"]["treatment"]["log"])
+
+    assert any(
+        ln.strip() == f"net-position serving transcript width: {WRAP} -> {width}"
+        for ln in lines
+    ), (
+        f"the log does not record the widening as `{WRAP} -> {width}` -- which "
+        "is the exact string ABL-751 greps for in production:\n"
+        + "\n".join(ln for ln in lines if "transcript width" in ln)
+    )
+    assert CALIBRATED in lines, (
+        "the 133-char native line is still not whole in the transcript:\n"
+        + "\n".join(ln for ln in lines if "quantile" in ln or "s_hi" in ln)
+    )
+    assert not any(ln.startswith(" s_hi=") for ln in lines), "a continuation row remains"
+    assert any(ln.startswith("STDOUT ") and ln.endswith(" END") for ln in lines), (
+        "the 174-char stdout line did not survive whole either"
+    )
+    assert not any(len(ln) == WRAP and ln.startswith("2026-09-10") for ln in lines), (
+        f"a native line is still cut at exactly {WRAP} columns"
+    )
+    suffix = [ln for ln in lines if re.search(r"calibrated s_lo=[\d.]+ s_hi=[\d.]+\)", ln)]
+    assert len(suffix) == 1, (
+        f"the plain suffix grep matched {len(suffix)} lines, expected exactly 1"
+    )
