@@ -136,10 +136,16 @@ from pathlib import Path
 # increments whose tests are actually gated. CI measured exactly 6, at the
 # ceiling rather than over it.
 #
+# ABL-733 follow-up adds 4 more to the same file -> 1863 (1859 + 4), a local
+# collect measured exactly. None of the four are gated on a Windows console:
+# one is structural, one pins a claim in the report, and two drive a git clone
+# through plain `pwsh` with stdio redirected, which the ubuntu-latest runner
+# does fine. So `max_skipped` stays at 6.
+#
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": 1859,
+    "tests": 1863,
     "max_skipped": 6,
 }
 

@@ -141,6 +141,17 @@ resolved SHA, then invokes `run-net-position.ps1` from that tree. It **refuses
 the dev checkout** — resetting that tree would discard an agent's work. A failed
 sync still forecasts, and still logs the SHA, marked `STALE`.
 
+**A change to the launcher itself serves one run later than everything else**
+(ABL-733). `powershell.exe -File` parses the whole script before running it, and
+the launcher is what performs the sync — so the run that pulls a new launcher is
+still executing the old one, and the witness SHA it logs is the *incoming* one.
+Everything else in the tree, `run-net-position.ps1` included, is read after the
+reset and serves on the first run. So when you change
+`run-net-position-serving.ps1`, confirm on the **second** scheduled run and say
+so wherever you write the confirmation step; a zero-match grep on the first run
+is the healthy result, not a failure. Reproduced in
+`test_a_running_launcher_does_not_see_its_own_update`.
+
 Read the SHA before claiming a serving change is live; never infer it:
 
 ```powershell
