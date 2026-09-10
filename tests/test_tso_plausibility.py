@@ -805,7 +805,7 @@ ML_SLICE_ONLY_EXEMPT = (
     # claim. Measured over the ABL-607 window (ABL-619, section 0 of
     # `reports/abl_607_d2_load_diagnosis_reread.json`): **0 of 67,008 rows
     # would have been refused**, 24/24 countries carrying an evaluable
-    # reference, our largest published value never above 32.3% of any
+    # reference, our largest published value never above 32.4% of any
     # country's threshold -- so it is a zero that was tested, not a zero that
     # was never evaluated. Pinned by `tests/test_abl607_guarded_read.py`, which
     # fails if this comment and that artifact ever disagree, in either
@@ -1053,7 +1053,12 @@ def ml_slice_violations(source: str, tables=TSO_TABLES):
        working around it, `chr(116)` being the end of any such argument, so
        the residual is carried by review of a one-member list that
        `test_no_file_is_on_two_of_the_sweep_s_four_lists` holds to entries
-       that exist and sit on no other list -- not by this arm.
+       that exist and sit on no other list -- not by this arm.  Both sizes
+       this paragraph states are derived from the collections themselves by
+       `test_arm_3_s_counts_are_derived_from_the_collections_they_count`
+       (ABL-669): growing either list reds that test rather than quietly
+       falsifying the sentence, which is this card's own defect one level
+       out.
     4. **No such query at all.**  The entry is stale, or it is a mention-only
        file on the wrong list.  Without this arm a file could satisfy the
        category by no longer reading anything, and the exemption would go on
@@ -1185,8 +1190,11 @@ def test_the_ml_slice_control_passes_before_it_is_broken():
     assert ml_slice_violations(_ML_SLICE_OK) == []
 
 
-#: The same vector as the runtime-assembly control above, spelled three ways
-#: the literal match misses.  These are **allowed today** and arm 3's docstring
+#: The same vector as the runtime-assembly control above, spelled the ways the
+#: literal match misses.  No count here: a comment cannot be read back at run
+#: time, so it cannot carry a number that a fourth entry would falsify --
+#: arm 3's paragraph is where this collection's size is stated, and pinned
+#: (ABL-669).  These are **allowed today** and arm 3's docstring
 #: now says so.  They are held as a test because that paragraph is the only
 #: description a future entrant to `ML_SLICE_ONLY_EXEMPT` will read (ABL-669),
 #: and a category whose thesis is "checked, not claimed" cannot describe its own
@@ -1221,8 +1229,9 @@ def test_arm_3_stops_where_its_docstring_says_it_stops(how):
     ABL-669: the sentence read "in this category the literal `'tso'` is refused
     wherever it appears in code", which is wider than the code beneath it.
     `TSO_SLICE_LITERAL` carries the SQL quotes, so it matches the slice inside a
-    string *value*; these three spellings of the vector the control above names
-    go straight through.  The control's name generalised, its body was one
+    string *value*; the spellings of that vector collected in
+    `_ML_SLICE_OUT_OF_REACH` go straight through.  The control's name
+    generalised, its body was one
     spelling -- the ABL-462 vacuity one level finer, and this is the arm's
     reach measured rather than described.
 
@@ -1253,6 +1262,61 @@ def test_the_out_of_reach_cases_are_the_vector_the_control_names():
         assert "QUERY" in added and "tso" in added, (
             f"{how!r} no longer rewrites the file's own query into a TSO "
             f"read: {added!r}")
+
+
+#: Spelled out in arm 3's paragraph, so a pin on its sizes has to spell them
+#: too.  Not imported from `tests/test_abl607_guarded_read.py`, which keeps the
+#: same table: `tests/` is not a package and nothing in the repo imports across
+#: test modules.
+_COUNT_WORDS = ("no", "one", "two", "three", "four", "five", "six", "seven",
+                "eight", "nine", "ten")
+
+
+def _count_word(n: int, what: str) -> str:
+    """``n`` as arm 3 spells it, refusing a list too long for the argument."""
+    assert n < len(_COUNT_WORDS), (
+        f"{what} has grown to {n} entries -- past the words this pin can "
+        f"spell, and past a list arm 3 can rest its residual on review of. "
+        f"Rewrite the paragraph rather than extending the table.")
+    return _COUNT_WORDS[n]
+
+
+def test_arm_3_s_counts_are_derived_from_the_collections_they_count():
+    """Arm 3 states two sizes, and each belongs to something defined a long
+    way from the sentence: `ML_SLICE_ONLY_EXEMPT` some 270 lines above,
+    `_ML_SLICE_OUT_OF_REACH` some 140 below.  Both are meant to grow, so
+    either could be extended by an ordinary edit leaving the paragraph false
+    with nothing red -- ABL-669's own defect, in the commit that closed it.
+
+    The remedy is section 4 of `tests/test_abl607_guarded_read.py`'s: the
+    numbers stay in the prose, because how large the reviewed surface is *is*
+    arm 3's argument, and they are derived here rather than quoted.  This is
+    not `len(...) == 1`; it holds neither collection to a size.  It holds the
+    sentence to whatever the size is -- and a second exemption entry is
+    exactly when "the residual is carried by review" wants re-reading.
+
+    Read off `__doc__` rather than the file text, for the reason
+    `_census_text` gives one file over: the expected strings are built here,
+    so a search over the source would find this test's own constants and pass
+    whatever the paragraph happened to say.
+    """
+    doc = " ".join((ml_slice_violations.__doc__ or "").split())
+    assert doc, "ml_slice_violations has no docstring -- this test is blind"
+
+    word = _count_word(len(ML_SLICE_ONLY_EXEMPT), "ML_SLICE_ONLY_EXEMPT")
+    reviewed = f"review of a {word}-member list"
+    assert reviewed in doc, (
+        f"ML_SLICE_ONLY_EXEMPT now has {len(ML_SLICE_ONLY_EXEMPT)} entries. "
+        f"Arm 3 rests its residual on review of that list and has to say how "
+        f"big it is: expected {reviewed!r}. A longer list is not a reason to "
+        f"drop the count -- it is the reason to re-read the paragraph.")
+
+    word = _count_word(len(_ML_SLICE_OUT_OF_REACH), "_ML_SLICE_OUT_OF_REACH")
+    reach = f"holds those {word} spellings"
+    assert reach in doc, (
+        f"_ML_SLICE_OUT_OF_REACH now holds {len(_ML_SLICE_OUT_OF_REACH)} "
+        f"spellings and arm 3 states a different number: expected {reach!r}. "
+        f"A spelling added here widens what the paragraph admits it misses.")
 
 
 def test_a_docstring_can_neither_satisfy_nor_trip_the_ml_slice_check():

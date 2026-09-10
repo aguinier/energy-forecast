@@ -38,6 +38,7 @@ drift from the other.
 
 import ast
 import json
+import math
 import re
 import sqlite3
 import statistics
@@ -388,6 +389,22 @@ def _census_text(relpath: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _census_prose(relpath: str) -> str:
+    """One census text with its wrapping *and* its comment markers collapsed.
+
+    Two of the three texts are `#` comment blocks and the third is a docstring,
+    so a claim that spans a line break is interrupted by a `# ` in the first
+    two -- which `_flat` alone would leave in place. Stripping the marker is
+    what lets one derived fragment be asserted against all three, and it is
+    what keeps a re-wrap from turning these pins red, for the reason `_flat`
+    gives. Kept separate from `_flat` rather than folded into it because that
+    one runs over Markdown, where a leading `#` is a heading and not noise.
+    """
+    return " ".join(part
+                    for line in _census_text(relpath).splitlines()
+                    for part in line.lstrip().lstrip("#").split())
+
+
 def test_no_text_claims_a_census_the_committed_report_does_not_carry():
     """ABL-619's finding, pinned as an invariant rather than a re-wording.
 
@@ -436,6 +453,81 @@ def test_no_text_claims_a_census_the_committed_report_does_not_carry():
         f"{REPORT.name} carries {section!r} but its meta is missing "
         f"{missing} -- the report was written by a script older than the "
         f"mirrors, or the mirrors were dropped")
+
+
+def test_every_text_quotes_the_census_numbers_the_report_carries():
+    """The other half of ABL-619, and the half the qualifier cannot reach.
+
+    The test above pins *whether* the census is published. It says nothing
+    about what it found, and all three texts quote that: the count refused, the
+    rows read, how many countries carried an evaluable reference. Measured at
+    `7fc1fde` -- falsify all three numbers in all three texts and the suite is
+    still `1786 passed, 1 skipped`. So the `ML_SLICE_ONLY_EXEMPT` entry saying
+    it is "pinned by `tests/test_abl607_guarded_read.py`, which fails if this
+    comment and that artifact ever disagree, in either direction" was wider
+    than what was checked: a text claiming more reach than the check has, which
+    is ABL-669, at a site where the numbers are a published measurement.
+
+    Derived from the record in section 4's idiom, so a re-read that moves the
+    window reds every text still quoting the old one -- rather than leaving
+    three merged texts describing a run nobody can find, which is what ABL-619
+    was.
+    """
+    report = json.loads(REPORT.read_text(encoding="utf-8"))
+    section, = [k for k in _script_dict_keys("record") if "census" in k]
+    census = report.get(section)
+    if census is None:
+        pytest.skip("no census on disk -- "
+                    "test_no_text_claims_a_census_the_committed_report_does_"
+                    "not_carry owns that failure")
+
+    per_country = census["per_country"]
+    assert per_country, "census ran over no countries"
+    evaluable = [c for c in per_country if c["evaluable"]]
+    quoted = (
+        f"{census['rows_would_be_refused']} of {census['rows_read']:,} rows",
+        f"{len(evaluable)}/{len(per_country)} countries",
+    )
+
+    assert CENSUS_TEXTS, "no census texts left -- this test certifies nothing"
+    for relpath, what in CENSUS_TEXTS:
+        prose = _census_prose(relpath)
+        assert prose, f"{relpath}: {what} is empty; this test has gone blind"
+        for fragment in quoted:
+            assert fragment in prose, (
+                f"{relpath} ({what}) does not quote {fragment!r}, which is "
+                f"what {REPORT.name} records. Either the text is stale or "
+                f"the report moved under it -- ABL-619 was the first of "
+                f"those, and the exemption entry claims it cannot happen "
+                f"unnoticed.")
+
+    # The headroom bound, in whichever texts carry it. Rounded *up*: it is
+    # stated as a bound ("never above"), and a bound quoted at the value's own
+    # rounding is false whenever the value rounds down -- the largest ratio on
+    # record is 32.338% of a country's threshold, which is not <= 32.3%. That
+    # was the merged wording; the number was right at 1 dp and the sentence
+    # was not (ABL-669).
+    ratios = [c["max_over_threshold"] for c in evaluable
+              if c["max_over_threshold"] is not None]
+    assert ratios, "no evaluable country recorded headroom"
+    bound = math.ceil(max(ratios) * 1000) / 10
+    headroom = f"never above {bound:.1f}% of any country's threshold"
+
+    stating = [(relpath, prose)
+               for relpath, prose in ((r, _census_prose(r))
+                                      for r, _ in CENSUS_TEXTS)
+               if "never above" in prose]
+    assert stating, (
+        "no census text states the headroom bound any more. It is what makes "
+        "the zero a tested zero rather than an untested one, so dropping it "
+        "removes the evidence the exemption rests on")
+    for relpath, prose in stating:
+        assert headroom in prose, (
+            f"{relpath} states a headroom bound {REPORT.name} does not "
+            f"support: the largest published value is "
+            f"{max(ratios) * 100:.3f}% of a country's threshold, so the "
+            f"bound at the precision the text uses is {bound:.1f}% -- "
+            f"expected {headroom!r}")
 
 
 def test_the_published_census_could_have_detected_something():
