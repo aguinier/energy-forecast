@@ -11,12 +11,35 @@ exiting 0 having run less. `pytest.ini` pins `testpaths = tests` precisely
 because collection scope has bitten this repo before (ABL-336), and CI is the
 one reader that never notices a quiet drop, because nobody reads a green check.
 
+The count check fires on a DROP only, so the gate also reports SLACK -- a run
+that collected MORE than the recorded floor (ABL-742). Slack is not a build
+failure; see the note above `slack()` for why, and for what it prints instead.
+
+**Adding no test file does not mean the floor does not move.** Two families are
+glob-parametrized over the entry points, so a new `scripts/*.py` script is +2
+collected tests on its own::
+
+    tests/test_help_text_encoding.py::test_help_text_is_ascii[scripts/<name>.py]
+    tests/test_script_imports.py::test_script_import_preamble[<name>.py]
+
+and a new top-level `src/` module is +1 more::
+
+    tests/test_script_imports.py::test_no_flat_intra_src_imports[src/<name>.py]
+
+Measured, not read off the source: adding one throwaway script and one
+throwaway `src/` module to a checkout of main took a collect of those two files
+from 292 to 294 to 295. That is how main's floor went 4 stale -- the ABL-739
+train merged two PRs that added two entry points and no test file, so neither
+author had a reason to touch `FLOOR`, and CI ran 1833 against 1829 and stayed
+green.
+
 Standard library only, on purpose: it has to run in a job whose `pip install`
 step is the thing under suspicion.
 """
 
 from __future__ import annotations
 
+import os
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -62,10 +85,26 @@ from pathlib import Path
 # gated on PowerShell (it asserts on a guard that raises before any subprocess),
 # so the allowance stays at 4.
 #
+# ABL-742 records what main was ALREADY running but this number could not see.
+# The ABL-739 train (`999cc0d`) merged two PRs that added no test file and two
+# `scripts/*.py` entry points, and CI measured 1833 against this floor of 1829
+# and stayed green. 1833 is the CI number, from run 34504649220 on the runner --
+# the workstation venv is on a different Python minor to `.python-version`, so a
+# workstation count is not admissible here. ABL-742 then adds 14 to
+# `tests/test_abl647_test_floor.py` (purely additive: 14 collected -> 28), so
+# the count goes 1833 + 14 -> 1847. None of the 14 are gated on anything -- they
+# are stdlib, `tmp_path` and `monkeypatch` -- so `max_skipped` stays at 4.
+#
+# Note for whoever merges this against another branch that also moves this
+# number: those increments are ADDITIVE. Sum them; do not take the higher side.
+# That resolution is exactly what this commit makes visible, because taking the
+# higher side leaves the floor BELOW what the merged tree runs, and a floor
+# below the run is green.
+#
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": 1829,
+    "tests": 1847,
     "max_skipped": 4,
 }
 
@@ -126,6 +165,80 @@ def evaluate(counts: dict[str, int], floor: dict[str, int | None]) -> list[str]:
     return problems
 
 
+# ---------------------------------------------------------------------------
+# Slack: the direction this gate could not see (ABL-742)
+# ---------------------------------------------------------------------------
+#
+# `evaluate` above fires on a DROP only. A floor set too LOW is therefore never
+# red -- and green is exactly what slack looks like, so nothing says so. Main at
+# `999cc0d` ran 1833 tests against a floor of 1829 and passed, blind to those 4
+# for as long as the number stayed stale.
+#
+# Slack is reported, not failed, and the asymmetry is deliberate. A
+# `pull_request` build runs the MERGE of head into base, so a branch whose base
+# gained tests while it was out legitimately collects more than its own floor;
+# failing on that would turn every open PR red the moment main added a test, and
+# the fix would be a rebase rather than anything about the branch. Exactness is
+# only attainable on a `push` to main, which catches the drift one commit AFTER
+# the merge that caused it -- a red main blocks everyone, so that trade is a CI
+# ergonomics decision and not this file's to make unilaterally.
+#
+# What it does instead is remove the excuse: it prints the surplus, the number
+# to record, and the rule that explains where the surplus came from.
+
+
+def slack(counts: dict[str, int], floor: dict[str, int | None]) -> int | None:
+    """How many tests this run collected ABOVE the recorded floor.
+
+    `None` means there is nothing to report: the floor is unmeasured (already a
+    hard failure in `evaluate`), the run met it exactly, or the run came in
+    short (`evaluate`'s job, and a failure rather than slack). Only a strictly
+    positive surplus comes back, so callers can treat the result as a flag.
+    """
+    floor_tests = floor.get("tests")
+    if floor_tests is None:
+        return None
+    surplus = counts["tests"] - floor_tests
+    return surplus if surplus > 0 else None
+
+
+def describe_slack(ran: int, surplus: int) -> list[str]:
+    """The lines to print when a run came in above its floor.
+
+    It names the number to WRITE, not just the number it saw. The reader
+    already has both counts in front of them and still has to work out what to
+    record; every stale floor this repo has had came from someone not doing
+    that arithmetic, or not knowing the floor had moved at all.
+    """
+    return [
+        f"SLACK: this run collected {surplus} more test(s) than the recorded floor.",
+        f"Record it: set FLOOR['tests'] = {ran} in scripts/test_floor.py, in the "
+        "commit that moved it.",
+        "A floor below what the suite runs is not a safe margin. It is blind to "
+        "exactly those tests disappearing again.",
+        "Adding no test FILE does not mean the floor does not move: a new "
+        "scripts/*.py entry point is +2 collected tests by itself, and a new "
+        "top-level src/ module is +1 more. This file's docstring names the three "
+        "glob-parametrized tests responsible.",
+        "If the base branch gained tests while this branch was out, this is the "
+        "expected shape on a pull_request build. Resolve a conflict on FLOOR by "
+        "SUMMING the increments, never by taking the higher of the two sides.",
+    ]
+
+
+def github_warning(message: str) -> str:
+    """Render a message as a GitHub Actions warning annotation.
+
+    A log line alone does not fix the visibility problem, because the problem IS
+    that nobody opens a green job's log. An annotation renders on the run
+    summary page and on the PR's checks tab without anyone expanding a step, and
+    it leaves the exit status alone. A workflow command is one line, so the
+    newlines have to be escaped rather than emitted.
+    """
+    escaped = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    return f"::warning file=scripts/test_floor.py::{escaped}"
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 1:
         print("usage: python scripts/test_floor.py <junit-xml-report>", file=sys.stderr)
@@ -154,13 +267,29 @@ def main(argv: list[str]) -> int:
 
     floor_tests = FLOOR.get("tests")
     max_skipped = FLOOR.get("max_skipped")
+    surplus = slack(counts, FLOOR)
+
+    floor_label = f"floor {floor_tests if floor_tests is not None else 'UNMEASURED'}"
+    if surplus is not None:
+        floor_label += f", SLACK +{surplus} -- raise it"
     print(
         f"test_floor: {counts['tests']} tests "
-        f"(floor {floor_tests if floor_tests is not None else 'UNMEASURED'}), "
+        f"({floor_label}), "
         f"{counts['failures']} failed, {counts['errors']} errored, "
         f"{counts['skipped']} skipped "
         f"(allowance {max_skipped if max_skipped is not None else 'UNMEASURED'})"
     )
+
+    # Not stderr: in this file stderr means the build is failing, and slack is
+    # not a failure. It goes out on stdout beside the headline it qualifies.
+    if surplus is not None:
+        advice = describe_slack(counts["tests"], surplus)
+        print("")
+        for line in advice:
+            print(f"  - {line}")
+        print("")
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            print(github_warning("\n".join(advice)))
 
     problems = evaluate(counts, FLOOR)
     if not problems:
