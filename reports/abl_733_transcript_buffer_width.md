@@ -128,10 +128,20 @@ control and 174 in both treatments. Nothing is padded to the new width.
 
 ### The tests
 
-`tests/test_abl733_transcript_buffer_width.py` — 12 passed under
-`C:\Code\able\energy-forecast\.venv\Scripts\python.exe`. Two of them execute the
-shipped block in a hidden console and are the reason the rest are not just
-grep assertions:
+`tests/test_abl733_transcript_buffer_width.py` — **20 passed** under
+`C:\Code\able\energy-forecast\.venv\Scripts\python.exe`.
+
+That count has moved twice since this section was first written, and this
+paragraph was stale for both: it said **12**, which was right for PR #120 and
+wrong from the moment #122 merged. #122 added the four one-run-lag tests in
+"[When it starts serving](#when-it-starts-serving--one-run-later-than-it-looks)"
+below (12 → 16), and ABL-751 added the four shipped-file rehearsal tests in
+"[The shipped file, through the production spawn](#the-shipped-file-through-the-production-spawn)"
+(16 → 20). A test count in prose is a claim like any other; re-derive it from
+the file rather than from this sentence.
+
+Two of the original twelve execute the shipped block in a hidden console and are
+the reason the rest are not just grep assertions:
 
 - `test_the_control_reproduces_the_120_column_wrap` runs the harness **without**
   the block and asserts the transcript holds a line cut at exactly 120 and no
@@ -141,7 +151,8 @@ grep assertions:
   extracted verbatim from the launcher, and asserts the 133-char line is whole.
 
 Both are gated on a Windows console and skip on the ubuntu CI runner, which has
-none; `scripts/test_floor.py`'s allowance moves 4 → 6 to say so out loud.
+none; `scripts/test_floor.py`'s allowance moved 4 → 6 to say so out loud, and
+6 → 10 for ABL-751's four, which are gated on the `.vbs` as well.
 
 Six mutations, each re-read from disk to confirm it applied before the run —
 the harness also asserts the tree is clean before every one, so a failed restore
@@ -173,6 +184,58 @@ comments name `Start-Transcript` twice before the call — so the anchor landed
 inside the param block, where nothing can precede it, and the tests would have
 passed however the block was placed. They now match a statement and assert the
 match is not inside a comment.
+
+### The shipped file, through the production spawn
+
+Everything above executes an **extract**. The two hidden-console tests lift the
+widening block out of the launcher into a miniature script, and the one-run-lag
+tests below drive a *miniature* launcher against a miniature origin. Nothing ran
+`scripts/workstation/run-net-position-serving.ps1` byte for byte, and nothing
+went through the scheduled task's actual action —
+`wscript.exe //B //Nologo run-hidden.vbs` → `powershell.exe -WindowStyle Hidden
+-File …`. ABL-733 closed that gap by hand on 2026-09-10, once. ABL-751 turned
+the one-off into four tests, because a thing measured once is not a thing
+pinned.
+
+The fixture builds a throwaway origin holding the working tree's launcher
+**byte for byte** (asserted, after a `clone -c core.autocrlf=false`, so a
+renormalised line ending cannot quietly substitute a different file) plus a stub
+job, clones it, and runs the launcher twice through the real `.vbs`. Control
+first, and the control is not "the block removed": `-BufferWidth 120` makes the
+widening a genuine no-op on a 120-column console, so the pair differs by one
+parameter.
+
+What this covers that the extract cannot is the **whole-file path** — param
+block, dev-checkout refusal, `Start-Transcript` on a real `-LogDir`, the
+fetch/reset, the ABL-692 witness line, and `& $job -Repo` — all in the console
+`wscript.exe` created. Two mutations make the difference concrete. Both leave
+every structural assertion and both hidden-console tests **green**, because the
+widening block itself is untouched and the extract harness never invokes a job:
+
+| mutation | caught by |
+|---|---|
+| `& $job -Repo $Serving` → `… \| Out-Null` | the ABL-751 control and treatment tests — **and nothing else in the file** |
+| `& $job -Repo $Serving` → `… 2>&1 > …` | all four ABL-751 tests — **and nothing else in the file** |
+
+That is the same defect this whole issue is about, one level up: a pipeline or a
+redirect takes the job's output off the console, so `Start-Transcript` never
+records it and the widening is pointless. `Write-Host` survives a `| Out-Null`
+and native output does not — which is why the witness-line test still passed on
+the first mutation while both wrapping tests failed. The asymmetry that made
+ABL-732's grep wrong is the asymmetry that makes this mutation invisible to
+everything except a test that runs the real file.
+
+They are gated on `C:\Users\guill\bin\run-hidden.vbs` and `wscript.exe`
+existing, so they skip on the ubuntu runner and run on the workstation, which is
+where the launcher runs in production. They are deliberately given **no
+substitute spawn**: reimplementing the `.vbs` would measure a different spawn
+than the one that serves, and that is precisely the substitution these tests
+exist to stop relying on. The hidden-console tests above already hold the
+closest faithful approximation, and those do run on CI.
+
+Production is untouched — throwaway origin, throwaway clone, throwaway log
+directory, stub job. Nothing writes to `C:\Code\able\logs`, no scheduled task is
+triggered, and no forecast runs.
 
 ## When it starts serving — one run later than it looks
 
