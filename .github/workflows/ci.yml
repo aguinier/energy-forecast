@@ -40,6 +40,10 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -r requirements.txt
 
+      # pytest is deliberately NOT in requirements.txt — that file is the
+      # serving freeze, and a test-only package has no business widening it.
+      - run: python -m pip install -r requirements-dev.txt
+
       # Not piped: a pipe reports the pipe's exit status, and a failing suite
       # then reads as green. `pytest.ini` pins `testpaths = tests`, so this is
       # the documented bare command with a machine-readable report attached.
