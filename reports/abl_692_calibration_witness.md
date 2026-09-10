@@ -107,13 +107,43 @@ reach it.
 ## 5. Two findings that are not ABL-692
 
 **5a. The first calibrated vintage is 2026-09-10 10:09:24Z, not 2026-09-11 06:00Z.**
-ABL-677 currently instructs its reader to expect the first calibrated vintage on
-2026-09-11 06:00Z. One already exists, a day earlier, because the install was verified
-with a real run rather than left for the trigger. It needs specific handling and is
-raised on ABL-677: it is a **manual re-run sharing target day 2026-09-12 with the
-uncalibrated 06:00Z scheduled vintage**, so it is not an independent 24-hour vintage
-block and must not be counted as one -- but a naive `generated_at > first_calibrated`
-filter will pick it up, and `evaluate_net_position` scores every stored vintage.
+
+ABL-677's read-time checklist item 2 says *"Expected first: 2026-09-11 06:00Z."* That was
+right when written and is now a day off, because ABL-718 verified the install with a real
+run rather than leaving it for the trigger.
+
+**This correction could not be posted to ABL-677.** Every control-plane write in this run
+returned `403 cross_issue_influence_run_context_required` -- the run is not task-bound, so
+comments and status updates are unavailable to it, with or without the
+`X-Paperclip-Run-Id` header. The correction is recorded here and enforced in code
+(below) instead of as a comment. **ABL-677's next reader should treat this section as
+that comment.**
+
+The trap is not the date. Both vintages of 2026-09-10 target the same day, **2026-09-12**,
+so the calibrated 10:09Z run is a manual re-run, not an independent 24-hour block:
+
+1. **It must not be counted as one of the 10.** Two blocks sharing a target day are not
+   independent; pooling both double-counts 09-12's actuals and tightens the interval for
+   the same reason row-resampling does. ABL-677 item 6 already forbids that on the row
+   axis -- this is the same error on the vintage axis.
+2. **A filter phrased by date picks it up.** "Vintages on or after 2026-09-10" pools one
+   calibrated and one uncalibrated vintage for a single target day. (Phrased as
+   `generated_at > first_calibrated` it happens to exclude the right row, but only by
+   accident of ordering -- 06:00Z sorts before 10:09Z.)
+3. **It is already in the sidecar**, and `evaluate_net_position` scores every stored
+   vintage whether or not this read wants it.
+
+Suggested replacement for item 2: *count from the **scheduled** runs only. The first
+calibrated scheduled vintage is 2026-09-11 06:00Z; the tenth is 2026-09-20.
+`2026-09-10 10:09:24Z` is calibrated but is a manual install-verification re-run sharing
+target day 2026-09-12 with the uncalibrated 06:00Z vintage -- exclude it by
+`generated_at`, and do not read its existence as the window having opened early.*
+
+**The act date of 2026-09-22 does not move**, and neither does the tenth vintage.
+
+Rather than leave this as prose someone must remember, `duplicate_target_days()` in the
+probe flags any target day served by more than one vintage, so the duplicate has to be
+dispositioned rather than noticed. It fires on this case today.
 
 **5b. PT confirmed absent, cause reproduced.** PT has produced no `chronos-2-V010`
 net-position vintage since 2026-09-06 (six runs). Independently reproduced from the

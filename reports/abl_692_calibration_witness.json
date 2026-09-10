@@ -8,84 +8,98 @@
       "generated_at": "2026-09-10 10:09:24.243039",
       "countries": 18,
       "rows_all": 3888,
+      "target_days": "2026-09-12",
       "mean_band": 2840.3599769040356
     },
     {
       "generated_at": "2026-09-10 06:00:44.049287",
       "countries": 18,
       "rows_all": 3888,
+      "target_days": "2026-09-12",
       "mean_band": 2730.295122570462
     },
     {
       "generated_at": "2026-09-09 06:01:24.375582",
       "countries": 18,
       "rows_all": 3888,
+      "target_days": "2026-09-11",
       "mean_band": 2671.0214327706235
     },
     {
       "generated_at": "2026-09-08 06:00:38.115510",
       "countries": 18,
       "rows_all": 3888,
+      "target_days": "2026-09-10",
       "mean_band": 2617.2903197076585
     },
     {
       "generated_at": "2026-09-07 06:00:43.070505",
       "countries": 18,
       "rows_all": 3888,
+      "target_days": "2026-09-09",
       "mean_band": 2581.6740130318535
     },
     {
       "generated_at": "2026-09-06 06:00:42.439320",
       "countries": 18,
       "rows_all": 3888,
+      "target_days": "2026-09-08",
       "mean_band": 2576.54876420233
     },
     {
       "generated_at": "2026-09-05 06:00:45.327710",
       "countries": 19,
       "rows_all": 4104,
+      "target_days": "2026-09-07",
       "mean_band": 2514.37428982216
     },
     {
       "generated_at": "2026-09-04 06:00:18.265639",
       "countries": 19,
       "rows_all": 4104,
+      "target_days": "2026-09-06",
       "mean_band": 2672.374752253817
     },
     {
       "generated_at": "2026-09-03 06:00:51.430117",
       "countries": 19,
       "rows_all": 4104,
+      "target_days": "2026-09-05",
       "mean_band": 3078.0255638591034
     },
     {
       "generated_at": "2026-09-01 06:00:45.728618",
       "countries": 9,
       "rows_all": 1944,
+      "target_days": "2026-09-03",
       "mean_band": 2746.7147924259857
     },
     {
       "generated_at": "2026-08-31 06:00:47.554384",
       "countries": 19,
       "rows_all": 4104,
+      "target_days": "2026-09-02",
       "mean_band": 3045.91700755661
     },
     {
       "generated_at": "2026-08-30 06:00:48.053728",
       "countries": 19,
       "rows_all": 4104,
+      "target_days": "2026-09-01",
       "mean_band": 2719.2921598752337
     },
     {
       "generated_at": "2026-08-29 06:00:45.786997",
       "countries": 19,
       "rows_all": 4104,
+      "target_days": "2026-08-31",
       "mean_band": 2531.6809086172207
     },
     {
       "generated_at": "2026-08-28 06:00:36.044204",
       "countries": 19,
       "rows_all": 4104,
+      "target_days": "2026-08-30",
       "mean_band": 2653.901134967804
     }
   ],
@@ -292,6 +306,12 @@
       "2026-09-07 06:00:43.070505": 18,
       "2026-09-06 06:00:42.439320": 18,
       "2026-09-01 06:00:45.728618": 9
+    },
+    "duplicate_target_days": {
+      "2026-09-12": [
+        "2026-09-10 10:09:24.243039",
+        "2026-09-10 06:00:44.049287"
+      ]
     }
   }
 }

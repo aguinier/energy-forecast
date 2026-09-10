@@ -47,12 +47,18 @@ def ro_connect(path: str) -> sqlite3.Connection:
 
 
 def band_by_vintage(conn: sqlite3.Connection, limit: int) -> list:
-    """Mean p90-p10 width and coverage per (generated_at) vintage, newest first."""
+    """Mean p90-p10 width and coverage per (generated_at) vintage, newest first.
+
+    `target_days` comes back too, because a vintage is only a 24h block if it
+    owns its target day -- see `duplicate_target_days`.
+    """
     rows = conn.execute(
         """
         SELECT generated_at,
                COUNT(DISTINCT country_code)                         AS countries,
                COUNT(*)                                             AS rows_all,
+               GROUP_CONCAT(DISTINCT substr(target_timestamp_utc, 1, 10))
+                                                                    AS target_days,
                AVG(CASE WHEN quantile = 0.9 THEN forecast_value END)
                  - AVG(CASE WHEN quantile = 0.1 THEN forecast_value END) AS mean_band
         FROM forecast_quantiles
@@ -64,6 +70,28 @@ def band_by_vintage(conn: sqlite3.Connection, limit: int) -> list:
         (MODEL, FORECAST_TYPE, limit),
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+def duplicate_target_days(vintages: list) -> dict:
+    """Target days served by more than one vintage.
+
+    A trigger that reads "the first N vintages" is reading 24-hour *blocks*, and
+    two vintages that forecast the same day are not two blocks: pooling both
+    double-counts that day's actuals and tightens the interval, the same error
+    as resampling rows instead of vintages.
+
+    This is not hypothetical. Verifying the ABL-692 install with a real run left
+    2026-09-10 with two vintages for target day 2026-09-12 -- one calibrated,
+    one not -- and `evaluate_net_position` scores every stored vintage, so a
+    reader who counts by `generated_at` alone silently pools them. Flagged here
+    so the duplicate has to be dispositioned rather than noticed.
+    """
+    days = {}
+    for v in vintages:
+        for day in (v.get("target_days") or "").split(","):
+            if day:
+                days.setdefault(day, []).append(v["generated_at"])
+    return {d: gs for d, gs in days.items() if len(gs) > 1}
 
 
 def per_country_ratio(conn: sqlite3.Connection, new_vintage: str,
@@ -292,7 +320,17 @@ def main() -> int:
     present = {v["generated_at"]: v["countries"] for v in vintages}
     full = max(present.values()) if present else 0
     short = {g: n for g, n in present.items() if n < full}
-    detail["coverage"] = {"max_countries_seen": full, "short_vintages": short}
+    dupes = duplicate_target_days(vintages)
+    detail["coverage"] = {"max_countries_seen": full, "short_vintages": short,
+                          "duplicate_target_days": dupes}
+    if dupes:
+        print()
+        print("duplicate target days -- these vintages are NOT independent 24h "
+              "blocks and must not both be pooled:")
+        for day, gens in sorted(dupes.items()):
+            print(f"  target {day} served by {len(gens)} vintages:")
+            for g in gens:
+                print(f"    {g}")
     if short:
         print()
         print(f"coverage: {full} countries is the widest vintage in this window; "
