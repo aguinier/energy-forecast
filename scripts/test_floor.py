@@ -57,10 +57,15 @@ from pathlib import Path
 # ever drops it they skip instead, and this gate is the thing that says so
 # rather than the four quietly stopping.
 #
+# ABL-735 adds 1 to the same file -- the non-vacuity control on that file's own
+# fixture-rebinding guard -- so the count goes to 1829. It is deliberately NOT
+# gated on PowerShell (it asserts on a guard that raises before any subprocess),
+# so the allowance stays at 4.
+#
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": 1828,
+    "tests": 1829,
     "max_skipped": 4,
 }
 

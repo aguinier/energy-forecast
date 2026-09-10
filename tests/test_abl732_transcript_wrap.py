@@ -193,14 +193,31 @@ def test_the_stitch_rule_keeps_both_of_its_clauses():
 
 def _run_block(block: str, log: Path, tmp_path: Path) -> str:
     script = tmp_path / "confirm.ps1"
-    rebound = re.sub(
+    rebound, rebindings = re.subn(
         r'^\$log\s*=\s*".*"$',
         '$log = "{}"'.format(str(log).replace("\\", "\\\\")),
         block,
         count=1,
         flags=re.MULTILINE,
     )
-    assert str(log.name) in rebound, "the $log assignment was not rebound"
+    # This self-check has to be able to fail, and `str(log.name) in rebound`
+    # cannot: the fixture deliberately carries the production log's basename,
+    # which the block itself hardcodes, so that assert passes whether or not the
+    # substitution fired. A block that was NOT rebound runs against
+    # `C:/Code/able/logs/net-position-forecast.log` -- the live one -- and on the
+    # workstation that writes it the tests above would still be green, because
+    # the real log currently holds the same band the fixture asserts. Count the
+    # substitutions instead: that is the one form of this check that can fail.
+    #
+    # `assert str(log) in rebound` was the obvious companion and is deliberately
+    # NOT here -- no mutation could make it the catcher. Dropping the backslash
+    # doubling above, the one way to rebind to a wrong path, raises
+    # `re.PatternError: bad escape \U` out of re.subn before any assert runs.
+    assert rebindings == 1, (
+        "the $log assignment was not rebound, so the block would read its own "
+        "hardcoded production path. Has that line been reformatted -- single "
+        "quotes, a line break -- so the pattern stopped matching?"
+    )
     script.write_text(rebound, encoding="ascii")
     proc = subprocess.run(
         [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
@@ -208,6 +225,43 @@ def _run_block(block: str, log: Path, tmp_path: Path) -> str:
     )
     assert proc.returncode == 0, f"the documented command failed:\n{proc.stderr}"
     return proc.stdout
+
+
+def test_the_fixture_rebinding_is_checked_by_something_that_can_fail(wrapped_log, tmp_path):
+    """Non-vacuity for `_run_block`'s own guard.
+
+    Every executing test below hands `_run_block` a block whose `$log` line is
+    rewritten to point at the fixture. If that rewrite ever stops firing, the
+    block runs against the real serving log -- and on this workstation it would
+    still pass, because the live log holds the same `s_lo=1.0722 s_hi=1.0091`
+    the fixture asserts. So the failure mode is not a red test; it is a green
+    test quietly reading production. The guard is the only thing standing in the
+    way, which makes "the guard fires" a property worth pinning.
+
+    Single quotes are the realistic way to lose it: `$log = '...'` is the same
+    PowerShell, and does not match a pattern anchored on a double quote.
+
+    Runs everywhere -- the guard raises before any subprocess, so this needs no
+    `pwsh` and no fixture log on disk.
+    """
+    block = _confirm_block()
+
+    # The positive half, so this is a two-sided control: the shipped block does
+    # rebind, provable without executing anything.
+    _, fired = re.subn(
+        r'^\$log\s*=\s*".*"$', '$log = "x"', block, count=1, flags=re.MULTILINE
+    )
+    assert fired == 1, (
+        "the shipped confirm block no longer has a rebindable `$log = \"...\"` "
+        "line; every executing test below is now reading some other file"
+    )
+
+    reformatted = re.sub(
+        r'^(\$log\s*=\s*)"(.*)"$', r"\1'\2'", block, count=1, flags=re.MULTILINE
+    )
+    assert reformatted != block, "the reformatting this test is built on did not apply"
+    with pytest.raises(AssertionError, match="was not rebound"):
+        _run_block(reformatted, wrapped_log, tmp_path)
 
 
 @needs_powershell
