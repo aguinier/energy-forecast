@@ -1,0 +1,58 @@
+# ABL-647. Until this existed, `statusCheckRollup` was empty on every PR in this
+# repo, so GitHub's MERGEABLE / CLEAN meant "applies without conflict" and
+# nothing more. Verifying a PR meant a human running the suite by hand, which is
+# why merging was expensive, which is why verified work stranded on the remote.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Python minor is pinned in .python-version and read from there, never
+      # written twice. It tracks the serving container's `python:3.11-slim`
+      # (docker/Dockerfile), because requirements.txt is an EXACT freeze of what
+      # that container resolved (ABL-597) — running the suite on a different
+      # minor tests a dependency set that nothing serves.
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+
+      # The pins are exact on purpose: every serving artifact under `models/` is
+      # a pickle whose load path names these libraries by version. An install
+      # that quietly floats one of them is the failure ABL-597 froze this file
+      # to prevent, so CI installs the frozen set and no more.
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements.txt
+
+      # Not piped: a pipe reports the pipe's exit status, and a failing suite
+      # then reads as green. `pytest.ini` pins `testpaths = tests`, so this is
+      # the documented bare command with a machine-readable report attached.
+      #
+      # No database and no `models/` artifacts exist here. Tests that need
+      # either are expected to skip themselves; the floor gate below asserts how
+      # many do, so "gated on a missing replica" cannot quietly become
+      # "everything skipped".
+      - name: test
+        run: python -m pytest -q --junitxml=report.xml
+
+      # `if: !cancelled()` so a failing suite still reports its counts — a run
+      # that went red is exactly when you need to know whether it also ran short.
+      - name: assert the test count did not drop
+        if: ${{ !cancelled() }}
+        run: python scripts/test_floor.py report.xml
