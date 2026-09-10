@@ -62,19 +62,29 @@ from pathlib import Path
 # gated on PowerShell (it asserts on a guard that raises before any subprocess),
 # so the allowance stays at 4.
 #
-# ABL-733 adds 12 (tests/test_abl733_transcript_buffer_width.py) -> 1841,
-# measured on the workstation after merging main as 1840 passed + 1 skipped,
-# green, in 146s. (An earlier pre-merge measurement recorded 2 failures in
-# tests/test_abl596_entrypoint_command_override.py from a WSL-bash path
-# artifact; they did not reproduce on this tree, so the number above is a
-# clean run, not a run with a known-red pair subtracted.)
+# The ABL-739 release train then merged two PRs that added NO test file and did
+# not touch this number, and the count still moved 1829 -> 1833. Two new
+# `scripts/*.py` entry points (`abl648_weather_retention_model.py`,
+# `abl692_calibration_witness.py`) are each picked up by two glob-parametrized
+# families -- `test_help_text_encoding.py::test_help_text_is_ascii` and
+# `test_script_imports.py::test_script_import_preamble` -- so a script is worth
+# +2 on its own. CI measured 1833 against a floor of 1829 on main at 999cc0d and
+# stayed green, because slack is invisible here: this gate only fires on a DROP.
+# Adding an entry point is a floor raise even when you add no tests.
 #
-# That 1841 is 1829 + 12, not the 1840 a "take the higher of the two conflicting
-# floors" merge resolution produces. ABL-733 branched at 1828 and ABL-735 landed
-# on main in between, so the two raises are ADDITIVE and the conflict has to be
-# resolved by summing the increments, not by picking a side. Picking the higher
-# side would leave the floor one BELOW what the merged tree runs -- exactly the
-# one-test slack this ratchet exists to deny.
+# ABL-733 adds 12 (tests/test_abl733_transcript_buffer_width.py) -> 1845, which
+# is 1833 + 12. Confirmed from BOTH sides: the ubuntu-latest runner reported
+# `1845 tests (floor ...), 0 failed, 0 errored, 6 skipped` on the PR's merge
+# commit, and a workstation collect on the same merge reports 1845 too, so the
+# two agree exactly and neither is a platform artifact.
+#
+# The arithmetic matters more than it looks. ABL-733 branched at 1828; ABL-735
+# (+1) and the train (+4) both landed on main while it was out. Those raises are
+# ADDITIVE -- resolve a conflict on this file by SUMMING the increments, never
+# by taking the higher of the two conflicting floors. Taking the higher side
+# here would have given 1841, four BELOW what the merged tree runs, and it would
+# have passed: a floor set too low is never red, just silently blind to exactly
+# the tests it can no longer see.
 #
 # `max_skipped` goes 4 -> 6 for two of those twelve:
 # `test_the_control_reproduces_the_120_column_wrap` and
@@ -85,12 +95,15 @@ from pathlib import Path
 # these genuinely cannot run there; they run on the workstation, which is where
 # the launcher they cover runs in production. The other ten -- eight structural
 # and two that execute a block through plain redirected `pwsh` -- run on CI.
-# ABL-735's one is not gated, so it does not move the allowance.
+# ABL-735's one and the train's four are not gated, so they do not move the
+# allowance. Unlike `tests`, `max_skipped` genuinely IS a max on merge -- it is a
+# ceiling, so take the higher side, and only raise it for increments whose tests
+# are actually gated. CI measured exactly 6, at the ceiling rather than over it.
 #
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": 1841,
+    "tests": 1845,
     "max_skipped": 6,
 }
 

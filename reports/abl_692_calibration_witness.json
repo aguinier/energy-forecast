@@ -1,0 +1,317 @@
+{
+  "issue": "ABL-692",
+  "sidecar_db": "C:/Code/able/data/forecasts_local.db",
+  "model_name": "chronos-2-V010",
+  "forecast_type": "net_position",
+  "vintages": [
+    {
+      "generated_at": "2026-09-10 10:09:24.243039",
+      "countries": 18,
+      "rows_all": 3888,
+      "target_days": "2026-09-12",
+      "mean_band": 2840.3599769040356
+    },
+    {
+      "generated_at": "2026-09-10 06:00:44.049287",
+      "countries": 18,
+      "rows_all": 3888,
+      "target_days": "2026-09-12",
+      "mean_band": 2730.295122570462
+    },
+    {
+      "generated_at": "2026-09-09 06:01:24.375582",
+      "countries": 18,
+      "rows_all": 3888,
+      "target_days": "2026-09-11",
+      "mean_band": 2671.0214327706235
+    },
+    {
+      "generated_at": "2026-09-08 06:00:38.115510",
+      "countries": 18,
+      "rows_all": 3888,
+      "target_days": "2026-09-10",
+      "mean_band": 2617.2903197076585
+    },
+    {
+      "generated_at": "2026-09-07 06:00:43.070505",
+      "countries": 18,
+      "rows_all": 3888,
+      "target_days": "2026-09-09",
+      "mean_band": 2581.6740130318535
+    },
+    {
+      "generated_at": "2026-09-06 06:00:42.439320",
+      "countries": 18,
+      "rows_all": 3888,
+      "target_days": "2026-09-08",
+      "mean_band": 2576.54876420233
+    },
+    {
+      "generated_at": "2026-09-05 06:00:45.327710",
+      "countries": 19,
+      "rows_all": 4104,
+      "target_days": "2026-09-07",
+      "mean_band": 2514.37428982216
+    },
+    {
+      "generated_at": "2026-09-04 06:00:18.265639",
+      "countries": 19,
+      "rows_all": 4104,
+      "target_days": "2026-09-06",
+      "mean_band": 2672.374752253817
+    },
+    {
+      "generated_at": "2026-09-03 06:00:51.430117",
+      "countries": 19,
+      "rows_all": 4104,
+      "target_days": "2026-09-05",
+      "mean_band": 3078.0255638591034
+    },
+    {
+      "generated_at": "2026-09-01 06:00:45.728618",
+      "countries": 9,
+      "rows_all": 1944,
+      "target_days": "2026-09-03",
+      "mean_band": 2746.7147924259857
+    },
+    {
+      "generated_at": "2026-08-31 06:00:47.554384",
+      "countries": 19,
+      "rows_all": 4104,
+      "target_days": "2026-09-02",
+      "mean_band": 3045.91700755661
+    },
+    {
+      "generated_at": "2026-08-30 06:00:48.053728",
+      "countries": 19,
+      "rows_all": 4104,
+      "target_days": "2026-09-01",
+      "mean_band": 2719.2921598752337
+    },
+    {
+      "generated_at": "2026-08-29 06:00:45.786997",
+      "countries": 19,
+      "rows_all": 4104,
+      "target_days": "2026-08-31",
+      "mean_band": 2531.6809086172207
+    },
+    {
+      "generated_at": "2026-08-28 06:00:36.044204",
+      "countries": 19,
+      "rows_all": 4104,
+      "target_days": "2026-08-30",
+      "mean_band": 2653.901134967804
+    }
+  ],
+  "per_country_ratio": [
+    {
+      "country_code": "AT",
+      "band_new": 2443.597202847799,
+      "band_old": 2348.251546223958,
+      "ratio": 1.040602829274044,
+      "lo_ratio": 1.0722000000000005,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "BE",
+      "band_new": 2992.5184005737306,
+      "band_old": 2873.2272644042964,
+      "ratio": 1.0415181693586522,
+      "lo_ratio": 1.0722,
+      "hi_ratio": 1.0091000000000003
+    },
+    {
+      "country_code": "BG",
+      "band_new": 1299.2655764986675,
+      "band_old": 1247.3826287587483,
+      "ratio": 1.0415934505930609,
+      "lo_ratio": 1.0722000000000003,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "CZ",
+      "band_new": 1440.7708772669475,
+      "band_old": 1385.066672007243,
+      "ratio": 1.0402177067613487,
+      "lo_ratio": 1.0722,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "DE",
+      "band_new": 13373.103565858968,
+      "band_old": 12851.881276448568,
+      "ratio": 1.0405561083392167,
+      "lo_ratio": 1.0722,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "EE",
+      "band_new": 331.7152215817134,
+      "band_old": 319.7346719106039,
+      "ratio": 1.037470286220505,
+      "lo_ratio": 1.0722000000000003,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "ES",
+      "band_new": 3806.140163705444,
+      "band_old": 3653.421808878581,
+      "ratio": 1.0418014570493135,
+      "lo_ratio": 1.0722,
+      "hi_ratio": 1.0090999999999999
+    },
+    {
+      "country_code": "FI",
+      "band_new": 2158.878582334264,
+      "band_old": 2087.0894571940107,
+      "ratio": 1.0343967647830346,
+      "lo_ratio": 1.0722,
+      "hi_ratio": 1.0090999999999999
+    },
+    {
+      "country_code": "FR",
+      "band_new": 7264.832210947673,
+      "band_old": 6982.762695312501,
+      "ratio": 1.0403951169391055,
+      "lo_ratio": 1.0721999999999998,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "HR",
+      "band_new": 1342.7816722604116,
+      "band_old": 1292.3178990681968,
+      "ratio": 1.0390490398907273,
+      "lo_ratio": 1.0721999999999998,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "HU",
+      "band_new": 1972.1482003977462,
+      "band_old": 1893.0293884277344,
+      "ratio": 1.0417948144142255,
+      "lo_ratio": 1.0722000000000003,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "LT",
+      "band_new": 1040.2511263509114,
+      "band_old": 1001.6804351806641,
+      "ratio": 1.0385059843594635,
+      "lo_ratio": 1.0722,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "LV",
+      "band_new": 374.18567009080255,
+      "band_old": 361.16146341959643,
+      "ratio": 1.0360620054750267,
+      "lo_ratio": 1.0721999999999998,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "NL",
+      "band_new": 5411.821674151357,
+      "band_old": 5198.315073649088,
+      "ratio": 1.0410722700485318,
+      "lo_ratio": 1.0722,
+      "hi_ratio": 1.0091000000000003
+    },
+    {
+      "country_code": "PL",
+      "band_new": 3251.70026231219,
+      "band_old": 3126.3823267618814,
+      "ratio": 1.040084008432873,
+      "lo_ratio": 1.0722,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "RO",
+      "band_new": 1672.9718115695955,
+      "band_old": 1610.9186770121255,
+      "ratio": 1.0385203396316467,
+      "lo_ratio": 1.0722,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "SI",
+      "band_new": 347.5720333621979,
+      "band_old": 334.0266138712566,
+      "ratio": 1.0405519169085193,
+      "lo_ratio": 1.0721999999999996,
+      "hi_ratio": 1.0091
+    },
+    {
+      "country_code": "SK",
+      "band_new": 602.2253321622213,
+      "band_old": 578.6623077392578,
+      "ratio": 1.040719818982198,
+      "lo_ratio": 1.0722,
+      "hi_ratio": 1.0091000000000003
+    }
+  ],
+  "q50_anchor": {
+    "matched_rows": 432,
+    "max_abs_diff": 0.0,
+    "anchored": true
+  },
+  "lo_ratio_mean": 1.0722,
+  "hi_ratio_mean": 1.0091,
+  "median_identical_across_vintages": {
+    "matched_rows": 432,
+    "max_abs_diff": 0.0,
+    "identical": true
+  },
+  "registered_calibration": {
+    "available": true,
+    "path": "C:\\Code\\able\\wt-abl692\\experiments\\net_position_quantile_calibration.json",
+    "models": {
+      "chronos-2-V010": {
+        "mode": "pooled",
+        "alpha": 0.1,
+        "s_lo_total": 1.0722,
+        "s_hi_total": 1.0091,
+        "s_lo_applied": 1.0722,
+        "s_hi_applied": 1.0091,
+        "fit_window": [
+          "2026-08-05",
+          "2026-09-02"
+        ],
+        "fit_vintages": 29,
+        "fit_rows": 12978
+      },
+      "chronos-2-V016": {
+        "mode": "pooled",
+        "alpha": 0.1,
+        "s_lo_total": 1.3138,
+        "s_hi_total": 1.1623,
+        "s_lo_applied": 1.2253,
+        "s_hi_applied": 1.1518,
+        "fit_window": [
+          "2026-08-05",
+          "2026-09-02"
+        ],
+        "fit_vintages": 26,
+        "fit_rows": 11610,
+        "upstream": "chronos-2-V010"
+      }
+    }
+  },
+  "coverage": {
+    "max_countries_seen": 19,
+    "short_vintages": {
+      "2026-09-10 10:09:24.243039": 18,
+      "2026-09-10 06:00:44.049287": 18,
+      "2026-09-09 06:01:24.375582": 18,
+      "2026-09-08 06:00:38.115510": 18,
+      "2026-09-07 06:00:43.070505": 18,
+      "2026-09-06 06:00:42.439320": 18,
+      "2026-09-01 06:00:45.728618": 9
+    },
+    "duplicate_target_days": {
+      "2026-09-12": [
+        "2026-09-10 10:09:24.243039",
+        "2026-09-10 06:00:44.049287"
+      ]
+    }
+  }
+}
