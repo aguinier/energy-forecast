@@ -76,14 +76,29 @@ mean hi_ratio  1.0091    registered s_hi_applied  1.0091
 
 Not "consistent with" -- equal, in every zone, to four decimals.
 
-**Why the comparison is exact rather than an estimate.** The q50 series is bit-identical
-across the two vintages: 432 matched rows, `max|q50_new - q50_old| = 0.0`. The replica
-refreshes once a day at 05:00 UTC, so both runs read the same observations, and
-Chronos-2 is deterministic given its input. The raw forecast is therefore the same
-series in both, and the ratios above are the applied factors themselves, not an
-estimate of them. This is a clean A/B on the calibration alone, which is a stronger
-result than the close condition asked for and is only available today -- once the
-replica refreshes on 09-11, no later pair of vintages can be compared this way.
+**Why the comparison is exact rather than an estimate.** Stated carefully, because the
+obvious argument is circular.
+
+The q50 series is bit-identical across the two vintages: 432 matched rows,
+`max|q50_new - q50_old| = 0.0`. On its own that does **not** prove the raw band was
+unchanged -- the calibration is anchored at q50 and cannot move the median, so median
+identity only establishes that the two runs produced the same *median*. It does not
+directly observe the raw band, which is not stored anywhere.
+
+What closes it is the two facts together:
+
+- Bit-identical medians over 432 rows are only really obtainable from an identical
+  forward pass. Chronos-2 emits every quantile from one pass, and the replica refreshes
+  once daily at 05:00 UTC, so both runs read the same observations.
+- The alternative -- no calibration, band merely drifted -- would require the drift to be
+  a uniform +7.22% on the lower half and +0.91% on the upper half, in all 18 zones at
+  once, landing on the two registered constants to four decimals. That is not a
+  coincidence anyone should accept.
+
+So the ratios are the applied factors themselves rather than an estimate of them. This is
+a clean A/B on the calibration alone, stronger than the close condition asked for, and
+available only today -- once the replica refreshes on 09-11 no later pair of vintages
+shares a context, and the raw band will move between any two runs.
 
 **The median did not move.** Against the `forecasts` table for the same vintage: 432
 matched rows, `max|q50 - point| = 0.0`. The recalibration widens the band and leaves the
