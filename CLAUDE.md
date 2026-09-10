@@ -127,6 +127,31 @@ container launched both and failed 8 of 440 cells every run, from the initial
 commit on; ABL-370 is only when those 8 moved out of `Skipped` into `Failed`.
 **`Failed: 0` is the floor** — see `reports/abl_606_container_runner_matrix.md`.
 
+### What a scheduled net-position run executes (ABL-692)
+
+The cron has no deploy step — it runs a working tree directly. Until 2026-09-10
+that tree was `C:\Code\able\energy-forecast`, the shared dev checkout, parked on
+a feature branch for twelve days. **A merge to `origin/main` is not a deploy**:
+the ABL-650 band recalibration sat inert in production, with nothing on disk
+recording which code produced a given vintage.
+
+The entry point is `scripts/workstation/run-net-position-serving.ps1`. It
+hard-resets `C:\Code\able\energy-forecast-serving` to `origin/main`, logs the
+resolved SHA, then invokes `run-net-position.ps1` from that tree. It **refuses
+the dev checkout** — resetting that tree would discard an agent's work. A failed
+sync still forecasts, and still logs the SHA, marked `STALE`.
+
+Read the SHA before claiming a serving change is live; never infer it:
+
+```powershell
+Select-String "net-position serving commit:" C:\Code\able\logs\net-position-forecast.log | Select-Object -Last 1
+```
+
+The serving clone holds tracked code only, so `$Venv`, `$ModelsDir` and
+`$EvalRoot` are parameters resolving into the dev checkout. Each fails
+*silently* if wrong — a bad `--models-dir` makes V014 log "no trained model"
+and exit 0. See `reports/abl_692_serving_checkout_pin.md`.
+
 ## Database
 
 Two files; pointing at the wrong one is the trap (ABL-73):
