@@ -187,12 +187,28 @@ def test_the_width_clears_the_widest_record_the_log_has_held(launcher):
     )
 
 
+def _statement(text: str, pattern: str) -> int:
+    """Offset of a statement, not of a comment that names it.
+
+    Both orderings below are `.index()` comparisons, and this launcher's comments
+    mention `Start-Transcript` three times before the call -- twice above it.
+    Matching the first *mention* would put the anchor inside the param block,
+    where nothing can precede it, and both tests would pass by construction.
+    """
+    m = re.search(pattern, text, re.MULTILINE)
+    assert m, f"no statement matching {pattern!r}"
+    assert not text[text.rfind("\n", 0, m.start()) + 1:m.start()].lstrip().startswith("#"), (
+        f"{pattern!r} matched inside a comment"
+    )
+    return m.start()
+
+
 def test_the_widening_runs_before_the_job(launcher):
     """Output emitted before the resize is wrapped. The job is where every
     native line comes from, so the resize has to precede it.
     """
     block_at = launcher.index(_widen_block(launcher))
-    job_at = launcher.index("& $job")
+    job_at = _statement(launcher, r"^\s*& \$job\b")
     assert block_at < job_at, "the buffer is widened after the job has already run"
 
 
@@ -205,7 +221,7 @@ def test_the_outcome_lands_inside_the_transcript(launcher):
     written at, and a `catch` on a console-less host is readable rather than
     lost to a stream nobody keeps.
     """
-    transcript_at = launcher.index("Start-Transcript")
+    transcript_at = _statement(launcher, r"^Start-Transcript\s+-Path\b")
     block_at = launcher.index(_widen_block(launcher))
     assert transcript_at < block_at, (
         "the widening precedes Start-Transcript, so neither its success nor its "
