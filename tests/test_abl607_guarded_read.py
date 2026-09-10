@@ -393,6 +393,19 @@ CENSUS_TEXT_SEARCH = ("*.md", "docs/**/*.md", "reports/*.md",
 #: asterisks deliberately.
 _CENSUS_NOISE = re.compile(r"[#*`]")
 
+#: The census claim in the two shapes the texts write it in. Matched over
+#: *every* occurrence rather than as a substring: the prose report states the
+#: count in three places, so "the number appears somewhere in this file" passes
+#: with two sites corrected and one left stale, which is the drift this section
+#: exists to catch.
+_CENSUS_ROWS = re.compile(r"(\d[\d,]*) of ([\d,]{3,}) (?:archive )?rows")
+#: Scoped to the evaluability claim, because the pack says "N of M countries"
+#: about other things -- 12 of 24 gained a target day, 11 of 23 find one arm
+#: readable, 23 of 24 share production's algorithm. Those are not this claim
+#: and must not be held to its numbers.
+_CENSUS_COUNTRIES = re.compile(
+    r"(\d+)\s*(?:/|of)\s*(\d+) countries[^.]{0,45}?evaluable")
+
 
 def _census_text(relpath: str) -> str:
     """The prose of one of the three texts, isolated from the machinery.
@@ -477,9 +490,9 @@ def test_every_text_quotes_the_census_numbers_the_report_carries():
     The test above pins *whether* the census is published. It says nothing
     about what it found, and every text quotes that: the count refused, the
     rows read, how many countries carried an evaluable reference. Measured at
-    `7fc1fde` -- falsify all three numbers in all three texts then listed and
-    the suite is still `1786 passed, 1 skipped`. So the `ML_SLICE_ONLY_EXEMPT`
-    entry saying
+    `7fc1fde` -- falsify the three numbers in the three texts that were listed
+    then, and the suite is still `1786 passed, 1 skipped`. So the
+    `ML_SLICE_ONLY_EXEMPT` entry saying
     it is "pinned by `tests/test_abl607_guarded_read.py`, which fails if this
     comment and that artifact ever disagree, in either direction" was wider
     than what was checked: a text claiming more reach than the check has, which
@@ -501,24 +514,32 @@ def test_every_text_quotes_the_census_numbers_the_report_carries():
     per_country = census["per_country"]
     assert per_country, "census ran over no countries"
     evaluable = [c for c in per_country if c["evaluable"]]
-    quoted = (
-        # No trailing noun: the texts say "rows" and "archive rows" for the
-        # same count. What is derived is the pair of numbers.
-        f"{census['rows_would_be_refused']} of {census['rows_read']:,}",
-        f"{len(evaluable)}/{len(per_country)} countries",
+    expected = (
+        (_CENSUS_ROWS,
+         (str(census["rows_would_be_refused"]), f"{census['rows_read']:,}"),
+         "the count refused out of the rows read"),
+        (_CENSUS_COUNTRIES,
+         (str(len(evaluable)), str(len(per_country))),
+         "the countries carrying an evaluable reference"),
     )
 
     assert CENSUS_TEXTS, "no census texts left -- this test certifies nothing"
     for relpath, what in CENSUS_TEXTS:
         prose = _census_prose(relpath)
         assert prose, f"{relpath}: {what} is empty; this test has gone blind"
-        for fragment in quoted:
-            assert fragment in prose, (
-                f"{relpath} ({what}) does not quote {fragment!r}, which is "
-                f"what {REPORT.name} records. Either the text is stale or "
-                f"the report moved under it -- ABL-619 was the first of "
-                f"those, and the exemption entry claims it cannot happen "
-                f"unnoticed.")
+        for pattern, numbers, described in expected:
+            sites = pattern.findall(prose)
+            assert sites, (
+                f"{relpath} ({what}) no longer states {described}. Every text "
+                f"on CENSUS_TEXTS quotes the census; one that has stopped "
+                f"belongs off the list, not silently unchecked.")
+            wrong = sorted(set(sites) - {numbers})
+            assert not wrong, (
+                f"{relpath} ({what}) states {described} as {wrong} at one or "
+                f"more of its {len(sites)} sites; {REPORT.name} records "
+                f"{numbers}. Either the text is stale or the report moved "
+                f"under it -- ABL-619 was the first of those, and the "
+                f"exemption entry claims it cannot happen unnoticed.")
 
     # The headroom bound, in whichever texts carry it. Rounded *up*: it is
     # stated as a bound ("never above"), and a bound quoted at the value's own
@@ -526,6 +547,12 @@ def test_every_text_quotes_the_census_numbers_the_report_carries():
     # record is 32.338% of a country's threshold, which is not <= 32.3%. That
     # was the merged wording; the number was right at 1 dp and the sentence
     # was not (ABL-669).
+    #
+    # The limit, stated rather than left to be discovered: this holds the bound
+    # wherever a text writes it, and requires at least one text to. Dropping
+    # the clause from one text while another keeps it is not red. "Every text
+    # states it" would be the wrong rule -- this module's own docstring gives
+    # the count without the headroom, correctly.
     ratios = [c["max_over_threshold"] for c in evaluable
               if c["max_over_threshold"] is not None]
     assert ratios, "no evaluable country recorded headroom"
