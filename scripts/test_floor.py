@@ -57,11 +57,24 @@ from pathlib import Path
 # ever drops it they skip instead, and this gate is the thing that says so
 # rather than the four quietly stopping.
 #
-# ABL-733 adds 12 (tests/test_abl733_transcript_buffer_width.py) -> 1840,
-# measured as 1837 passed + 1 skipped + 2 failed on the workstation, where the
-# two failures are the WSL-bash path artifact in
-# tests/test_abl596_entrypoint_command_override.py that fails identically on a
-# pre-change tree and passes on the runner.
+# ABL-735 adds 1 to the same file -- the non-vacuity control on that file's own
+# fixture-rebinding guard -- so the count goes to 1829. It is deliberately NOT
+# gated on PowerShell (it asserts on a guard that raises before any subprocess),
+# so the allowance stays at 4.
+#
+# ABL-733 adds 12 (tests/test_abl733_transcript_buffer_width.py) -> 1841,
+# measured on the workstation after merging main as 1840 passed + 1 skipped,
+# green, in 146s. (An earlier pre-merge measurement recorded 2 failures in
+# tests/test_abl596_entrypoint_command_override.py from a WSL-bash path
+# artifact; they did not reproduce on this tree, so the number above is a
+# clean run, not a run with a known-red pair subtracted.)
+#
+# That 1841 is 1829 + 12, not the 1840 a "take the higher of the two conflicting
+# floors" merge resolution produces. ABL-733 branched at 1828 and ABL-735 landed
+# on main in between, so the two raises are ADDITIVE and the conflict has to be
+# resolved by summing the increments, not by picking a side. Picking the higher
+# side would leave the floor one BELOW what the merged tree runs -- exactly the
+# one-test slack this ratchet exists to deny.
 #
 # `max_skipped` goes 4 -> 6 for two of those twelve:
 # `test_the_control_reproduces_the_120_column_wrap` and
@@ -72,11 +85,12 @@ from pathlib import Path
 # these genuinely cannot run there; they run on the workstation, which is where
 # the launcher they cover runs in production. The other ten -- eight structural
 # and two that execute a block through plain redirected `pwsh` -- run on CI.
+# ABL-735's one is not gated, so it does not move the allowance.
 #
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": 1840,
+    "tests": 1841,
     "max_skipped": 6,
 }
 
