@@ -1,9 +1,18 @@
 # ABL-733 — the serving transcript stops wrapping at 120 columns
 
-**Status:** landed on a branch. Nothing to install: the change is inside
-`scripts/workstation/run-net-position-serving.ps1`, which the serving checkout
-hard-resets to `origin/main` on every run, so it takes effect at the first
-08:00 run after the merge with no operator step.
+**Status:** merged 2026-09-10 (PR #120, merge `53427a17`). Nothing to install:
+the change is inside `scripts/workstation/run-net-position-serving.ps1`, which
+the serving checkout hard-resets to `origin/main` on every run, so it needs no
+operator step.
+
+**It takes effect at the SECOND scheduled run after the merge, not the first.**
+An earlier revision of this section said "the first 08:00 run after the merge";
+that was wrong, and it would have manufactured a false incident on the first
+one. The launcher is the file that performs the sync, so the run that *pulls*
+the change is still executing the previous version of it. See
+"[When it starts serving](#when-it-starts-serving--one-run-later-than-it-looks)"
+below for the mechanism, the reproduction, and what each of the two runs will
+look like in the log.
 
 No forecast-quality metric is reported here, so no scoring window and no
 contamination issue applies. Everything below is a fact about what a launcher
@@ -165,6 +174,55 @@ inside the param block, where nothing can precede it, and the tests would have
 passed however the block was placed. They now match a statement and assert the
 match is not inside a comment.
 
+## When it starts serving — one run later than it looks
+
+The serving clone hard-resets itself to `origin/main`, so this needs no operator
+step. But the file being changed **is the file that performs that reset**, and a
+`powershell.exe -File` script is parsed in full before its first statement runs.
+So the run that *pulls* the new launcher is still executing the old one.
+
+| run | launcher that executes | clone left at | width line in log |
+|---|---|---|---|
+| 2026-09-11 08:00 | `0cd9ec2` (pre-ABL-733) | `53427a17` or later | **none — expected** |
+| 2026-09-12 08:00 | `53427a17` (widened) | current `origin/main` | `120 -> 512` |
+
+`Get-ScheduledTaskInfo able-net-position-forecast` gives `NextRunTime
+09/11/2026 08:00:00`; the clone's `git reflog` shows one `reset: moving to
+origin/main` per run, and it currently sits at `0cd9ec2`.
+
+**The job it invokes does not lag.** `run-net-position.ps1` is invoked with `&`
+*after* the reset, so it is read from disk at that moment and a change to it
+serves on the first run. The lag is specific to the launcher, and therefore
+specific to this change.
+
+Reproduced end to end rather than argued —
+`test_a_running_launcher_does_not_see_its_own_update` builds a miniature origin
+holding OLD and NEW copies of both scripts plus a clone parked one commit
+behind, and runs the launcher twice:
+
+```
+RUN 1   LAUNCHER-VERSION: OLD      <- executes the pre-reset version
+        JOB-VERSION: NEW           <- child picked up immediately
+        LAUNCHER-TAIL: OLD         <- still OLD after the reset landed
+        clone HEAD -> NEW
+RUN 2   LAUNCHER-VERSION: NEW
+```
+
+`LAUNCHER-TAIL` is the load-bearing line: it is emitted *after* the reset has
+already rewritten the file on disk, and it still reads `OLD`.
+
+The paired control, `test_the_reset_actually_moves_the_clone`, asserts the reset
+moved `HEAD`. The first draft of this probe named a branch that did not exist,
+so the reset failed and both runs printed `OLD` — the right answer for the wrong
+reason. A probe whose mutation silently no-ops proves nothing.
+
+**Why this was not caught earlier: there was nothing to catch.** ABL-733 is the
+first change to `run-net-position-serving.ps1` since the serving clone was
+installed — `git log origin/main -- scripts/workstation/run-net-position-serving.ps1`
+returns exactly two commits, `d97f168` (which created it) and `ca4278e` (this
+one), and the file is byte-identical between `28abfeb` and `0cd9ec2`. No prior
+run ever exercised the self-update path, so no log could have shown the lag.
+
 ## What this does not do
 
 **It does not retire the stitched read.** The transcript is opened `-Append`, so
@@ -174,9 +232,9 @@ both — `-eq 120` plus "the next line does not open a new record", never "long"
 and `test_the_runbook_command_still_works_once_the_wrap_stops` runs it over a
 fixture holding wrapped history followed by unwrapped records.
 
-**It is not confirmed in production yet.** The first run under the widened
-launcher is the 08:00 after this merges. Confirm with the runbook's command,
-plus:
+**It is not confirmed in production yet**, and the first run after the merge is
+**not** the one to confirm it on — see the section below. Confirm on the second
+one, with the runbook's command plus:
 
 ```powershell
 Select-String "net-position serving transcript width:" `
@@ -185,7 +243,8 @@ Select-String "net-position serving transcript width:" `
 
 Expected: `net-position serving transcript width: 120 -> 512`. If it reads
 `unavailable, log stays wrapped (…)`, the host had no console to resize — the
-forecast still ran and the log is simply as wrapped as it was before.
+forecast still ran and the log is simply as wrapped as it was before. **Zero
+matches on 2026-09-11 is the expected, healthy result**, not a failure.
 
 **It does not change what anything greps for.** `net-position serving commit:`
 is untouched, and the width line is a distinct prefix, so an existing

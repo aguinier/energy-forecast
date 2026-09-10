@@ -43,6 +43,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER = REPO_ROOT / "scripts" / "workstation" / "run-net-position-serving.ps1"
 RUNBOOK = REPO_ROOT / "reports" / "abl_692_serving_checkout_pin.md"
+REPORT = REPO_ROOT / "reports" / "abl_733_transcript_buffer_width.md"
 
 #: The wrap column being removed: the default BufferSize.Width of the console a
 #: non-interactive powershell.exe is given. Not a tunable -- a measurement.
@@ -498,3 +499,170 @@ def test_the_runbook_command_still_works_once_the_wrap_stops(mixed_log, tmp_path
         f"stitched {m.group(1) if m else 'nothing'} records, expected 7: the "
         "rule either joined two real records or split a wrapped one\n" + proc.stdout
     )
+
+
+# ---------------------------------------------------------------------------
+# 6. When it starts serving: the launcher lags exactly one run.
+#
+# The serving clone hard-resets itself to origin/main, so this change needs no
+# operator step -- but the file it changes IS the file that performs the reset,
+# and `powershell.exe -File` parses a script in full before running it. So the
+# run that pulls the new launcher is still executing the old one, and the
+# widened buffer first appears one run later than the report originally said.
+# ---------------------------------------------------------------------------
+
+GIT = shutil.which("git")
+needs_git = pytest.mark.skipif(GIT is None, reason="no git on PATH")
+
+
+def test_the_launcher_syncs_itself_after_it_has_been_parsed(launcher):
+    """The static reason the lag exists, asserted on the shipped file.
+
+    The reset that updates this very script runs *inside* it. If a future
+    revision ever moved the sync out of the launcher -- into the scheduled task,
+    or a wrapper -- the lag would disappear and the docs saying "confirm on the
+    second run" would become wrong in the other direction.
+    """
+    reset_at = _statement(launcher, r"^\s*& git -C \$Serving reset --hard\b")
+    transcript_at = _statement(launcher, r"^Start-Transcript\s+-Path\b")
+    assert transcript_at < reset_at, (
+        "the sync now precedes Start-Transcript; re-derive which run the "
+        "widening first serves on"
+    )
+    assert launcher.index(_widen_block(launcher)) < reset_at, (
+        "the widening now runs after the sync, which does not change the lag "
+        "but does change the reasoning in reports/abl_733_transcript_buffer_width.md"
+    )
+
+
+def _fixture_launcher(version: str) -> str:
+    """A miniature of the shipped launcher: announce, sync, invoke child, announce.
+
+    LAUNCHER-TAIL is the load-bearing line -- it is emitted *after* the reset has
+    rewritten this file on disk, so if a running script ever did pick up its own
+    update, that is where it would show.
+    """
+    return (
+        "param([string] $Clone)\n"
+        f'Write-Host "LAUNCHER-VERSION: {version}"\n'
+        '& git -C $Clone fetch -q --prune origin\n'
+        '& git -C $Clone reset --hard -q "origin/main"\n'
+        '& (Join-Path $Clone "scripts/job.ps1")\n'
+        f'Write-Host "LAUNCHER-TAIL: {version}"\n'
+    )
+
+
+@pytest.fixture(scope="module")
+def two_runs(tmp_path_factory):
+    """Build origin (OLD then NEW) + a clone parked one commit behind, run twice.
+
+    That is exactly the state C:/Code/able/energy-forecast-serving is in between
+    a merge and the next scheduled run.
+    """
+    root = tmp_path_factory.mktemp("serving-lag")
+    origin, clone = root / "origin", root / "clone"
+
+    def git(*args, cwd):
+        proc = subprocess.run(
+            [GIT, *args], cwd=str(cwd), capture_output=True, text=True, timeout=120
+        )
+        assert proc.returncode == 0, f"git {' '.join(args)}\n{proc.stdout}\n{proc.stderr}"
+        return proc.stdout.strip()
+
+    origin.mkdir()
+    git("init", "-q", ".", cwd=origin)
+    git("checkout", "-q", "-b", "main", cwd=origin)
+    # Throwaway fixture repo: hermetic against whatever the host's global git
+    # config says, including a signing key CI does not have.
+    for k, v in (("user.email", "t@t.t"), ("user.name", "t"),
+                 ("commit.gpgsign", "false"), ("core.autocrlf", "false")):
+        git("config", k, v, cwd=origin)
+    (origin / "scripts").mkdir()
+    shas = {}
+    for version in ("OLD", "NEW"):
+        (origin / "scripts" / "launcher.ps1").write_text(
+            _fixture_launcher(version), encoding="ascii"
+        )
+        (origin / "scripts" / "job.ps1").write_text(
+            f'Write-Host "JOB-VERSION: {version}"\n', encoding="ascii"
+        )
+        git("add", "scripts/launcher.ps1", "scripts/job.ps1", cwd=origin)
+        git("commit", "-q", "-m", version, cwd=origin)
+        shas[version] = git("rev-parse", "HEAD", cwd=origin)
+
+    git("clone", "-q", str(origin), str(clone), cwd=root)
+    git("config", "core.autocrlf", "false", cwd=clone)
+    git("reset", "--hard", "-q", shas["OLD"], cwd=clone)
+    assert git("rev-parse", "HEAD", cwd=clone) == shas["OLD"]
+    assert "LAUNCHER-VERSION: OLD" in (clone / "scripts" / "launcher.ps1").read_text()
+
+    outs, heads = [], []
+    for _ in range(2):
+        proc = subprocess.run(
+            [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass",
+             "-File", str(clone / "scripts" / "launcher.ps1"), "-Clone", str(clone)],
+            capture_output=True, text=True, timeout=180,
+        )
+        assert proc.returncode == 0, f"{proc.stdout}\n{proc.stderr}"
+        outs.append(proc.stdout)
+        heads.append(git("rev-parse", "HEAD", cwd=clone))
+    return {"out": outs, "head": heads, "sha": shas}
+
+
+@needs_git
+@needs_powershell
+def test_the_reset_actually_moves_the_clone(two_runs):
+    """The control, and it is not ceremony.
+
+    The first draft of this probe named a branch that did not exist, so the
+    reset failed and both runs printed OLD -- the right answer for the wrong
+    reason. A probe whose mutation silently no-ops proves nothing.
+    """
+    assert two_runs["head"][0] == two_runs["sha"]["NEW"], (
+        "run 1 did not advance the clone, so the two runs are not a before/after"
+    )
+
+
+@needs_git
+@needs_powershell
+def test_a_running_launcher_does_not_see_its_own_update(two_runs):
+    """The lag, end to end -- and its exact scope.
+
+    Run 1 pulls the new launcher and runs the old one, top *and* tail. The child
+    job, invoked after the reset, is picked up immediately: the lag is specific
+    to the launcher, and therefore specific to ABL-733's change.
+    """
+    first, second = two_runs["out"][0], two_runs["out"][1]
+
+    assert "LAUNCHER-VERSION: OLD" in first, first
+    assert "LAUNCHER-TAIL: OLD" in first, (
+        "the launcher picked up its own update mid-run, after the reset had "
+        "rewritten it; the one-run lag documented in CLAUDE.md and "
+        "reports/abl_733_transcript_buffer_width.md no longer holds:\n" + first
+    )
+    assert "JOB-VERSION: NEW" in first, (
+        "the child job did NOT serve on the first run; the lag is wider than "
+        "documented and every serving change now needs the second run:\n" + first
+    )
+    assert "LAUNCHER-VERSION: NEW" in second, (
+        "the launcher still had not updated by run 2:\n" + second
+    )
+
+
+def test_the_report_says_the_second_run_not_the_first():
+    """Pin the corrected claim both ways.
+
+    Asserting only the absence of the old phrasing passes on an empty file, and
+    asserting only the presence of the new one passes on a file that says both.
+    """
+    text = REPORT.read_text(encoding="utf-8")
+    assert "SECOND scheduled run after the merge, not the first" in text, (
+        "the report no longer states which run the widening first serves on"
+    )
+    for refuted in (
+        "so it takes effect at the first\n08:00 run after the merge",
+        "The first run under the widened\nlauncher is the 08:00 after this merges",
+    ):
+        assert refuted not in text, (
+            f"the refuted cutover claim is back in the report: {refuted!r}"
+        )
