@@ -19,7 +19,7 @@ Night-floor screen: `reports/abl_405_night_floor_probe.json`.
 > ABL-188 screen were all read on **`energy_renewable`**. The machine record says
 > so and always did — `meta.training_source` in
 > `experiments/ABL348/results_abl405_tranche2a.json`, whose SHA-256
-> `895e1259c0da3921…` is cited by `reports/abl_418_retro_grade.md` and is
+> `b2f4ac190055a2c8…` is cited by `reports/abl_418_retro_grade.md` and is
 > **byte-unchanged by this correction**. ABL-348 registers `energy_generation`
 > for all 37 tranche pairs and lists the source table under
 > `voids_this_registration`, so this read is off the registration it cites.

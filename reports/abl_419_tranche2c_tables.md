@@ -1,6 +1,6 @@
 # ABL-419 — tranche 2c generated tables
 
-Generated from `experiments/ABL348/results_abl419_tranche2c.json`, SHA-256 `fe25b86c983040591cff48e6a84fdca255e51d2f070c658915ea4aa9d73044bf`, and from ABL-396's committed night-floor screen. No refit, no replica read, no recomputed metric; the grades are read back through `src/evaluation/gate_grading.py`, not re-derived. Regenerate with `.venv\Scripts\python.exe scripts/abl419_tranche2c_read.py`.
+Generated from `experiments/ABL348/results_abl419_tranche2c.json`, SHA-256 `bf4c9e7371c632df5f4d3aa209e76ebacc8f96798a20420cd77f259e7cc1697c`, and from ABL-396's committed night-floor screen. No refit, no replica read, no recomputed metric; the grades are read back through `src/evaluation/gate_grading.py`, not re-derived. Regenerate with `.venv\Scripts\python.exe scripts/abl419_tranche2c_read.py`.
 
 Scope `abl316-t2c`, source **`energy_generation`**, **27** features, fit rules `{'exclude_impossible_night': False}`.
 

@@ -1,6 +1,6 @@
 # ABL-421 — tranche 2d generated tables
 
-Generated from `experiments/ABL348/results_abl421_tranche2d.json`, SHA-256 `ebbc4c448dbd5614267ebabb68b1ed6bf6b1a5590eef02ef0349d6d0c1896624`, and from ABL-396's committed night-floor screen. No refit, no replica read, no recomputed metric; the grades are read back through `src/evaluation/gate_grading.py`, not re-derived. Regenerate with `.venv\Scripts\python.exe scripts/abl421_tranche2d_read.py`.
+Generated from `experiments/ABL348/results_abl421_tranche2d.json`, SHA-256 `174fc02e07f75417e3f9599873cf5dfb8cc9bc1333db8e357a526f7a465ded02`, and from ABL-396's committed night-floor screen. No refit, no replica read, no recomputed metric; the grades are read back through `src/evaluation/gate_grading.py`, not re-derived. Regenerate with `.venv\Scripts\python.exe scripts/abl421_tranche2d_read.py`.
 
 Scope `abl316-t2d`, source **`energy_generation`**, **27** features, fit rules `{'exclude_impossible_night': False}`. **14 evaluable cells of 18** in the 6 x 3 grid.
 

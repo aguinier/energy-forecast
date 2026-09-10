@@ -238,13 +238,13 @@ The CEO's constraint: the floor decides gradeability, it does not replace the nu
 - **Tranche 1a is absent**, for ABL-437's reason and not a new one: it was fitted before ABL-389 existed and carries no causal reference columns, so G2 and G3 read *not measured* there under every arm.
 - **This promotes nothing.** Promotion remains a pre-registered gate read plus a Board decision.
 
-Source records, SHA-256: `reports/abl_437_causal_levelling_reread.json` `bc34431a04f74cee…`; per tranche —
+Source records, SHA-256: `reports/abl_437_causal_levelling_reread.json` `fb4b347622d6a254…`; per tranche —
 
-- `experiments/ABL348/results_abl381_tranche1b.json` `6ff1629cc4525683…`
-- `experiments/ABL348/results_abl405_tranche2a.json` `895e1259c0da3921…`
-- `experiments/ABL348/results_abl406_tranche2b.json` `972eea5fe8880668…`
-- `experiments/ABL348/results_abl419_tranche2c.json` `fe25b86c98304059…`
-- `experiments/ABL348/results_abl421_tranche2d.json` `ebbc4c448dbd5614…`
-- `experiments/ABL348/results_abl417_tranche2e.json` `1225905d091b4417…`
-- `experiments/ABL348/results_abl435_tranche2f.json` `70c6669b17cf74a4…`
-- `reports/abl_443_offshore_trailing_reread.json` `9df8df76562607c3…`
+- `experiments/ABL348/results_abl381_tranche1b.json` `15066231d2ec5307…`
+- `experiments/ABL348/results_abl405_tranche2a.json` `b2f4ac190055a2c8…`
+- `experiments/ABL348/results_abl406_tranche2b.json` `af7c9e20e435b3d8…`
+- `experiments/ABL348/results_abl419_tranche2c.json` `bf4c9e7371c632df…`
+- `experiments/ABL348/results_abl421_tranche2d.json` `174fc02e07f75417…`
+- `experiments/ABL348/results_abl417_tranche2e.json` `10163884b29a191d…`
+- `experiments/ABL348/results_abl435_tranche2f.json` `9a9edfc62ac6653c…`
+- `reports/abl_443_offshore_trailing_reread.json` `3db88ecc3dc36708…`

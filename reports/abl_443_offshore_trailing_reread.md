@@ -4,7 +4,7 @@ Generated: 2026-08-14T02:09:36Z. Scope: **`abl443-offshore-trailing`** — a new
 Registration: `experiments/ABL443/config.json`, committed before this read existed. Levelling inherited from `experiments/ABL437/config.json`.
 
 Levelling: **`fit_window` → `trailing_28d`** (28-day window ending at each row's own `generated_at`). Arithmetic over ABL-436's committed record plus the two trailing references recomputed on the same rows — **no refit, no new model**, replica opened read-only.
-Source record: `experiments/ABL322/results_abl436_offshore_reread.json` (SHA-256 `ef0f647449072fa0…`), source table `energy_generation`.
+Source record: `experiments/ABL322/results_abl436_offshore_reread.json` (SHA-256 `1597d9ea920db2ed…`), source table `energy_generation`.
 Replica: `C:\Code\able\data\energy_dashboard.db` (9,432,453,120 bytes).
 
 **ABL-436's read is not edited, regenerated or withdrawn by this one.** It stands at its own path under its own scope, and its letters remain the letters decided on the fit-window references.

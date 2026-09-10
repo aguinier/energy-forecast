@@ -573,7 +573,9 @@ def main() -> int:
     for path, text in ((root / args.report_out, report),
                        (root / args.json_out, json.dumps(record, indent=2) + "\n")):
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
+        # `newline="\n"`: this record names the bytes it graded by SHA-256, so it
+        # has to be byte-identical wherever it is regenerated (ABL-715).
+        path.write_text(text, encoding="utf-8", newline="\n")
     # The report body carries non-ASCII on purpose (the repo convention: help
     # text is ASCII, report bodies are not), so stdout is re-encoded here rather
     # than left to the console codepage -- ABL-364.

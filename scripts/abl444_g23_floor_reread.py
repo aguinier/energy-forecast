@@ -424,8 +424,13 @@ def main() -> int:
         if any(marker in Path(path).name for marker in PROTECTED):
             raise SystemExit(f"refusing to write {path}: that path belongs to another read")
     record = read(ROOT)
-    (ROOT / args.json_out).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
-    (ROOT / args.report_out).write_text(render(record), encoding="utf-8")
+    # `newline="\n"` because this record's digests are only worth anything if a
+    # re-run produces the same bytes on every box (ABL-715). Without it Python
+    # translates to CRLF on Windows, git normalises that back to LF on commit,
+    # and the file this script hashed is not the file anyone else checks out.
+    (ROOT / args.json_out).write_text(json.dumps(record, indent=2) + "\n",
+                                      encoding="utf-8", newline="\n")
+    (ROOT / args.report_out).write_text(render(record), encoding="utf-8", newline="\n")
     for levelling in LEVELLINGS:
         moved = _moves(record, levelling)
         from_a = sum(1 for item in moved if item["before"] == "A")

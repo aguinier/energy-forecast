@@ -448,8 +448,11 @@ def main() -> int:
         result = json.loads((root / args.json_out).read_text(encoding="utf-8"))
     else:
         result = read(root, args.replica_db)
-        (root / args.json_out).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    (root / args.report_out).write_text(render(result), encoding="utf-8")
+        # `newline="\n"`: ABL-444 hashes this file, so it must be the same bytes
+        # on every box that regenerates it (ABL-715).
+        (root / args.json_out).write_text(json.dumps(result, indent=2) + "\n",
+                                          encoding="utf-8", newline="\n")
+    (root / args.report_out).write_text(render(result), encoding="utf-8", newline="\n")
     print(f"wrote {args.json_out} and {args.report_out}")
     return 0
 

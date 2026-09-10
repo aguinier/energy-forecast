@@ -3,9 +3,9 @@
   "generated_at": "2026-08-14T03:01:52Z",
   "registration": "experiments/ABL444/config.json",
   "source_reread": "reports/abl_437_causal_levelling_reread.json",
-  "source_reread_sha256": "bc34431a04f74ceee75e30f441b65541d994bf52c6b7ee0ad47451a59b4d4209",
+  "source_reread_sha256": "fb4b347622d6a25418c7550bc8c461fee579c2ea4522bdf794988b6f560e60d8",
   "source_offshore_reread": "reports/abl_443_offshore_trailing_reread.json",
-  "source_offshore_reread_sha256": "9df8df76562607c3f4ae024189f80ad96b2c3f9f4ad8871b22c0d03f1b8a4404",
+  "source_offshore_reread_sha256": "3db88ecc3dc36708031a223bf10f7a00835bd7d894905be68aa99fcf357c9266",
   "readability_before": "sign_test",
   "readability_after": "floored",
   "levellings_reported": [
@@ -24,7 +24,7 @@
       "scope": "abl316-t1b",
       "stream": "solar",
       "record": "experiments/ABL348/results_abl381_tranche1b.json",
-      "record_sha256": "6ff1629cc4525683de630c72ec04dac1658b045da6cf0847f6d9c6f8f3e6184a",
+      "record_sha256": "15066231d2ec53074a858a51820744322b14976f52b4414f8a828de3b7bb441b",
       "pairs": [
         {
           "pair": "BG solar",
@@ -1030,7 +1030,7 @@
       "scope": "abl316-t2a",
       "stream": "solar",
       "record": "experiments/ABL348/results_abl405_tranche2a.json",
-      "record_sha256": "895e1259c0da3921f4de18c72b912780c5c9ddccd056efdc43274c6cb7d00920",
+      "record_sha256": "b2f4ac190055a2c8afd0ce16d9d3991e638fddad10511efb1ddfa46eacad0dd8",
       "pairs": [
         {
           "pair": "BG solar",
@@ -5102,7 +5102,7 @@
       "scope": "abl406-tranche2b",
       "stream": "wind",
       "record": "experiments/ABL348/results_abl406_tranche2b.json",
-      "record_sha256": "972eea5fe8880668cfd59630005e054f9a8153cce46ee287dedeea3386868843",
+      "record_sha256": "af7c9e20e435b3d8b46e726ae3ba6e525bc68ed929a4bea34a457b10643947dd",
       "pairs": [
         {
           "pair": "ES wind_onshore",
@@ -9432,7 +9432,7 @@
       "scope": "abl316-t2c",
       "stream": "solar",
       "record": "experiments/ABL348/results_abl419_tranche2c.json",
-      "record_sha256": "fe25b86c983040591cff48e6a84fdca255e51d2f070c658915ea4aa9d73044bf",
+      "record_sha256": "bf4c9e7371c632df5f4d3aa209e76ebacc8f96798a20420cd77f259e7cc1697c",
       "pairs": [
         {
           "pair": "ES solar",
@@ -12145,7 +12145,7 @@
       "scope": "abl316-t2d",
       "stream": "solar",
       "record": "experiments/ABL348/results_abl421_tranche2d.json",
-      "record_sha256": "ebbc4c448dbd5614267ebabb68b1ed6bf6b1a5590eef02ef0349d6d0c1896624",
+      "record_sha256": "174fc02e07f75417e3f9599873cf5dfb8cc9bc1333db8e357a526f7a465ded02",
       "pairs": [
         {
           "pair": "EE solar",
@@ -14594,7 +14594,7 @@
       "scope": "abl417-tranche2e",
       "stream": "wind",
       "record": "experiments/ABL348/results_abl417_tranche2e.json",
-      "record_sha256": "1225905d091b441785ce22a930a6d355a3606ff4b89e033ca68ffeef545916a5",
+      "record_sha256": "10163884b29a191d6b6e42426932906c99045f2dee86d8ef171d9761f74a9a5b",
       "pairs": [
         {
           "pair": "CZ wind_onshore",
@@ -18865,7 +18865,7 @@
       "scope": "abl435-tranche2f",
       "stream": "wind",
       "record": "experiments/ABL348/results_abl435_tranche2f.json",
-      "record_sha256": "70c6669b17cf74a46ff180b1b25919d50bbe75893d54d84746706217d4cb7513",
+      "record_sha256": "9a9edfc62ac6653c09e6a6d4466220873928e8ee47560bac9e2020a5ed89a54f",
       "pairs": [
         {
           "pair": "BG wind_onshore",
@@ -19910,9 +19910,9 @@
       "scope": "abl443-offshore-trailing",
       "stream": "wind",
       "record": "reports/abl_443_offshore_trailing_reread.json",
-      "record_sha256": "9df8df76562607c3f4ae024189f80ad96b2c3f9f4ad8871b22c0d03f1b8a4404",
+      "record_sha256": "3db88ecc3dc36708031a223bf10f7a00835bd7d894905be68aa99fcf357c9266",
       "source_record": "experiments/ABL322/results_abl436_offshore_reread.json",
-      "source_record_sha256": "ef0f647449072fa00cbc985113ad90443b819c92fe490fca48da8954a80bb817",
+      "source_record_sha256": "1597d9ea920db2eddb42a5b59ac7900c3634a848834c5ecb939b10af3d8d5aff",
       "pairs": [
         {
           "pair": "DE wind_offshore",

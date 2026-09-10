@@ -8,7 +8,7 @@
   "levelling_after": "trailing_28d",
   "trailing_window_days": 28,
   "source_record": "experiments/ABL322/results_abl436_offshore_reread.json",
-  "source_record_sha256": "ef0f647449072fa00cbc985113ad90443b819c92fe490fca48da8954a80bb817",
+  "source_record_sha256": "1597d9ea920db2eddb42a5b59ac7900c3634a848834c5ecb939b10af3d8d5aff",
   "source_record_scope": "abl322-pilot",
   "source_table": "energy_generation",
   "stream": "wind",

@@ -15,3 +15,27 @@
 # config. Deliberately narrow: only the files that cross into the container.
 *.sh        text eol=lf
 docker/crontab text eol=lf
+
+# ABL-715: the second class of file whose exact bytes are load-bearing.
+#
+# Provenance records name the bytes they graded by SHA-256 -- ABL-438's
+# `results_sha256`, ABL-443's `input_record.sha256`, ABL-444's `record_sha256`
+# -- and the tests re-hash the file to check it. Those hashes were recorded on
+# this workstation, where `core.autocrlf=true` had turned the LF blobs into
+# CRLF in the working tree, so they were hashes of bytes that exist on exactly
+# one box. Measured: every recorded digest matched the CRLF working tree and
+# none matched the LF blob, so the records could not verify on a Linux checkout
+# -- CI, another workstation, or inside the serving container.
+#
+# A record that pins bytes nobody else can reproduce is not doing the job it was
+# written for, so the pin goes on the file instead of the reader: with `eol=lf`
+# the checked-out bytes are the stored bytes everywhere, and one digest is
+# correct on every box. Repo-wide for `*.json` rather than per-directory,
+# because the class is "a file some record may hash", not a location, and no
+# JSON here is ever read by something that wants CRLF.
+#
+# Renormalising cost nothing: no `*.json` blob contained CRLF, so this changes
+# what checkout writes, never what git stores. (`*.py` is deliberately NOT here
+# -- 12 tracked source blobs, `src/forecaster.py` among them, DO hold CRLF, so
+# the same line would rewrite serving source. That is its own change.)
+*.json      text eol=lf

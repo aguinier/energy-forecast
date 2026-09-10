@@ -1213,8 +1213,11 @@ SCOPE_TITLES = {
     # and `meta.training_source` is not.  The corresponding line in the committed
     # `reports/abl_405_solar_tranche2a.md` is corrected to match, so re-running
     # this scope still reproduces its published report; the machine record is
-    # untouched and its SHA-256 `895e1259c0da3921...`, cited by
-    # `reports/abl_418_retro_grade.md`, is unmoved.  What the heading no longer
+    # untouched and its SHA-256 `b2f4ac190055a2c8...`, cited by
+    # `reports/abl_418_retro_grade.md`, is unmoved -- ABL-715 re-expressed that
+    # digest over the file's stored LF bytes (it read `895e1259c0da3921...`
+    # while it was being taken over a CRLF checkout), which moved the string
+    # and not one byte of the record.  What the heading no longer
     # does is contradict the record two lines below it.
     "abl316-t2a": "ABL-405 — Serve-faithful solar retrain gate, ABL-316 tranche 2a: 8 continental countries on energy_renewable at 27 features",
     # ABL-419, registered for the same reason the two above are: `title_for`'s

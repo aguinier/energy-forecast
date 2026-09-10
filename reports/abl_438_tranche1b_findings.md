@@ -130,7 +130,7 @@ own heading, and exited 0.
 `experiments/` and `reports/` have blob hashes identical to the merge base
 (`a838894`) — zero mismatches. That includes
 `experiments/ABL348/results_abl381_tranche1b.json`, whose SHA-256
-`6ff1629cc4525683de630c72ec04dac1658b045da6cf0847f6d9c6f8f3e6184a` is recorded in
+`15066231d2ec53074a858a51820744322b14976f52b4414f8a828de3b7bb441b` is recorded in
 the graded record so a later reader can tell which bytes were graded, and
 `reports/abl_418_retro_grade.{md,json}`, which this change does not touch. The
 only tracked file modified is the script itself.
