@@ -30,17 +30,22 @@ from pathlib import Path
 # again, with no explanation, is the failure this file exists to prevent.
 #
 # `max_skipped` is separate because a skipped test still counts in the junit
-# `tests` attribute, so the count floor cannot see one. Several tests here are
-# gated on the replica database and on `models/` artifacts, neither of which a
-# runner has; that gated set is what the allowance covers. A skip past it fails
-# the build, so answering a red run with `@pytest.mark.skip` takes a diff and a
+# `tests` attribute, so the count floor cannot see one. A skip past it fails the
+# build, so answering a red run with `@pytest.mark.skip` takes a diff and a
 # reason.
+#
+# The allowance is 1, which is lower than expected and is itself a result: tests
+# gated on the replica database and on `models/` artifacts were assumed to be a
+# sizeable set, and the runner has neither. It ran 1766 and skipped one. Those
+# tests do not skip on a bare runner — they assert against stored documents. The
+# pytest step passes `-rs`, so the log always names what skipped and why; read
+# that before changing this number.
 #
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": None,
-    "max_skipped": None,
+    "tests": 1766,
+    "max_skipped": 1,
 }
 
 
