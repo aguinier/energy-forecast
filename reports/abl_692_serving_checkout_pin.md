@@ -231,9 +231,12 @@ Two details of the stitch rule are load-bearing:
   the transcript is opened `-Append`, so this file will hold already-wrapped
   lines regardless of any future change to the launcher's buffer width.
 
-Widening `$Host.UI.RawUI.BufferSize` before `Start-Transcript` would stop *new*
-output wrapping, and is worth doing on its own merits, but it is a change to a
-production launcher and it does not retire this command — see residual risk 4.
+Widening `$Host.UI.RawUI.BufferSize` stops *new* output wrapping, and ABL-733
+did that: the launcher now widens to 512 columns just after `Start-Transcript`
+and logs `net-position serving transcript width: 120 -> 512`. It does **not**
+retire this command — the transcript is opened `-Append`, so every line written
+before the first widened run stays wrapped, and the rule above is what stays
+correct on the mixture. See `reports/abl_733_transcript_buffer_width.md`.
 
 ## Residual risks, stated
 
@@ -248,16 +251,28 @@ production launcher and it does not retire this command — see residual risk 4.
    touched — reverting a change that never shipped.
 3. **ABL-651 (PR #108) is in the same position** and is still `in_progress`. Its
    change is likewise not live.
-4. **The log stays wrapped, and this runbook does not own the fix.** Widening
-   `$Host.UI.RawUI.BufferSize` in `run-net-position-serving.ps1` before
-   `Start-Transcript` is the durable fix for *future* output. It changes what a
-   production launcher emits, so it is the launcher owner's call and is routed
-   separately (ABL-733), not taken here. Two things bound its value, and both
-   argue for keeping the stitched command either way: the transcript is opened
-   `-Append`, so 3,352 already-wrapped lines stay in the file; and the effect is
-   only confirmable from a real hidden-console 08:00 run — it could not be
-   reproduced from an agent session, whose host reports a 500-column buffer and
-   does not route native output into the transcript at all.
+4. **The log is now mixed, so the stitched command stays.** ABL-733 widened the
+   buffer to 512 in `run-net-position-serving.ps1`, which stops *future* output
+   wrapping. The transcript is opened `-Append`, so the 3,352 already-wrapped
+   lines stay in the file and any read of history still needs the rule above.
+   It is written to be correct on both shapes, and
+   `tests/test_abl733_transcript_buffer_width.py` runs it over a log holding
+   both.
+
+   One claim made here when this was routed out has since been **falsified**,
+   and is corrected rather than deleted because the reasoning was wrong in a
+   reusable way. It said the effect was "only confirmable from a real
+   hidden-console 08:00 run", because an agent session's host reports a
+   500-column buffer and does not route native output into the transcript. The
+   session host was never the thing to measure. Spawning `powershell.exe` with
+   `CREATE_NEW_CONSOLE` and `SW_HIDE` — the same CreateProcess call
+   `wscript.exe` makes — reproduces the cron's console exactly, 120x3000, from
+   an ordinary agent session. What hid it was **stdio redirection**: capturing
+   the child's output makes the grandchild bypass the console screen buffer the
+   transcript records, so native output vanishes from the log and the probe
+   reads as "no wrapping" for the wrong reason. Do not conclude that a
+   production-only condition cannot be reproduced until the harness itself has
+   been shown to reproduce the *defect*.
 
    Separately, `reports/abl693_pt_net_position_diagnosis.md` measured that this
    log is **byte-truncated** outside the newest day's block (09-06..09-09 retain

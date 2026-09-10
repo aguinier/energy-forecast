@@ -148,11 +148,18 @@ Select-String "net-position serving commit:" C:\Code\able\logs\net-position-fore
 ```
 
 That works only because the witness line is `Write-Host`. **`Start-Transcript`
-hard-wraps native (Python) output at 120 columns**, so any grep of that log for
-a string past column 120 matches zero lines on a healthy system — which is how
-the ABL-692 runbook's calibration check manufactured a false incident (ABL-732).
-Grep a stitched view; the runbook carries the command, `tests/test_abl732_*`
-pins it.
+records the console screen buffer, so native (Python) output arrives wrapped at
+`$Host.UI.RawUI.BufferSize.Width`** — 120 for the console the task's `wscript`
+wrapper hands `powershell.exe`. Any grep of that log for a string past column
+120 then matches zero lines on a healthy system, which is how the ABL-692
+runbook's calibration check manufactured a false incident (ABL-732).
+
+Since ABL-733 the launcher widens that buffer to 512 before anything native
+runs, and logs `net-position serving transcript width: 120 -> 512`. **The log is
+therefore mixed**: it is opened `-Append`, so everything written before the
+first widened run stays wrapped. Keep grepping a stitched view — the runbook
+carries the command, and it is correct on both shapes; `tests/test_abl732_*` and
+`tests/test_abl733_*` pin it.
 
 The serving clone holds tracked code only, so `$Venv`, `$ModelsDir` and
 `$EvalRoot` are parameters resolving into the dev checkout. Each fails
