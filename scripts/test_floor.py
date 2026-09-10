@@ -57,11 +57,27 @@ from pathlib import Path
 # ever drops it they skip instead, and this gate is the thing that says so
 # rather than the four quietly stopping.
 #
+# ABL-733 adds 12 (tests/test_abl733_transcript_buffer_width.py) -> 1840,
+# measured as 1837 passed + 1 skipped + 2 failed on the workstation, where the
+# two failures are the WSL-bash path artifact in
+# tests/test_abl596_entrypoint_command_override.py that fails identically on a
+# pre-change tree and passes on the runner.
+#
+# `max_skipped` goes 4 -> 6 for two of those twelve:
+# `test_the_control_reproduces_the_120_column_wrap` and
+# `test_the_shipped_widening_stops_native_output_wrapping`. Both spawn a hidden
+# Windows console and read the transcript it produced, because the property
+# under test IS the width of the console screen buffer Start-Transcript records.
+# `pwsh` on ubuntu-latest has no console screen buffer, so unlike ABL-732's four
+# these genuinely cannot run there; they run on the workstation, which is where
+# the launcher they cover runs in production. The other ten -- eight structural
+# and two that execute a block through plain redirected `pwsh` -- run on CI.
+#
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": 1828,
-    "max_skipped": 4,
+    "tests": 1840,
+    "max_skipped": 6,
 }
 
 
