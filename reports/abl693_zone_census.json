@@ -1,0 +1,1143 @@
+{
+  "forecast_type": "net_position",
+  "models": {
+    "baseline-V012": {
+      "panel_balance": {
+        "AT": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "BE": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "BG": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "CZ": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "DE": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "EE": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "ES": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "FI": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "FR": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "HR": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "HU": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "LT": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "LV": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "NL": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "PL": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "PT": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "RO": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "SI": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "SK": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        }
+      },
+      "per_vintage": [
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-08-31",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-01",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-03",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-04",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-05",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-06",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-07",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-08",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-09",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-10",
+          "zones_served": 19
+        }
+      ],
+      "population_constant": true,
+      "reference_source": "expect_zones",
+      "reference_zones": [
+        "AT",
+        "BE",
+        "BG",
+        "CZ",
+        "DE",
+        "EE",
+        "ES",
+        "FI",
+        "FR",
+        "HR",
+        "HU",
+        "LT",
+        "LV",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SI",
+        "SK"
+      ],
+      "vintage_calendar_complete": false,
+      "vintage_days": [
+        "2026-08-31",
+        "2026-09-01",
+        "2026-09-03",
+        "2026-09-04",
+        "2026-09-05",
+        "2026-09-06",
+        "2026-09-07",
+        "2026-09-08",
+        "2026-09-09",
+        "2026-09-10"
+      ],
+      "vintage_days_in_span": 11,
+      "vintage_days_missing": [
+        "2026-09-02"
+      ],
+      "zones_entered": [],
+      "zones_left": []
+    },
+    "chronos-2-V010": {
+      "panel_balance": {
+        "AT": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "BE": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "BG": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "CZ": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "DE": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "EE": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "ES": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "FI": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "FR": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "HR": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "HU": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "LT": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "LV": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "NL": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "PL": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "PT": {
+          "balanced_share": 0.052632,
+          "completeness": 0.4,
+          "row_share": 0.022857,
+          "rows": 96,
+          "vintages_in_window": 10,
+          "vintages_served": 4
+        },
+        "RO": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "SI": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "SK": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        }
+      },
+      "per_vintage": [
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-08-31",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "AT",
+            "BE",
+            "BG",
+            "DE",
+            "ES",
+            "FI",
+            "HU",
+            "LV",
+            "PL",
+            "PT"
+          ],
+          "rows": 216,
+          "vintage_day": "2026-09-01",
+          "zones_served": 9
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-03",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-04",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-05",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "PT"
+          ],
+          "rows": 432,
+          "vintage_day": "2026-09-06",
+          "zones_served": 18
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "PT"
+          ],
+          "rows": 432,
+          "vintage_day": "2026-09-07",
+          "zones_served": 18
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "PT"
+          ],
+          "rows": 432,
+          "vintage_day": "2026-09-08",
+          "zones_served": 18
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "PT"
+          ],
+          "rows": 432,
+          "vintage_day": "2026-09-09",
+          "zones_served": 18
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "PT"
+          ],
+          "rows": 432,
+          "vintage_day": "2026-09-10",
+          "zones_served": 18
+        }
+      ],
+      "population_constant": false,
+      "reference_source": "expect_zones",
+      "reference_zones": [
+        "AT",
+        "BE",
+        "BG",
+        "CZ",
+        "DE",
+        "EE",
+        "ES",
+        "FI",
+        "FR",
+        "HR",
+        "HU",
+        "LT",
+        "LV",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SI",
+        "SK"
+      ],
+      "vintage_calendar_complete": false,
+      "vintage_days": [
+        "2026-08-31",
+        "2026-09-01",
+        "2026-09-03",
+        "2026-09-04",
+        "2026-09-05",
+        "2026-09-06",
+        "2026-09-07",
+        "2026-09-08",
+        "2026-09-09",
+        "2026-09-10"
+      ],
+      "vintage_days_in_span": 11,
+      "vintage_days_missing": [
+        "2026-09-02"
+      ],
+      "zones_entered": [],
+      "zones_left": [
+        {
+          "first_absent": "2026-09-06",
+          "last_served": "2026-09-05",
+          "zone": "PT"
+        }
+      ]
+    },
+    "chronos-2-V016": {
+      "panel_balance": {
+        "AT": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "BE": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "BG": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "CZ": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "DE": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "EE": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "ES": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "FI": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "FR": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "HR": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "HU": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "LT": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "LV": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "NL": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "PL": {
+          "balanced_share": 0.052632,
+          "completeness": 0.9,
+          "row_share": 0.051429,
+          "rows": 216,
+          "vintages_in_window": 10,
+          "vintages_served": 9
+        },
+        "PT": {
+          "balanced_share": 0.052632,
+          "completeness": 0.4,
+          "row_share": 0.022857,
+          "rows": 96,
+          "vintages_in_window": 10,
+          "vintages_served": 4
+        },
+        "RO": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "SI": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "SK": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.057143,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        }
+      },
+      "per_vintage": [
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-08-31",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "AT",
+            "BE",
+            "BG",
+            "DE",
+            "ES",
+            "FI",
+            "HU",
+            "LV",
+            "PL",
+            "PT"
+          ],
+          "rows": 216,
+          "vintage_day": "2026-09-01",
+          "zones_served": 9
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-03",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-04",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-05",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "PT"
+          ],
+          "rows": 432,
+          "vintage_day": "2026-09-06",
+          "zones_served": 18
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "PT"
+          ],
+          "rows": 432,
+          "vintage_day": "2026-09-07",
+          "zones_served": 18
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "PT"
+          ],
+          "rows": 432,
+          "vintage_day": "2026-09-08",
+          "zones_served": 18
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "PT"
+          ],
+          "rows": 432,
+          "vintage_day": "2026-09-09",
+          "zones_served": 18
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [
+            "PT"
+          ],
+          "rows": 432,
+          "vintage_day": "2026-09-10",
+          "zones_served": 18
+        }
+      ],
+      "population_constant": false,
+      "reference_source": "expect_zones",
+      "reference_zones": [
+        "AT",
+        "BE",
+        "BG",
+        "CZ",
+        "DE",
+        "EE",
+        "ES",
+        "FI",
+        "FR",
+        "HR",
+        "HU",
+        "LT",
+        "LV",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SI",
+        "SK"
+      ],
+      "vintage_calendar_complete": false,
+      "vintage_days": [
+        "2026-08-31",
+        "2026-09-01",
+        "2026-09-03",
+        "2026-09-04",
+        "2026-09-05",
+        "2026-09-06",
+        "2026-09-07",
+        "2026-09-08",
+        "2026-09-09",
+        "2026-09-10"
+      ],
+      "vintage_days_in_span": 11,
+      "vintage_days_missing": [
+        "2026-09-02"
+      ],
+      "zones_entered": [],
+      "zones_left": [
+        {
+          "first_absent": "2026-09-06",
+          "last_served": "2026-09-05",
+          "zone": "PT"
+        }
+      ]
+    },
+    "xgboost-V014": {
+      "panel_balance": {
+        "AT": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "BE": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "BG": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "CZ": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "DE": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "EE": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "ES": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "FI": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "FR": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "HR": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "HU": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "LT": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "LV": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "NL": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "PL": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "PT": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "RO": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "SI": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        },
+        "SK": {
+          "balanced_share": 0.052632,
+          "completeness": 1.0,
+          "row_share": 0.052632,
+          "rows": 240,
+          "vintages_in_window": 10,
+          "vintages_served": 10
+        }
+      },
+      "per_vintage": [
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-08-31",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-01",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-03",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-04",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-05",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-06",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-07",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-08",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-09",
+          "zones_served": 19
+        },
+        {
+          "extra_vs_reference": [],
+          "missing_vs_reference": [],
+          "rows": 456,
+          "vintage_day": "2026-09-10",
+          "zones_served": 19
+        }
+      ],
+      "population_constant": true,
+      "reference_source": "expect_zones",
+      "reference_zones": [
+        "AT",
+        "BE",
+        "BG",
+        "CZ",
+        "DE",
+        "EE",
+        "ES",
+        "FI",
+        "FR",
+        "HR",
+        "HU",
+        "LT",
+        "LV",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SI",
+        "SK"
+      ],
+      "vintage_calendar_complete": false,
+      "vintage_days": [
+        "2026-08-31",
+        "2026-09-01",
+        "2026-09-03",
+        "2026-09-04",
+        "2026-09-05",
+        "2026-09-06",
+        "2026-09-07",
+        "2026-09-08",
+        "2026-09-09",
+        "2026-09-10"
+      ],
+      "vintage_days_in_span": 11,
+      "vintage_days_missing": [
+        "2026-09-02"
+      ],
+      "zones_entered": [],
+      "zones_left": []
+    }
+  },
+  "sidecar_db": "C:/Code/able/data/forecasts_local.db",
+  "since": "2026-08-31",
+  "table": "forecasts",
+  "until": null
+}
