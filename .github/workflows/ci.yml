@@ -52,8 +52,14 @@ jobs:
       # either are expected to skip themselves; the floor gate below asserts how
       # many do, so "gated on a missing replica" cannot quietly become
       # "everything skipped".
+      #
+      # `--continue-on-collection-errors` because the default is to abort the
+      # whole run on the first file that fails to import, which reports one
+      # problem and tells you nothing about the other 80 files. The gate below
+      # still fails on `errors > 0` — this only decides whether you learn about
+      # one broken file or all of them per run.
       - name: test
-        run: python -m pytest -q --junitxml=report.xml
+        run: python -m pytest -q --continue-on-collection-errors --junitxml=report.xml
 
       # `if: !cancelled()` so a failing suite still reports its counts — a run
       # that went red is exactly when you need to know whether it also ran short.
