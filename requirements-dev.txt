@@ -1,0 +1,13 @@
+# Test toolchain — NOT part of the serving dependency set (ABL-647).
+#
+# Deliberately separate from requirements.txt. That file is an exact freeze of
+# what the live container resolved (ABL-597), and every pin in it is on the
+# unpickle path of a serving artifact. A test-only package does not belong in
+# it: adding one would widen the set that a rebuild resolves, for no serving
+# reason, and blur what that freeze is a freeze of.
+#
+# Pinned all the same, and to the version the workstation .venv already runs, so
+# that CI and a local `python -m pytest` are the same instrument. A floating
+# pytest is a suite whose collection rules can change under a PR that did not
+# touch anything.
+pytest==9.1.1

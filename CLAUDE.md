@@ -320,6 +320,19 @@ alone moves daylight MAE up to ~5% between two fits. Pair the arms by seed and
 quote the effect against a null built from control-vs-control seed pairs
 (`scripts/abl376_night_seed_spread.py` is the worked example).
 
+**A digest in a record must name bytes every checkout can reproduce.** Records
+pin the file they graded by SHA-256 (`results_sha256`, `record_sha256`,
+`input_record.sha256`). `core.autocrlf=true` on this workstation checks LF blobs
+out as CRLF, so a digest taken over the working tree matches here and nowhere
+else — nine records did, unverifiable in CI and in the container alike, and CI
+was the first reader that could say so (ABL-715). `*.json` is pinned `eol=lf` in
+`.gitattributes` and the reread generators write `newline="\n"`; keep both, and
+never record a digest over a file that has neither.
+`tests/test_abl715_record_bytes_are_portable.py` holds the rule. A record whose
+digest moves is a **content** change until proven otherwise: re-record it in the
+same commit, and repoint anything pinning it (four ship-set documents pin
+`reports/abl_444_g23_floor_reread.json` by blob id).
+
 ## Solar is clamped to physical reality on the way out
 
 `save_forecasts()` (`src/db.py`) is the choke point every serving write goes

@@ -34,7 +34,7 @@ The prose values are 2-dp renderings and are not what the ladder uses; the exact
 
 ## 1. Tranche 2a — `abl316-t2a` (solar)
 
-Source: `experiments/ABL348/results_abl405_tranche2a.json`, SHA-256 `895e1259c0da3921f4de18c72b912780c5c9ddccd056efdc43274c6cb7d00920`. Evidence pack: `reports/abl_405_tranche2a_findings.md`. Published disposition, restated unchanged: **PERFORMANCE PASS — HOLD FOR CONTAMINATION ADJUDICATION**. Gate window 2026-07-11 00:00:00 → 2026-08-10 00:00:00 (exclusive), target series `energy_renewable`. Floor 10.6482% at k=1.
+Source: `experiments/ABL348/results_abl405_tranche2a.json`, SHA-256 `b2f4ac190055a2c8afd0ce16d9d3991e638fddad10511efb1ddfa46eacad0dd8`. Evidence pack: `reports/abl_405_tranche2a_findings.md`. Published disposition, restated unchanged: **PERFORMANCE PASS — HOLD FOR CONTAMINATION ADJUDICATION**. Gate window 2026-07-11 00:00:00 → 2026-08-10 00:00:00 (exclusive), target series `energy_renewable`. Floor 10.6482% at k=1.
 
 | pair | band | n | gate | skill vs D-7 | vs constant causal | vs climatology causal | slope>0 & corr>0 | grade |
 |---|---|---:|:---:|---:|---:|---:|:---:|:---:|
@@ -80,7 +80,7 @@ Every pair reproduces the reading in the ABL-418 description.
 
 ## 2. Tranche 2b — `abl406-tranche2b` (wind)
 
-Source: `experiments/ABL348/results_abl406_tranche2b.json`, SHA-256 `972eea5fe8880668cfd59630005e054f9a8153cce46ee287dedeea3386868843`. Evidence pack: `reports/abl_406_evidence_pack.md`. Published disposition, restated unchanged: **FAIL**. Gate window 2026-07-11 00:00:00 → 2026-08-10 00:00:00 (exclusive), target series `energy_generation`. Floor 7.5054% at k=1.
+Source: `experiments/ABL348/results_abl406_tranche2b.json`, SHA-256 `af7c9e20e435b3d8b46e726ae3ba6e525bc68ed929a4bea34a457b10643947dd`. Evidence pack: `reports/abl_406_evidence_pack.md`. Published disposition, restated unchanged: **FAIL**. Gate window 2026-07-11 00:00:00 → 2026-08-10 00:00:00 (exclusive), target series `energy_generation`. Floor 7.5054% at k=1.
 
 | pair | band | n | gate | skill vs D-7 | vs constant causal | vs climatology causal | slope>0 & corr>0 | grade |
 |---|---|---:|:---:|---:|---:|---:|:---:|:---:|

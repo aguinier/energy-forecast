@@ -7,9 +7,9 @@
   "evidence_of_record": {
     "abl525": {
       "path": "reports/abl_444_g23_floor_reread.json",
-      "blob": "1e8f37f6b1c4befd2c938363306e664ea58a21e7",
-      "sha256_prefix": "45fa753fc356b123",
-      "note": "Verified byte-unchanged since the a0b9ffd pin. Not re-derived here."
+      "blob": "3eedc8d9a0293e0bc7614376e97ea3b892a7fb74",
+      "sha256_prefix": "b0a7442e04000600",
+      "note": "Re-digested by ABL-715, which superseded the a0b9ffd pin (blob 1e8f37f6, sha256 45fa753f): that record's stored digests were taken over CRLF working-tree bytes and matched on no other machine. Only its digest fields moved -- every graded figure the ABL-525 rows rest on is unchanged. Not re-derived here."
     },
     "abl580": {
       "cz_solar": "experiments/ABL348/results_abl426_tranche2a_generation.json",

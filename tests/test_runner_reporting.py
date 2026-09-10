@@ -28,6 +28,8 @@ from pathlib import Path
 
 import pytest
 
+import chronos2_env
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
@@ -297,7 +299,14 @@ def test_emit_is_outside_the_non_empty_guard(path):
 
 def test_configured_runner_scripts_import_the_contract():
     """`--help` proves the added import resolves under the launch mode used."""
+    exercised = 0
     for runner in RUNNERS:
+        # ABL-715: chronos-2 needs torch, which no requirements file declares --
+        # tests/chronos2_env.py has the reasoning. Skipped inline rather than at
+        # test level because the other runners here are not gated and must still
+        # be launched; `exercised` below keeps that from silently emptying out.
+        if runner["name"] in chronos2_env.RUNNERS and not chronos2_env.TORCH_AVAILABLE:
+            continue
         cmd = forecast_daily.build_runner_command(runner, ["--help"], repo_root=REPO_ROOT)
         proc = subprocess.run(
             [sys.executable, *cmd[1:]],
@@ -307,6 +316,11 @@ def test_configured_runner_scripts_import_the_contract():
             f"`{' '.join(cmd[1:])}` exits {proc.returncode} after the "
             f"runner_report import was added.\n\nstderr:\n{proc.stderr[-2000:]}"
         )
+        exercised += 1
+    assert exercised >= 2, (
+        f"only {exercised} runner(s) were launched; the gate above is meant to "
+        "exempt chronos-2, not to empty this test out."
+    )
 
 
 # --- the per-runner summary --------------------------------------------------

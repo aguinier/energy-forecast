@@ -32,7 +32,7 @@
       "stream": "solar",
       "issue": "ABL-438",
       "results_path": "experiments/ABL348/results_abl381_tranche1b.json",
-      "results_sha256": "6ff1629cc4525683de630c72ec04dac1658b045da6cf0847f6d9c6f8f3e6184a",
+      "results_sha256": "15066231d2ec53074a858a51820744322b14976f52b4414f8a828de3b7bb441b",
       "evidence_pack": "reports/abl_381_tranche1b_findings.md",
       "published_verdict": "PASS",
       "gate_window": {

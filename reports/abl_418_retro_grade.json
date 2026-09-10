@@ -28,7 +28,7 @@
       "scope": "abl316-t2a",
       "stream": "solar",
       "results_path": "experiments/ABL348/results_abl405_tranche2a.json",
-      "results_sha256": "895e1259c0da3921f4de18c72b912780c5c9ddccd056efdc43274c6cb7d00920",
+      "results_sha256": "b2f4ac190055a2c8afd0ce16d9d3991e638fddad10511efb1ddfa46eacad0dd8",
       "evidence_pack": "reports/abl_405_tranche2a_findings.md",
       "published_verdict": "PERFORMANCE PASS \u2014 HOLD FOR CONTAMINATION ADJUDICATION",
       "gate_window": {
@@ -1043,7 +1043,7 @@
       "scope": "abl406-tranche2b",
       "stream": "wind",
       "results_path": "experiments/ABL348/results_abl406_tranche2b.json",
-      "results_sha256": "972eea5fe8880668cfd59630005e054f9a8153cce46ee287dedeea3386868843",
+      "results_sha256": "af7c9e20e435b3d8b46e726ae3ba6e525bc68ed929a4bea34a457b10643947dd",
       "evidence_pack": "reports/abl_406_evidence_pack.md",
       "published_verdict": "FAIL",
       "gate_window": {

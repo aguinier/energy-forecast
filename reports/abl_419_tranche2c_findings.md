@@ -8,7 +8,7 @@ unchanged. Scope `abl316-t2c` = ES, GR, HR, IT, PT on `energy_generation`.
 reaches grade A.**
 
 Machine record: `experiments/ABL348/results_abl419_tranche2c.json`
-(SHA-256 `fe25b86c983040591cff48e6a84fdca255e51d2f070c658915ea4aa9d73044bf`).
+(SHA-256 `bf4c9e7371c632df5f4d3aa209e76ebacc8f96798a20420cd77f259e7cc1697c`).
 Harness report: `reports/abl_419_solar_tranche2c.md`.
 Generated tables: `reports/abl_419_tranche2c_tables.md` / `.json`
 (`scripts/abl419_tranche2c_read.py`).

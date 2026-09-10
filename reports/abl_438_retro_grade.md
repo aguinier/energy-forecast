@@ -33,7 +33,7 @@ The prose values are 2-dp renderings and are not what the ladder uses; the exact
 
 ## 1. Tranche 1b — `abl316-t1b` (solar)
 
-Source: `experiments/ABL348/results_abl381_tranche1b.json`, SHA-256 `6ff1629cc4525683de630c72ec04dac1658b045da6cf0847f6d9c6f8f3e6184a`. Evidence pack: `reports/abl_381_tranche1b_findings.md`. Published disposition, restated unchanged: **PASS**. Gate window 2026-07-11 00:00:00 → 2026-08-10 00:00:00 (exclusive), target series `energy_generation`. Floor 10.6482% at k=1.
+Source: `experiments/ABL348/results_abl381_tranche1b.json`, SHA-256 `15066231d2ec53074a858a51820744322b14976f52b4414f8a828de3b7bb441b`. Evidence pack: `reports/abl_381_tranche1b_findings.md`. Published disposition, restated unchanged: **PASS**. Gate window 2026-07-11 00:00:00 → 2026-08-10 00:00:00 (exclusive), target series `energy_generation`. Floor 10.6482% at k=1.
 
 | pair | band | n | n ≥ min | gate | skill vs D-7 | vs constant causal | vs climatology causal | slope>0 & corr>0 | grade |
 |---|---|---:|:---:|:---:|---:|---:|---:|:---:|:---:|

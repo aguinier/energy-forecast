@@ -159,12 +159,12 @@ Each cell's scored rows are rebuilt from ABL-348's eight registered run instants
 
 | tranche | scope | source table | record | SHA-256 |
 |---|---|---|---|---|
-| 1b | `abl316-t1b` | `energy_generation` | `experiments/ABL348/results_abl381_tranche1b.json` | `6ff1629cc4525683…` |
-| 2a | `abl316-t2a` | `energy_renewable` | `experiments/ABL348/results_abl405_tranche2a.json` | `895e1259c0da3921…` |
-| 2b | `abl406-tranche2b` | `energy_generation` | `experiments/ABL348/results_abl406_tranche2b.json` | `972eea5fe8880668…` |
-| 2c | `abl316-t2c` | `energy_generation` | `experiments/ABL348/results_abl419_tranche2c.json` | `fe25b86c98304059…` |
-| 2d | `abl316-t2d` | `energy_generation` | `experiments/ABL348/results_abl421_tranche2d.json` | `ebbc4c448dbd5614…` |
-| 2e | `abl417-tranche2e` | `energy_generation` | `experiments/ABL348/results_abl417_tranche2e.json` | `1225905d091b4417…` |
-| 2f | `abl435-tranche2f` | `energy_generation` | `experiments/ABL348/results_abl435_tranche2f.json` | `70c6669b17cf74a4…` |
+| 1b | `abl316-t1b` | `energy_generation` | `experiments/ABL348/results_abl381_tranche1b.json` | `15066231d2ec5307…` |
+| 2a | `abl316-t2a` | `energy_renewable` | `experiments/ABL348/results_abl405_tranche2a.json` | `b2f4ac190055a2c8…` |
+| 2b | `abl406-tranche2b` | `energy_generation` | `experiments/ABL348/results_abl406_tranche2b.json` | `af7c9e20e435b3d8…` |
+| 2c | `abl316-t2c` | `energy_generation` | `experiments/ABL348/results_abl419_tranche2c.json` | `bf4c9e7371c632df…` |
+| 2d | `abl316-t2d` | `energy_generation` | `experiments/ABL348/results_abl421_tranche2d.json` | `174fc02e07f75417…` |
+| 2e | `abl417-tranche2e` | `energy_generation` | `experiments/ABL348/results_abl417_tranche2e.json` | `10163884b29a191d…` |
+| 2f | `abl435-tranche2f` | `energy_generation` | `experiments/ABL348/results_abl435_tranche2f.json` | `9a9edfc62ac6653c…` |
 
 Read-only. This script writes to no path any gate read owns.
