@@ -47,10 +47,28 @@ Known blind spot: a help string built by a call or a `+` concatenation is not
 read. f-strings are read as far as their literal parts (3 sites use one, all
 interpolating identifiers). A dynamic non-ASCII help string would reach only the
 behavioural test.
+
+**A second rule, on a pinned set: help text does not advertise a flag the parser
+does not accept** (ABL-651, 2026-09-09). `abl651_static_bias.py` documented
+`--write-sidecar` in its module docstring, which argparse renders into `--help`
+as `description=__doc__`; the parser never had the flag, so the one thing the
+help text told a reader to type exits 2 with `unrecognized arguments`. The error
+was in the safe direction there -- the script is strictly more read-only than it
+claimed -- but the failure mode is the ABL-340/ABL-364 class again: a documented
+CLI that its own `--help` describes wrongly.
+
+The set is pinned rather than swept because the same extraction over all 107
+entry points flags 14, and 12 of them are correct prose: a docstring that says
+`evaluate_solar_retrain.py --scope abl316-t2c` or `--artifact-dir has no
+analogue here` is naming another script's flag on purpose. Distinguishing those
+statically needs a per-file allowlist of cross-references, which every new
+script would have to be added to. Widening this to a sweep is that allowlist's
+job, not this rule's.
 """
 
 import ast
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -90,6 +108,17 @@ PARSER_CALLS = {
 
 #: Keywords argparse renders into the help output.
 TEXT_KEYWORDS = {"help", "description", "epilog", "metavar", "title", "prog", "usage"}
+
+#: A long option as it is written in prose. The leading letter is what keeps the
+#: repo's ASCII em dash (`word -- word`, ABL-364 above) out of the match.
+LONG_FLAG_RE = re.compile(r"--[A-Za-z][A-Za-z0-9-]*")
+
+#: Entry points whose help text must name only flags their own parser accepts.
+#: See the module docstring for why this is a pinned set and not the full sweep.
+FLAG_AGREEMENT_SCRIPTS = [
+    "scripts/abl651_static_bias.py",
+    "scripts/abl65_correction_study.py",
+]
 
 
 def _literal_strings(node):
@@ -138,6 +167,41 @@ def help_text_sites(path):
             for text in _literal_strings(value):
                 sites.append((value.lineno, f"{keyword.arg}=", text))
     return sites
+
+
+def parser_long_flags(path):
+    """The long options `path`'s own parser accepts.
+
+    Only the positional strings of `add_argument` are read: that is where an
+    option string has to be written for argparse to accept it. `--help` is added
+    because argparse supplies it and no script declares it.
+    """
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    flags = {"--help"}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+        if name != "add_argument":
+            continue
+        for arg in node.args:
+            flags.update(t for t in _literal_strings(arg) if t.startswith("--"))
+    return flags
+
+
+def help_text_long_flags(path):
+    """[(lineno, flag, line)] for every long option named in `path`'s help text.
+
+    The line number is the site's, not the flag's: a module docstring is one
+    site reported at line 1, so the offending line is quoted instead.
+    """
+    found = []
+    for lineno, what, text in help_text_sites(path):
+        for line in text.splitlines():
+            for flag in LONG_FLAG_RE.findall(line):
+                found.append((lineno, what, flag, line.strip()))
+    return found
 
 
 def _offenders(text):
@@ -198,6 +262,48 @@ def test_help_text_is_ascii(script):
           "raises UnicodeEncodeError there rather than printing usage (ABL-364). "
           "Write it in ASCII: '->' for an arrow, '--' for an em dash. Report "
           "bodies are the exception and re-encode the stream at the print site."
+    )
+
+
+@pytest.mark.parametrize("script", FLAG_AGREEMENT_SCRIPTS)
+def test_flag_agreement_extraction_is_not_vacuous(script):
+    """Both halves of the rule below have to see something, or it passes empty.
+
+    A renamed script, a docstring rewritten without its usage example, or an
+    `add_argument` the AST walk stops matching would each turn the rule into a
+    comparison of two empty sets -- which is green, and means nothing.
+    """
+    path = REPO_ROOT / script
+    assert path.is_file(), f"{script} is gone; drop it from FLAG_AGREEMENT_SCRIPTS"
+    assert len(parser_long_flags(path)) >= 5, f"{script}: no parser flags read"
+    #: 2, not a rounder number: abl65_correction_study's help text names exactly
+    #: two (`--cohort` in the cohort list, `--out` in the usage example).
+    mentioned = {flag for _, _, flag, _ in help_text_long_flags(path)}
+    assert len(mentioned) >= 2, f"{script}: help text names no flags: {mentioned}"
+
+
+@pytest.mark.parametrize("script", FLAG_AGREEMENT_SCRIPTS)
+def test_help_text_only_names_flags_the_parser_accepts(script):
+    """Every long option `script --help` prints is one `script` will accept.
+
+    ABL-651: the docstring advertised `--write-sidecar`, argparse printed it as
+    the description, and passing it exited 2. A reader has no way to tell the
+    difference between a flag and a sentence about a flag, so the help text does
+    not get to name one that is not there.
+    """
+    path = REPO_ROOT / script
+    defined = parser_long_flags(path)
+    bad = [(lineno, what, flag, line)
+           for lineno, what, flag, line in help_text_long_flags(path)
+           if flag not in defined]
+    assert not bad, (
+        f"{script} --help names flags its parser rejects:\n  "
+        + "\n  ".join(f"line {lineno}: {what} names {flag} in {line!r}"
+                      for lineno, what, flag, line in bad)
+        + f"\nThe parser accepts: {', '.join(sorted(defined))}."
+        + "\nEither add the flag or stop advertising it (ABL-651). If the line "
+          "is deliberately naming another script's flag, this script does not "
+          "belong in FLAG_AGREEMENT_SCRIPTS."
     )
 
 

@@ -19,7 +19,9 @@ Two cohorts, for two different jobs:
 The reconstruction is a reconstruction: LT, RO and BG reproduce the as-served
 2026-08-06 vintage 38.8%, 5.9% and 1.4% away from it, so their recon numbers
 describe a model close to but not identical with what production ran. Reported,
-never silently pooled -- `--flag-unverified` names them in the output.
+never silently pooled -- a `--cohort recon` run names them in its output, under
+`recon_serve_parity_unverified_pct`. There is no flag for it and nothing to
+switch on: the key is written on every recon run.
 
 Usage:
     python scripts/abl65_correction_study.py --cohort recon --out reports/...
