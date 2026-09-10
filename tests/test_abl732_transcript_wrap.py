@@ -251,17 +251,35 @@ def test_the_commands_own_output_cannot_wrap(wrapped_log, tmp_path):
     )
 
 
+#: Logical records in `wrapped_log`: 9 physical rows, of which exactly one pair
+#: (the wrapped calibrated line and its ` s_hi=...)` continuation) is one record.
+EXPECTED_RECORDS = 8
+
+
 @needs_powershell
-def test_a_genuine_120_char_record_is_not_swallowed(wrapped_log, tmp_path):
-    """The guard clause, exercised. Without it the exactly-120 record joins the
-    plain `Saved 216 quantile forecasts to DB` line that follows it, and check 2
-    then reports the uncalibrated line as its last match.
+def test_the_stitched_view_preserves_record_boundaries(wrapped_log, tmp_path):
+    """The guard clause, exercised on the property it actually buys.
+
+    Neither stitch bug changes the *verdict* of the two checks above -- the last
+    `quantile forecasts to DB` match survives being glued to a neighbour either
+    way -- so a test asserting on the verdict would pass under both and prove
+    nothing. What the clauses buy is that the stitched list is one entry per log
+    record, which is what any other read of this file needs:
+    `reports/abl693_pt_net_position_diagnosis.md` counts records per day in
+    exactly this log, and a naive rule undercounts.
+
+    Instrumented by appending a probe to the block, not by editing it.
     """
-    out = _run_block(_confirm_block(), wrapped_log, tmp_path)
-    # Joining them makes the plain (uncalibrated) save line the last match for
-    # `quantile forecasts to DB`, so check 2 reports the defect state.
-    assert "UNCALIBRATED" not in out, (
-        "two separate records were stitched together:\n" + out
+    block = _confirm_block()
+    assert re.search(r"\$lines\s*=\s*New-Object", block), (
+        "the stitched list is no longer called $lines; the probe below is stale"
+    )
+    out = _run_block(block + '\n"records : " + $lines.Count\n', wrapped_log, tmp_path)
+    m = re.search(r"records : (\d+)", out)
+    assert m, "the probe did not run:\n" + out
+    assert int(m.group(1)) == EXPECTED_RECORDS, (
+        f"stitched {m.group(1)} records, expected {EXPECTED_RECORDS}: the rule "
+        "either joined two real records or split a wrapped one"
     )
     assert "band   : calibrated" in out
 
