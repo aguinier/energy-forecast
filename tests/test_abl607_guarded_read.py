@@ -32,7 +32,8 @@ script and published in section 0 of
 `reports/abl_607_d2_load_diagnosis_reread.json` (ABL-619): **0 of 67,008 rows
 would have been refused**, 24/24 countries evaluable. The first run of the pack
 predates the census, which is why the record that carries it is the re-read.
-Section 3 below holds the three texts against that artifact so neither can
+Section 3 below holds every text that quotes it against that artifact -- the
+numbers as well as the tense, and the list of texts itself -- so neither can
 drift from the other.
 """
 
@@ -366,13 +367,31 @@ def test_the_scripts_disposition_still_matches_every_report_it_wrote():
 #: declaration against the artifact.
 PENDING_MARKER = "(pending: ABL-619)"
 
-#: The three merged texts that describe the census. Each one asserted the count
-#: was published while the committed report had no such key -- that is ABL-619.
+#: Every merged text that describes the census. Each asserted the count was
+#: published while the committed report had no such key -- that is ABL-619.
+#: Membership is swept, not asserted: this read "the three merged texts" and
+#: the pack's own prose report was a fourth, quoting the count in three places
+#: and listed nowhere, so both pins below simply skipped it (ABL-669).
 CENSUS_TEXTS = (
     ("scripts/abl607_d2_load_diagnosis.py", "the protocol block"),
     ("tests/test_tso_plausibility.py", "the ML_SLICE_ONLY_EXEMPT entry's reason"),
     ("tests/test_abl607_guarded_read.py", "this module's docstring"),
+    ("reports/abl_607_d2_load_diagnosis.md", "the pack's prose report"),
 )
+
+#: Where a census text can live. Bounded rather than a whole-repo walk, and
+#: deliberately no JSON: a record that carries the number is not a text
+#: claiming it.
+CENSUS_TEXT_SEARCH = ("*.md", "docs/**/*.md", "reports/*.md",
+                      "scripts/*.py", "src/**/*.py", "tests/*.py")
+
+#: Comment and emphasis markers, which sit inside these claims rather than
+#: around them: `# ` wraps two of the texts and `**` bolds the numbers in a
+#: third. Removed before matching so one derived fragment can be held against
+#: all four, and so re-wrapping or re-bolding a paragraph cannot turn a pin
+#: red. Kept out of `_flat`, which section 4 uses for pins that match the
+#: asterisks deliberately.
+_CENSUS_NOISE = re.compile(r"[#*`]")
 
 
 def _census_text(relpath: str) -> str:
@@ -390,19 +409,16 @@ def _census_text(relpath: str) -> str:
 
 
 def _census_prose(relpath: str) -> str:
-    """One census text with its wrapping *and* its comment markers collapsed.
+    """One census text, flattened to the words it actually claims.
 
-    Two of the three texts are `#` comment blocks and the third is a docstring,
-    so a claim that spans a line break is interrupted by a `# ` in the first
-    two -- which `_flat` alone would leave in place. Stripping the marker is
-    what lets one derived fragment be asserted against all three, and it is
-    what keeps a re-wrap from turning these pins red, for the reason `_flat`
-    gives. Kept separate from `_flat` rather than folded into it because that
-    one runs over Markdown, where a leading `#` is a heading and not noise.
+    The four texts carry the same claim in four typographies: two `#` comment
+    blocks, a docstring, and a Markdown report that bolds the numbers. Dropping
+    the markers is what lets one fragment derived from the record be held
+    against all four, and it is what keeps a re-wrap -- or a re-bolding -- from
+    turning these pins red, which is the trap `_flat` exists for one section
+    down.
     """
-    return " ".join(part
-                    for line in _census_text(relpath).splitlines()
-                    for part in line.lstrip().lstrip("#").split())
+    return " ".join(_CENSUS_NOISE.sub(" ", _census_text(relpath)).split())
 
 
 def test_no_text_claims_a_census_the_committed_report_does_not_carry():
@@ -459,10 +475,11 @@ def test_every_text_quotes_the_census_numbers_the_report_carries():
     """The other half of ABL-619, and the half the qualifier cannot reach.
 
     The test above pins *whether* the census is published. It says nothing
-    about what it found, and all three texts quote that: the count refused, the
+    about what it found, and every text quotes that: the count refused, the
     rows read, how many countries carried an evaluable reference. Measured at
-    `7fc1fde` -- falsify all three numbers in all three texts and the suite is
-    still `1786 passed, 1 skipped`. So the `ML_SLICE_ONLY_EXEMPT` entry saying
+    `7fc1fde` -- falsify all three numbers in all three texts then listed and
+    the suite is still `1786 passed, 1 skipped`. So the `ML_SLICE_ONLY_EXEMPT`
+    entry saying
     it is "pinned by `tests/test_abl607_guarded_read.py`, which fails if this
     comment and that artifact ever disagree, in either direction" was wider
     than what was checked: a text claiming more reach than the check has, which
@@ -485,7 +502,9 @@ def test_every_text_quotes_the_census_numbers_the_report_carries():
     assert per_country, "census ran over no countries"
     evaluable = [c for c in per_country if c["evaluable"]]
     quoted = (
-        f"{census['rows_would_be_refused']} of {census['rows_read']:,} rows",
+        # No trailing noun: the texts say "rows" and "archive rows" for the
+        # same count. What is derived is the pair of numbers.
+        f"{census['rows_would_be_refused']} of {census['rows_read']:,}",
         f"{len(evaluable)}/{len(per_country)} countries",
     )
 
@@ -528,6 +547,48 @@ def test_every_text_quotes_the_census_numbers_the_report_carries():
             f"{max(ratios) * 100:.3f}% of a country's threshold, so the "
             f"bound at the precision the text uses is {bound:.1f}% -- "
             f"expected {headroom!r}")
+
+
+def test_census_texts_names_every_text_that_quotes_the_census():
+    """`CENSUS_TEXTS` is a membership claim, and nothing held it.
+
+    Both pins above iterate it, so removing an entry stops checking that text
+    with nothing going red -- and the list was in fact short. It described
+    itself as "the three merged texts" while `reports/abl_607_d2_load_
+    diagnosis.md` quoted the count in three places and named itself nowhere,
+    so ABL-619's own pin had never looked at the pack's prose report (ABL-669).
+
+    A count of texts cannot see a text it is missing; only the set recomputed
+    from the repo can. That is section 4's lesson about the margin table --
+    "both columns are membership assertions below, not counts" -- applied to
+    the list that decides which prose section 3 reads at all.
+    """
+    report = json.loads(REPORT.read_text(encoding="utf-8"))
+    section, = [k for k in _script_dict_keys("record") if "census" in k]
+    census = report.get(section)
+    if census is None:
+        pytest.skip("no census on disk -- nothing for a text to quote")
+
+    signature = f"{census['rows_would_be_refused']} of {census['rows_read']:,}"
+    found = set()
+    for pattern in CENSUS_TEXT_SEARCH:
+        for path in REPO_ROOT.glob(pattern):
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if signature in " ".join(_CENSUS_NOISE.sub(" ", text).split()):
+                found.add(path.relative_to(REPO_ROOT).as_posix())
+
+    assert found, (
+        f"nothing in the repo quotes {signature!r}. Either the census moved "
+        f"and every text is stale, or this sweep has stopped looking where "
+        f"the texts live -- see CENSUS_TEXT_SEARCH")
+
+    listed = {relpath for relpath, _ in CENSUS_TEXTS}
+    assert found == listed, (
+        f"CENSUS_TEXTS and the repo disagree on which texts quote the census. "
+        f"Quoting it and unlisted: {sorted(found - listed)}; listed and no "
+        f"longer quoting it: {sorted(listed - found)}. A text that states the "
+        f"count has to be held to the record -- being absent from this tuple "
+        f"is how a text goes on describing a run nobody can find (ABL-619).")
 
 
 def test_the_published_census_could_have_detected_something():
