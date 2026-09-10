@@ -272,6 +272,93 @@ def _script_dict_keys(name: str) -> tuple:
     raise AssertionError(f"no top-level `{name} = {{...}}` in {SCRIPT.name}")
 
 
+def _script_dict_literal(name: str, *path: str) -> str:
+    """The literal string at `name[path...]` in the script, read by AST.
+
+    Out of the source for the same reason `_script_dict_keys` is, and it is the
+    load-bearing half of the test below: a copy of the string kept here would
+    make that test assert a constant equals itself the moment the script was
+    edited -- the vacuity `_census_text` already had to dodge once in this
+    module.
+    """
+    tree = ast.parse(SCRIPT.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Dict):
+            continue
+        if [t.id for t in node.targets if isinstance(t, ast.Name)] != [name]:
+            continue
+        current = node.value
+        for key in path:
+            assert isinstance(current, ast.Dict), (
+                f"{name}{list(path)}: {key!r} is not under a dict literal")
+            values = [v for k, v in zip(current.keys, current.values)
+                      if isinstance(k, ast.Constant) and k.value == key]
+            assert values, f"{name}{list(path)}: no {key!r} key in {SCRIPT.name}"
+            current, = values
+        assert isinstance(current, ast.Constant) and isinstance(current.value, str), (
+            f"{name}{list(path)} is no longer a plain string literal, so this "
+            f"test can no longer read what the script writes")
+        return current.value
+    raise AssertionError(f"no `{name} = {{...}}` in {SCRIPT.name}")
+
+
+#: Where the archive read's category is recorded, in the script and in the
+#: report that script writes. Two sites, because `meta.guard` mirrors the
+#: section's `disposition` and a rewrite of one alone is the same defect.
+DISPOSITION_SITES = (
+    (("meta", "guard"), ("meta", "guard")),
+    (("record", "section_0_plausibility_census", "disposition"),
+     ("section_0_plausibility_census", "disposition")),
+)
+
+#: Every committed report this script has written. Both carry both strings, so
+#: a re-tensing that regenerated only one would be caught here too.
+DISPOSITION_REPORTS = (
+    REPORT,
+    REPO_ROOT / "reports" / "abl_607_d2_load_diagnosis_completeness.json",
+)
+
+
+def test_the_scripts_disposition_still_matches_every_report_it_wrote():
+    """ABL-669: a comment was the only thing holding this.
+
+    `main()` carries a reviewed decision *not* to re-tense the archive read's
+    category from `EXEMPT_READS (ABL-611)` to ABL-617's `ML_SLICE_ONLY_EXEMPT`:
+    a report is the record of a run, and the committed reports were produced
+    under the old category with nothing since to reconcile them. The decision
+    is right -- the strings do agree today -- and it was written down as an
+    instruction to a future editor ("change this only in a commit that also
+    regenerates the report") rather than as a check. An instruction in a
+    comment is precisely what ABL-619 was: code claiming one thing, the
+    published artifact carrying another, and nothing red.
+
+    So the **agreement** is pinned, both directions and both artifacts:
+    rewrite the string without regenerating and this fails; regenerate under a
+    new category without re-tensing the script and it fails the same way. The
+    static sweep cannot cover either -- it stops looking at this file the
+    moment the file goes on an exempt list, which is the whole reason ABL-617
+    made that list a checked category.
+    """
+    for path in DISPOSITION_REPORTS:
+        report = json.loads(path.read_text(encoding="utf-8"))
+        for script_path, report_path in DISPOSITION_SITES:
+            in_script = _script_dict_literal(*script_path)
+            in_report = report
+            for key in report_path:
+                assert isinstance(in_report, dict) and key in in_report, (
+                    f"{path.name} has no {'.'.join(report_path)} -- it was "
+                    f"written by a script older than that key, or the key was "
+                    f"renamed without regenerating")
+                in_report = in_report[key]
+            assert in_script == in_report, (
+                f"{SCRIPT.name} writes {'.'.join(script_path)} = "
+                f"{in_script!r}, but the committed {path.name} carries "
+                f"{in_report!r}. One was rewritten without the other: either "
+                f"regenerate the report in this commit, or put the string "
+                f"back. Do not 'fix' this by editing the JSON -- a report is "
+                f"the record of a run (ABL-619).")
+
+
 #: The qualifier the three texts carry while the census is *not* on disk. It is
 #: the whole mechanism: prose cannot read a JSON file, so instead the prose
 #: declares which of the two states it is describing, and the test holds that

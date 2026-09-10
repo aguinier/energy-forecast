@@ -1023,16 +1023,36 @@ def ml_slice_violations(source: str, tables=TSO_TABLES):
        category, rather than being waved through.  String concatenation needs
        no arm of its own: the constant carrying `FROM <table>` is checked on
        its own and fails arm 1 unless the slice is pinned in that same piece.
-    3. **The TSO slice named outside any query.**  Arms 1 and 2 both key off a
-       constant that contains `FROM <table>`, and one line defeats both without
-       writing one: `TSO = QUERY.replace("'ml'", "'tso'")` turns the file's
-       own passing query into a TSO read, and every constant in the file is
-       still individually clean.  So in this category the literal `'tso'` is
-       refused wherever it appears in code.  That is broader than a read -- it
-       would also refuse `model_name != 'tso'` -- and deliberately so: a file
-       whose warrant is "it reads only our own rows" has no use for the
-       literal, and the alternative is resolving a runtime rewrite on trust,
-       which is the intent claim this category exists to stop being.
+    3. **The TSO slice literal named outside any query.**  Arms 1 and 2 both
+       key off a constant that contains `FROM <table>`, and one line defeats
+       both without writing one: `TSO = QUERY.replace("'ml'", "'tso'")` turns
+       the file's own passing query into a TSO read, and every constant in the
+       file is still individually clean.  So `TSO_SLICE_LITERAL` -- `'tso'`
+       **with its SQL quotes** -- is refused in any non-docstring string
+       constant, whether or not that constant is a query.  That is broader
+       than a read: it also refuses `"AND model_name != 'tso'"`, deliberately,
+       because a file whose warrant is "it reads only our own rows" has no use
+       for the slice literal, and the alternative is resolving a runtime
+       rewrite on trust, which is the intent claim this category exists to
+       stop being.
+
+       **Its reach stops at the quotes** (ABL-669).  The match is on the
+       quoted slice, so a bare Python `'tso'` -- whose value is `tso` -- does
+       not match: `QUERY.replace("ml", "tso")` is the same attack two
+       characters different and passes, as do binding the replacement to a
+       name first and assembling the quotes from fragments.  Nothing here
+       inspects the `.replace` call itself; the control below is green on this
+       arm's literal match alone.  `_ML_SLICE_OUT_OF_REACH` holds those three
+       spellings, so this paragraph is checked rather than claimed -- widen
+       the reach and it goes red asking for the rewrite.
+
+       The limit is tolerable because of what the arm is for.  The threat is
+       the ordinary future edit adding a TSO arm for comparison, and a slice
+       written to go into SQL is written with SQL quotes -- that edit is the
+       control below.  No literal match can be complete against someone
+       working around it, `chr(116)` being the end of any such argument, so
+       the residual is carried by review of a list this file also holds to
+       entries that exist and appear nowhere else, not by this arm.
     4. **No such query at all.**  The entry is stale, or it is a mention-only
        file on the wrong list.  Without this arm a file could satisfy the
        category by no longer reading anything, and the exemption would go on
@@ -1135,7 +1155,13 @@ _ML_SLICE_ROT = {
     # control, and it passed on the written-out query alone -- the rewrite arm
     # was never exercised and the check did not have it. A control that stays
     # green when the vector it names is removed is the vacuity ABL-462 is about.
-    "a TSO arm assembled at runtime from the file's own passing query":
+    #
+    # ABL-669 renamed this from "a TSO arm assembled at runtime from the file's
+    # own passing query", which was the same defect one level finer: the name
+    # generalised over runtime assembly, the body is one spelling of it, and
+    # blinding arm 3 alone turns this case green while arms 1/2/4 stay intact.
+    # The spellings the name used to cover are in `_ML_SLICE_OUT_OF_REACH`.
+    "a TSO arm assembled at runtime, the slice rewritten with its SQL quotes":
         _ML_SLICE_OK + "\nTSO = QUERY.replace(\"'ml'\", \"'tso'\")\n",
     "the table name interpolated, so the slice cannot be read off the query":
         _ML_SLICE_OK.replace(
@@ -1158,6 +1184,24 @@ def test_the_ml_slice_control_passes_before_it_is_broken():
     assert ml_slice_violations(_ML_SLICE_OK) == []
 
 
+#: The same vector as the runtime-assembly control above, spelled three ways
+#: the literal match misses.  These are **allowed today** and arm 3's docstring
+#: now says so.  They are held as a test because that paragraph is the only
+#: description a future entrant to `ML_SLICE_ONLY_EXEMPT` will read (ABL-669),
+#: and a category whose thesis is "checked, not claimed" cannot describe its own
+#: reach on trust.  Nothing here argues the gap should stay open: widen the
+#: check and these go red, which is the prompt to rewrite the paragraph in the
+#: same commit and move the case to `_ML_SLICE_ROT`.
+_ML_SLICE_OUT_OF_REACH = {
+    "the slice rewritten without its SQL quotes":
+        _ML_SLICE_OK + '\nTSO = QUERY.replace("ml", "tso")\n',
+    "the replacement text bound to a name first":
+        _ML_SLICE_OK + "\nSLICE = 'tso'\nTSO = QUERY.replace('ml', SLICE)\n",
+    "the quotes assembled from fragments":
+        _ML_SLICE_OK + '\nTSO = QUERY.replace("\'ml\'", "\'" + "tso" + "\'")\n',
+}
+
+
 @pytest.mark.parametrize("how", sorted(_ML_SLICE_ROT))
 def test_the_ml_slice_check_fires_on_every_way_the_claim_can_rot(how):
     """The negative controls.  `MENTION_ONLY_EXEMPT` has one of these and it is
@@ -1167,6 +1211,47 @@ def test_the_ml_slice_check_fires_on_every_way_the_claim_can_rot(how):
     """
     assert ml_slice_violations(_ML_SLICE_ROT[how]), (
         f"the ML-slice check did not fire on: {how}")
+
+
+@pytest.mark.parametrize("how", sorted(_ML_SLICE_OUT_OF_REACH))
+def test_arm_3_stops_where_its_docstring_says_it_stops(how):
+    """The limit of arm 3, pinned so the paragraph cannot overstate it again.
+
+    ABL-669: the sentence read "in this category the literal `'tso'` is refused
+    wherever it appears in code", which is wider than the code beneath it.
+    `TSO_SLICE_LITERAL` carries the SQL quotes, so it matches the slice inside a
+    string *value*; these three spellings of the vector the control above names
+    go straight through.  The control's name generalised, its body was one
+    spelling -- the ABL-462 vacuity one level finer, and this is the arm's
+    reach measured rather than described.
+
+    Read as a pin on the agreement between the prose and the check, both
+    directions, the way `MENTION_ONLY_EXEMPT`'s own control is: the paragraph
+    may not claim more than this test allows, and the check may not quietly
+    grow past the paragraph.
+    """
+    assert ml_slice_violations(_ML_SLICE_OUT_OF_REACH[how]) == [], (
+        f"arm 3 now reaches {how!r}, which its docstring says it does not. "
+        f"That is an improvement, not a regression: rewrite the arm 3 "
+        f"paragraph in `ml_slice_violations` to match, and move this case to "
+        f"`_ML_SLICE_ROT`.")
+
+
+def test_the_out_of_reach_cases_are_the_vector_the_control_names():
+    """Otherwise the case above could pass on a source that reads nothing.
+
+    Every out-of-reach case must be the passing control plus a line, so what it
+    demonstrates is a TSO read assembled past the check -- not an unrelated
+    snippet that happens to be clean.  Without this, deleting the query from
+    one of them would leave it green on arm 4 and prove nothing.
+    """
+    for how, source in _ML_SLICE_OUT_OF_REACH.items():
+        assert source.startswith(_ML_SLICE_OK), (
+            f"{how!r} is no longer the passing control plus a line")
+        added = source[len(_ML_SLICE_OK):]
+        assert "QUERY" in added and "tso" in added, (
+            f"{how!r} no longer rewrites the file's own query into a TSO "
+            f"read: {added!r}")
 
 
 def test_a_docstring_can_neither_satisfy_nor_trip_the_ml_slice_check():
