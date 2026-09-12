@@ -335,18 +335,60 @@ $ git -C C:/Code/able/energy-forecast-serving rev-parse HEAD:scripts/workstation
 ### The wrap is gone, measured rather than asserted
 
 Per-run census of physical line lengths, the two runs either side of the
-changeover:
+changeover. **The window is the whole transcript** — every physical line from
+`Windows PowerShell transcript start` through `End time:`, which is lines
+3354–3701 for 09-11 and 3704–3872 for 09-12. The transcript is opened `-Append`
+and nothing rewrites it, so those line numbers do not move.
+
+Naming the window is not pedantry. Every count below depends on it, and an
+earlier revision of this table measured its two rows over two *different* ones —
+the 09-12 row from the launcher's first output, the 09-11 row from one line
+after it — which is how that row came to claim `over 120 = 0` for a transcript
+holding two lines past the column.
 
 | run | lines | exactly 120 | over 120 | longest |
 |---|---|---|---|---|
-| 2026-09-11 08:00 (old launcher) | 314 | **99** | 0 | 120 |
-| 2026-09-12 08:00 (widened) | 153 | **0** | 62 | 364 |
+| 2026-09-11 08:00 (old launcher) | 348 | **99** | 2 | 222 |
+| 2026-09-12 08:00 (widened) | 169 | **0** | 63 | 364 |
 
-`exactly 120` and `over 120` are the discriminating pair, and they have to be
-read together. 99-and-0 is the signature of a hard wrap: no line is allowed past
-the column. 0-and-62 is the signature of its absence. A count of long lines
-alone would not distinguish them, because a 120-column log also has plenty of
-*short* lines.
+**`exactly 120` is the discriminator, and it is the only column that is.** 99
+against 0 is the signature of a hard wrap that was there and then stopped: the
+old console cut native output at the column, and under the widened one nothing
+is cut there at all. A count of long lines alone would not show this, because a
+120-column log also has plenty of *short* lines.
+
+`over 120` does not simply invert to match, and the two lines that clear the
+column in the 09-11 run are why:
+
+- line **3360**, the 222-char `Host Application:` line PowerShell writes into
+  its own transcript header;
+- line **3388**, the 187-char ABL-692 `net-position serving commit:` witness,
+  which is a `Write-Host`.
+
+Neither goes through the console screen buffer, so neither ever wrapped, before
+or after this change — the same `Write-Host`-versus-native asymmetry
+"[The defect](#the-defect)" opens with, and the one that made ABL-732's grep
+report a false defect on a healthy system. It is also most of what the 09-12
+row's 63 counts: launcher and PowerShell output, not a measurement of the
+widening.
+
+The conclusion does not depend on which window is chosen, which is the point of
+naming one rather than the risk of it:
+
+| window | 09-11 | 09-12 |
+|---|---|---|
+| whole transcript (the table above) | 348 / **99** / 2 / 222 | 169 / **0** / 63 / 364 |
+| launcher's first `Write-Host` onward | 315 / **99** / 1 / 187 | 153 / **0** / 62 / 364 |
+| job output only | 314 / **99** / 0 / 120 | 149 / **0** / 61 / 364 |
+
+(cells are lines / exactly 120 / over 120 / longest.) `exactly 120` reads 99
+against 0 on all three. `over 120` reads 0, 1 or 2 for the same 09-11 transcript
+depending only on how much of the launcher's own output the window admits — so
+it is the column to quote last, and never alone. The middle row is the one to
+avoid headlining even though it looks like the tidiest: the launcher's first
+`Write-Host` lands *after* the fetch on 09-11 and *before* it on 09-12, because
+the widening is the new first statement, so that boundary silently spans
+different content in the two runs.
 
 The clearest single instance is the same message on consecutive days. 09-11,
 split mid-word across two physical lines:
@@ -395,8 +437,9 @@ of the next section stated as a number:
 
 All 10 raw matches over the whole file come from the 09-12 run. The 37 the raw
 view still misses are the wrapped history, exactly the lines the stitch rule
-exists for. On the 09-12 run the stitch is an **identity** — 153 raw lines in,
-153 records out — so new output needs no stitching, and old output still does.
+exists for. On the 09-12 run the stitch is an **identity** — 169 raw lines in,
+169 records out, on the same whole-transcript window as the census above — so
+new output needs no stitching, and old output still does.
 
 One clause of that rule remains unexercised and is worth naming rather than
 quietly claiming as tested: "and the next line must not open a new record" has
@@ -409,8 +452,12 @@ is still the only place that clause is actually executed.
 
 **It does not retire the stitched read.** The transcript is opened `-Append`, so
 the already-wrapped lines stay in the file, and this log will hold both shapes
-indefinitely — as of 2026-09-12 it holds 288 lines cut at exactly 120, up from
-the 171 Python-origin ones counted on 09-10, and not one more will be added. The
+indefinitely — as of 2026-09-12 it holds **288** lines cut at exactly 120 over
+all origins, up from **189** on 09-10, and not one more will be added. On the
+Python-origin subpopulation that "[The defect](#the-defect)" counts, the same
+pair is **171 → 261**. Quote the population with the number: 288 against 171
+crosses the two and reads as a delta of 117, where the only run that contributed
+any was 09-11, with 99 over all origins and 90 of them Python-origin. The
 ABL-692 runbook's command is written to be correct on both — `-eq 120` plus "the
 next line does not open a new record", never "long" — and
 `test_the_runbook_command_still_works_once_the_wrap_stops` runs it over a
