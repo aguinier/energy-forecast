@@ -156,13 +156,18 @@ from pathlib import Path
 # the substitution these tests exist to stop relying on. Section 4 of that file
 # already holds the closest faithful approximation and DOES run on CI.
 #
+# ABL-751's production confirmation adds 1 more to the same file -> 1868
+# (1867 + 1), a local collect measured exactly. It is a both-ways text pin on
+# the report's confirmation claim, gated on nothing -- it reads a tracked file
+# and the launcher -- so `max_skipped` stays at 10.
+#
 # Remember `max_skipped` is a ceiling, so a merge conflict on it takes the
 # HIGHER side -- unlike `tests`, which is summed.
 #
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": 1867,
+    "tests": 1868,
     "max_skipped": 10,
 }
 

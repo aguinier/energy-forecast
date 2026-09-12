@@ -684,6 +684,53 @@ def test_the_report_says_the_second_run_not_the_first():
         )
 
 
+def test_the_report_records_the_production_confirmation(launcher):
+    """Pin the confirmation both ways, like the cutover claim above.
+
+    "It is not confirmed in production yet" was true when written and is now
+    false: the 2026-09-12 08:00 run logged the width line (ABL-751). A report
+    that keeps saying it sends the next reader to re-run a grep that is already
+    answered -- and the test above exists because a sentence in this same report
+    went stale exactly that way, twice.
+
+    A report that *claimed* the confirmation without naming what produced it
+    would be worse, so three things are required and not just the happy phrase:
+    the run, the width line, and the evidence that no run was skipped. That last
+    one is load-bearing rather than decorative. The task carries
+    `DisallowStartIfOnBatteries`, so a missed run is skipped and not deferred --
+    which would have moved the widened launcher to the NEXT run and made an
+    absent width line the correct result. An absent width line and a skipped run
+    are different faults with the same symptom, and only the task info separates
+    them.
+
+    The width line is derived from the launcher's own parameter default rather
+    than typed in, so the report cannot quietly drift from the constant it
+    quotes: change `$BufferWidth` without re-confirming and this fails.
+    """
+    text = REPORT.read_text(encoding="utf-8")
+    width = _param_default(launcher, "BufferWidth")
+
+    assert "It is not confirmed in production yet" not in text, (
+        "the report still calls the widening unconfirmed, but the 2026-09-12 "
+        "08:00 run confirmed it (ABL-751)"
+    )
+    for required, why in (
+        ("Confirmed in production", "nothing records the production result"),
+        (
+            f"{WRAP} -> {width}",
+            "the report does not quote the width line this launcher emits",
+        ),
+        ("2026-09-12", "the confirmation does not name the run it came from"),
+        (
+            "NumberOfMissedRuns 0",
+            "the report does not record that no run was skipped, so its absent "
+            "width line on 09-11 is not distinguishable from a run that never "
+            "fired",
+        ),
+    ):
+        assert required in text, f"{why}: {required!r} missing from {REPORT.name}"
+
+
 # ---------------------------------------------------------------------------
 # 7. Executed: the SHIPPED FILE, through the scheduled task's own spawn.
 #

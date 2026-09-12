@@ -1,9 +1,12 @@
 # ABL-733 — the serving transcript stops wrapping at 120 columns
 
-**Status:** merged 2026-09-10 (PR #120, merge `53427a17`). Nothing to install:
-the change is inside `scripts/workstation/run-net-position-serving.ps1`, which
-the serving checkout hard-resets to `origin/main` on every run, so it needs no
-operator step.
+**Status:** merged 2026-09-10 (PR #120, merge `53427a17`; corrected by #122,
+merge `df642cb`) and **confirmed serving in production on the 2026-09-12 08:00
+run** — see
+"[Confirmed in production](#confirmed-in-production--the-2026-09-12-0800-run)".
+Nothing to install: the change is inside
+`scripts/workstation/run-net-position-serving.ps1`, which the serving checkout
+hard-resets to `origin/main` on every run, so it needs no operator step.
 
 **It takes effect at the SECOND scheduled run after the merge, not the first.**
 An earlier revision of this section said "the first 08:00 run after the merge";
@@ -244,14 +247,24 @@ step. But the file being changed **is the file that performs that reset**, and a
 `powershell.exe -File` script is parsed in full before its first statement runs.
 So the run that *pulls* the new launcher is still executing the old one.
 
-| run | launcher that executes | clone left at | width line in log |
-|---|---|---|---|
-| 2026-09-11 08:00 | `0cd9ec2` (pre-ABL-733) | `53427a17` or later | **none — expected** |
-| 2026-09-12 08:00 | `53427a17` (widened) | current `origin/main` | `120 -> 512` |
+Predicted when this section was written, and **both rows have since been
+measured** — see
+"[Confirmed in production](#confirmed-in-production--the-2026-09-12-0800-run)":
 
-`Get-ScheduledTaskInfo able-net-position-forecast` gives `NextRunTime
-09/11/2026 08:00:00`; the clone's `git reflog` shows one `reset: moving to
-origin/main` per run, and it currently sits at `0cd9ec2`.
+| run | launcher that executes | clone left at | width line in log | observed |
+|---|---|---|---|---|
+| 2026-09-11 08:00 | `0cd9ec2` (pre-ABL-733) | `df642cb` | **none — expected** | none, and the run wrapped at 120 |
+| 2026-09-12 08:00 | `df642cb` (widened) | `df642cb` | `120 -> 512` | `120 -> 512`, and nothing wrapped |
+
+The "clone left at" column was written as "`53427a17` or later" and resolved to
+`df642cb`, because #122 merged later the same evening and the 09-11 run reset
+past #120 straight to it. That is why the launcher that executed on 09-12 is
+`df642cb`'s and not `53427a17`'s — the lag is one *run*, not one *commit*.
+
+`Get-ScheduledTaskInfo able-net-position-forecast` gave `NextRunTime
+09/11/2026 08:00:00` when this was written; the clone's `git reflog` shows one
+`reset: moving to origin/main` per run, and it sat at `0cd9ec2` until the 09-11
+run moved it.
 
 **The job it invokes does not lag.** `run-net-position.ps1` is invoked with `&`
 *after* the reset, so it is read from disk at that moment and a change to it
@@ -286,28 +299,135 @@ returns exactly two commits, `d97f168` (which created it) and `ca4278e` (this
 one), and the file is byte-identical between `28abfeb` and `0cd9ec2`. No prior
 run ever exercised the self-update path, so no log could have shown the lag.
 
+## Confirmed in production — the 2026-09-12 08:00 run
+
+ABL-751, read off `C:\Code\able\logs\net-position-forecast.log` at 2026-09-12
+08:45. Both rows of the prediction above held, including the one that says the
+first run shows nothing.
+
+The transcript for the run opens `Start time: 20260912080002` (log line 3705),
+and the widened launcher's first act is line 3721:
+
+```
+net-position serving transcript width: 120 -> 512
+```
+
+**The run was not skipped, and the 09-11 run was not either.** That had to be
+checked before reading anything into the width line, because the task carries
+`DisallowStartIfOnBatteries: True` and `StartWhenAvailable: False`, so a missed
+run is skipped rather than deferred — and a skipped 09-11 would have pushed the
+widened launcher to 09-13 and made an absent width line the *correct* result.
+`Get-ScheduledTaskInfo able-net-position-forecast`: `LastRunTime 09/12/2026
+8:00:01`, `LastTaskResult 0`, **`NumberOfMissedRuns 0`**. The clone's reflog
+holds one `reset: moving to origin/main` per run, `0cd9ec2` → `df642cb` on
+09-11 and a no-op on 09-12, and the clone's launcher blob now equals
+`origin/main`'s:
+
+```
+$ git -C C:/Code/able/energy-forecast-serving rev-parse HEAD:scripts/workstation/run-net-position-serving.ps1
+8731da02c3baec7dbf73308b37d84a2b2f0c884b     # == origin/main's blob
+```
+
+### The wrap is gone, measured rather than asserted
+
+Per-run census of physical line lengths, the two runs either side of the
+changeover:
+
+| run | lines | exactly 120 | over 120 | longest |
+|---|---|---|---|---|
+| 2026-09-11 08:00 (old launcher) | 314 | **99** | 0 | 120 |
+| 2026-09-12 08:00 (widened) | 153 | **0** | 62 | 364 |
+
+`exactly 120` and `over 120` are the discriminating pair, and they have to be
+read together. 99-and-0 is the signature of a hard wrap: no line is allowed past
+the column. 0-and-62 is the signature of its absence. A count of long lines
+alone would not distinguish them, because a 120-column log also has plenty of
+*short* lines.
+
+The clearest single instance is the same message on consecutive days. 09-11,
+split mid-word across two physical lines:
+
+```
+wrote C:\Code\able\energy-forecast\reports\net_position_eval\net_position_eval_2026-W37.md (22,352 pairs, gate: FAIL ove
+r 39 vintages)
+```
+
+09-12, one 134-char line:
+
+```
+wrote C:\Code\able\energy-forecast\reports\net_position_eval\net_position_eval_2026-W37.md (23,178 pairs, gate: FAIL over 40 vintages)
+```
+
+**The 512 constant still has headroom.** Stitched over the whole log, the
+longest record is **383** chars — the same figure this report measured on
+2026-09-10, so the widest thing this log has ever held has not moved — and **0
+of 3,585 stitched records exceed 512**. The widened run's longest physical line
+is 364.
+
+### The runbook's command, executed rather than read
+
+ABL-692's check 2, its stitch block copied verbatim and run against the real
+mixed-shape log — the first log to hold both shapes, where before it only ever
+had a fixture to prove it on:
+
+```
+commit : df642cbf19f4863aab26807e30ae240ebdeac403
+band   : calibrated s_lo=1.0722 s_hi=1.0091
+```
+
+Both fields resolve. This is the check that ABL-732 found reporting a false
+defect on a healthy system, and it is now correct on a log whose two halves
+disagree about wrapping.
+
+The stitched and raw views now differ only on history, which is the whole claim
+of the next section stated as a number:
+
+| view | `calibrated s_lo=… s_hi=…)` matches |
+|---|---|
+| whole file, raw | 10 |
+| whole file, stitched | **47** |
+| 09-12 run only, raw | 10 |
+| 09-12 run only, stitched | 10 |
+
+All 10 raw matches over the whole file come from the 09-12 run. The 37 the raw
+view still misses are the wrapped history, exactly the lines the stitch rule
+exists for. On the 09-12 run the stitch is an **identity** — 153 raw lines in,
+153 records out — so new output needs no stitching, and old output still does.
+
+One clause of that rule remains unexercised and is worth naming rather than
+quietly claiming as tested: "and the next line must not open a new record" has
+never changed an outcome on this log — **0 of 288** lines of exactly 120 chars
+are followed by a new record. It is a guard against a genuine 120-character
+record, not an observed case. `test_the_runbook_command_still_works_once_the_wrap_stops`
+is still the only place that clause is actually executed.
+
 ## What this does not do
 
 **It does not retire the stitched read.** The transcript is opened `-Append`, so
-the 3,352 already-wrapped lines stay in the file, and this log will hold both
-shapes indefinitely. The ABL-692 runbook's command is written to be correct on
-both — `-eq 120` plus "the next line does not open a new record", never "long" —
-and `test_the_runbook_command_still_works_once_the_wrap_stops` runs it over a
-fixture holding wrapped history followed by unwrapped records.
+the already-wrapped lines stay in the file, and this log will hold both shapes
+indefinitely — as of 2026-09-12 it holds 288 lines cut at exactly 120, up from
+the 171 Python-origin ones counted on 09-10, and not one more will be added. The
+ABL-692 runbook's command is written to be correct on both — `-eq 120` plus "the
+next line does not open a new record", never "long" — and
+`test_the_runbook_command_still_works_once_the_wrap_stops` runs it over a
+fixture holding wrapped history followed by unwrapped records. Measured on the
+real article above: stitched 47, raw 10.
 
-**It is not confirmed in production yet**, and the first run after the merge is
-**not** the one to confirm it on — see the section below. Confirm on the second
-one, with the runbook's command plus:
+**It is confirmed in production, on the second run after the merge** — the
+2026-09-12 08:00 one, per the section above. The first run after the merge was
+**not** the one to confirm it on, and zero matches on 2026-09-11 was the
+expected, healthy result. To re-check it on any later run, the runbook's command
+plus:
 
 ```powershell
 Select-String "net-position serving transcript width:" `
   C:\Code\able\logs\net-position-forecast.log | Select-Object -Last 1
 ```
 
-Expected: `net-position serving transcript width: 120 -> 512`. If it reads
+Expected: `net-position serving transcript width: 120 -> 512`. If it ever reads
 `unavailable, log stays wrapped (…)`, the host had no console to resize — the
-forecast still ran and the log is simply as wrapped as it was before. **Zero
-matches on 2026-09-11 is the expected, healthy result**, not a failure.
+forecast still ran and the log is simply as wrapped as it was before. That is a
+result to record, not an incident.
 
 **It does not change what anything greps for.** `net-position serving commit:`
 is untouched, and the width line is a distinct prefix, so an existing
