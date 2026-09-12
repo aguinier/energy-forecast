@@ -558,6 +558,11 @@ stats, holiday features, per-type weather. Notes that bite:
   exists at the top level — variant subdirectories are not a trained model.
 - "Database error" → `ENERGY_DB_PATH` unset or stale; `python config.py`
   prints the currency verdict.
+- A per-user path check under `%APPDATA%`/`%LOCALAPPDATA%` reads as "missing" →
+  agent runs start with both set to the empty string (`USERPROFILE` is
+  correct). Derive per-user paths from `USERPROFILE` instead, and never
+  conclude a per-user path or credential is absent from an
+  `%APPDATA%`-rooted probe.
 - Low accuracy → check data-quality guards fired (warnings name excluded
   windows), interpreter (see above), and resolution assumptions.
 
