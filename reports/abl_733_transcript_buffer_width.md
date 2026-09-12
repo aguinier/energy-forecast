@@ -131,17 +131,21 @@ control and 174 in both treatments. Nothing is padded to the new width.
 
 ### The tests
 
-`tests/test_abl733_transcript_buffer_width.py` — **20 passed** under
-`C:\Code\able\energy-forecast\.venv\Scripts\python.exe`.
+`tests/test_abl733_transcript_buffer_width.py` — **21 passed** under
+`C:\Code\able\energy-forecast\.venv\Scripts\python.exe`, 0 skipped (all four
+`.vbs`-gated tests run on the workstation; on the ubuntu runner they skip, which
+is what `FLOOR['max_skipped'] = 10` records).
 
-That count has moved twice since this section was first written, and this
-paragraph was stale for both: it said **12**, which was right for PR #120 and
-wrong from the moment #122 merged. #122 added the four one-run-lag tests in
+That count has now moved three times since this section was first written, and
+this paragraph was stale for the first two: it said **12**, which was right for
+PR #120 and wrong from the moment #122 merged. #122 added the four one-run-lag
+tests in
 "[When it starts serving](#when-it-starts-serving--one-run-later-than-it-looks)"
-below (12 → 16), and ABL-751 added the four shipped-file rehearsal tests in
+below (12 → 16); ABL-751 added the four shipped-file rehearsal tests in
 "[The shipped file, through the production spawn](#the-shipped-file-through-the-production-spawn)"
-(16 → 20). A test count in prose is a claim like any other; re-derive it from
-the file rather than from this sentence.
+(16 → 20); and the production confirmation added one text pin on this report's
+own confirmation claim (20 → 21). A test count in prose is a claim like any
+other; re-derive it from the file rather than from this sentence.
 
 Two of the original twelve execute the shipped block in a hidden console and are
 the reason the rest are not just grep assertions:
