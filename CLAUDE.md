@@ -150,7 +150,9 @@ reset and serves on the first run. So when you change
 `run-net-position-serving.ps1`, confirm on the **second** scheduled run and say
 so wherever you write the confirmation step; a zero-match grep on the first run
 is the healthy result, not a failure. Reproduced in
-`test_a_running_launcher_does_not_see_its_own_update`.
+`test_a_running_launcher_does_not_see_its_own_update`, and observed in production
+on 2026-09-12 (ABL-751): the 09-11 run logged no width line and wrapped at 120,
+the 09-12 run logged `120 -> 512` and did not wrap at all.
 
 Read the SHA before claiming a serving change is live; never infer it:
 

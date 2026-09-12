@@ -142,11 +142,33 @@ from pathlib import Path
 # through plain `pwsh` with stdio redirected, which the ubuntu-latest runner
 # does fine. So `max_skipped` stays at 6.
 #
+# ABL-751 adds 4 more to the same file -> 1867 (1863 + 4), a local collect
+# measured exactly. These four are the shipped-file rehearsal: they run
+# `scripts/workstation/run-net-position-serving.ps1` byte for byte through the
+# scheduled task's own action -- `wscript.exe //B //Nologo run-hidden.vbs` --
+# against a throwaway origin, clone and log directory.
+#
+# `max_skipped` goes 6 -> 10, and all four of the increment are gated, so this
+# is a raise of exactly the size of the increment rather than a ceiling being
+# topped up. The gate is `C:/Users/guill/bin/run-hidden.vbs` plus `wscript.exe`:
+# the ubuntu-latest runner has neither, and reimplementing the .vbs to make them
+# run there would measure a different spawn than the one that serves -- which is
+# the substitution these tests exist to stop relying on. Section 4 of that file
+# already holds the closest faithful approximation and DOES run on CI.
+#
+# ABL-751's production confirmation adds 1 more to the same file -> 1868
+# (1867 + 1), a local collect measured exactly. It is a both-ways text pin on
+# the report's confirmation claim, gated on nothing -- it reads a tracked file
+# and the launcher -- so `max_skipped` stays at 10.
+#
+# Remember `max_skipped` is a ceiling, so a merge conflict on it takes the
+# HIGHER side -- unlike `tests`, which is summed.
+#
 # `None` means "not yet measured": the gate then reports what it saw and fails,
 # so a floor cannot be quietly left unset.
 FLOOR: dict[str, int | None] = {
-    "tests": 1863,
-    "max_skipped": 6,
+    "tests": 1868,
+    "max_skipped": 10,
 }
 
 

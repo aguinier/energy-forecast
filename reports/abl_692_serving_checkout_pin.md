@@ -201,7 +201,8 @@ Measured on the live log, 2026-09-10 (3,352 physical lines):
 | | |
 |---|---|
 | Python-origin lines longer than 120 chars | **0** |
-| Python-origin lines exactly 120 chars | 189 |
+| lines exactly 120 chars, **all origins** | 189 |
+| of those, Python-origin | 171 |
 | lines longer than 120 chars | 53, all `Write-Host`/transcript-header origin |
 | exactly-120 lines whose successor opens a new record | **0** |
 
@@ -227,7 +228,8 @@ Two details of the stitch rule are load-bearing:
   itself, which is one of the two things being read.
 - **And the next line must not open a new record.** A genuine 120-character
   record is not a wrapped one. Nothing in today's log needs this clause (0 of
-  189), but it is what keeps the command correct if the wrap ever goes away —
+  189 — the all-origins population, since the rule matches on length and not on
+  origin), but it is what keeps the command correct if the wrap ever goes away —
   the transcript is opened `-Append`, so this file will hold already-wrapped
   lines regardless of any future change to the launcher's buffer width.
 
@@ -253,11 +255,18 @@ correct on the mixture. See `reports/abl_733_transcript_buffer_width.md`.
    change is likewise not live.
 4. **The log is now mixed, so the stitched command stays.** ABL-733 widened the
    buffer to 512 in `run-net-position-serving.ps1`, which stops *future* output
-   wrapping. The transcript is opened `-Append`, so the 3,352 already-wrapped
-   lines stay in the file and any read of history still needs the rule above.
-   It is written to be correct on both shapes, and
+   wrapping — confirmed serving on the 2026-09-12 08:00 run (ABL-751). The
+   transcript is opened `-Append`, so the already-wrapped lines stay in the file
+   and any read of history still needs the rule above. As of 2026-09-12 that is
+   **288 lines cut at exactly 120 over all origins** (189 on 09-10; 171 → 261
+   on the Python-origin subpopulation), and no more will be added; an earlier
+   revision of this item said "the 3,352 already-wrapped lines", which was the
+   log's *total physical line count* on 09-10, not its wrapped one. It is
+   written to be correct on both shapes, and
    `tests/test_abl733_transcript_buffer_width.py` runs it over a log holding
-   both.
+   both. Measured on the real mixed log: the same regex matches 47 stitched
+   records and 10 raw ones, and over the 09-12 run alone the stitch is an
+   identity.
 
    One claim made here when this was routed out has since been **falsified**,
    and is corrected rather than deleted because the reasoning was wrong in a
