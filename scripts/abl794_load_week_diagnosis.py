@@ -712,7 +712,9 @@ def main() -> int:
         print(msg, flush=True)
 
     Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.json_out).write_text(json.dumps(rounded(report), default=str), encoding="utf-8")
+    # Trailing newline: a one-line record with none is stored as `i/none`, which
+    # tests/test_abl715_record_bytes_are_portable.py rejects.
+    Path(args.json_out).write_text(json.dumps(rounded(report), default=str) + "\n", encoding="utf-8")
     if args.rows_out and all_rows:
         pd.concat(all_rows).to_csv(args.rows_out)
     print(f"wrote {args.json_out}")
